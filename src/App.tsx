@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import { NavigationProvider, useNavigation } from '@/contexts/navigation-context'
-import { Hero } from '@/components/landing/hero'
+import { LandingPage } from '@/components/landing/landing-page'
 import { LoginModal } from '@/components/auth/login-modal'
 import { SignupModal } from '@/components/auth/signup-modal'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
@@ -41,12 +41,13 @@ function AppContent() {
     setLoginOpen(true)
   }
 
-  // Redirect to dashboard if authenticated
+  // Redirect to landing if trying to access dashboard without auth
   React.useEffect(() => {
-    if (isAuthenticated && view === 'landing') {
-      setView('dashboard')
+    if (!isAuthenticated && !isRestoringSession && view === 'dashboard') {
+      setView('landing')
+      setLoginOpen(true)
     }
-  }, [isAuthenticated, view, setView])
+  }, [isAuthenticated, isRestoringSession, view, setView])
 
   // Show loading state while restoring session
   if (isRestoringSession) {
@@ -60,11 +61,11 @@ function AppContent() {
     )
   }
 
-  // Landing View
-  if (view === 'landing' || !isAuthenticated) {
+  // Landing View - always show at root path
+  if (view === 'landing') {
     return (
       <>
-        <Hero onTryIt={handleTryIt} onContinueAsGuest={handleContinueAsGuest} />
+        <LandingPage onSignIn={handleTryIt} onContinueAsGuest={handleContinueAsGuest} />
         <LoginModal
           open={loginOpen}
           onOpenChange={setLoginOpen}
@@ -77,6 +78,12 @@ function AppContent() {
         />
       </>
     )
+  }
+
+  // Dashboard View - requires authentication
+  if (!isAuthenticated) {
+    // Should not reach here due to redirect effect, but just in case
+    return null
   }
 
   // Dashboard View

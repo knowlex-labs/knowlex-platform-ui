@@ -23,8 +23,8 @@ export const STATUS_COLORS = {
   blocked: 'bg-ledger-gray-800 text-ledger-white',
 } as const
 
-export const APP_NAME = 'Knowlex AI'
-export const APP_TAGLINE = "AI-Powered India's Legal Workflow"
+export const APP_NAME = 'Knowlex'
+export const APP_TAGLINE = "India's Smart Legal Workflow"
 
 // Demo user credentials for "Continue as Guest" functionality
 export const DEMO_USER_USERNAME = 'demo_user'

@@ -272,7 +272,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
         <DialogHeader>
           <DialogTitle>Sign In</DialogTitle>
           <DialogDescription>
-            Enter your credentials to access Knowlex AI
+            Enter your credentials to access Knowlex
           </DialogDescription>
         </DialogHeader>
 

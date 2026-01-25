@@ -301,7 +301,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
         <DialogHeader>
           <DialogTitle>Create Account</DialogTitle>
           <DialogDescription>
-            Join Knowlex AI to streamline your legal workflow
+            Join Knowlex to streamline your legal workflow
           </DialogDescription>
         </DialogHeader>
 

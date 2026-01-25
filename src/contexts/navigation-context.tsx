@@ -7,14 +7,27 @@ interface NavigationProviderProps {
   children: React.ReactNode
 }
 
+function getViewFromPath(): NavigationView {
+  const path = window.location.pathname
+  if (path.startsWith('/dashboard')) {
+    return 'dashboard'
+  }
+  return 'landing'
+}
+
 export function NavigationProvider({ children }: NavigationProviderProps) {
-  const [state, setState] = React.useState<NavigationState>({
-    view: 'landing',
+  const [state, setState] = React.useState<NavigationState>(() => ({
+    view: getViewFromPath(),
     activeTab: 'my-clients',
     selectedClientId: null,
-  })
+  }))
 
+  // Sync URL with view changes
   const setView = React.useCallback((view: NavigationView) => {
+    const newPath = view === 'dashboard' ? '/dashboard' : '/'
+    if (window.location.pathname !== newPath) {
+      window.history.pushState({}, '', newPath)
+    }
     setState((prev) => ({ ...prev, view }))
   }, [])
 
@@ -24,6 +37,17 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
 
   const setSelectedClientId = React.useCallback((selectedClientId: string | null) => {
     setState((prev) => ({ ...prev, selectedClientId }))
+  }, [])
+
+  // Handle browser back/forward navigation
+  React.useEffect(() => {
+    const handlePopState = () => {
+      const view = getViewFromPath()
+      setState((prev) => ({ ...prev, view }))
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
   const value: NavigationContextValue = {
