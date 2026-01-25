@@ -1,4 +1,4 @@
-import { Users, Receipt, Calendar, Brain, FileText, HelpCircle, User as UserIcon, Mail } from 'lucide-react'
+import { Users, Receipt, Calendar, Brain, FileText, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { useNavigation } from '@/contexts/navigation-context'
 import { useAuth } from '@/contexts/auth-context'
-import { SIDEBAR_TABS, APP_NAME } from '@/lib/constants'
+import { SIDEBAR_TABS, APP_NAME, DEMO_USER_USERNAME } from '@/lib/constants'
 import type { DashboardTab } from '@/types'
 import * as React from 'react'
 
@@ -27,10 +27,12 @@ export function Sidebar() {
   const { activeTab, setActiveTab, setView } = useNavigation()
   const { user, logout } = useAuth()
   const [showHelpDialog, setShowHelpDialog] = React.useState(false)
+  const [showUserMenu, setShowUserMenu] = React.useState(false)
 
   const handleLogout = () => {
     logout()
     setView('landing')
+    setShowUserMenu(false)
   }
 
   const getUserDisplayName = () => {
@@ -39,6 +41,8 @@ export function Sidebar() {
     }
     return 'User'
   }
+
+  const isDemoUser = user?.username === DEMO_USER_USERNAME
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-ledger-white border-r border-ledger-gray-200 flex flex-col">
@@ -85,19 +89,46 @@ export function Sidebar() {
 
         <Separator />
 
-        {/* User Name Display - Clickable to open Account Settings */}
+        {/* User Name Display */}
         {user && (
-          <button
-            onClick={() => setActiveTab('account-settings' as DashboardTab)}
-            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-ledger-gray-100 transition-colors text-left"
-          >
-            <div className="h-8 w-8 rounded-full bg-ledger-gray-200 flex items-center justify-center flex-shrink-0">
-              <UserIcon className="h-4 w-4 text-ledger-gray-600" />
-            </div>
-            <p className="text-sm font-medium text-ledger-black truncate">
-              {getUserDisplayName()}
-            </p>
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-ledger-gray-100 transition-colors text-left"
+            >
+              <div className="h-8 w-8 rounded-full bg-ledger-gray-200 flex items-center justify-center flex-shrink-0">
+                <UserIcon className="h-4 w-4 text-ledger-gray-600" />
+              </div>
+              <p className="text-sm font-medium text-ledger-black truncate flex-1">
+                {getUserDisplayName()}
+              </p>
+              <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-ledger-white border border-ledger-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
+                <button
+                  onClick={() => {
+                    setActiveTab('account-settings' as DashboardTab)
+                    setShowUserMenu(false)
+                  }}
+                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-ledger-black hover:bg-ledger-gray-50 transition-colors flex items-center gap-2"
+                >
+                  <UserIcon className="h-4 w-4" />
+                  Account Settings
+                </button>
+                <Separator />
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  {isDemoUser ? 'Exit Demo' : 'Sign Out'}
+                </button>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
