@@ -21,21 +21,21 @@ const team = [
 
 export function TeamSection() {
   return (
-    <section id="team" className="py-16 md:py-24 bg-ledger-white">
+    <section id="team" className="py-12 sm:py-16 md:py-24 bg-ledger-white">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
-        <div className="text-center mb-12 md:mb-16">
-          <h2 className="text-3xl md:text-4xl font-serif font-semibold text-ledger-black mb-4">
+        <div className="text-center mb-8 sm:mb-12 md:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-ledger-black mb-3 sm:mb-4">
             Team
           </h2>
         </div>
 
-        <div className="flex flex-col md:flex-row justify-center gap-12 md:gap-16">
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-10 sm:gap-12 md:gap-16">
           {team.map((member) => (
             <div
               key={member.name}
               className="text-center"
             >
-              <div className="w-48 h-48 md:w-56 md:h-56 bg-ledger-gray-200 rounded-full mx-auto mb-6 overflow-hidden">
+              <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-56 md:h-56 bg-ledger-gray-200 rounded-full mx-auto mb-4 sm:mb-6 overflow-hidden">
                 <img
                   src={member.image}
                   alt={member.name}
@@ -43,26 +43,26 @@ export function TeamSection() {
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
                     target.style.display = 'none'
-                    target.parentElement!.innerHTML = `<span class="flex items-center justify-center w-full h-full text-4xl font-serif font-semibold text-ledger-gray-600">${member.name.split(' ').map(n => n[0]).join('')}</span>`
+                    target.parentElement!.innerHTML = `<span class="flex items-center justify-center w-full h-full text-3xl sm:text-4xl font-serif font-semibold text-ledger-gray-600">${member.name.split(' ').map(n => n[0]).join('')}</span>`
                   }}
                 />
               </div>
-              <h3 className="text-xl font-serif font-semibold text-ledger-black mb-1">
+              <h3 className="text-lg sm:text-xl font-serif font-semibold text-ledger-black mb-1">
                 {member.name}
               </h3>
-              <p className="text-sm font-medium text-ledger-gray-500 mb-1">
+              <p className="text-xs sm:text-sm font-medium text-ledger-gray-500 mb-1">
                 {member.role} · {member.description}
               </p>
-              <p className="text-sm text-ledger-gray-500 mb-3">
+              <p className="text-xs sm:text-sm text-ledger-gray-500 mb-2 sm:mb-3">
                 {member.credentials}
               </p>
               <a
                 href={member.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-ledger-gray-500 hover:text-ledger-black transition-colors"
+                className="inline-flex items-center gap-1 text-xs sm:text-sm text-ledger-gray-500 hover:text-ledger-black transition-colors"
               >
-                <Linkedin size={16} />
+                <Linkedin size={14} className="sm:w-4 sm:h-4" />
                 LinkedIn
               </a>
             </div>
