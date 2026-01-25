@@ -18,23 +18,87 @@ interface LoginModalProps {
   onSwitchToSignup: () => void
 }
 
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (config: { client_id: string; callback: (response: { credential: string }) => void }) => void
+          renderButton: (element: HTMLElement, config: { theme: string; size: string; width: number }) => void
+        }
+      }
+    }
+  }
+}
+
 export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalProps) {
-  const { login, continueAsGuest } = useAuth()
+  const { login, googleLogin, continueAsGuest } = useAuth()
   const { setView } = useNavigation()
-  const [email, setEmail] = React.useState('')
+  const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState('')
+  const googleButtonRef = React.useRef<HTMLDivElement>(null)
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+  React.useEffect(() => {
+    if (!open || !googleClientId || !googleButtonRef.current) return
+
+    const initializeGoogle = () => {
+      if (window.google && googleButtonRef.current) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleResponse,
+        })
+        window.google.accounts.id.renderButton(googleButtonRef.current, {
+          theme: 'outline',
+          size: 'large',
+          width: 400,
+        })
+      }
+    }
+
+    if (window.google) {
+      initializeGoogle()
+    } else {
+      const script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      script.onload = initializeGoogle
+      document.body.appendChild(script)
+    }
+  }, [open, googleClientId])
+
+  const handleGoogleResponse = async (response: { credential: string }) => {
+    setIsLoading(true)
+    setError('')
+
+    try {
+      await googleLogin(response.credential)
+      setView('dashboard')
+      onOpenChange(false)
+    } catch (err) {
+      console.error('Google login failed:', err)
+      setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError('')
 
     try {
-      await login({ email, password })
+      await login({ username, password })
       setView('dashboard')
       onOpenChange(false)
-    } catch (error) {
-      console.error('Login failed:', error)
+    } catch (err) {
+      console.error('Login failed:', err)
+      setError(err instanceof Error ? err.message : 'Invalid username or password')
     } finally {
       setIsLoading(false)
     }
@@ -52,15 +116,15 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Username</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="advocate@lawfirm.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="username"
+              type="text"
+              placeholder="advocate.sharma"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
-              autoComplete="email"
+              autoComplete="username"
             />
           </div>
 
@@ -77,6 +141,10 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
             />
           </div>
 
+          {error && (
+            <p className="text-sm text-red-600">{error}</p>
+          )}
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
@@ -89,6 +157,10 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
               <span className="bg-ledger-white px-2 text-ledger-gray-400">or</span>
             </div>
           </div>
+
+          {googleClientId && (
+            <div ref={googleButtonRef} className="flex justify-center" />
+          )}
 
           <Button
             type="button"

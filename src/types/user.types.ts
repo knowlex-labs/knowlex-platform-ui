@@ -15,7 +15,7 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  email: string
+  username: string
   password: string
 }
 
@@ -26,12 +26,13 @@ export interface SignupData {
   lastName: string
   password: string
   confirmPassword: string
-  phone?: string
+  mobileNumber?: string
 }
 
 export interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
   signup: (data: SignupData) => Promise<void>
+  googleLogin: (idToken: string) => Promise<void>
   continueAsGuest: () => void
   logout: () => void
 }

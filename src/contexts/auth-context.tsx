@@ -1,7 +1,9 @@
 import * as React from 'react'
 import type { AuthContextValue, AuthState, LoginCredentials, SignupData, User } from '@/types'
+import { authApi } from '@/services/api/auth-api'
 
 const AUTH_TOKEN_KEY = 'auth_token'
+const REFRESH_TOKEN_KEY = 'auth_refresh_token'
 
 const AuthContext = React.createContext<AuthContextValue | undefined>(undefined)
 
@@ -9,27 +11,31 @@ interface AuthProviderProps {
   children: React.ReactNode
 }
 
-// Generate a mock JWT-like token for API requests
-// In production, this would come from a real auth API
-function generateMockToken(userId: string): string {
-  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
-  const payload = btoa(
-    JSON.stringify({
-      sub: userId,
-      iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + 86400, // 24 hours
-    })
-  )
-  const signature = btoa('mock-signature')
-  return `${header}.${payload}.${signature}`
-}
-
-function setAuthToken(token: string | null) {
+function setAuthTokens(token: string | null, refreshToken: string | null) {
   if (token) {
     localStorage.setItem(AUTH_TOKEN_KEY, token)
   } else {
     localStorage.removeItem(AUTH_TOKEN_KEY)
   }
+  if (refreshToken) {
+    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+  } else {
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+  }
+}
+
+function generateGuestToken(userId: string): string {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))
+  const payload = btoa(
+    JSON.stringify({
+      sub: userId,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 86400,
+      guest: true,
+    })
+  )
+  const signature = btoa('guest-signature')
+  return `${header}.${payload}.${signature}`
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -40,48 +46,78 @@ export function AuthProvider({ children }: AuthProviderProps) {
   })
 
   const login = React.useCallback(async (credentials: LoginCredentials) => {
-    // Mock login - in production, this would call an API
-    const mockUser: User = {
-      id: 'user-1',
-      username: 'advocate.sharma',
-      email: credentials.email,
-      firstName: 'Rajesh',
-      lastName: 'Sharma',
-      phone: '+91 98765 43210',
-      createdAt: new Date(),
+    const response = await authApi.login({
+      username: credentials.username,
+      password: credentials.password,
+    })
+
+    const user: User = {
+      id: response.user.id,
+      username: response.user.username,
+      email: response.user.email,
+      firstName: response.user.firstName,
+      lastName: response.user.lastName,
+      phone: response.user.mobileNumber,
+      createdAt: new Date(response.user.createdAt),
     }
 
-    // Generate and store mock token
-    const token = generateMockToken(mockUser.id)
-    setAuthToken(token)
+    setAuthTokens(response.token, response.refreshToken)
 
     setAuthState({
       isAuthenticated: true,
       isGuest: false,
-      user: mockUser,
+      user,
     })
   }, [])
 
   const signup = React.useCallback(async (data: SignupData) => {
-    // Mock signup - in production, this would call an API
-    const mockUser: User = {
-      id: 'user-' + Date.now(),
+    const response = await authApi.register({
       username: data.username,
       email: data.email,
+      password: data.password,
       firstName: data.firstName,
       lastName: data.lastName,
-      phone: data.phone,
-      createdAt: new Date(),
+      mobileNumber: data.mobileNumber,
+    })
+
+    const user: User = {
+      id: response.user.id,
+      username: response.user.username,
+      email: response.user.email,
+      firstName: response.user.firstName,
+      lastName: response.user.lastName,
+      phone: response.user.mobileNumber,
+      createdAt: new Date(response.user.createdAt),
     }
 
-    // Generate and store mock token
-    const token = generateMockToken(mockUser.id)
-    setAuthToken(token)
+    setAuthTokens(response.token, response.refreshToken)
 
     setAuthState({
       isAuthenticated: true,
       isGuest: false,
-      user: mockUser,
+      user,
+    })
+  }, [])
+
+  const googleLogin = React.useCallback(async (idToken: string) => {
+    const response = await authApi.googleAuth(idToken)
+
+    const user: User = {
+      id: response.user.id,
+      username: response.user.username,
+      email: response.user.email,
+      firstName: response.user.firstName,
+      lastName: response.user.lastName,
+      phone: response.user.mobileNumber,
+      createdAt: new Date(response.user.createdAt),
+    }
+
+    setAuthTokens(response.token, response.refreshToken)
+
+    setAuthState({
+      isAuthenticated: true,
+      isGuest: false,
+      user,
     })
   }, [])
 
@@ -95,9 +131,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       createdAt: new Date(),
     }
 
-    // Generate and store mock token for guest
-    const token = generateMockToken(guestUser.id)
-    setAuthToken(token)
+    const token = generateGuestToken(guestUser.id)
+    setAuthTokens(token, null)
 
     setAuthState({
       isAuthenticated: true,
@@ -107,8 +142,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const logout = React.useCallback(() => {
-    // Clear token on logout
-    setAuthToken(null)
+    setAuthTokens(null, null)
 
     setAuthState({
       isAuthenticated: false,
@@ -121,6 +155,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     ...authState,
     login,
     signup,
+    googleLogin,
     continueAsGuest,
     logout,
   }

@@ -28,7 +28,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     lastName: '',
     password: '',
     confirmPassword: '',
-    phone: '',
+    mobileNumber: '',
   })
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState('')
@@ -124,13 +124,13 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (optional)</Label>
+            <Label htmlFor="mobileNumber">Mobile Number (optional)</Label>
             <Input
-              id="phone"
-              name="phone"
+              id="mobileNumber"
+              name="mobileNumber"
               type="tel"
               placeholder="+91 98765 43210"
-              value={formData.phone}
+              value={formData.mobileNumber}
               onChange={handleChange}
             />
           </div>
