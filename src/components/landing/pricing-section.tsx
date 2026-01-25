@@ -57,7 +57,7 @@ const plans = [
 
 export function PricingSection({ onGetStarted }: PricingSectionProps) {
   const handleContactUs = () => {
-    window.location.href = 'mailto:contact@knowlex.in?subject=Custom Plan Inquiry'
+    window.location.href = 'mailto:nakul.jain@getknowlex.com?subject=Custom Plan Inquiry'
   }
 
   return (

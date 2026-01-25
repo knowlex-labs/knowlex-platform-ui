@@ -4,16 +4,16 @@ const team = [
   {
     name: 'Nakul Jain',
     role: 'Co-Founder',
-    description: 'Tech & Operations',
-    credentials: 'Software Engineer, IITK Alum',
+    focus: 'Tech & Operations',
+    bio: 'Nakul is a Software Engineer at Raga AI and a Computer Science graduate from IIT Kanpur. He has built products across AI, gaming, and multiple startups. He wants to use technology to solve problems that matter.',
     image: '/team/nakul.jpg',
     linkedin: 'https://www.linkedin.com/in/nakul-jain-453976b1/',
   },
   {
     name: 'Adv. Vaibhavi Jain',
     role: 'Co-Founder',
-    description: 'Product & Sales',
-    credentials: 'Advocate, PhD Student',
+    focus: 'Product & Sales',
+    bio: 'Vaibhavi is a practicing Advocate with a Masters in Law. She has seen the challenges lawyers face every day and wants to build tools that actually help them and the people they serve.',
     image: '/team/vaibhavi.jpg',
     linkedin: 'https://www.linkedin.com/in/vaibhavijain/',
   },
@@ -29,13 +29,13 @@ export function TeamSection() {
           </h2>
         </div>
 
-        <div className="flex flex-col sm:flex-row justify-center items-center gap-10 sm:gap-12 md:gap-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 max-w-4xl mx-auto">
           {team.map((member) => (
             <div
               key={member.name}
               className="text-center"
             >
-              <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-56 md:h-56 bg-ledger-gray-200 rounded-full mx-auto mb-4 sm:mb-6 overflow-hidden">
+              <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-48 md:h-48 bg-ledger-gray-200 rounded-full mx-auto mb-4 sm:mb-6 overflow-hidden">
                 <img
                   src={member.image}
                   alt={member.name}
@@ -50,19 +50,19 @@ export function TeamSection() {
               <h3 className="text-lg sm:text-xl font-serif font-semibold text-ledger-black mb-1">
                 {member.name}
               </h3>
-              <p className="text-xs sm:text-sm font-medium text-ledger-gray-500 mb-1">
-                {member.role} · {member.description}
+              <p className="text-xs sm:text-sm font-medium text-ledger-gray-500 mb-3 sm:mb-4">
+                {member.role} · {member.focus}
               </p>
-              <p className="text-xs sm:text-sm text-ledger-gray-500 mb-2 sm:mb-3">
-                {member.credentials}
+              <p className="text-sm sm:text-base text-ledger-gray-600 mb-4 max-w-sm mx-auto leading-relaxed">
+                {member.bio}
               </p>
               <a
                 href={member.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs sm:text-sm text-ledger-gray-500 hover:text-ledger-black transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-ledger-gray-500 hover:text-ledger-black transition-colors"
               >
-                <Linkedin size={14} className="sm:w-4 sm:h-4" />
+                <Linkedin size={16} />
                 LinkedIn
               </a>
             </div>

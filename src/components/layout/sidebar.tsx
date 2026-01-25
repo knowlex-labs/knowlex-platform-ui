@@ -155,10 +155,10 @@ export function SidebarContent({ onItemClick }: SidebarContentProps) {
               <div>
                 <p className="text-sm font-medium text-ledger-black">Email us</p>
                 <a
-                  href="mailto:iamnakuljain@gmail.com"
+                  href="mailto:nakul.jain@getknowlex.com"
                   className="text-sm text-ledger-gray-600 hover:text-ledger-black underline"
                 >
-                  iamnakuljain@gmail.com
+                  nakul.jain@getknowlex.com
                 </a>
               </div>
             </div>
