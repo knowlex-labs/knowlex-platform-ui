@@ -7,8 +7,8 @@ interface PricingSectionProps {
 
 const plans = [
   {
-    name: 'Free',
-    price: '0',
+    name: 'Basic',
+    price: 'Free',
     description: 'Perfect for solo practitioners getting started.',
     features: [
       'Up to 10 clients',
@@ -18,12 +18,11 @@ const plans = [
     ],
     cta: 'Get Started',
     highlighted: false,
-    order: 'order-2 md:order-1',
   },
   {
     name: 'Pro',
     price: '1,499',
-    period: '/month',
+    period: '/mo',
     description: 'For growing practices that need more power.',
     features: [
       'Unlimited clients',
@@ -35,10 +34,9 @@ const plans = [
     ],
     cta: 'Start Free Trial',
     highlighted: true,
-    order: 'order-1 md:order-2',
   },
   {
-    name: 'Custom',
+    name: 'Enterprise',
     price: 'Custom',
     description: 'For law firms with specific requirements.',
     features: [
@@ -51,13 +49,12 @@ const plans = [
     ],
     cta: 'Contact Us',
     highlighted: false,
-    order: 'order-3',
   },
 ]
 
 export function PricingSection({ onGetStarted }: PricingSectionProps) {
   const handleContactUs = () => {
-    window.location.href = 'mailto:nakul.jain@getknowlex.com?subject=Custom Plan Inquiry'
+    window.location.href = 'mailto:nakul.jain@getknowlex.com?subject=Enterprise Plan Inquiry'
   }
 
   return (
@@ -76,41 +73,53 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`bg-ledger-white rounded-lg p-5 sm:p-6 md:p-8 border ${plan.order} ${
+              className={`bg-ledger-white rounded-lg p-5 sm:p-6 md:p-8 border flex flex-col ${
                 plan.highlighted
                   ? 'border-ledger-black ring-2 ring-ledger-black'
                   : 'border-ledger-gray-200'
               }`}
             >
-              {plan.highlighted && (
-                <div className="text-xs font-medium text-ledger-white bg-ledger-black px-3 py-1 rounded-full inline-block mb-3 sm:mb-4">
-                  Most Popular
-                </div>
-              )}
-              <h3 className="text-lg sm:text-xl font-serif font-semibold text-ledger-black mb-2">
+              {/* Plan Name */}
+              <h3 className="text-2xl sm:text-3xl font-serif font-semibold text-ledger-black mb-2">
                 {plan.name}
               </h3>
-              <div className="mb-3 sm:mb-4">
+
+              {/* Description */}
+              <p className="text-sm sm:text-base text-ledger-gray-600 mb-4 sm:mb-6">
+                {plan.description}
+              </p>
+
+              {/* Price */}
+              <div className="mb-4 sm:mb-6">
                 {plan.price === 'Custom' ? (
                   <span className="text-2xl sm:text-3xl font-serif font-semibold text-ledger-black">
                     Custom
                   </span>
+                ) : plan.price === 'Free' ? (
+                  <span className="text-2xl sm:text-3xl font-serif font-semibold text-ledger-black">
+                    Free
+                  </span>
                 ) : (
                   <>
-                    <span className="text-sm text-ledger-gray-500">₹</span>
-                    <span className="text-2xl sm:text-3xl font-serif font-semibold text-ledger-black">
-                      {plan.price}
-                    </span>
+                    <span className="text-2xl sm:text-3xl font-sans font-semibold text-ledger-black">₹{plan.price}</span>
                     {plan.period && (
                       <span className="text-sm sm:text-base text-ledger-gray-500">{plan.period}</span>
                     )}
                   </>
                 )}
               </div>
-              <p className="text-sm sm:text-base text-ledger-gray-600 mb-4 sm:mb-6">
-                {plan.description}
-              </p>
-              <ul className="space-y-2 sm:space-y-3 mb-6 sm:mb-8">
+
+              {/* CTA Button */}
+              <Button
+                variant={plan.highlighted ? 'primary' : 'outline'}
+                className="w-full mb-6 sm:mb-8"
+                onClick={plan.name === 'Enterprise' ? handleContactUs : onGetStarted}
+              >
+                {plan.cta}
+              </Button>
+
+              {/* Features */}
+              <ul className="space-y-2 sm:space-y-3 flex-1">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
                     <Check className="w-4 h-4 sm:w-5 sm:h-5 text-ledger-black flex-shrink-0 mt-0.5" />
@@ -118,13 +127,6 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
                   </li>
                 ))}
               </ul>
-              <Button
-                variant={plan.highlighted ? 'primary' : 'outline'}
-                className="w-full"
-                onClick={plan.name === 'Custom' ? handleContactUs : onGetStarted}
-              >
-                {plan.cta}
-              </Button>
             </div>
           ))}
         </div>
