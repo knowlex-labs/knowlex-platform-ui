@@ -74,7 +74,6 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false)
   const [error, setError] = React.useState('')
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -82,7 +81,6 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
   const [isGoogleScriptLoaded, setIsGoogleScriptLoaded] = React.useState(false)
 
   const handleGoogleCallback = React.useCallback(async (response: { credential: string }) => {
-    setIsGoogleLoading(true)
     setError('')
 
     try {
@@ -92,8 +90,6 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
     } catch (err) {
       console.error('Google login failed:', err)
       setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.')
-    } finally {
-      setIsGoogleLoading(false)
     }
   }, [googleLogin, setView, onOpenChange])
 

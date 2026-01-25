@@ -81,7 +81,6 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     confirmPassword: '',
   })
   const [isLoading, setIsLoading] = React.useState(false)
-  const [isGoogleLoading, setIsGoogleLoading] = React.useState(false)
   const [error, setError] = React.useState('')
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -92,10 +91,9 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
   const isEmailValid = formData.email.includes('@') && formData.email.includes('.')
   const passwordsMatch = formData.password && formData.confirmPassword && formData.password === formData.confirmPassword
   const passwordsEntered = formData.password && formData.confirmPassword
-  const passwordsDontMatch = passwordsEntered && formData.password !== formData.confirmPassword
+  const passwordsDontMatch = Boolean(passwordsEntered && formData.password !== formData.confirmPassword)
 
   const handleGoogleCallback = React.useCallback(async (response: { credential: string }) => {
-    setIsGoogleLoading(true)
     setError('')
 
     try {
@@ -105,8 +103,6 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
     } catch (err) {
       console.error('Google signup failed:', err)
       setError(err instanceof Error ? err.message : 'Google sign-up failed. Please try again.')
-    } finally {
-      setIsGoogleLoading(false)
     }
   }, [googleLogin, setView, onOpenChange])
 
@@ -424,7 +420,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
             <p className="text-sm text-red-600">{error}</p>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading || !isEmailValid || passwordsDontMatch}>
+          <Button type="submit" className="w-full" disabled={isLoading || !isEmailValid || !!passwordsDontMatch}>
             {isLoading ? 'Creating Account...' : 'Create Account'}
           </Button>
 
