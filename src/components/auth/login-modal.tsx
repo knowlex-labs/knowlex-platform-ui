@@ -268,7 +268,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-md mx-4 sm:mx-auto">
         <DialogHeader>
           <DialogTitle>Sign In</DialogTitle>
           <DialogDescription>

@@ -15,12 +15,12 @@ export function ClientDetail() {
   if (isLoading) {
     return (
       <div>
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setSelectedClientId(null)}
-            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2"
+            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Clients
@@ -34,12 +34,12 @@ export function ClientDetail() {
   if (error) {
     return (
       <div>
-        <div className="mb-6">
+        <div className="mb-4 md:mb-6">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setSelectedClientId(null)}
-            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2"
+            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Clients
@@ -74,12 +74,12 @@ export function ClientDetail() {
   return (
     <div>
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setSelectedClientId(null)}
-          className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2"
+          className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Clients
@@ -87,18 +87,18 @@ export function ClientDetail() {
       </div>
 
       {/* Client Header */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <ClientHeader client={client} />
       </div>
 
       {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Activity Feed - 2/3 width */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        {/* Activity Feed - 2/3 width on desktop */}
         <div className="lg:col-span-2">
           <ActivityFeed activities={client.activities} />
         </div>
 
-        {/* AI Research - 1/3 width */}
+        {/* AI Research - 1/3 width on desktop */}
         <div className="lg:col-span-1">
           <ResearchSummary items={client.aiResearch} />
         </div>

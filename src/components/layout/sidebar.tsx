@@ -23,7 +23,11 @@ const iconMap = {
   'file-text': FileText,
 }
 
-export function Sidebar() {
+interface SidebarContentProps {
+  onItemClick?: () => void
+}
+
+export function SidebarContent({ onItemClick }: SidebarContentProps) {
   const { activeTab, setActiveTab, setView } = useNavigation()
   const { user, logout } = useAuth()
   const [showHelpDialog, setShowHelpDialog] = React.useState(false)
@@ -33,6 +37,7 @@ export function Sidebar() {
     logout()
     setView('landing')
     setShowUserMenu(false)
+    onItemClick?.()
   }
 
   const getUserDisplayName = () => {
@@ -44,27 +49,29 @@ export function Sidebar() {
 
   const isDemoUser = user?.username === DEMO_USER_USERNAME
 
-  return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-ledger-white border-r border-ledger-gray-200 flex flex-col">
-      {/* Logo */}
-      <div className="px-6 py-5 border-b border-ledger-gray-200">
-        <h1 className="text-xl font-serif font-semibold text-ledger-black">
-          {APP_NAME}
-        </h1>
-      </div>
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as DashboardTab)
+    onItemClick?.()
+  }
 
+  return (
+    <>
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto">
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as DashboardTab)}
+          onValueChange={handleTabChange}
           orientation="vertical"
         >
           <TabsList>
             {SIDEBAR_TABS.map((tab) => {
               const Icon = iconMap[tab.icon as keyof typeof iconMap]
               return (
-                <TabsTrigger key={tab.id} value={tab.id}>
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className="min-h-[48px]"
+                >
                   {Icon && <Icon className="h-4 w-4" />}
                   <span>{tab.label}</span>
                 </TabsTrigger>
@@ -80,7 +87,7 @@ export function Sidebar() {
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start gap-2 text-ledger-gray-600 hover:text-ledger-black"
+          className="w-full justify-start gap-2 text-ledger-gray-600 hover:text-ledger-black min-h-[48px]"
           onClick={() => setShowHelpDialog(true)}
         >
           <HelpCircle className="h-4 w-4" />
@@ -94,7 +101,7 @@ export function Sidebar() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-ledger-gray-100 transition-colors text-left"
+              className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-ledger-gray-100 transition-colors text-left min-h-[48px]"
             >
               <div className="h-8 w-8 rounded-full bg-ledger-gray-200 flex items-center justify-center flex-shrink-0">
                 <UserIcon className="h-4 w-4 text-ledger-gray-600" />
@@ -112,8 +119,9 @@ export function Sidebar() {
                   onClick={() => {
                     setActiveTab('account-settings' as DashboardTab)
                     setShowUserMenu(false)
+                    onItemClick?.()
                   }}
-                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-ledger-black hover:bg-ledger-gray-50 transition-colors flex items-center gap-2"
+                  className="w-full px-4 py-3 text-left text-sm font-medium text-ledger-black hover:bg-ledger-gray-50 transition-colors flex items-center gap-2 min-h-[48px]"
                 >
                   <UserIcon className="h-4 w-4" />
                   Account Settings
@@ -121,7 +129,7 @@ export function Sidebar() {
                 <Separator />
                 <button
                   onClick={handleLogout}
-                  className="w-full px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+                  className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 min-h-[48px]"
                 >
                   <LogOut className="h-4 w-4" />
                   {isDemoUser ? 'Exit Demo' : 'Sign Out'}
@@ -160,6 +168,21 @@ export function Sidebar() {
           </div>
         </DialogContent>
       </Dialog>
+    </>
+  )
+}
+
+export function Sidebar() {
+  return (
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex">
+      {/* Logo */}
+      <div className="px-6 py-5 border-b border-ledger-gray-200">
+        <h1 className="text-xl font-serif font-semibold text-ledger-black">
+          {APP_NAME}
+        </h1>
+      </div>
+
+      <SidebarContent />
     </aside>
   )
 }

@@ -22,6 +22,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           'inline-flex items-center justify-center font-sans font-medium transition-colors',
           'focus:outline-none focus:ring-2 focus:ring-ledger-black focus:ring-offset-2',
           'disabled:pointer-events-none disabled:opacity-50',
+          'touch-manipulation',
           {
             'bg-ledger-black text-ledger-white hover:bg-ledger-gray-800':
               variant === 'primary',
@@ -33,9 +34,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               variant === 'outline',
           },
           {
-            'h-8 px-3 text-sm rounded-sm': size === 'sm',
-            'h-10 px-4 text-sm rounded': size === 'md',
-            'h-12 px-6 text-base rounded': size === 'lg',
+            'h-10 min-h-[44px] px-3 text-sm rounded-sm': size === 'sm',
+            'h-11 min-h-[44px] px-4 text-sm rounded': size === 'md',
+            'h-12 min-h-[48px] px-6 text-base rounded': size === 'lg',
           },
           className
         )}

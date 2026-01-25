@@ -297,7 +297,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="w-[calc(100%-2rem)] max-w-lg mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Account</DialogTitle>
           <DialogDescription>
@@ -306,7 +306,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-3 mt-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="firstName">First Name</Label>
               <Input
@@ -372,7 +372,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="signupPassword">Password</Label>
               <Input

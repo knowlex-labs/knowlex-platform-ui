@@ -34,14 +34,14 @@ export function ClientHeader({ client }: ClientHeaderProps) {
   const caseData = client.case
 
   return (
-    <div className="border border-ledger-gray-200 rounded p-6">
+    <div className="border border-ledger-gray-200 rounded p-4 md:p-6">
       {/* Top Section */}
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h2 className="text-xl font-serif font-semibold text-ledger-black">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+        <div className="min-w-0">
+          <h2 className="text-lg md:text-xl font-serif font-semibold text-ledger-black">
             {client.name}
           </h2>
-          <p className="text-sm text-ledger-gray-500 mt-1">
+          <p className="text-sm text-ledger-gray-500 mt-1 truncate">
             {caseData?.caseTitle ?? 'No case assigned'}
           </p>
         </div>
@@ -51,13 +51,13 @@ export function ClientHeader({ client }: ClientHeaderProps) {
       <Separator className="my-4" />
 
       {/* Info Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {/* Case Number */}
         <div>
           <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
             Case ID
           </p>
-          <code className="text-sm font-mono text-ledger-black">
+          <code className="text-sm font-mono text-ledger-black break-all">
             {caseData?.caseNumber ?? '-'}
           </code>
         </div>
@@ -78,8 +78,8 @@ export function ClientHeader({ client }: ClientHeaderProps) {
             <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
               Court
             </p>
-            <div className="flex items-center gap-1.5">
-              <Building className="h-3.5 w-3.5 text-ledger-gray-400" />
+            <div className="flex items-start gap-1.5">
+              <Building className="h-3.5 w-3.5 text-ledger-gray-400 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-ledger-black">
                 {caseData.courtName}
               </p>
@@ -93,8 +93,8 @@ export function ClientHeader({ client }: ClientHeaderProps) {
             <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
               Next Hearing
             </p>
-            <div className="flex items-center gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-ledger-gray-400" />
+            <div className="flex items-start gap-1.5">
+              <Calendar className="h-3.5 w-3.5 text-ledger-gray-400 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-ledger-black">
                 {formatDate(caseData.nextHearingDate)}
               </p>
@@ -105,37 +105,37 @@ export function ClientHeader({ client }: ClientHeaderProps) {
 
       <Separator className="my-4" />
 
-      {/* Contact Info */}
-      <div className="flex flex-wrap gap-6">
+      {/* Contact Info - Stack vertically on mobile */}
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-6">
         {client.email && (
-          <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-ledger-gray-400" />
-            <a
-              href={`mailto:${client.email}`}
-              className="text-sm text-ledger-black hover:underline"
-            >
+          <a
+            href={`mailto:${client.email}`}
+            className="flex items-center gap-2 p-2 -m-2 rounded-lg hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors min-h-[44px]"
+          >
+            <Mail className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
+            <span className="text-sm text-ledger-black hover:underline truncate">
               {client.email}
-            </a>
-          </div>
+            </span>
+          </a>
         )}
         {client.phone && (
-          <div className="flex items-center gap-2">
-            <Phone className="h-4 w-4 text-ledger-gray-400" />
-            <a
-              href={`tel:${client.phone}`}
-              className="text-sm text-ledger-black hover:underline"
-            >
+          <a
+            href={`tel:${client.phone}`}
+            className="flex items-center gap-2 p-2 -m-2 rounded-lg hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors min-h-[44px]"
+          >
+            <Phone className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
+            <span className="text-sm text-ledger-black hover:underline">
               {client.phone}
-            </a>
-          </div>
+            </span>
+          </a>
         )}
         {client.address && (
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-ledger-gray-400" />
+          <div className="flex items-center gap-2 min-h-[44px]">
+            <MapPin className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
             <span className="text-sm text-ledger-black">{client.address}</span>
           </div>
         )}
-        <div className="text-sm text-ledger-gray-500">
+        <div className="flex items-center text-sm text-ledger-gray-500 min-h-[44px]">
           Client since: {formatDate(client.createdAt)}
         </div>
       </div>

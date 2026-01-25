@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { ClientListSkeleton } from '@/components/ui/skeleton'
@@ -7,7 +7,7 @@ import { useNavigation } from '@/contexts/navigation-context'
 import { useClients } from '@/hooks/use-clients'
 import { STATUS_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import type { CaseStatus } from '@/types'
+import type { CaseStatus, ClientWithCase } from '@/types'
 
 function StatusBadge({ status }: { status: CaseStatus }) {
   const label = status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')
@@ -31,6 +31,97 @@ function formatDate(date: Date): string {
   }).format(date)
 }
 
+// Mobile card component for client
+function ClientCard({ client, onClick }: { client: ClientWithCase; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full p-4 text-left',
+        'border-b border-ledger-gray-100 last:border-b-0',
+        'hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors',
+        'focus:outline-none focus:bg-ledger-gray-100',
+        'min-h-[72px]'
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-ledger-black truncate">
+            {client.name}
+          </p>
+          <p className="text-xs text-ledger-gray-500 truncate mt-0.5">
+            {client.case?.caseTitle ?? 'No case assigned'}
+          </p>
+          {client.case?.caseNumber && (
+            <code className="text-xs font-mono text-ledger-gray-400 mt-1 block">
+              {client.case.caseNumber}
+            </code>
+          )}
+        </div>
+        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+          {client.case?.status && <StatusBadge status={client.case.status} />}
+          {client.case?.nextHearingDate && (
+            <div className="flex items-center gap-1 text-xs text-ledger-gray-400 mt-1">
+              <Calendar className="h-3 w-3" />
+              <span>{formatDate(client.case.nextHearingDate)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+// Desktop table row component
+function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full grid grid-cols-12 gap-4 px-4 py-4 text-left',
+        'border-b border-ledger-gray-100 last:border-b-0',
+        'hover:bg-ledger-gray-50 transition-colors',
+        'focus:outline-none focus:bg-ledger-gray-100'
+      )}
+    >
+      <div className="col-span-4">
+        <p className="text-sm font-medium text-ledger-black truncate">
+          {client.name}
+        </p>
+        <p className="text-xs text-ledger-gray-500 truncate mt-0.5">
+          {client.case?.caseTitle ?? 'No case assigned'}
+        </p>
+      </div>
+      <div className="col-span-3">
+        <code className="text-xs font-mono text-ledger-gray-600">
+          {client.case?.caseNumber ?? '-'}
+        </code>
+      </div>
+      <div className="col-span-2">
+        {client.case?.status ? (
+          <StatusBadge status={client.case.status} />
+        ) : (
+          <span className="text-xs text-ledger-gray-400">-</span>
+        )}
+      </div>
+      <div className="col-span-3">
+        {client.case?.courtName ? (
+          <p className="text-xs text-ledger-gray-600 truncate">
+            {client.case.courtName}
+          </p>
+        ) : (
+          <span className="text-xs text-ledger-gray-400">-</span>
+        )}
+        {client.case?.nextHearingDate && (
+          <p className="text-xs text-ledger-gray-400 mt-0.5">
+            Next: {formatDate(client.case.nextHearingDate)}
+          </p>
+        )}
+      </div>
+    </button>
+  )
+}
+
 export function ClientList() {
   const { setSelectedClientId } = useNavigation()
   const {
@@ -46,8 +137,8 @@ export function ClientList() {
   if (isLoading) {
     return (
       <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-serif font-semibold text-ledger-black">
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
             My Clients
           </h2>
           <p className="text-sm text-ledger-gray-500 mt-1">
@@ -55,7 +146,8 @@ export function ClientList() {
           </p>
         </div>
         <div className="border border-ledger-gray-200 rounded">
-          <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
+          {/* Desktop Table Header */}
+          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
             <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
               Client / Case
             </div>
@@ -78,8 +170,8 @@ export function ClientList() {
   if (error) {
     return (
       <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-serif font-semibold text-ledger-black">
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
             My Clients
           </h2>
           <p className="text-sm text-ledger-gray-500 mt-1">
@@ -99,8 +191,8 @@ export function ClientList() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-2xl font-serif font-semibold text-ledger-black">
+      <div className="mb-4 md:mb-6">
+        <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
           My Clients
         </h2>
         <p className="text-sm text-ledger-gray-500 mt-1">
@@ -109,8 +201,8 @@ export function ClientList() {
       </div>
 
       <div className="border border-ledger-gray-200 rounded">
-        {/* Table Header */}
-        <div className="grid grid-cols-12 gap-4 px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
+        {/* Desktop Table Header - Hidden on mobile */}
+        <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
           <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
             Client / Case
           </div>
@@ -131,54 +223,28 @@ export function ClientList() {
             <p className="text-sm text-ledger-gray-500">No clients found</p>
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-280px)]">
-            {clients.map((client) => (
-              <button
-                key={client.id}
-                onClick={() => setSelectedClientId(client.id)}
-                className={cn(
-                  'w-full grid grid-cols-12 gap-4 px-4 py-4 text-left',
-                  'border-b border-ledger-gray-100 last:border-b-0',
-                  'hover:bg-ledger-gray-50 transition-colors',
-                  'focus:outline-none focus:bg-ledger-gray-100'
-                )}
-              >
-                <div className="col-span-4">
-                  <p className="text-sm font-medium text-ledger-black truncate">
-                    {client.name}
-                  </p>
-                  <p className="text-xs text-ledger-gray-500 truncate mt-0.5">
-                    {client.case?.caseTitle ?? 'No case assigned'}
-                  </p>
-                </div>
-                <div className="col-span-3">
-                  <code className="text-xs font-mono text-ledger-gray-600">
-                    {client.case?.caseNumber ?? '-'}
-                  </code>
-                </div>
-                <div className="col-span-2">
-                  {client.case?.status ? (
-                    <StatusBadge status={client.case.status} />
-                  ) : (
-                    <span className="text-xs text-ledger-gray-400">-</span>
-                  )}
-                </div>
-                <div className="col-span-3">
-                  {client.case?.courtName ? (
-                    <p className="text-xs text-ledger-gray-600 truncate">
-                      {client.case.courtName}
-                    </p>
-                  ) : (
-                    <span className="text-xs text-ledger-gray-400">-</span>
-                  )}
-                  {client.case?.nextHearingDate && (
-                    <p className="text-xs text-ledger-gray-400 mt-0.5">
-                      Next: {formatDate(client.case.nextHearingDate)}
-                    </p>
-                  )}
-                </div>
-              </button>
-            ))}
+          <ScrollArea className="h-[calc(100vh-220px)] md:h-[calc(100vh-280px)]">
+            {/* Mobile Card View */}
+            <div className="md:hidden">
+              {clients.map((client) => (
+                <ClientCard
+                  key={client.id}
+                  client={client}
+                  onClick={() => setSelectedClientId(client.id)}
+                />
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block">
+              {clients.map((client) => (
+                <ClientTableRow
+                  key={client.id}
+                  client={client}
+                  onClick={() => setSelectedClientId(client.id)}
+                />
+              ))}
+            </div>
           </ScrollArea>
         )}
 
@@ -194,7 +260,7 @@ export function ClientList() {
                 size="sm"
                 onClick={() => setPage(currentPage - 1)}
                 disabled={currentPage === 0}
-                className="h-8 w-8 p-0"
+                className="h-10 w-10 p-0"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -203,7 +269,7 @@ export function ClientList() {
                 size="sm"
                 onClick={() => setPage(currentPage + 1)}
                 disabled={currentPage >= totalPages - 1}
-                className="h-8 w-8 p-0"
+                className="h-10 w-10 p-0"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

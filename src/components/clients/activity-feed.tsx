@@ -54,18 +54,22 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
         <DemoBadge />
       </div>
 
-      <ScrollArea className="h-[400px]">
+      {/* Mobile: max-height with auto overflow, Desktop: fixed height */}
+      <ScrollArea className="h-auto max-h-[50vh] md:h-[400px] md:max-h-none">
         <div className="p-4">
           <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-4 top-2 bottom-2 w-px bg-ledger-gray-200" />
+            {/* Timeline line - positioned at center of icons (16px = half of 32px icon) */}
+            <div className="absolute left-[15px] top-4 bottom-4 w-px bg-ledger-gray-200" />
 
             {/* Activities */}
             <div className="space-y-6">
               {activities.map((activity) => {
                 const Icon = activityIcons[activity.type]
                 return (
-                  <div key={activity.id} className="relative pl-10">
+                  <div
+                    key={activity.id}
+                    className="relative pl-12"
+                  >
                     {/* Icon */}
                     <div
                       className={cn(
@@ -77,8 +81,8 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                     </div>
 
                     {/* Content */}
-                    <div className="pt-0.5">
-                      <div className="flex items-center gap-2 mb-1">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs text-ledger-gray-500 uppercase tracking-wide">
                           {activity.type}
                         </span>
@@ -99,7 +103,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                           {Object.entries(activity.metadata).map(([key, value]) => (
                             <span
                               key={key}
-                              className="inline-flex items-center px-2 py-0.5 text-xs bg-ledger-gray-100 text-ledger-gray-600 rounded-sm"
+                              className="inline-flex items-center px-2 py-1 text-xs bg-ledger-gray-100 text-ledger-gray-600 rounded-sm"
                             >
                               {key}: {value}
                             </span>
