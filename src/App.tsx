@@ -8,9 +8,10 @@ import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { ClientList } from '@/components/clients/client-list'
 import { ClientDetail } from '@/components/clients/client-detail'
 import { ComingSoon } from '@/components/placeholders/coming-soon'
+import { AccountSettings } from '@/components/settings/account-settings'
 
 function AppContent() {
-  const { isAuthenticated, continueAsGuest } = useAuth()
+  const { isAuthenticated, continueAsGuest, isRestoringSession } = useAuth()
   const { view, activeTab, selectedClientId, setView } = useNavigation()
 
   const [loginOpen, setLoginOpen] = React.useState(false)
@@ -20,9 +21,14 @@ function AppContent() {
     setLoginOpen(true)
   }
 
-  const handleContinueAsGuest = () => {
-    continueAsGuest()
-    setView('dashboard')
+  const handleContinueAsGuest = async () => {
+    try {
+      await continueAsGuest()
+      setView('dashboard')
+    } catch (err) {
+      console.error('Failed to continue as guest:', err)
+      // Error will be handled by the auth context
+    }
   }
 
   const handleSwitchToSignup = () => {
@@ -41,6 +47,18 @@ function AppContent() {
       setView('dashboard')
     }
   }, [isAuthenticated, view, setView])
+
+  // Show loading state while restoring session
+  if (isRestoringSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ledger-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ledger-black mx-auto mb-4"></div>
+          <p className="text-ledger-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
 
   // Landing View
   if (view === 'landing' || !isAuthenticated) {
@@ -67,16 +85,16 @@ function AppContent() {
       {activeTab === 'my-clients' && (
         selectedClientId ? <ClientDetail /> : <ClientList />
       )}
-      {activeTab === 'billings' && (
-        <ComingSoon
-          title="Billings & Invoices"
-          description="Track billable hours, generate invoices, and manage payments. This feature is currently in development."
-        />
-      )}
       {activeTab === 'timelines' && (
         <ComingSoon
           title="Case Timelines"
           description="Visualize case milestones, deadlines, and hearing schedules. This feature is currently in development."
+        />
+      )}
+      {activeTab === 'drafting' && (
+        <ComingSoon
+          title="Drafting"
+          description="Create and manage legal documents, contracts, and pleadings with AI assistance. This feature is currently in development."
         />
       )}
       {activeTab === 'ai-research' && (
@@ -85,11 +103,14 @@ function AppContent() {
           description="Access AI-powered legal research, case law analysis, and precedent matching. This feature is currently in development."
         />
       )}
-      {activeTab === 'settings' && (
+      {activeTab === 'billings' && (
         <ComingSoon
-          title="Settings"
-          description="Configure your account, notifications, and application preferences. This feature is currently in development."
+          title="Billings"
+          description="Track billable hours, generate invoices, and manage payments. This feature is currently in development."
         />
+      )}
+      {activeTab === 'account-settings' && (
+        <AccountSettings />
       )}
     </DashboardLayout>
   )

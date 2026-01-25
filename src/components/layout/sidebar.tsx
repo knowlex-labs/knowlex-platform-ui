@@ -1,27 +1,43 @@
-import { Users, Receipt, Calendar, Brain, Settings, LogOut } from 'lucide-react'
+import { Users, Receipt, Calendar, Brain, FileText, HelpCircle, User as UserIcon, Mail } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { useNavigation } from '@/contexts/navigation-context'
 import { useAuth } from '@/contexts/auth-context'
 import { SIDEBAR_TABS, APP_NAME } from '@/lib/constants'
 import type { DashboardTab } from '@/types'
+import * as React from 'react'
 
 const iconMap = {
   users: Users,
   receipt: Receipt,
   calendar: Calendar,
   brain: Brain,
-  settings: Settings,
+  'file-text': FileText,
 }
 
 export function Sidebar() {
   const { activeTab, setActiveTab, setView } = useNavigation()
-  const { user, isGuest, logout } = useAuth()
+  const { user, logout } = useAuth()
+  const [showHelpDialog, setShowHelpDialog] = React.useState(false)
 
   const handleLogout = () => {
     logout()
     setView('landing')
+  }
+
+  const getUserDisplayName = () => {
+    if (user) {
+      return user.firstName || user.username || 'User'
+    }
+    return 'User'
   }
 
   return (
@@ -34,7 +50,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4">
+      <nav className="flex-1 py-4 overflow-y-auto">
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as DashboardTab)}
@@ -55,35 +71,64 @@ export function Sidebar() {
       </nav>
 
       {/* User Section */}
-      <div className="border-t border-ledger-gray-200 p-4">
-        {user && (
-          <div className="mb-3">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-medium text-ledger-black truncate">
-                {user.firstName} {user.lastName}
-              </p>
-              {isGuest && (
-                <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-ledger-gray-200 text-ledger-gray-600 rounded-sm">
-                  Guest
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-ledger-gray-500 truncate">
-              {user.email}
-            </p>
-          </div>
-        )}
-        <Separator className="mb-3" />
+      <div className="border-t border-ledger-gray-200 p-4 space-y-3">
+        {/* Help and Support Button */}
         <Button
           variant="ghost"
           size="sm"
           className="w-full justify-start gap-2 text-ledger-gray-600 hover:text-ledger-black"
-          onClick={handleLogout}
+          onClick={() => setShowHelpDialog(true)}
         >
-          <LogOut className="h-4 w-4" />
-          {isGuest ? 'Exit Demo' : 'Sign Out'}
+          <HelpCircle className="h-4 w-4" />
+          Help and Support
         </Button>
+
+        <Separator />
+
+        {/* User Name Display - Clickable to open Account Settings */}
+        {user && (
+          <button
+            onClick={() => setActiveTab('account-settings' as DashboardTab)}
+            className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-ledger-gray-100 transition-colors text-left"
+          >
+            <div className="h-8 w-8 rounded-full bg-ledger-gray-200 flex items-center justify-center flex-shrink-0">
+              <UserIcon className="h-4 w-4 text-ledger-gray-600" />
+            </div>
+            <p className="text-sm font-medium text-ledger-black truncate">
+              {getUserDisplayName()}
+            </p>
+          </button>
+        )}
       </div>
+
+      {/* Help and Support Dialog */}
+      <Dialog open={showHelpDialog} onOpenChange={setShowHelpDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Help and Support</DialogTitle>
+            <DialogDescription>
+              Reach out to us for any help
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div className="flex items-center gap-3 p-4 bg-ledger-gray-50 rounded-lg border border-ledger-gray-200">
+              <Mail className="h-5 w-5 text-ledger-gray-600 flex-shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-ledger-black">Email us</p>
+                <a
+                  href="mailto:iamnakuljain@gmail.com"
+                  className="text-sm text-ledger-gray-600 hover:text-ledger-black underline"
+                >
+                  iamnakuljain@gmail.com
+                </a>
+              </div>
+            </div>
+            <p className="text-sm text-ledger-gray-500">
+              We're here to help! Send us an email and we'll get back to you as soon as possible.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </aside>
   )
 }

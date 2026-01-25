@@ -7,11 +7,11 @@ export interface SidebarTabConfig {
 }
 
 export const SIDEBAR_TABS: SidebarTabConfig[] = [
-  { id: 'my-clients', label: 'My Clients', icon: 'users' },
-  { id: 'billings', label: 'Billings & Invoices', icon: 'receipt' },
+  { id: 'my-clients', label: 'Clients', icon: 'users' },
   { id: 'timelines', label: 'Timelines', icon: 'calendar' },
+  { id: 'drafting', label: 'Drafting', icon: 'file-text' },
   { id: 'ai-research', label: 'AI Research', icon: 'brain' },
-  { id: 'settings', label: 'Settings', icon: 'settings' },
+  { id: 'billings', label: 'Billings', icon: 'receipt' },
 ]
 
 export const STATUS_COLORS = {
@@ -25,3 +25,7 @@ export const STATUS_COLORS = {
 
 export const APP_NAME = 'Knowlex AI'
 export const APP_TAGLINE = "AI-Powered India's Legal Workflow"
+
+// Demo user credentials for "Continue as Guest" functionality
+export const DEMO_USER_USERNAME = 'demo_user'
+export const DEMO_USER_PASSWORD = 'demo123'

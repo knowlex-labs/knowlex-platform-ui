@@ -24,6 +24,17 @@ export interface RefreshTokenRequest {
   refreshToken: string
 }
 
+export interface ApiResponse<T> {
+  status: 'success' | 'error'
+  message: string
+  data: T | null
+}
+
+export interface AuthTokens {
+  token: string
+  refreshToken: string
+}
+
 export interface AuthResponse {
   token: string
   refreshToken: string
@@ -43,19 +54,98 @@ export interface AuthError {
   status: number
 }
 
-async function handleAuthResponse(response: Response): Promise<AuthResponse> {
-  const data = await response.json()
+/**
+ * Decode JWT token payload without verification (client-side only)
+ */
+function decodeJWT(token: string): any {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) {
+      throw new Error('Invalid JWT format')
+    }
+    const payload = parts[1]
+    const decoded = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(decoded)
+  } catch (error) {
+    console.error('Failed to decode JWT:', error)
+    return null
+  }
+}
 
-  if (!response.ok) {
-    const errorMessage = data.message || `Authentication failed (${response.status})`
+/**
+ * Extract user info from JWT token
+ */
+function extractUserFromToken(token: string): AuthResponse['user'] | null {
+  const decoded = decodeJWT(token)
+  if (!decoded) {
+    return null
+  }
+
+  // JWT typically has 'sub' for user ID, or custom claims
+  // Adjust these fields based on your actual JWT structure
+  const userId = decoded.sub || decoded.userId || decoded.id || decoded.user?.id
+  const username = decoded.username || decoded.preferred_username || decoded.user?.username || ''
+  const email = decoded.email || decoded.user?.email || ''
+  const firstName = decoded.firstName || decoded.given_name || decoded.first_name || decoded.user?.firstName || ''
+  const lastName = decoded.lastName || decoded.family_name || decoded.last_name || decoded.user?.lastName || ''
+  const mobileNumber = decoded.mobileNumber || decoded.phone_number || decoded.phone || decoded.user?.mobileNumber || undefined
+  
+  // Use iat (issued at) as fallback for createdAt, or current date
+  let createdAt: string
+  if (decoded.createdAt) {
+    createdAt = typeof decoded.createdAt === 'string' 
+      ? decoded.createdAt 
+      : new Date(decoded.createdAt).toISOString()
+  } else if (decoded.iat) {
+    createdAt = new Date(decoded.iat * 1000).toISOString()
+  } else {
+    createdAt = new Date().toISOString()
+  }
+
+  // Validate that we have at least an ID
+  if (!userId) {
+    console.error('JWT token missing user ID', decoded)
+    return null
+  }
+
+  return {
+    id: String(userId),
+    username,
+    email,
+    firstName,
+    lastName,
+    mobileNumber,
+    createdAt,
+  }
+}
+
+async function handleAuthResponse(response: Response): Promise<AuthResponse> {
+  const apiResponse: ApiResponse<AuthTokens> = await response.json()
+
+  if (!response.ok || apiResponse.status !== 'success') {
+    const errorMessage = apiResponse.message || `Authentication failed (${response.status})`
     throw { message: errorMessage, status: response.status } as AuthError
   }
 
-  return data
+  if (!apiResponse.data) {
+    throw { message: 'No data in response', status: response.status } as AuthError
+  }
+
+  // Extract user info from JWT token
+  const user = extractUserFromToken(apiResponse.data.token)
+  if (!user) {
+    throw { message: 'Failed to extract user information from token', status: 500 } as AuthError
+  }
+
+  return {
+    token: apiResponse.data.token,
+    refreshToken: apiResponse.data.refreshToken,
+    user,
+  }
 }
 
 export const authApi = {
-  register: async (data: RegisterRequest): Promise<AuthResponse> => {
+  register: async (data: RegisterRequest): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/v1/auth/register`, {
       method: 'POST',
       headers: {
@@ -63,7 +153,15 @@ export const authApi = {
       },
       body: JSON.stringify(data),
     })
-    return handleAuthResponse(response)
+    const apiResponse: ApiResponse<null> = await response.json()
+
+    if (!response.ok || apiResponse.status !== 'success') {
+      const errorMessage = apiResponse.message || `Registration failed (${response.status})`
+      throw { message: errorMessage, status: response.status } as AuthError
+    }
+
+    // Registration doesn't return tokens - user needs to login separately
+    return
   },
 
   login: async (data: LoginRequest): Promise<AuthResponse> => {

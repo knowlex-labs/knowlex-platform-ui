@@ -33,6 +33,7 @@ export interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
   signup: (data: SignupData) => Promise<void>
   googleLogin: (idToken: string) => Promise<void>
-  continueAsGuest: () => void
+  continueAsGuest: () => Promise<void>
   logout: () => void
+  isRestoringSession?: boolean
 }

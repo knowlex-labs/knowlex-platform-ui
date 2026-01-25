@@ -1,10 +1,9 @@
-import { ChevronLeft, ChevronRight, Lock } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { ClientListSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { useNavigation } from '@/contexts/navigation-context'
-import { useAuth } from '@/contexts/auth-context'
 import { useClients } from '@/hooks/use-clients'
 import { STATUS_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -34,7 +33,6 @@ function formatDate(date: Date): string {
 
 export function ClientList() {
   const { setSelectedClientId } = useNavigation()
-  const { isGuest } = useAuth()
   const {
     clients,
     isLoading,
@@ -44,32 +42,6 @@ export function ClientList() {
     setPage,
     refresh,
   } = useClients({ pageSize: 20 })
-
-  if (isGuest) {
-    return (
-      <div>
-        <div className="mb-6">
-          <h2 className="text-2xl font-serif font-semibold text-ledger-black">
-            My Clients
-          </h2>
-          <p className="text-sm text-ledger-gray-500 mt-1">
-            Manage your client cases and activities
-          </p>
-        </div>
-        <div className="border border-ledger-gray-200 rounded">
-          <div className="px-4 py-12 text-center">
-            <Lock className="h-12 w-12 mx-auto text-ledger-gray-300 mb-4" />
-            <p className="text-lg font-medium text-ledger-gray-700 mb-2">
-              Please login to view clients
-            </p>
-            <p className="text-sm text-ledger-gray-500">
-              Sign in or create an account to access your client list and manage cases.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   if (isLoading) {
     return (

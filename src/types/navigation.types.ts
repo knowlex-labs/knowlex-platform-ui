@@ -2,10 +2,11 @@ export type NavigationView = 'landing' | 'dashboard'
 
 export type DashboardTab =
   | 'my-clients'
-  | 'billings'
   | 'timelines'
+  | 'drafting'
   | 'ai-research'
-  | 'settings'
+  | 'billings'
+  | 'account-settings'
 
 export interface NavigationState {
   view: NavigationView
