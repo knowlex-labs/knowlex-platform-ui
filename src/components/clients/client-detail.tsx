@@ -1,0 +1,108 @@
+import { ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { ClientDetailSkeleton } from '@/components/ui/skeleton'
+import { ErrorDisplay } from '@/components/ui/error-display'
+import { ClientHeader } from './client-header'
+import { ActivityFeed } from './activity-feed'
+import { ResearchSummary } from './research-summary'
+import { useNavigation } from '@/contexts/navigation-context'
+import { useClientDetail } from '@/hooks/use-client-detail'
+
+export function ClientDetail() {
+  const { selectedClientId, setSelectedClientId } = useNavigation()
+  const { client, isLoading, error, refresh } = useClientDetail(selectedClientId)
+
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedClientId(null)}
+            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Clients
+          </Button>
+        </div>
+        <ClientDetailSkeleton />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div>
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedClientId(null)}
+            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Clients
+          </Button>
+        </div>
+        <div className="border border-ledger-gray-200 rounded">
+          <ErrorDisplay
+            title="Failed to load client"
+            message={error}
+            onRetry={refresh}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  if (!client) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-ledger-gray-500">Client not found</p>
+        <Button
+          variant="ghost"
+          onClick={() => setSelectedClientId(null)}
+          className="mt-4"
+        >
+          Back to Clients
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Back Button */}
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSelectedClientId(null)}
+          className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Clients
+        </Button>
+      </div>
+
+      {/* Client Header */}
+      <div className="mb-6">
+        <ClientHeader client={client} />
+      </div>
+
+      {/* Two Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Activity Feed - 2/3 width */}
+        <div className="lg:col-span-2">
+          <ActivityFeed activities={client.activities} />
+        </div>
+
+        {/* AI Research - 1/3 width */}
+        <div className="lg:col-span-1">
+          <ResearchSummary items={client.aiResearch} />
+        </div>
+      </div>
+    </div>
+  )
+}
