@@ -115,6 +115,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           createdAt: new Date(userResponse.data.createdAt),
         }
 
+        // Ensure userId is stored in localStorage (in case it differs from initial response)
+        localStorage.setItem(USER_ID_KEY, userResponse.data.id)
+
         setAuthState({
           isAuthenticated: true,
           user,
@@ -192,6 +195,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           phone: userResponse.data.mobileNumber,
           createdAt: new Date(userResponse.data.createdAt),
         }
+
+        // Ensure userId is stored in localStorage (in case it differs from initial response)
+        localStorage.setItem(USER_ID_KEY, userResponse.data.id)
 
         setAuthState({
           isAuthenticated: true,

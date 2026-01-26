@@ -33,6 +33,7 @@ export interface ApiResponse<T> {
 export interface AuthTokens {
   token: string
   refreshToken: string
+  userId: string
 }
 
 export interface AuthResponse {
@@ -132,9 +133,18 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
   }
 
   // Extract user info from JWT token
-  const user = extractUserFromToken(apiResponse.data.token)
-  if (!user) {
+  const userFromToken = extractUserFromToken(apiResponse.data.token)
+  if (!userFromToken) {
     throw { message: 'Failed to extract user information from token', status: 500 } as AuthError
+  }
+
+  // Use userId from API response if available, otherwise fall back to JWT extraction
+  const userId = apiResponse.data.userId || userFromToken.id
+
+  // Create user object with userId from API response
+  const user = {
+    ...userFromToken,
+    id: userId, // Ensure we use the userId from API response
   }
 
   return {
