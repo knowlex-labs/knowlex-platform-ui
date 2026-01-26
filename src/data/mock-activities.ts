@@ -10,7 +10,7 @@ const sampleActivities: Activity[] = [
     type: 'hearing',
     title: 'Preliminary Hearing Scheduled',
     description: 'Preliminary hearing set for case proceedings.',
-    date: new Date('2024-01-20'),
+    date: new Date('2026-01-20'),
     metadata: { note: 'Demo data' },
   },
   {
@@ -18,21 +18,21 @@ const sampleActivities: Activity[] = [
     type: 'document',
     title: 'Case Documents Filed',
     description: 'Required documentation submitted to the court.',
-    date: new Date('2024-01-15'),
+    date: new Date('2026-01-15'),
   },
   {
     id: 'demo-act-3',
     type: 'research',
     title: 'Legal Research Completed',
     description: 'AI-powered research on relevant case precedents.',
-    date: new Date('2024-01-10'),
+    date: new Date('2026-01-10'),
   },
   {
     id: 'demo-act-4',
     type: 'communication',
     title: 'Client Meeting Notes',
     description: 'Discussion of case strategy and next steps.',
-    date: new Date('2024-01-05'),
+    date: new Date('2026-01-05'),
   },
 ]
 
@@ -44,7 +44,7 @@ const sampleAIResearch: AIResearchItem[] = [
       'Analysis of similar cases with favorable outcomes. Key arguments and legal principles identified.',
     relevance: 'high',
     source: 'Legal Research AI',
-    createdAt: new Date('2024-01-10'),
+    createdAt: new Date('2026-01-10'),
     tags: ['Precedents', 'Case Law'],
   },
   {
@@ -54,7 +54,7 @@ const sampleAIResearch: AIResearchItem[] = [
       'Overview of applicable laws and regulations relevant to this case type.',
     relevance: 'medium',
     source: 'Knowlex Database',
-    createdAt: new Date('2024-01-08'),
+    createdAt: new Date('2026-01-08'),
     tags: ['Regulations', 'Compliance'],
   },
 ]

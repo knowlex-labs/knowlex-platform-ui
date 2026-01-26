@@ -16,11 +16,16 @@ function getViewFromPath(): NavigationView {
 }
 
 export function NavigationProvider({ children }: NavigationProviderProps) {
-  const [state, setState] = React.useState<NavigationState>(() => ({
-    view: getViewFromPath(),
-    activeTab: 'my-clients',
-    selectedClientId: null,
-  }))
+  const [state, setState] = React.useState<NavigationState>(() => {
+    const savedCollapsed = localStorage.getItem('knowlex_sidebar_collapsed')
+    return {
+      view: getViewFromPath(),
+      activeTab: 'dashboard',
+      selectedClientId: null,
+      selectedCaseId: null,
+      sidebarCollapsed: savedCollapsed === 'true',
+    }
+  })
 
   // Sync URL with view changes
   const setView = React.useCallback((view: NavigationView) => {
@@ -32,11 +37,20 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   }, [])
 
   const setActiveTab = React.useCallback((activeTab: DashboardTab) => {
-    setState((prev) => ({ ...prev, activeTab, selectedClientId: null }))
+    setState((prev) => ({ ...prev, activeTab, selectedClientId: null, selectedCaseId: null }))
   }, [])
 
   const setSelectedClientId = React.useCallback((selectedClientId: string | null) => {
     setState((prev) => ({ ...prev, selectedClientId }))
+  }, [])
+
+  const setSelectedCaseId = React.useCallback((selectedCaseId: string | null) => {
+    setState((prev) => ({ ...prev, selectedCaseId }))
+  }, [])
+
+  const setSidebarCollapsed = React.useCallback((sidebarCollapsed: boolean) => {
+    localStorage.setItem('knowlex_sidebar_collapsed', String(sidebarCollapsed))
+    setState((prev) => ({ ...prev, sidebarCollapsed }))
   }, [])
 
   // Handle browser back/forward navigation
@@ -55,6 +69,8 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     setView,
     setActiveTab,
     setSelectedClientId,
+    setSelectedCaseId,
+    setSidebarCollapsed,
   }
 
   return (

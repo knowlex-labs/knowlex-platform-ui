@@ -17,6 +17,10 @@ function getAuthToken(): string | null {
   return localStorage.getItem('auth_token')
 }
 
+function getUserId(): string | null {
+  return localStorage.getItem('auth_user_id')
+}
+
 function getAuthHeaders(): HeadersInit {
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
@@ -25,6 +29,11 @@ function getAuthHeaders(): HeadersInit {
   const token = getAuthToken()
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const userId = getUserId()
+  if (userId) {
+    headers['x-user-id'] = userId
   }
 
   return headers

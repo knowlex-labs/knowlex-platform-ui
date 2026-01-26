@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Calendar, Plus, Phone, Mail, MessageCircle } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { ClientListSkeleton } from '@/components/ui/skeleton'
@@ -33,17 +33,88 @@ function formatDate(date: Date): string {
   }).format(date)
 }
 
+// Contact action buttons component
+function ContactActions({
+  phone,
+  email,
+  onCardClick,
+}: {
+  phone: string | null
+  email: string | null
+  onCardClick: (e: React.MouseEvent) => void
+}) {
+  const handlePhone = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (phone) {
+      window.location.href = `tel:${phone}`
+    }
+  }
+
+  const handleWhatsApp = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '')
+      window.open(`https://wa.me/${cleanPhone}`, '_blank')
+    }
+  }
+
+  const handleEmail = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (email) {
+      window.location.href = `mailto:${email}`
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1" onClick={onCardClick}>
+      {phone && (
+        <>
+          <button
+            onClick={handlePhone}
+            className="p-2 rounded-full hover:bg-ledger-gray-100 transition-colors"
+            title="Call"
+          >
+            <Phone className="h-4 w-4 text-ledger-gray-500" />
+          </button>
+          <button
+            onClick={handleWhatsApp}
+            className="p-2 rounded-full hover:bg-ledger-gray-100 transition-colors"
+            title="WhatsApp"
+          >
+            <MessageCircle className="h-4 w-4 text-ledger-gray-500" />
+          </button>
+        </>
+      )}
+      {email && (
+        <button
+          onClick={handleEmail}
+          className="p-2 rounded-full hover:bg-ledger-gray-100 transition-colors"
+          title="Email"
+        >
+          <Mail className="h-4 w-4 text-ledger-gray-500" />
+        </button>
+      )}
+    </div>
+  )
+}
+
 // Mobile card component for client
 function ClientCard({ client, onClick }: { client: ClientWithCase; onClick: () => void }) {
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation when clicking on contact buttons
+    if ((e.target as HTMLElement).closest('button[title]')) {
+      return
+    }
+    onClick()
+  }
+
   return (
-    <button
-      onClick={onClick}
+    <div
+      onClick={handleCardClick}
       className={cn(
-        'w-full p-4 text-left',
+        'w-full p-4 text-left cursor-pointer',
         'border-b border-ledger-gray-100 last:border-b-0',
-        'hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors',
-        'focus:outline-none focus:bg-ledger-gray-100',
-        'min-h-[72px]'
+        'hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors'
       )}
     >
       <div className="flex items-start justify-between gap-3">
@@ -60,33 +131,47 @@ function ClientCard({ client, onClick }: { client: ClientWithCase; onClick: () =
             </code>
           )}
         </div>
-        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-          {client.case?.status && <StatusBadge status={client.case.status} />}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <div className="flex items-center gap-1">
+            {client.case?.status && <StatusBadge status={client.case.status} />}
+          </div>
+          <ContactActions
+            phone={client.phone}
+            email={client.email}
+            onCardClick={(e) => e.stopPropagation()}
+          />
           {client.case?.nextHearingDate && (
-            <div className="flex items-center gap-1 text-xs text-ledger-gray-400 mt-1">
+            <div className="flex items-center gap-1 text-xs text-ledger-gray-400">
               <Calendar className="h-3 w-3" />
               <span>{formatDate(client.case.nextHearingDate)}</span>
             </div>
           )}
         </div>
       </div>
-    </button>
+    </div>
   )
 }
 
 // Desktop table row component
 function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: () => void }) {
+  const handleRowClick = (e: React.MouseEvent) => {
+    // Prevent navigation when clicking on contact buttons
+    if ((e.target as HTMLElement).closest('button[title]')) {
+      return
+    }
+    onClick()
+  }
+
   return (
-    <button
-      onClick={onClick}
+    <div
+      onClick={handleRowClick}
       className={cn(
-        'w-full grid grid-cols-12 gap-4 px-4 py-4 text-left',
+        'w-full grid grid-cols-12 gap-4 px-4 py-4 text-left cursor-pointer',
         'border-b border-ledger-gray-100 last:border-b-0',
-        'hover:bg-ledger-gray-50 transition-colors',
-        'focus:outline-none focus:bg-ledger-gray-100'
+        'hover:bg-ledger-gray-50 transition-colors'
       )}
     >
-      <div className="col-span-4">
+      <div className="col-span-3">
         <p className="text-sm font-medium text-ledger-black truncate">
           {client.name}
         </p>
@@ -106,7 +191,14 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
           <span className="text-xs text-ledger-gray-400">-</span>
         )}
       </div>
-      <div className="col-span-3">
+      <div className="col-span-2">
+        <ContactActions
+          phone={client.phone}
+          email={client.email}
+          onCardClick={(e) => e.stopPropagation()}
+        />
+      </div>
+      <div className="col-span-2">
         {client.case?.courtName ? (
           <p className="text-xs text-ledger-gray-600 truncate">
             {client.case.courtName}
@@ -120,7 +212,7 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
           </p>
         )}
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -154,10 +246,10 @@ export function ClientList() {
             Add Client
           </Button>
         </div>
-        <div className="border border-ledger-gray-200 rounded">
+        <div className="bg-ledger-white">
           {/* Desktop Table Header */}
-          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
-            <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-y border-ledger-gray-200 bg-ledger-gray-50">
+            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
               Client / Case
             </div>
             <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
@@ -166,7 +258,10 @@ export function ClientList() {
             <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
               Status
             </div>
-            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+            <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+              Contact
+            </div>
+            <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
               Court
             </div>
           </div>
@@ -198,7 +293,7 @@ export function ClientList() {
             Add Client
           </Button>
         </div>
-        <div className="border border-ledger-gray-200 rounded">
+        <div className="bg-ledger-white border-y border-ledger-gray-200">
           <ErrorDisplay
             title="Failed to load clients"
             message={error}
@@ -231,9 +326,9 @@ export function ClientList() {
         </Button>
       </div>
 
-      <div className="border border-ledger-gray-200 rounded">
+      <div className="bg-ledger-white">
         {/* Desktop Table Header - Hidden on mobile */}
-        <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
+        <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-y border-ledger-gray-200 bg-ledger-gray-50">
           <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
             Client / Case
           </div>
@@ -281,7 +376,7 @@ export function ClientList() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-ledger-gray-200 bg-ledger-gray-50">
+          <div className="flex items-center justify-between px-4 py-3 border-y border-ledger-gray-200 bg-ledger-gray-50">
             <p className="text-xs text-ledger-gray-500">
               Page {currentPage + 1} of {totalPages}
             </p>

@@ -156,7 +156,7 @@ export function AddCaseModal({
                 name="caseNumber"
                 value={formData.caseNumber}
                 onChange={handleChange}
-                placeholder="e.g., CIV/2024/001"
+                placeholder="e.g., CIV/2026/001"
                 disabled={isSubmitting}
               />
             </div>

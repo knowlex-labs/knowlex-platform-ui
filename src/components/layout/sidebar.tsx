@@ -1,4 +1,4 @@
-import { Users, Receipt, Calendar, Brain, FileText, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, KanbanSquare, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -16,19 +16,20 @@ import type { DashboardTab } from '@/types'
 import * as React from 'react'
 
 const iconMap = {
+  home: Home,
+  briefcase: Briefcase,
   users: Users,
-  receipt: Receipt,
-  calendar: Calendar,
   brain: Brain,
-  'file-text': FileText,
+  'kanban-square': KanbanSquare,
 }
 
 interface SidebarContentProps {
   onItemClick?: () => void
+  collapsed?: boolean
 }
 
-export function SidebarContent({ onItemClick }: SidebarContentProps) {
-  const { activeTab, setActiveTab, setView } = useNavigation()
+export function SidebarContent({ onItemClick, collapsed = false }: SidebarContentProps) {
+  const { activeTab, setActiveTab, setView, setSidebarCollapsed } = useNavigation()
   const { user, logout } = useAuth()
   const [showHelpDialog, setShowHelpDialog] = React.useState(false)
   const [showUserMenu, setShowUserMenu] = React.useState(false)
@@ -71,9 +72,10 @@ export function SidebarContent({ onItemClick }: SidebarContentProps) {
                   key={tab.id}
                   value={tab.id}
                   className="min-h-[48px]"
+                  title={collapsed ? tab.label : undefined}
                 >
                   {Icon && <Icon className="h-4 w-4" />}
-                  <span>{tab.label}</span>
+                  {!collapsed && <span>{tab.label}</span>}
                 </TabsTrigger>
               )
             })}
@@ -83,15 +85,32 @@ export function SidebarContent({ onItemClick }: SidebarContentProps) {
 
       {/* User Section */}
       <div className="border-t border-ledger-gray-200 p-4 space-y-3">
+        {/* Toggle Collapse Button */}
+        {!onItemClick && (
+          <>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-center text-ledger-gray-600 hover:text-ledger-black min-h-[48px]"
+              onClick={() => setSidebarCollapsed(!collapsed)}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+            </Button>
+            <Separator />
+          </>
+        )}
+
         {/* Help and Support Button */}
         <Button
           variant="ghost"
           size="sm"
           className="w-full justify-start gap-2 text-ledger-gray-600 hover:text-ledger-black min-h-[48px]"
           onClick={() => setShowHelpDialog(true)}
+          title={collapsed ? 'Help and Support' : undefined}
         >
           <HelpCircle className="h-4 w-4" />
-          Help and Support
+          {!collapsed && 'Help and Support'}
         </Button>
 
         <Separator />
@@ -102,14 +121,19 @@ export function SidebarContent({ onItemClick }: SidebarContentProps) {
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-ledger-gray-100 transition-colors text-left min-h-[48px]"
+              title={collapsed ? getUserDisplayName() : undefined}
             >
               <div className="h-8 w-8 rounded-full bg-ledger-gray-200 flex items-center justify-center flex-shrink-0">
                 <UserIcon className="h-4 w-4 text-ledger-gray-600" />
               </div>
-              <p className="text-sm font-medium text-ledger-black truncate flex-1">
-                {getUserDisplayName()}
-              </p>
-              <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              {!collapsed && (
+                <>
+                  <p className="text-sm font-medium text-ledger-black truncate flex-1">
+                    {getUserDisplayName()}
+                  </p>
+                  <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                </>
+              )}
             </button>
 
             {/* Dropdown Menu */}
@@ -173,16 +197,23 @@ export function SidebarContent({ onItemClick }: SidebarContentProps) {
 }
 
 export function Sidebar() {
+  const { sidebarCollapsed } = useNavigation()
+
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex">
+    <aside className={`fixed left-0 top-0 h-screen bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-ledger-gray-200">
-        <h1 className="text-xl font-serif font-semibold text-ledger-black">
+        <h1 className={`text-xl font-serif font-semibold text-ledger-black transition-opacity duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
           {APP_NAME}
         </h1>
+        {sidebarCollapsed && (
+          <div className="flex items-center justify-center -ml-4">
+            <span className="text-xl font-serif font-semibold text-ledger-black">K</span>
+          </div>
+        )}
       </div>
 
-      <SidebarContent />
+      <SidebarContent collapsed={sidebarCollapsed} />
     </aside>
   )
 }

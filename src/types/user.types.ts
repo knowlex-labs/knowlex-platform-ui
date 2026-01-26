@@ -10,7 +10,6 @@ export interface User {
 
 export interface AuthState {
   isAuthenticated: boolean
-  isGuest: boolean
   user: User | null
 }
 

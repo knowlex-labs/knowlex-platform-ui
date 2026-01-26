@@ -5,14 +5,18 @@ import { LandingPage } from '@/components/landing/landing-page'
 import { LoginModal } from '@/components/auth/login-modal'
 import { SignupModal } from '@/components/auth/signup-modal'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
+import { DashboardHome } from '@/components/dashboard/dashboard-home'
+import { CaseList } from '@/components/cases/case-list'
+import { CaseWorkspace } from '@/components/cases/case-workspace'
 import { ClientList } from '@/components/clients/client-list'
 import { ClientDetail } from '@/components/clients/client-detail'
-import { ComingSoon } from '@/components/placeholders/coming-soon'
+import { AIResearch } from '@/components/ai-research/ai-research'
+import { TimelinesBoard } from '@/components/timelines/timelines-board'
 import { AccountSettings } from '@/components/settings/account-settings'
 
 function AppContent() {
   const { isAuthenticated, continueAsGuest, isRestoringSession } = useAuth()
-  const { view, activeTab, selectedClientId, setView } = useNavigation()
+  const { view, activeTab, selectedClientId, selectedCaseId, setView } = useNavigation()
 
   const [loginOpen, setLoginOpen] = React.useState(false)
   const [signupOpen, setSignupOpen] = React.useState(false)
@@ -89,36 +93,16 @@ function AppContent() {
   // Dashboard View
   return (
     <DashboardLayout>
-      {activeTab === 'my-clients' && (
+      {activeTab === 'dashboard' && <DashboardHome />}
+      {activeTab === 'cases' && (
+        selectedCaseId ? <CaseWorkspace caseId={selectedCaseId} /> : <CaseList />
+      )}
+      {activeTab === 'clients' && (
         selectedClientId ? <ClientDetail /> : <ClientList />
       )}
-      {activeTab === 'timelines' && (
-        <ComingSoon
-          title="Case Timelines"
-          description="Visualize case milestones, deadlines, and hearing schedules. This feature is currently in development."
-        />
-      )}
-      {activeTab === 'drafting' && (
-        <ComingSoon
-          title="Drafting"
-          description="Create and manage legal documents, contracts, and pleadings with AI assistance. This feature is currently in development."
-        />
-      )}
-      {activeTab === 'ai-research' && (
-        <ComingSoon
-          title="AI Research"
-          description="Access AI-powered legal research, case law analysis, and precedent matching. This feature is currently in development."
-        />
-      )}
-      {activeTab === 'billings' && (
-        <ComingSoon
-          title="Billings"
-          description="Track billable hours, generate invoices, and manage payments. This feature is currently in development."
-        />
-      )}
-      {activeTab === 'account-settings' && (
-        <AccountSettings />
-      )}
+      {activeTab === 'ai-research' && <AIResearch />}
+      {activeTab === 'timelines' && <TimelinesBoard />}
+      {activeTab === 'account-settings' && <AccountSettings />}
     </DashboardLayout>
   )
 }

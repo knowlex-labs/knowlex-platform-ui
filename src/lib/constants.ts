@@ -7,11 +7,11 @@ export interface SidebarTabConfig {
 }
 
 export const SIDEBAR_TABS: SidebarTabConfig[] = [
-  { id: 'my-clients', label: 'Clients', icon: 'users' },
-  { id: 'timelines', label: 'Timelines', icon: 'calendar' },
-  { id: 'drafting', label: 'Drafting', icon: 'file-text' },
+  { id: 'dashboard', label: 'Home', icon: 'home' },
+  { id: 'cases', label: 'Cases', icon: 'briefcase' },
+  { id: 'clients', label: 'Clients', icon: 'users' },
   { id: 'ai-research', label: 'AI Research', icon: 'brain' },
-  { id: 'billings', label: 'Billings', icon: 'receipt' },
+  { id: 'timelines', label: 'Timelines', icon: 'kanban-square' },
 ]
 
 export const STATUS_COLORS = {

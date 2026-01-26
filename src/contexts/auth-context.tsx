@@ -6,6 +6,7 @@ import { DEMO_USER_USERNAME, DEMO_USER_PASSWORD } from '@/lib/constants'
 
 const AUTH_TOKEN_KEY = 'auth_token'
 const REFRESH_TOKEN_KEY = 'auth_refresh_token'
+const USER_ID_KEY = 'auth_user_id'
 
 function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY)
@@ -17,7 +18,7 @@ interface AuthProviderProps {
   children: React.ReactNode
 }
 
-function setAuthTokens(token: string | null, refreshToken: string | null) {
+function setAuthTokens(token: string | null, refreshToken: string | null, userId: string | null = null) {
   if (token) {
     localStorage.setItem(AUTH_TOKEN_KEY, token)
   } else {
@@ -28,12 +29,16 @@ function setAuthTokens(token: string | null, refreshToken: string | null) {
   } else {
     localStorage.removeItem(REFRESH_TOKEN_KEY)
   }
+  if (userId) {
+    localStorage.setItem(USER_ID_KEY, userId)
+  } else {
+    localStorage.removeItem(USER_ID_KEY)
+  }
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [authState, setAuthState] = React.useState<AuthState>({
     isAuthenticated: false,
-    isGuest: false,
     user: null,
   })
   const [isRestoringSession, setIsRestoringSession] = React.useState(true)
@@ -61,22 +66,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
             createdAt: new Date(userResponse.data.createdAt),
           }
 
+          // Ensure userId is stored in localStorage
+          localStorage.setItem(USER_ID_KEY, userResponse.data.id)
+
           setAuthState({
             isAuthenticated: true,
-            isGuest: false, // Demo user is treated as regular user
             user,
           })
         } else {
           // Token might be invalid, clear it
-          setAuthTokens(null, null)
+          setAuthTokens(null, null, null)
         }
       } catch (error) {
         console.error('Failed to restore session:', error)
         // Token might be invalid or expired, clear it
-        setAuthTokens(null, null)
+        setAuthTokens(null, null, null)
         setAuthState({
           isAuthenticated: false,
-          isGuest: false,
           user: null,
         })
       } finally {
@@ -93,9 +99,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       password: credentials.password,
     })
 
-    setAuthTokens(response.token, response.refreshToken)
+    setAuthTokens(response.token, response.refreshToken, response.user.id)
 
-    // Fetch full user details from /users/me (demo_user is treated as regular user)
+    // Fetch full user details from /users/me
     try {
       const userResponse = await userApi.getCurrentUser()
       if (userResponse.status === 'success' && userResponse.data) {
@@ -111,7 +117,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         setAuthState({
           isAuthenticated: true,
-          isGuest: false, // Demo user is treated as regular user
           user,
         })
       } else {
@@ -128,7 +133,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         setAuthState({
           isAuthenticated: true,
-          isGuest: false,
           user,
         })
       }
@@ -147,7 +151,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       setAuthState({
         isAuthenticated: true,
-        isGuest: false,
         user,
       })
     }
@@ -174,7 +177,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const googleLogin = React.useCallback(async (idToken: string) => {
     const response = await authApi.googleAuth(idToken)
 
-    setAuthTokens(response.token, response.refreshToken)
+    setAuthTokens(response.token, response.refreshToken, response.user.id)
 
     // Google login users are never guests, fetch full details
     try {
@@ -192,7 +195,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         setAuthState({
           isAuthenticated: true,
-          isGuest: false,
           user,
         })
       } else {
@@ -209,7 +211,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         setAuthState({
           isAuthenticated: true,
-          isGuest: false,
           user,
         })
       }
@@ -228,7 +229,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       setAuthState({
         isAuthenticated: true,
-        isGuest: false,
         user,
       })
     }
@@ -243,11 +243,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [login])
 
   const logout = React.useCallback(() => {
-    setAuthTokens(null, null)
+    setAuthTokens(null, null, null)
 
     setAuthState({
       isAuthenticated: false,
-      isGuest: false,
       user: null,
     })
   }, [])

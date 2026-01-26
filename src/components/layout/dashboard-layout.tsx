@@ -3,12 +3,14 @@ import { Sidebar, SidebarContent } from './sidebar'
 import { MobileHeader } from './mobile-header'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { APP_NAME } from '@/lib/constants'
+import { useNavigation } from '@/contexts/navigation-context'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { sidebarCollapsed } = useNavigation()
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   const handleMenuClose = () => {
@@ -44,7 +46,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </Sheet>
 
       {/* Main Content */}
-      <main className="md:ml-64 min-h-screen">
+      <main className={`min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
         {/* Mobile top padding to account for fixed header */}
         <div className="pt-14 md:pt-0">
           <div className="p-4 md:p-8">
