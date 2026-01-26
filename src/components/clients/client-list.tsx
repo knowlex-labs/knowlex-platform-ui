@@ -1,8 +1,10 @@
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react'
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight, Calendar, Plus } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { ClientListSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-display'
+import { AddClientModal } from '@/components/clients/add-client-modal'
 import { useNavigation } from '@/contexts/navigation-context'
 import { useClients } from '@/hooks/use-clients'
 import { STATUS_COLORS } from '@/lib/constants'
@@ -124,6 +126,7 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
 
 export function ClientList() {
   const { setSelectedClientId } = useNavigation()
+  const [showAddClientModal, setShowAddClientModal] = useState(false)
   const {
     clients,
     isLoading,
@@ -137,13 +140,19 @@ export function ClientList() {
   if (isLoading) {
     return (
       <div>
-        <div className="mb-4 md:mb-6">
-          <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
-            My Clients
-          </h2>
-          <p className="text-sm text-ledger-gray-500 mt-1">
-            Manage your client cases and activities
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+          <div>
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+              My Clients
+            </h2>
+            <p className="text-sm text-ledger-gray-500 mt-1">
+              Manage your client cases and activities
+            </p>
+          </div>
+          <Button onClick={() => setShowAddClientModal(true)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Client
+          </Button>
         </div>
         <div className="border border-ledger-gray-200 rounded">
           {/* Desktop Table Header */}
@@ -163,6 +172,11 @@ export function ClientList() {
           </div>
           <ClientListSkeleton />
         </div>
+        <AddClientModal
+          open={showAddClientModal}
+          onOpenChange={setShowAddClientModal}
+          onSuccess={refresh}
+        />
       </div>
     )
   }
@@ -170,13 +184,19 @@ export function ClientList() {
   if (error) {
     return (
       <div>
-        <div className="mb-4 md:mb-6">
-          <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
-            My Clients
-          </h2>
-          <p className="text-sm text-ledger-gray-500 mt-1">
-            Manage your client cases and activities
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+          <div>
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+              My Clients
+            </h2>
+            <p className="text-sm text-ledger-gray-500 mt-1">
+              Manage your client cases and activities
+            </p>
+          </div>
+          <Button onClick={() => setShowAddClientModal(true)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Client
+          </Button>
         </div>
         <div className="border border-ledger-gray-200 rounded">
           <ErrorDisplay
@@ -185,19 +205,30 @@ export function ClientList() {
             onRetry={refresh}
           />
         </div>
+        <AddClientModal
+          open={showAddClientModal}
+          onOpenChange={setShowAddClientModal}
+          onSuccess={refresh}
+        />
       </div>
     )
   }
 
   return (
     <div>
-      <div className="mb-4 md:mb-6">
-        <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
-          My Clients
-        </h2>
-        <p className="text-sm text-ledger-gray-500 mt-1">
-          Manage your client cases and activities
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+            My Clients
+          </h2>
+          <p className="text-sm text-ledger-gray-500 mt-1">
+            Manage your client cases and activities
+          </p>
+        </div>
+        <Button onClick={() => setShowAddClientModal(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Client
+        </Button>
       </div>
 
       <div className="border border-ledger-gray-200 rounded">
@@ -277,6 +308,12 @@ export function ClientList() {
           </div>
         )}
       </div>
+
+      <AddClientModal
+        open={showAddClientModal}
+        onOpenChange={setShowAddClientModal}
+        onSuccess={refresh}
+      />
     </div>
   )
 }

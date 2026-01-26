@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ClientDetailSkeleton } from '@/components/ui/skeleton'
@@ -5,12 +6,14 @@ import { ErrorDisplay } from '@/components/ui/error-display'
 import { ClientHeader } from './client-header'
 import { ActivityFeed } from './activity-feed'
 import { ResearchSummary } from './research-summary'
+import { AddCaseModal } from './add-case-modal'
 import { useNavigation } from '@/contexts/navigation-context'
 import { useClientDetail } from '@/hooks/use-client-detail'
 
 export function ClientDetail() {
   const { selectedClientId, setSelectedClientId } = useNavigation()
   const { client, isLoading, error, refresh } = useClientDetail(selectedClientId)
+  const [showAddCaseModal, setShowAddCaseModal] = useState(false)
 
   if (isLoading) {
     return (
@@ -88,7 +91,7 @@ export function ClientDetail() {
 
       {/* Client Header */}
       <div className="mb-4 md:mb-6">
-        <ClientHeader client={client} />
+        <ClientHeader client={client} onAddCase={() => setShowAddCaseModal(true)} />
       </div>
 
       {/* Two Column Layout */}
@@ -103,6 +106,14 @@ export function ClientDetail() {
           <ResearchSummary items={client.aiResearch} />
         </div>
       </div>
+
+      <AddCaseModal
+        open={showAddCaseModal}
+        onOpenChange={setShowAddCaseModal}
+        clientId={client.id}
+        clientName={client.name}
+        onSuccess={refresh}
+      />
     </div>
   )
 }

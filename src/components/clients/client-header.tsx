@@ -1,11 +1,13 @@
-import { Mail, Phone, Calendar, Building, MapPin } from 'lucide-react'
+import { Mail, Phone, Calendar, Building, MapPin, Plus } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
+import { Button } from '@/components/ui/button'
 import { STATUS_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { ClientDetailView, CaseStatus } from '@/types'
 
 interface ClientHeaderProps {
   client: ClientDetailView
+  onAddCase?: () => void
 }
 
 function StatusBadge({ status }: { status: CaseStatus }) {
@@ -30,7 +32,7 @@ function formatDate(date: Date): string {
   }).format(date)
 }
 
-export function ClientHeader({ client }: ClientHeaderProps) {
+export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
   const caseData = client.case
 
   return (
@@ -45,7 +47,15 @@ export function ClientHeader({ client }: ClientHeaderProps) {
             {caseData?.caseTitle ?? 'No case assigned'}
           </p>
         </div>
-        {caseData?.status && <StatusBadge status={caseData.status} />}
+        <div className="flex items-center gap-2">
+          {caseData?.status && <StatusBadge status={caseData.status} />}
+          {!caseData && onAddCase && (
+            <Button onClick={onAddCase} size="sm">
+              <Plus className="h-4 w-4 mr-2" />
+              Add Case
+            </Button>
+          )}
+        </div>
       </div>
 
       <Separator className="my-4" />
