@@ -1,9 +1,11 @@
-import { User, Bot } from 'lucide-react'
+import { User, Bot, Pencil } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import type { WorkspaceMessage } from '@/types'
 import { cn } from '@/lib/utils'
 
 interface ChatMessageProps {
   message: WorkspaceMessage
+  onEditDraft?: (content: string) => void
 }
 
 function formatTime(date: Date): string {
@@ -14,9 +16,10 @@ function formatTime(date: Date): string {
   })
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const isToolExecution = message.content.startsWith('[Executing tool:')
+  const showEditButton = !isUser && !isToolExecution && onEditDraft
 
   return (
     <div
@@ -79,10 +82,23 @@ export function ChatMessage({ message }: ChatMessageProps) {
           </div>
         </div>
 
-        {/* Timestamp */}
-        <span className="text-xs text-ledger-gray-400 mt-1">
-          {formatTime(message.timestamp)}
-        </span>
+        {/* Actions and Timestamp */}
+        <div className="flex items-center gap-2 mt-1">
+          {showEditButton && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-xs gap-1 text-ledger-gray-500 hover:text-ledger-black"
+              onClick={() => onEditDraft(message.content)}
+            >
+              <Pencil className="h-3 w-3" />
+              Edit Draft
+            </Button>
+          )}
+          <span className="text-xs text-ledger-gray-400">
+            {formatTime(message.timestamp)}
+          </span>
+        </div>
       </div>
     </div>
   )

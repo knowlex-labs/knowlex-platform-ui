@@ -2,7 +2,6 @@ import { useState } from 'react'
 import {
   FileText,
   FileImage,
-  FileSpreadsheet,
   File,
   MoreVertical,
   Eye,
@@ -21,18 +20,15 @@ interface SourceItemProps {
 }
 
 function getFileIcon(fileType: string) {
-  if (fileType.startsWith('image/')) {
+  const type = fileType.toUpperCase()
+  if (['JPG', 'JPEG', 'PNG'].includes(type)) {
     return FileImage
   }
-  if (fileType === 'application/pdf') {
+  if (type === 'PDF') {
     return FileText
   }
-  if (
-    fileType.includes('spreadsheet') ||
-    fileType.includes('excel') ||
-    fileType === 'text/csv'
-  ) {
-    return FileSpreadsheet
+  if (['DOCX', 'DOC'].includes(type)) {
+    return FileText
   }
   return File
 }
@@ -83,8 +79,8 @@ export function SourceItem({
 
       {/* File Info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-ledger-black truncate" title={source.fileName}>
-          {source.fileName}
+        <p className="text-sm text-ledger-black truncate" title={source.filename}>
+          {source.filename}
         </p>
         <p className="text-xs text-ledger-gray-400">
           {formatFileSize(source.fileSize)}

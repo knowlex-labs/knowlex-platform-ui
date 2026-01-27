@@ -12,6 +12,7 @@ interface ChatPanelProps {
   selectedSourceCount: number
   onSendMessage: (query: string) => Promise<void>
   onClearChat: () => void
+  onEditDraft?: (content: string) => void
 }
 
 export function ChatPanel({
@@ -20,6 +21,7 @@ export function ChatPanel({
   selectedSourceCount,
   onSendMessage,
   onClearChat,
+  onEditDraft,
 }: ChatPanelProps) {
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -83,7 +85,7 @@ export function ChatPanel({
         ) : (
           <div className="py-4 space-y-4">
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessage key={message.id} message={message} onEditDraft={onEditDraft} />
             ))}
             {isLoading && (
               <div className="flex items-center gap-2 text-sm text-ledger-gray-500">

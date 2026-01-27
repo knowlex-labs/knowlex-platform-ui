@@ -1,11 +1,29 @@
 export interface CaseSource {
   id: string
-  caseId: string
-  fileName: string
-  fileType: string
+  filename: string
+  originalFilename: string
+  fileType: 'PDF' | 'DOCX' | 'DOC' | 'JPG' | 'JPEG' | 'PNG'
   fileSize: number
-  s3Url: string
-  uploadedAt: Date
+  storageUrl: string
+  storageKey: string
+  documentSource: 'UPLOAD' | 'GOOGLE_DRIVE'
+  description?: string
+  caseId: string
+  collectionId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ChatResponse {
+  content: string
+  confidence: number
+  sources: ChatSource[]
+}
+
+export interface ChatSource {
+  fileName: string
+  page: number
+  textSnippet: string
 }
 
 export interface WorkspaceMessage {
@@ -55,3 +73,36 @@ export const LEGAL_TOOLS: LegalTool[] = [
     icon: 'PenLine',
   },
 ]
+
+// Draft types for workspace
+export interface Draft {
+  id: string
+  title: string
+  content: string
+  caseId: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Note types for workspace (Google Keep style)
+export interface Note {
+  id: string
+  title: string
+  content: string
+  caseId: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Case filter types
+export interface CaseFilter {
+  dateRange: {
+    from: Date | null
+    to: Date | null
+  } | null
+  clientId: string | null
+  caseType: string | null
+  status: string | null
+}
+
+export type WorkspaceTab = 'chat' | 'drafts' | 'notes'
