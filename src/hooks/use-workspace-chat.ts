@@ -1,9 +1,23 @@
 import { useState, useCallback } from 'react'
 import { workspaceApi } from '@/services/api/workspace-api'
-import type { WorkspaceMessage } from '@/types'
+import type { WorkspaceMessage, ChatResponse } from '@/types'
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 15)
+}
+
+// Helper to format response with sources
+function formatResponseWithSources(response: ChatResponse): string {
+  let content = response.content
+
+  if (response.sources?.length > 0) {
+    content += '\n\n**Sources:**\n'
+    response.sources.forEach((src) => {
+      content += `- ${src.fileName} (p.${src.page}): "${src.textSnippet}"\n`
+    })
+  }
+
+  return content
 }
 
 interface UseWorkspaceChatResult {
@@ -15,14 +29,14 @@ interface UseWorkspaceChatResult {
   clearChat: () => void
 }
 
-export function useWorkspaceChat(caseId: string | null): UseWorkspaceChatResult {
+export function useWorkspaceChat(_caseId: string | null): UseWorkspaceChatResult {
   const [messages, setMessages] = useState<WorkspaceMessage[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const sendMessage = useCallback(
     async (query: string, sourceIds: string[]) => {
-      if (!caseId || !query.trim()) return
+      if (!query.trim()) return
 
       setIsLoading(true)
       setError(null)
@@ -38,16 +52,13 @@ export function useWorkspaceChat(caseId: string | null): UseWorkspaceChatResult 
       setMessages((prev) => [...prev, userMessage])
 
       try {
-        const response = await workspaceApi.sendChatQuery(caseId, {
-          query,
-          sourceIds,
-        })
+        const response = await workspaceApi.sendChatQuery(query, sourceIds)
 
-        // Add assistant response
+        // Add assistant response with formatted sources
         const assistantMessage: WorkspaceMessage = {
           id: generateId(),
           role: 'assistant',
-          content: response.message,
+          content: formatResponseWithSources(response),
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, assistantMessage])
@@ -67,13 +78,11 @@ export function useWorkspaceChat(caseId: string | null): UseWorkspaceChatResult 
         setIsLoading(false)
       }
     },
-    [caseId]
+    []
   )
 
   const executeTool = useCallback(
     async (toolId: string, sourceIds: string[]) => {
-      if (!caseId) return
-
       setIsLoading(true)
       setError(null)
 
@@ -88,15 +97,31 @@ export function useWorkspaceChat(caseId: string | null): UseWorkspaceChatResult 
       setMessages((prev) => [...prev, toolMessage])
 
       try {
-        const response = await workspaceApi.executeLegalTool(caseId, toolId, {
-          sourceIds,
-        })
+        let response: ChatResponse
 
-        // Add tool result
+        if (toolId === 'summarize') {
+          // Summarize tool uses /chat/summary endpoint
+          response = await workspaceApi.sendSummaryQuery(
+            'Summarize the key points of these documents',
+            sourceIds
+          )
+        } else {
+          // Other tools use /chat/query with specific prompts
+          const toolPrompts: Record<string, string> = {
+            'create-report': 'Generate a legal analysis report based on these documents',
+            'extract-facts': 'List the key facts from these documents',
+            'find-precedents': 'Find relevant case precedents mentioned in these documents',
+            'draft-response': 'Draft a legal response based on these documents',
+          }
+          const prompt = toolPrompts[toolId] || `Execute ${toolId} on these documents`
+          response = await workspaceApi.sendChatQuery(prompt, sourceIds)
+        }
+
+        // Add tool result with formatted sources
         const resultMessage: WorkspaceMessage = {
           id: generateId(),
           role: 'assistant',
-          content: response.result,
+          content: formatResponseWithSources(response),
           timestamp: new Date(),
         }
         setMessages((prev) => [...prev, resultMessage])
@@ -115,7 +140,7 @@ export function useWorkspaceChat(caseId: string | null): UseWorkspaceChatResult 
         setIsLoading(false)
       }
     },
-    [caseId]
+    []
   )
 
   const clearChat = useCallback(() => {

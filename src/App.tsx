@@ -13,13 +13,17 @@ import { ClientDetail } from '@/components/clients/client-detail'
 import { AIResearch } from '@/components/ai-research/ai-research'
 import { TimelinesBoard } from '@/components/timelines/timelines-board'
 import { AccountSettings } from '@/components/settings/account-settings'
+import { Toaster } from '@/components/ui/toaster'
+import { useToast } from '@/hooks/use-toast'
 
 function AppContent() {
   const { isAuthenticated, continueAsGuest, isRestoringSession } = useAuth()
-  const { view, activeTab, selectedClientId, selectedCaseId, setView } = useNavigation()
+  const { view, activeTab, selectedClientId, selectedCaseId, setView, setActiveTab } = useNavigation()
+  const { toast } = useToast()
 
   const [loginOpen, setLoginOpen] = React.useState(false)
   const [signupOpen, setSignupOpen] = React.useState(false)
+  const [sessionExpired, setSessionExpired] = React.useState(false)
 
   const handleTryIt = () => {
     setLoginOpen(true)
@@ -28,6 +32,7 @@ function AppContent() {
   const handleContinueAsGuest = async () => {
     try {
       await continueAsGuest()
+      setActiveTab('dashboard')
       setView('dashboard')
     } catch (err) {
       console.error('Failed to continue as guest:', err)
@@ -44,6 +49,36 @@ function AppContent() {
     setSignupOpen(false)
     setLoginOpen(true)
   }
+
+  // Listen for toast events
+  React.useEffect(() => {
+    const handleToastEvent = (event: Event) => {
+      const customEvent = event as CustomEvent
+      toast(customEvent.detail)
+    }
+
+    window.addEventListener('toast:show', handleToastEvent)
+    return () => window.removeEventListener('toast:show', handleToastEvent)
+  }, [toast])
+
+  // Handle session expiry
+  React.useEffect(() => {
+    const handleSessionExpired = () => {
+      setSessionExpired(true)
+      setView('landing')
+      setLoginOpen(true)
+    }
+
+    window.addEventListener('auth:session-expired', handleSessionExpired)
+    return () => window.removeEventListener('auth:session-expired', handleSessionExpired)
+  }, [setView])
+
+  // Reset session expired flag on successful login
+  React.useEffect(() => {
+    if (isAuthenticated && sessionExpired) {
+      setSessionExpired(false)
+    }
+  }, [isAuthenticated, sessionExpired])
 
   // Redirect to landing if trying to access dashboard without auth
   React.useEffect(() => {
@@ -74,12 +109,14 @@ function AppContent() {
           open={loginOpen}
           onOpenChange={setLoginOpen}
           onSwitchToSignup={handleSwitchToSignup}
+          sessionExpired={sessionExpired}
         />
         <SignupModal
           open={signupOpen}
           onOpenChange={setSignupOpen}
           onSwitchToLogin={handleSwitchToLogin}
         />
+        <Toaster />
       </>
     )
   }
@@ -92,18 +129,21 @@ function AppContent() {
 
   // Dashboard View
   return (
-    <DashboardLayout>
-      {activeTab === 'dashboard' && <DashboardHome />}
-      {activeTab === 'cases' && (
-        selectedCaseId ? <CaseWorkspace caseId={selectedCaseId} /> : <CaseList />
-      )}
-      {activeTab === 'clients' && (
-        selectedClientId ? <ClientDetail /> : <ClientList />
-      )}
-      {activeTab === 'ai-research' && <AIResearch />}
-      {activeTab === 'timelines' && <TimelinesBoard />}
-      {activeTab === 'account-settings' && <AccountSettings />}
-    </DashboardLayout>
+    <>
+      <DashboardLayout>
+        {activeTab === 'dashboard' && <DashboardHome />}
+        {activeTab === 'cases' && (
+          selectedCaseId ? <CaseWorkspace caseId={selectedCaseId} /> : <CaseList />
+        )}
+        {activeTab === 'clients' && (
+          selectedClientId ? <ClientDetail /> : <ClientList />
+        )}
+        {activeTab === 'ai-research' && <AIResearch />}
+        {activeTab === 'timelines' && <TimelinesBoard />}
+        {activeTab === 'account-settings' && <AccountSettings />}
+      </DashboardLayout>
+      <Toaster />
+    </>
   )
 }
 

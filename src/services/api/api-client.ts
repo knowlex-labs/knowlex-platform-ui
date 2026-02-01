@@ -1,6 +1,7 @@
 // API Client with authentication and error handling
+import { config } from '@/config/env'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+const API_BASE_URL = config.apiBaseUrl
 
 export class ApiError extends Error {
   constructor(
@@ -10,6 +11,13 @@ export class ApiError extends Error {
   ) {
     super(message)
     this.name = 'ApiError'
+  }
+}
+
+export class SessionExpiredError extends ApiError {
+  constructor() {
+    super('Your session has expired. Please log in again.', 401)
+    this.name = 'SessionExpiredError'
   }
 }
 
@@ -41,6 +49,12 @@ function getAuthHeaders(): HeadersInit {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
+    // Check for 401 - session expired
+    if (response.status === 401) {
+      window.dispatchEvent(new CustomEvent('auth:session-expired'))
+      throw new SessionExpiredError()
+    }
+
     let errorData: unknown
     try {
       errorData = await response.json()

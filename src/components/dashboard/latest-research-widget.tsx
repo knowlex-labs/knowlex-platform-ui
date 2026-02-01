@@ -1,84 +1,78 @@
 import { Brain } from 'lucide-react'
-import { DashboardCard } from './dashboard-card'
-import { useNavigation } from '@/contexts/navigation-context'
 import type { ChatSession } from '@/types'
+import { formatDistanceToNow } from 'date-fns'
 
 interface LatestResearchWidgetProps {
   sessions: ChatSession[]
   isLoading: boolean
-}
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-IN', {
-    day: 'numeric',
-    month: 'short',
-  }).format(date)
+  onSessionClick: () => void
 }
 
 export function LatestResearchWidget({
   sessions,
   isLoading,
+  onSessionClick,
 }: LatestResearchWidgetProps) {
-  const { setActiveTab } = useNavigation()
-
   if (isLoading) {
     return (
-      <DashboardCard
-        title="Recent AI Research"
-        icon={Brain}
-        action={{ label: 'See All', onClick: () => setActiveTab('ai-research') }}
-      >
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="animate-pulse">
-              <div className="h-4 bg-ledger-gray-100 rounded w-3/4 mb-1" />
-              <div className="h-3 bg-ledger-gray-100 rounded w-1/2" />
-            </div>
-          ))}
-        </div>
-      </DashboardCard>
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="border border-ledger-gray-200 rounded-lg p-4 animate-pulse"
+          >
+            <div className="h-4 bg-ledger-gray-200 rounded w-3/4 mb-2" />
+            <div className="h-3 bg-ledger-gray-200 rounded w-1/2" />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (sessions.length === 0) {
+    return (
+      <div className="text-center py-12 border border-dashed border-ledger-gray-300 rounded-lg">
+        <Brain className="h-12 w-12 text-ledger-gray-400 mx-auto mb-3" />
+        <h3 className="text-lg font-medium text-ledger-gray-900 mb-1">
+          No research sessions yet
+        </h3>
+        <p className="text-sm text-ledger-gray-500 mb-4">
+          Start your first AI research session
+        </p>
+        <button
+          onClick={onSessionClick}
+          className="text-sm text-ledger-black font-medium hover:underline"
+        >
+          Start Research
+        </button>
+      </div>
     )
   }
 
   return (
-    <DashboardCard
-      title="Recent AI Research"
-      icon={Brain}
-      action={{ label: 'See All', onClick: () => setActiveTab('ai-research') }}
-    >
-      {sessions.length === 0 ? (
-        <div className="text-center py-4">
-          <p className="text-sm text-ledger-gray-500">No research sessions yet</p>
-          <button
-            onClick={() => setActiveTab('ai-research')}
-            className="mt-2 text-sm text-ledger-black hover:underline"
-          >
-            Start your first research
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {sessions.slice(0, 5).map((session) => (
-            <div
-              key={session.id}
-              className="flex items-start justify-between gap-2"
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-ledger-black truncate">
-                  {session.title}
-                </p>
-                <p className="text-xs text-ledger-gray-500">
-                  {session.messages.length} message
-                  {session.messages.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-              <p className="text-xs text-ledger-gray-400 flex-shrink-0">
-                {formatDate(session.createdAt)}
+    <div className="space-y-2">
+      {sessions.slice(0, 5).map((session) => (
+        <button
+          key={session.id}
+          onClick={onSessionClick}
+          className="w-full border border-ledger-gray-200 rounded-lg p-4 text-left transition-all hover:border-ledger-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ledger-gray-400 focus:ring-offset-2"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ledger-gray-900 truncate mb-1">
+                {session.title}
+              </p>
+              <p className="text-xs text-ledger-gray-500">
+                {session.messages.length} message
+                {session.messages.length !== 1 ? 's' : ''}
               </p>
             </div>
-          ))}
-        </div>
-      )}
-    </DashboardCard>
+            <p className="text-xs text-ledger-gray-400 flex-shrink-0">
+              {formatDistanceToNow(session.createdAt, { addSuffix: true })}
+            </p>
+          </div>
+        </button>
+      ))}
+    </div>
   )
 }

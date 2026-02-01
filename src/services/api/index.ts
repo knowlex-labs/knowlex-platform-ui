@@ -8,11 +8,4 @@ export type { GetClientsParams } from './client-api'
 export { userApi } from './user-api'
 export type { BackendUser } from './user-api'
 export { workspaceApi } from './workspace-api'
-export type {
-  PresignedUrlResponse,
-  CreateSourceRequest,
-  ChatQueryRequest,
-  ChatQueryResponse,
-  ToolExecutionRequest,
-  ToolExecutionResponse,
-} from './workspace-api'
+/* PresignedUrlResponse, CreateSourceRequest, ChatQueryRequest, ChatQueryResponse, ToolExecutionRequest, ToolExecutionResponse removed as they are not exported from workspace-api */

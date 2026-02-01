@@ -17,6 +17,9 @@ interface SourcesPanelProps {
   onDeselectAll: () => void
   onUploadFile: (file: File) => Promise<void>
   onDeleteSource: (sourceId: string) => Promise<void>
+  onLinkContent: (sourceId: string) => Promise<void>
+  onBatchDelete: (sourceIds: string[]) => Promise<void>
+  onBatchLinkContent: (sourceIds: string[]) => Promise<void>
 }
 
 export function SourcesPanel({
@@ -29,6 +32,9 @@ export function SourcesPanel({
   onDeselectAll,
   onUploadFile,
   onDeleteSource,
+  onLinkContent,
+  onBatchDelete,
+  onBatchLinkContent,
 }: SourcesPanelProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [viewingSource, setViewingSource] = useState<CaseSource | null>(null)
@@ -51,7 +57,7 @@ export function SourcesPanel({
       setViewingSource(source)
     } else {
       // Open in new tab for other file types
-      window.open(source.s3Url, '_blank')
+      window.open(source.storageUrl, '_blank')
     }
   }
 
@@ -59,11 +65,22 @@ export function SourcesPanel({
     await onDeleteSource(sourceId)
   }
 
+  const handleLinkContent = async (sourceId: string) => {
+    await onLinkContent(sourceId)
+  }
+
   return (
-    <div className="flex flex-col h-full bg-ledger-white border border-ledger-gray-200 rounded-lg">
+    <div className="flex flex-col h-full bg-ledger-white">
       {/* Header */}
       <div className="px-4 py-3 border-b border-ledger-gray-200">
-        <h3 className="text-sm font-semibold text-ledger-black">Sources</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-ledger-black">Sources</h3>
+          {selectedSourceIds.size > 0 && (
+            <span className="text-xs text-ledger-gray-500">
+              {selectedSourceIds.size} selected
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Add Sources Button */}
@@ -126,6 +143,7 @@ export function SourcesPanel({
                 onToggleSelection={() => onToggleSelection(source.id)}
                 onView={() => handleViewSource(source)}
                 onDelete={() => handleDeleteSource(source.id)}
+                onLinkContent={() => handleLinkContent(source.id)}
               />
             ))}
           </div>

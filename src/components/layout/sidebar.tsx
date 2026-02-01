@@ -2,6 +2,7 @@ import { Home, Briefcase, Users, Brain, KanbanSquare, HelpCircle, User as UserIc
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import {
   Dialog,
   DialogContent,
@@ -86,31 +87,43 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
       {/* User Section */}
       <div className="border-t border-ledger-gray-200 p-4 space-y-3">
         {/* Toggle Collapse Button */}
+        {/* Toggle Collapse Button */}
         {!onItemClick && (
           <>
             <Button
               variant="ghost"
-              size="sm"
-              className="w-full justify-center text-ledger-gray-600 hover:text-ledger-black min-h-[48px]"
+              className={cn(
+                "w-full text-ledger-gray-600 hover:text-ledger-black hover:bg-ledger-gray-50 h-10 mb-1",
+                collapsed ? "justify-center px-0" : "justify-start px-4"
+              )}
               onClick={() => setSidebarCollapsed(!collapsed)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+              {collapsed ? (
+                <ChevronRight className="h-5 w-5" />
+              ) : (
+                <>
+                  <ChevronLeft className="h-5 w-5 mr-3" />
+                  <span>Collapse Sidebar</span>
+                </>
+              )}
             </Button>
-            <Separator />
+            <Separator className="my-2" />
           </>
         )}
 
         {/* Help and Support Button */}
         <Button
           variant="ghost"
-          size="sm"
-          className="w-full justify-start gap-2 text-ledger-gray-600 hover:text-ledger-black min-h-[48px]"
+          className={cn(
+            "w-full text-ledger-gray-600 hover:text-ledger-black hover:bg-ledger-gray-50 h-10",
+            collapsed ? "justify-center px-0" : "justify-start px-4"
+          )}
           onClick={() => setShowHelpDialog(true)}
-          title={collapsed ? 'Help and Support' : undefined}
+          title="Help and Support"
         >
-          <HelpCircle className="h-4 w-4" />
-          {!collapsed && 'Help and Support'}
+          <HelpCircle className="h-5 w-5" />
+          {!collapsed && <span className="ml-3">Help & Support</span>}
         </Button>
 
         <Separator />
