@@ -1,4 +1,3 @@
-import * as React from 'react'
 import { Case } from '@/types/case.types'
 import { formatDistanceToNow } from 'date-fns'
 import { FileText, Clock } from 'lucide-react'

@@ -16,11 +16,11 @@ interface FileViewerModalProps {
 export function FileViewerModal({ source, onClose }: FileViewerModalProps) {
   if (!source) return null
 
-  const isImage = source.fileType.startsWith('image/')
-  const isPdf = source.fileType === 'application/pdf'
+  const isImage = ['JPG', 'JPEG', 'PNG'].includes(source.fileType)
+  const isPdf = source.fileType === 'PDF'
 
   const handleOpenExternal = () => {
-    window.open(source.s3Url, '_blank')
+    window.open(source.storageUrl, '_blank')
   }
 
   return (
@@ -28,7 +28,7 @@ export function FileViewerModal({ source, onClose }: FileViewerModalProps) {
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b border-ledger-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="truncate pr-4">{source.fileName}</DialogTitle>
+            <DialogTitle className="truncate pr-4">{source.filename}</DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button
                 variant="ghost"
@@ -54,16 +54,16 @@ export function FileViewerModal({ source, onClose }: FileViewerModalProps) {
         <div className="flex-1 overflow-hidden bg-ledger-gray-100">
           {isPdf && (
             <iframe
-              src={source.s3Url}
+              src={source.storageUrl}
               className="w-full h-full border-0"
-              title={source.fileName}
+              title={source.filename}
             />
           )}
           {isImage && (
             <div className="w-full h-full flex items-center justify-center p-4">
               <img
-                src={source.s3Url}
-                alt={source.fileName}
+                src={source.storageUrl}
+                alt={source.filename}
                 className="max-w-full max-h-full object-contain"
               />
             </div>

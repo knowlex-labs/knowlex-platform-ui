@@ -10,6 +10,7 @@ export interface CaseSource {
   description?: string
   caseId: string
   collectionId?: string
+  indexingStatus: 'INDEXING_PENDING' | 'INDEXING' | 'INDEXED' | 'INDEXING_FAILED'
   createdAt: string
   updatedAt: string
 }

@@ -108,4 +108,25 @@ export const workspaceApi = {
       filterFileIds,
     })
   },
+
+  /**
+   * Re-index a single document (Link Content action)
+   */
+  async linkContent(documentId: string): Promise<CaseSource> {
+    const response = await apiClient.post<ApiResponse<CaseSource>>(
+      `/api/v1/documents/${documentId}/link-content`
+    )
+    return response.data
+  },
+
+  /**
+   * Batch re-index multiple documents
+   */
+  async batchLinkContent(documentIds: string[]): Promise<void> {
+    await Promise.all(
+      documentIds.map(id =>
+        apiClient.post(`/api/v1/documents/${id}/link-content`)
+      )
+    )
+  },
 }

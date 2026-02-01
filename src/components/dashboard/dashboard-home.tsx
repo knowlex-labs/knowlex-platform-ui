@@ -37,56 +37,61 @@ export function DashboardHome() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
-      {/* Greeting Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-serif font-semibold">
-          {greeting}, {displayName}
-        </h1>
-        <p className="text-sm text-ledger-gray-500 mt-1">
-          Welcome back to your practice
-        </p>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 md:gap-8">
+      {/* Main Content - Left Column */}
+      <div className="space-y-6 md:space-y-8">
+        {/* Greeting Header */}
+        <div>
+          <h1 className="text-2xl md:text-3xl font-serif font-semibold">
+            {greeting}, {displayName}
+          </h1>
+          <p className="text-sm text-ledger-gray-500 mt-1">
+            Welcome back to your practice
+          </p>
+        </div>
+
+        {/* Continue Where You Left Off - Active Cases */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Continue where you left off</h2>
+          <ActiveCaseCards
+            cases={activeCases}
+            isLoading={isLoading}
+            onCaseClick={handleCaseClick}
+          />
+        </section>
+
+        {/* Quick Actions */}
+        <section>
+          <QuickActionsBar
+            onNewCase={() => setActiveTab('cases')}
+            onNewClient={() => setActiveTab('clients')}
+            onResearch={() => setActiveTab('ai-research')}
+          />
+        </section>
+
+        {/* Upcoming Hearings */}
+        <section>
+          <UpcomingHearingsWidget cases={cases} isLoading={isLoading} />
+        </section>
+
+        {/* Latest Research Sessions */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4">Recent research</h2>
+          <LatestResearchWidget
+            sessions={chatSessions}
+            isLoading={isLoading}
+            onSessionClick={handleResearchClick}
+          />
+        </section>
       </div>
 
-      {/* Continue Where You Left Off - Active Cases */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4">Continue where you left off</h2>
-        <ActiveCaseCards
-          cases={activeCases}
-          isLoading={isLoading}
-          onCaseClick={handleCaseClick}
-        />
-      </section>
-
-      {/* Quick Actions */}
-      <section>
-        <QuickActionsBar
-          onNewCase={() => setActiveTab('cases')}
-          onNewClient={() => setActiveTab('clients')}
-          onResearch={() => setActiveTab('ai-research')}
-        />
-      </section>
-
-      {/* Upcoming Hearings */}
-      <section>
-        <UpcomingHearingsWidget cases={cases} isLoading={isLoading} />
-      </section>
-
-      {/* Latest Research Sessions */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4">Recent research</h2>
-        <LatestResearchWidget
-          sessions={chatSessions}
-          isLoading={isLoading}
-          onSessionClick={handleResearchClick}
-        />
-      </section>
-
-      {/* Latest News */}
-      <section>
-        <h2 className="text-lg font-semibold mb-4">Latest news</h2>
-        <LatestNewsWidget />
-      </section>
+      {/* News Panel - Right Column */}
+      <div className="hidden lg:block">
+        <div className="sticky top-6">
+          <h2 className="text-lg font-semibold mb-4">Latest news</h2>
+          <LatestNewsWidget />
+        </div>
+      </div>
     </div>
   )
 }

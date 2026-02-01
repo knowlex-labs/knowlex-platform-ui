@@ -25,7 +25,7 @@ declare global {
     google?: {
       accounts: {
         id: {
-          initialize: (config: { 
+          initialize: (config: {
             client_id: string
             callback: (response: { credential: string }) => void
             auto_select?: boolean
@@ -72,7 +72,7 @@ function GoogleIcon() {
 
 export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpired }: LoginModalProps) {
   const { login, googleLogin, continueAsGuest } = useAuth()
-  const { setView } = useNavigation()
+  const { setView, setActiveTab } = useNavigation()
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
@@ -87,13 +87,21 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
 
     try {
       await googleLogin(response.credential)
+      setActiveTab('dashboard')
+      // Actually, setView('dashboard') is correct for entering the app. 'landing' is public.
+      // Wait, the user said "land me to home page always". 
+      // And I found earlier that setView('landing') executes `return <LandingPage />` in App.tsx.
+      // If the user is LOGGED IN, they usually want to go to the Dashboard.
+      // So setView('dashboard') is correct. 
+      // The user's compliant "land me to home page always" likely meant "Dashboard Home".
+      // I will switch back to setView('dashboard') AND setActiveTab('dashboard').
       setView('dashboard')
       onOpenChange(false)
     } catch (err) {
       console.error('Google login failed:', err)
       setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.')
     }
-  }, [googleLogin, setView, onOpenChange])
+  }, [googleLogin, setView, onOpenChange, setActiveTab])
 
   // Load Google Sign-In script
   React.useEffect(() => {
@@ -200,9 +208,9 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
           logo_alignment: 'left',
           width: '100%',
         })
-        
+
         checkForErrors()
-        
+
         // Ensure the button iframe is full width after rendering
         setTimeout(() => {
           if (googleButtonRef.current) {
@@ -258,6 +266,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
 
     try {
       await login({ username, password })
+      setActiveTab('dashboard')
       setView('dashboard')
       onOpenChange(false)
     } catch (err) {
@@ -335,8 +344,8 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
           {googleClientId && (
             <div className="w-full">
               {isGoogleScriptLoaded ? (
-                <div 
-                  ref={googleButtonRef} 
+                <div
+                  ref={googleButtonRef}
                   className="w-full [&>div]:w-full [&>div>iframe]:w-full [&>div>iframe]:!min-w-full"
                   style={{ minHeight: '40px' }}
                 />
@@ -361,6 +370,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
             onClick={async () => {
               try {
                 await continueAsGuest()
+                setActiveTab('dashboard')
                 setView('dashboard')
                 onOpenChange(false)
               } catch (err) {

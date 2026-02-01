@@ -49,7 +49,19 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
   }, [])
 
   const setActiveTab = React.useCallback((activeTab: DashboardTab) => {
-    setState((prev) => ({ ...prev, activeTab, selectedClientId: null, selectedCaseId: null }))
+    setState((prev) => {
+      // Don't clear selectedCaseId when switching to cases tab if one is already selected
+      // This allows direct navigation from dashboard to case workspace
+      const shouldPreserveCaseId = activeTab === 'cases' && prev.selectedCaseId
+      const shouldPreserveClientId = activeTab === 'clients' && prev.selectedClientId
+
+      return {
+        ...prev,
+        activeTab,
+        selectedClientId: shouldPreserveClientId ? prev.selectedClientId : null,
+        selectedCaseId: shouldPreserveCaseId ? prev.selectedCaseId : null,
+      }
+    })
   }, [])
 
   const setSelectedClientId = React.useCallback((selectedClientId: string | null) => {

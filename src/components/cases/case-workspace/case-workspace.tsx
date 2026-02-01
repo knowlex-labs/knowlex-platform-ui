@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Grid3x3 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Grid3x3, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useNavigation } from '@/contexts/navigation-context'
 import { useCaseSources } from '@/hooks/use-case-sources'
@@ -94,6 +95,9 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     deselectAllSources,
     uploadFile,
     deleteSource,
+    linkContent,
+    batchDelete,
+    batchLinkContent,
   } = useCaseSources(caseId)
 
   const {
@@ -109,6 +113,12 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     updateDraft,
     deleteDraft,
   } = useDrafts(caseId)
+
+  // Auto-hide sidebar when workspace opens
+  useEffect(() => {
+    setSidebarCollapsed(true)
+    // Don't restore on unmount since handleBack already does it
+  }, [setSidebarCollapsed])
 
   const handleBack = () => {
     setSelectedCaseId(null)
@@ -187,11 +197,11 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const displayedTemplates = showAllTemplates ? DRAFT_TEMPLATES : DRAFT_TEMPLATES.slice(0, 6)
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-gray-50/50">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2 border-b border-ledger-gray-200">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-ledger-gray-200 bg-ledger-white">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3">
+          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-ledger-black">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
@@ -201,11 +211,42 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
           </h2>
         </div>
         <div className="flex items-center gap-2">
+          {selectedSourceIds.size > 0 && (
+            <>
+              {sources.filter(s => selectedSourceIds.has(s.id)).some(
+                s => s.indexingStatus === 'INDEXING_PENDING' || s.indexingStatus === 'INDEXING_FAILED'
+              ) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => batchLinkContent(Array.from(selectedSourceIds))}
+                    disabled={sourcesLoading || isUploading}
+                    className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
+                    title="Re-index selected sources"
+                  >
+                    <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
+                    <span className="hidden sm:inline">Re-index</span>
+                  </Button>
+                )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => batchDelete(Array.from(selectedSourceIds))}
+                disabled={sourcesLoading || isUploading}
+                className="h-8 gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                title="Delete selected sources"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Delete</span>
+              </Button>
+              <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
+            </>
+          )}
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setSourcesOpen(!sourcesOpen)}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-ledger-black"
             title={sourcesOpen ? 'Hide sources' : 'Show sources'}
           >
             {sourcesOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
@@ -214,7 +255,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
             variant="ghost"
             size="sm"
             onClick={() => setChatOpen(!chatOpen)}
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-ledger-black"
             title={chatOpen ? 'Hide chat' : 'Show chat'}
           >
             {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
@@ -223,10 +264,10 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
       </div>
 
       {/* Three-panel layout */}
-      <div className="flex-1 flex gap-3 pt-2 min-h-0">
+      <div className="flex-1 flex gap-2 p-2 min-h-0 overflow-hidden bg-ledger-gray-50">
         {/* Sources Panel - Collapsible Left */}
         {sourcesOpen && (
-          <div className="w-64 flex-shrink-0">
+          <div className="w-72 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
             <SourcesPanel
               sources={sources}
               selectedSourceIds={selectedSourceIds}
@@ -237,38 +278,43 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
               onDeselectAll={deselectAllSources}
               onUploadFile={uploadFile}
               onDeleteSource={deleteSource}
+              onLinkContent={linkContent}
+              onBatchDelete={batchDelete}
+              onBatchLinkContent={batchLinkContent}
             />
           </div>
         )}
 
-        {/* Main Content - Horizontal Tabs */}
-        <div className="flex-1 min-h-0 flex flex-col">
+        {/* Main Content - Single Panel with Tabs */}
+        <div className="flex-1 min-h-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
           <Tabs defaultValue="templates" className="flex-1 flex flex-col">
-            {/* Horizontal Tab List - Templates Left, Drafts Right */}
-            <TabsList className="w-full flex justify-between bg-transparent border-b border-ledger-gray-200 rounded-none p-0 h-auto mb-3">
-              <TabsTrigger
-                value="templates"
-                className="data-[state=active]:border-b-2 data-[state=active]:border-ledger-black rounded-none px-4 py-2 font-medium"
-              >
-                Templates
-              </TabsTrigger>
-              <TabsTrigger
-                value="drafts"
-                className="data-[state=active]:border-b-2 data-[state=active]:border-ledger-black rounded-none px-4 py-2 font-medium"
-              >
-                Drafts
-                {drafts.length > 0 && (
-                  <span className="ml-2 text-xs bg-ledger-gray-200 px-1.5 py-0.5 rounded">
-                    {drafts.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
+            {/* Tab List */}
+            <div className="px-4 py-3 border-b border-ledger-gray-100">
+              <TabsList className="inline-flex flex-row h-9 items-center justify-center rounded-lg bg-ledger-gray-100 p-1 text-ledger-gray-500 w-auto">
+                <TabsTrigger
+                  value="templates"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ledger-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-ledger-black data-[state=active]:shadow-sm"
+                >
+                  Templates
+                </TabsTrigger>
+                <TabsTrigger
+                  value="drafts"
+                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ledger-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-ledger-black data-[state=active]:shadow-sm"
+                >
+                  Drafts
+                  {drafts.length > 0 && (
+                    <span className="ml-2 text-xs bg-ledger-gray-200 px-1.5 py-0.5 rounded-full">
+                      {drafts.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Tab Content */}
-            <TabsContent value="templates" className="flex-1 mt-0 overflow-auto">
+            <TabsContent value="templates" className="flex-1 p-4 overflow-auto">
               <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-4">
                   {displayedTemplates.map((template) => (
                     <TemplateCard
                       key={template.id}
@@ -311,7 +357,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   {drafts.map((draft) => (
                     <DraftItem
                       key={draft.id}
@@ -329,7 +375,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
 
         {/* Chat Panel - Collapsible Right */}
         {chatOpen && (
-          <div className="w-80 flex-shrink-0">
+          <div className="w-80 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
             <ChatPanel
               messages={messages}
               isLoading={chatLoading}

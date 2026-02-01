@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast'
 
 function AppContent() {
   const { isAuthenticated, continueAsGuest, isRestoringSession } = useAuth()
-  const { view, activeTab, selectedClientId, selectedCaseId, setView } = useNavigation()
+  const { view, activeTab, selectedClientId, selectedCaseId, setView, setActiveTab } = useNavigation()
   const { toast } = useToast()
 
   const [loginOpen, setLoginOpen] = React.useState(false)
@@ -32,6 +32,7 @@ function AppContent() {
   const handleContinueAsGuest = async () => {
     try {
       await continueAsGuest()
+      setActiveTab('dashboard')
       setView('dashboard')
     } catch (err) {
       console.error('Failed to continue as guest:', err)

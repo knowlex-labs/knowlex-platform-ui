@@ -1,6 +1,4 @@
-import * as React from 'react'
-import { Button } from '@/components/ui/button'
-import { FileText, UserPlus, Brain, Plus } from 'lucide-react'
+import { UserPlus, Brain, Plus } from 'lucide-react'
 
 interface QuickActionsBarProps {
   onNewCase: () => void

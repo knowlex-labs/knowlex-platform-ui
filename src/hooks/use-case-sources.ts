@@ -13,6 +13,9 @@ interface UseCaseSourcesResult {
   deselectAllSources: () => void
   uploadFile: (file: File) => Promise<void>
   deleteSource: (sourceId: string) => Promise<void>
+  linkContent: (sourceId: string) => Promise<void>
+  batchDelete: (sourceIds: string[]) => Promise<void>
+  batchLinkContent: (sourceIds: string[]) => Promise<void>
   refresh: () => void
 }
 
@@ -102,6 +105,59 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
     []
   )
 
+  const linkContent = useCallback(
+    async (sourceId: string) => {
+      try {
+        const updatedSource = await workspaceApi.linkContent(sourceId)
+        // Update source in state
+        setSources((prev) =>
+          prev.map((s) => (s.id === sourceId ? updatedSource : s))
+        )
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to link content'
+        setError(message)
+        throw err
+      }
+    },
+    []
+  )
+
+  const batchDelete = useCallback(
+    async (sourceIds: string[]) => {
+      try {
+        await Promise.all(sourceIds.map((id) => workspaceApi.deleteCaseSource(id)))
+        setSources((prev) => prev.filter((s) => !sourceIds.includes(s.id)))
+        deselectAllSources()
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to delete sources'
+        setError(message)
+        throw err
+      }
+    },
+    [deselectAllSources]
+  )
+
+  const batchLinkContent = useCallback(
+    async (sourceIds: string[]) => {
+      try {
+        await workspaceApi.batchLinkContent(sourceIds)
+        // Optimistically update status to INDEXING
+        setSources((prev) =>
+          prev.map((s) =>
+            sourceIds.includes(s.id)
+              ? { ...s, indexingStatus: 'INDEXING' as const }
+              : s
+          )
+        )
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to re-index sources'
+        setError(message)
+        throw err
+      }
+    },
+    []
+  )
+
   const refresh = useCallback(() => {
     // No GET endpoint for listing documents - state is maintained locally after uploads
     // This is a no-op but kept for interface compatibility
@@ -118,6 +174,9 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
     deselectAllSources,
     uploadFile,
     deleteSource,
+    linkContent,
+    batchDelete,
+    batchLinkContent,
     refresh,
   }
 }

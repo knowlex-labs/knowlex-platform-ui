@@ -1,9 +1,9 @@
+```typescript
 import { useState, useRef, useEffect } from 'react'
-import { Download, Save, X, FileDown, FileText, ChevronDown } from 'lucide-react'
+import { Download, Save, FileDown, FileText, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
 
 interface DraftPreviewProps {
   title: string
@@ -53,7 +53,7 @@ export function DraftPreview({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${localTitle.replace(/[^a-z0-9]/gi, '_')}.txt`
+    a.download = `${ localTitle.replace(/[^a-z0-9]/gi, '_') }.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -63,40 +63,40 @@ export function DraftPreview({
   const handleDownloadDoc = () => {
     // Create a simple HTML document that Word can open
     const htmlContent = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${localTitle}</title>
-  <style>
-    body {
-      font-family: 'Times New Roman', Times, serif;
-      font-size: 12pt;
-      line-height: 1.5;
-      margin: 1in;
+  < !DOCTYPE html >
+    <html>
+      <head>
+        <meta charset="utf-8">
+          <title>${localTitle}</title>
+          <style>
+            body {
+              font - family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            margin: 1in;
     }
-    h1 {
-      font-size: 14pt;
-      font-weight: bold;
-      margin-bottom: 24pt;
+            h1 {
+              font - size: 14pt;
+            font-weight: bold;
+            margin-bottom: 24pt;
     }
-    p {
-      margin-bottom: 12pt;
-      text-align: justify;
+            p {
+              margin - bottom: 12pt;
+            text-align: justify;
     }
-  </style>
-</head>
-<body>
-  <h1>${localTitle}</h1>
-  ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-</body>
-</html>`
+          </style>
+      </head>
+      <body>
+        <h1>${localTitle}</h1>
+        ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
+      </body>
+    </html>`
 
     const blob = new Blob([htmlContent], { type: 'application/msword' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${localTitle.replace(/[^a-z0-9]/gi, '_')}.doc`
+    a.download = `${ localTitle.replace(/[^a-z0-9]/gi, '_') }.doc`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -108,36 +108,36 @@ export function DraftPreview({
     const printWindow = window.open('', '_blank')
     if (printWindow) {
       printWindow.document.write(`
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>${localTitle}</title>
-  <style>
-    @page {
-      margin: 1in;
+  < !DOCTYPE html >
+    <html>
+      <head>
+        <meta charset="utf-8">
+          <title>${localTitle}</title>
+          <style>
+            @page {
+              margin: 1in;
     }
-    body {
-      font-family: 'Times New Roman', Times, serif;
-      font-size: 12pt;
-      line-height: 1.5;
+            body {
+              font - family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
     }
-    h1 {
-      font-size: 14pt;
-      font-weight: bold;
-      margin-bottom: 24pt;
+            h1 {
+              font - size: 14pt;
+            font-weight: bold;
+            margin-bottom: 24pt;
     }
-    p {
-      margin-bottom: 12pt;
-      text-align: justify;
+            p {
+              margin - bottom: 12pt;
+            text-align: justify;
     }
-  </style>
-</head>
-<body>
-  <h1>${localTitle}</h1>
-  ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-</body>
-</html>`)
+          </style>
+      </head>
+      <body>
+        <h1>${localTitle}</h1>
+        ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
+      </body>
+    </html>`)
       printWindow.document.close()
       printWindow.focus()
       printWindow.print()
