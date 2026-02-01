@@ -11,11 +11,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth-context'
 import { useNavigation } from '@/contexts/navigation-context'
+import { AlertCircle } from 'lucide-react'
 
 interface LoginModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSwitchToSignup: () => void
+  sessionExpired?: boolean
 }
 
 declare global {
@@ -68,7 +70,7 @@ function GoogleIcon() {
   )
 }
 
-export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalProps) {
+export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpired }: LoginModalProps) {
   const { login, googleLogin, continueAsGuest } = useAuth()
   const { setView } = useNavigation()
   const [username, setUsername] = React.useState('')
@@ -275,6 +277,16 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup }: LoginModalP
             Enter your credentials to access Knowlex
           </DialogDescription>
         </DialogHeader>
+
+        {sessionExpired && (
+          <div className="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Session Expired</p>
+              <p className="mt-1 text-red-800">Your session has expired. Please log in again to continue.</p>
+            </div>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-2">

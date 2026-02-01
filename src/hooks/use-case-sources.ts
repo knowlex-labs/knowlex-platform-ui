@@ -53,7 +53,7 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
       try {
         // Step 1: Get presigned URL
         const { uploadUrl, storageKey, storageUrl } =
-          await workspaceApi.getPresignedUploadUrl(caseId, file.name, file.type)
+          await workspaceApi.getPresignedUploadUrl(caseId, file.name)
 
         // Step 2: Upload to S3
         await workspaceApi.uploadFileToS3(uploadUrl, file)

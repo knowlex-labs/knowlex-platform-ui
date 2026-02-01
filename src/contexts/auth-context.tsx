@@ -93,6 +93,41 @@ export function AuthProvider({ children }: AuthProviderProps) {
     restoreSession()
   }, [])
 
+  // Handle session expiry events
+  React.useEffect(() => {
+    const handleSessionExpired = () => {
+      // Clear auth tokens
+      setAuthTokens(null, null, null)
+      setAuthState({ isAuthenticated: false, user: null })
+
+      // Clear navigation state to force home page on next login
+      const savedNavState = localStorage.getItem('knowlex_navigation_state')
+      if (savedNavState) {
+        try {
+          localStorage.setItem('knowlex_navigation_state', JSON.stringify({
+            activeTab: 'dashboard',
+            selectedClientId: null,
+            selectedCaseId: null
+          }))
+        } catch (e) {
+          console.error('Failed to clear navigation state:', e)
+        }
+      }
+
+      // Trigger toast notification
+      window.dispatchEvent(new CustomEvent('toast:show', {
+        detail: {
+          title: 'Session Expired',
+          description: 'Your session has expired. Please log in again.',
+          variant: 'destructive'
+        }
+      }))
+    }
+
+    window.addEventListener('auth:session-expired', handleSessionExpired)
+    return () => window.removeEventListener('auth:session-expired', handleSessionExpired)
+  }, [])
+
   const login = React.useCallback(async (credentials: LoginCredentials) => {
     const response = await authApi.login({
       username: credentials.username,

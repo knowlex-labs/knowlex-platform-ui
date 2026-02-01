@@ -18,11 +18,23 @@ function getViewFromPath(): NavigationView {
 export function NavigationProvider({ children }: NavigationProviderProps) {
   const [state, setState] = React.useState<NavigationState>(() => {
     const savedCollapsed = localStorage.getItem('knowlex_sidebar_collapsed')
+    const savedNavState = localStorage.getItem('knowlex_navigation_state')
+
+    // Restore navigation state from localStorage if available
+    let restoredState: Partial<NavigationState> = {}
+    if (savedNavState) {
+      try {
+        restoredState = JSON.parse(savedNavState)
+      } catch (e) {
+        console.error('Failed to parse saved navigation state:', e)
+      }
+    }
+
     return {
       view: getViewFromPath(),
-      activeTab: 'dashboard',
-      selectedClientId: null,
-      selectedCaseId: null,
+      activeTab: restoredState.activeTab || 'dashboard',
+      selectedClientId: restoredState.selectedClientId || null,
+      selectedCaseId: restoredState.selectedCaseId || null,
       sidebarCollapsed: savedCollapsed === 'true',
     }
   })
@@ -52,6 +64,16 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     localStorage.setItem('knowlex_sidebar_collapsed', String(sidebarCollapsed))
     setState((prev) => ({ ...prev, sidebarCollapsed }))
   }, [])
+
+  // Persist navigation state to localStorage
+  React.useEffect(() => {
+    const stateToSave = {
+      activeTab: state.activeTab,
+      selectedClientId: state.selectedClientId,
+      selectedCaseId: state.selectedCaseId,
+    }
+    localStorage.setItem('knowlex_navigation_state', JSON.stringify(stateToSave))
+  }, [state.activeTab, state.selectedClientId, state.selectedCaseId])
 
   // Handle browser back/forward navigation
   React.useEffect(() => {

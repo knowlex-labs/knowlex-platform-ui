@@ -28,14 +28,12 @@ export const workspaceApi = {
   async getPresignedUploadUrl(
     caseId: string,
     filename: string,
-    contentType: string
   ): Promise<PresignedUrlData> {
     const response = await apiClient.post<ApiResponse<PresignedUrlData>>(
       '/api/v1/documents/upload-url',
       {
         filename,
         fileType: getFileType(filename),
-        contentType,
         caseId,
       }
     )
@@ -44,19 +42,18 @@ export const workspaceApi = {
 
   /**
    * Step 2: Upload file directly to S3 using pre-signed URL
-   * Note: This does NOT use the apiClient since it's a direct S3 request
    */
   async uploadFileToS3(uploadUrl: string, file: File): Promise<void> {
     const response = await fetch(uploadUrl, {
       method: 'PUT',
-      body: file,
       headers: {
         'Content-Type': file.type,
       },
+      body: file,
     })
 
     if (!response.ok) {
-      throw new Error(`Failed to upload file to S3: ${response.status}`)
+      throw new Error(`S3 upload failed: ${response.status} ${response.statusText}`)
     }
   },
 
