@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import type { WorkspaceMessage } from '@/types'
 import { ChatMessage } from './chat-message'
 
-interface ChatPanelProps {
+interface ChatInterfaceProps {
   messages: WorkspaceMessage[]
   isLoading: boolean
   selectedSourceCount: number
@@ -14,13 +14,13 @@ interface ChatPanelProps {
   onClearChat: () => void
 }
 
-export function ChatPanel({
+export function ChatInterface({
   messages,
   isLoading,
   selectedSourceCount,
   onSendMessage,
   onClearChat,
-}: ChatPanelProps) {
+}: ChatInterfaceProps) {
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -49,7 +49,7 @@ export function ChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-ledger-white border border-ledger-gray-200 rounded-lg">
+    <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-ledger-gray-200">
         <h3 className="text-sm font-semibold text-ledger-black">Chat</h3>
@@ -58,7 +58,7 @@ export function ChatPanel({
             variant="ghost"
             size="sm"
             onClick={onClearChat}
-            className="h-8 gap-2 text-ledger-gray-500 hover:text-ledger-black"
+            className="h-7 gap-1.5 text-ledger-gray-500 hover:text-ledger-black"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Clear
@@ -70,14 +70,14 @@ export function ChatPanel({
       <ScrollArea className="flex-1 px-4" ref={scrollRef}>
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-            <div className="w-12 h-12 rounded-full bg-ledger-gray-100 flex items-center justify-center mb-4">
-              <Send className="h-5 w-5 text-ledger-gray-400" />
+            <div className="w-16 h-16 rounded-full bg-ledger-gray-100 flex items-center justify-center mb-4">
+              <Send className="h-6 w-6 text-ledger-gray-400" />
             </div>
-            <p className="text-sm text-ledger-gray-500 mb-1">
+            <p className="text-sm text-ledger-gray-600 font-medium mb-1">
               Start a conversation
             </p>
-            <p className="text-xs text-ledger-gray-400 max-w-[200px]">
-              Ask questions about your documents or use the tools panel to analyze them
+            <p className="text-xs text-ledger-gray-500 max-w-[280px]">
+              Ask questions about your documents or use the tools on the right to analyze them
             </p>
           </div>
         ) : (
@@ -105,7 +105,7 @@ export function ChatPanel({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your documents..."
-              className="min-h-[80px] pr-12 resize-none"
+              className="min-h-[100px] pr-12 resize-none"
               disabled={isLoading}
             />
             <Button
@@ -122,7 +122,7 @@ export function ChatPanel({
             </Button>
           </div>
           <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-1 text-xs text-ledger-gray-400">
+            <div className="flex items-center gap-1.5 text-xs text-ledger-gray-400">
               <FileCheck className="h-3.5 w-3.5" />
               {selectedSourceCount} source{selectedSourceCount !== 1 ? 's' : ''} selected
             </div>

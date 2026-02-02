@@ -9,7 +9,7 @@ interface DraftPreviewProps {
   content: string
   isOpen: boolean
   onClose: () => void
-  onSave: (title: string, content: string) => void
+  onSave: (title: string, content: string) => void | Promise<void>
   onContentChange: (content: string) => void
   onTitleChange: (title: string) => void
 }

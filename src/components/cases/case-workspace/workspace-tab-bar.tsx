@@ -1,0 +1,78 @@
+import { X, MessageSquare, FileText, Columns2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import type { WorkspaceTabItem } from '@/types'
+
+interface WorkspaceTabBarProps {
+  tabs: WorkspaceTabItem[]
+  activeTabId: string
+  splitMode: boolean
+  hasDraftTabs: boolean
+  onTabClick: (tabId: string) => void
+  onTabClose: (tabId: string) => void
+  onToggleSplit: () => void
+}
+
+export function WorkspaceTabBar({
+  tabs,
+  activeTabId,
+  splitMode,
+  hasDraftTabs,
+  onTabClick,
+  onTabClose,
+  onToggleSplit,
+}: WorkspaceTabBarProps) {
+  return (
+    <div className="flex items-center justify-between border-b border-ledger-gray-200 bg-ledger-gray-50 px-1">
+      <div className="flex items-center gap-0.5 overflow-x-auto">
+        {tabs.map((tab) => (
+          <div
+            key={tab.id}
+            className={cn(
+              'group flex items-center gap-1.5 px-3 py-2 text-sm cursor-pointer border-b-2 transition-colors',
+              activeTabId === tab.id
+                ? 'border-ledger-black bg-ledger-white text-ledger-black'
+                : 'border-transparent text-ledger-gray-600 hover:text-ledger-black hover:bg-ledger-gray-100'
+            )}
+            onClick={() => onTabClick(tab.id)}
+          >
+            {tab.type === 'chat' ? (
+              <MessageSquare className="h-3.5 w-3.5" />
+            ) : (
+              <FileText className="h-3.5 w-3.5" />
+            )}
+            <span className="truncate max-w-[120px]">{tab.label}</span>
+            {tab.type === 'draft' && (
+              <button
+                className="ml-1 p-0.5 rounded hover:bg-ledger-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onTabClose(tab.id)
+                }}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Split mode toggle - only show when there are draft tabs */}
+      {hasDraftTabs && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            'h-7 px-2 gap-1.5 mr-1',
+            splitMode && 'bg-ledger-gray-200'
+          )}
+          onClick={onToggleSplit}
+          title={splitMode ? 'Exit split view' : 'Split view'}
+        >
+          <Columns2 className="h-3.5 w-3.5" />
+          <span className="text-xs">Split</span>
+        </Button>
+      )}
+    </div>
+  )
+}
