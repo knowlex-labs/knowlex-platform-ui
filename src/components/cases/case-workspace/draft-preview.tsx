@@ -1,6 +1,5 @@
-```typescript
 import { useState, useRef, useEffect } from 'react'
-import { Download, Save, FileDown, FileText, ChevronDown } from 'lucide-react'
+import { Download, Save, FileDown, FileText, ChevronDown, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -53,7 +52,7 @@ export function DraftPreview({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${ localTitle.replace(/[^a-z0-9]/gi, '_') }.txt`
+    a.download = `${localTitle.replace(/[^a-z0-9]/gi, '_')}.txt`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -96,7 +95,7 @@ export function DraftPreview({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${ localTitle.replace(/[^a-z0-9]/gi, '_') }.doc`
+    a.download = `${localTitle.replace(/[^a-z0-9]/gi, '_')}.doc`
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

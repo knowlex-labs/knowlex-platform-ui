@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Grid3x3, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Grid3x3, RefreshCw, Trash2, MoreVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -73,6 +73,19 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const { setSelectedCaseId, setSidebarCollapsed } = useNavigation()
   const [sourcesOpen, setSourcesOpen] = useState(true)
   const [chatOpen, setChatOpen] = useState(true)
+  const [caseMenuOpen, setCaseMenuOpen] = useState(false)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('[data-case-menu]')) {
+        setCaseMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
   const [showAllTemplates, setShowAllTemplates] = useState(false)
   const [draftEditorOpen, setDraftEditorOpen] = useState(false)
   const [editingContent, setEditingContent] = useState('')
@@ -213,21 +226,17 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
         <div className="flex items-center gap-2">
           {selectedSourceIds.size > 0 && (
             <>
-              {sources.filter(s => selectedSourceIds.has(s.id)).some(
-                s => s.indexingStatus === 'INDEXING_PENDING' || s.indexingStatus === 'INDEXING_FAILED'
-              ) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => batchLinkContent(Array.from(selectedSourceIds))}
-                    disabled={sourcesLoading || isUploading}
-                    className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
-                    title="Re-index selected sources"
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
-                    <span className="hidden sm:inline">Re-index</span>
-                  </Button>
-                )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => batchLinkContent(Array.from(selectedSourceIds))}
+                disabled={sourcesLoading || isUploading}
+                className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
+                title="Re-index selected sources"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
+                <span className="hidden sm:inline">Re-index</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -242,6 +251,38 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
               <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
             </>
           )}
+
+          <div className="relative" data-case-menu>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setCaseMenuOpen(!caseMenuOpen)}
+              className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-ledger-black"
+              title="Case actions"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+            {caseMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-ledger-white border border-ledger-gray-200 rounded-lg shadow-lg z-50 py-1">
+                <button
+                  className="w-full px-4 py-2 text-left text-sm text-ledger-gray-700 hover:bg-ledger-gray-50 hover:text-ledger-black"
+                  onClick={() => setCaseMenuOpen(false)}
+                >
+                  Edit Case Details
+                </button>
+                <div className="h-px bg-ledger-gray-100 my-1" />
+                <button
+                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                  onClick={() => setCaseMenuOpen(false)}
+                >
+                  Delete Case
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
+
           <Button
             variant="ghost"
             size="sm"
@@ -279,8 +320,6 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
               onUploadFile={uploadFile}
               onDeleteSource={deleteSource}
               onLinkContent={linkContent}
-              onBatchDelete={batchDelete}
-              onBatchLinkContent={batchLinkContent}
             />
           </div>
         )}

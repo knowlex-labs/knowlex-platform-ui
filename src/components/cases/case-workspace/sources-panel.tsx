@@ -18,8 +18,6 @@ interface SourcesPanelProps {
   onUploadFile: (file: File) => Promise<void>
   onDeleteSource: (sourceId: string) => Promise<void>
   onLinkContent: (sourceId: string) => Promise<void>
-  onBatchDelete: (sourceIds: string[]) => Promise<void>
-  onBatchLinkContent: (sourceIds: string[]) => Promise<void>
 }
 
 export function SourcesPanel({
@@ -33,8 +31,6 @@ export function SourcesPanel({
   onUploadFile,
   onDeleteSource,
   onLinkContent,
-  onBatchDelete,
-  onBatchLinkContent,
 }: SourcesPanelProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
   const [viewingSource, setViewingSource] = useState<CaseSource | null>(null)
