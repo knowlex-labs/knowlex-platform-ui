@@ -40,17 +40,19 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function getStatusBadge(status: CaseSource['indexingStatus']) {
-  const config = {
+function getStatusBadge(status: CaseSource['indexingStatus'] | undefined | null) {
+  const config: Record<string, { color: string; text: string }> = {
     INDEXING_PENDING: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', text: 'Pending' },
     INDEXING: { color: 'bg-blue-100 text-blue-800 border-blue-200', text: 'Indexing' },
     INDEXED: { color: 'bg-green-100 text-green-800 border-green-200', text: 'Indexed' },
     INDEXING_FAILED: { color: 'bg-red-100 text-red-800 border-red-200', text: 'Failed' },
   }
 
-  const { color, text } = config[status]
+  const statusConfig = status && config[status]
+  const { color, text } = statusConfig || { color: 'bg-gray-100 text-gray-800 border-gray-200', text: 'Unknown' }
+
   return (
-    <span className={`text-xs px-1.5 py-0.5 rounded border ${color}`}>
+    <span className={`text-xs px-1.5 py-0.5 rounded border flex-shrink-0 ${color}`}>
       {text}
     </span>
   )

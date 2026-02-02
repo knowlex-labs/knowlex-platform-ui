@@ -50,7 +50,26 @@ function mapChatResponse(data: BackendChatResponse): ChatResponse {
   }
 }
 
+// Paginated response from backend
+interface PaginatedResponse<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+}
+
 export const workspaceApi = {
+  /**
+   * Get all documents for a case
+   */
+  async getCaseDocuments(caseId: string): Promise<CaseSource[]> {
+    const response = await apiClient.get<ApiResponse<PaginatedResponse<CaseSource>>>(
+      `/api/v1/documents?caseId=${caseId}&page=0&size=100`
+    )
+    return response.data.content
+  },
+
   /**
    * Step 1: Get presigned URL for uploading a file to S3
    */
