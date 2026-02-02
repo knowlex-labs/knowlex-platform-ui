@@ -32,8 +32,8 @@ export function SourcesPanel({
   onUploadFile,
   onDeleteSource,
   onLinkContent,
-  onBatchDelete,
-  onBatchLinkContent,
+  onBatchDelete: _onBatchDelete,
+  onBatchLinkContent: _onBatchLinkContent,
 }: SourcesPanelProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
 

@@ -1,4 +1,5 @@
 import { UserPlus, Brain, Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface QuickActionsBarProps {
   onNewCase: () => void
