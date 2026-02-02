@@ -5,7 +5,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import type { CaseSource } from '@/types'
 import { SourceItem } from './source-item'
 import { AddSourceModal } from './add-source-modal'
-import { FileViewerModal } from './file-viewer-modal'
 
 interface SourcesPanelProps {
   sources: CaseSource[]
@@ -37,7 +36,6 @@ export function SourcesPanel({
   onBatchLinkContent,
 }: SourcesPanelProps) {
   const [addModalOpen, setAddModalOpen] = useState(false)
-  const [viewingSource, setViewingSource] = useState<CaseSource | null>(null)
 
   const allSelected = sources.length > 0 && selectedSourceIds.size === sources.length
   const someSelected = selectedSourceIds.size > 0 && selectedSourceIds.size < sources.length
@@ -47,17 +45,6 @@ export function SourcesPanel({
       onDeselectAll()
     } else {
       onSelectAll()
-    }
-  }
-
-  const handleViewSource = (source: CaseSource) => {
-    // Check if file type is viewable in modal (PDF or image)
-    const viewableTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    if (viewableTypes.includes(source.fileType)) {
-      setViewingSource(source)
-    } else {
-      // Open in new tab for other file types
-      window.open(source.storageUrl, '_blank')
     }
   }
 
@@ -134,14 +121,13 @@ export function SourcesPanel({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-ledger-gray-100">
+          <div>
             {sources.map((source) => (
               <SourceItem
                 key={source.id}
                 source={source}
                 isSelected={selectedSourceIds.has(source.id)}
                 onToggleSelection={() => onToggleSelection(source.id)}
-                onView={() => handleViewSource(source)}
                 onDelete={() => handleDeleteSource(source.id)}
                 onLinkContent={() => handleLinkContent(source.id)}
               />
@@ -165,11 +151,6 @@ export function SourcesPanel({
         onOpenChange={setAddModalOpen}
         onUpload={onUploadFile}
         isUploading={isUploading}
-      />
-
-      <FileViewerModal
-        source={viewingSource}
-        onClose={() => setViewingSource(null)}
       />
     </div>
   )

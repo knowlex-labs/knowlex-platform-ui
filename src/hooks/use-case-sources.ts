@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { workspaceApi } from '@/services/api/workspace-api'
 import type { CaseSource } from '@/types'
+
+const POLLING_INTERVAL = 3000 // 3 seconds
 
 interface UseCaseSourcesResult {
   sources: CaseSource[]
@@ -16,15 +18,127 @@ interface UseCaseSourcesResult {
   linkContent: (sourceId: string) => Promise<void>
   batchDelete: (sourceIds: string[]) => Promise<void>
   batchLinkContent: (sourceIds: string[]) => Promise<void>
-  refresh: () => void
+  refresh: () => Promise<void>
 }
 
 export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
   const [sources, setSources] = useState<CaseSource[]>([])
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set())
-  const [isLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Track documents being polled
+  const pollingIdsRef = useRef<Set<string>>(new Set())
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Poll indexing status for documents
+  const pollIndexingStatus = useCallback(async () => {
+    const idsToRemove: string[] = []
+
+    for (const documentId of pollingIdsRef.current) {
+      try {
+        const status = await workspaceApi.getIndexingStatus(documentId)
+
+        setSources((prev) =>
+          prev.map((s) =>
+            s.id === documentId ? { ...s, indexingStatus: status } : s
+          )
+        )
+
+        // Stop polling if terminal status
+        if (status === 'INDEXED' || status === 'INDEXING_FAILED') {
+          idsToRemove.push(documentId)
+        }
+      } catch {
+        // Document may have been deleted, stop polling
+        idsToRemove.push(documentId)
+      }
+    }
+
+    // Remove terminal documents from polling
+    for (const id of idsToRemove) {
+      pollingIdsRef.current.delete(id)
+    }
+
+    // Stop interval if nothing left to poll
+    if (pollingIdsRef.current.size === 0 && pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
+  }, [])
+
+  // Start polling for a document
+  const startPolling = useCallback((documentId: string) => {
+    pollingIdsRef.current.add(documentId)
+
+    // Start interval if not already running
+    if (!pollingIntervalRef.current) {
+      pollingIntervalRef.current = setInterval(pollIndexingStatus, POLLING_INTERVAL)
+    }
+  }, [pollIndexingStatus])
+
+  // Stop polling for a document
+  const stopPolling = useCallback((documentId: string) => {
+    pollingIdsRef.current.delete(documentId)
+
+    if (pollingIdsRef.current.size === 0 && pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
+  }, [])
+
+  // Stop all polling
+  const stopAllPolling = useCallback(() => {
+    pollingIdsRef.current.clear()
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
+  }, [])
+
+  // Fetch documents when caseId changes
+  useEffect(() => {
+    // Cleanup polling when caseId changes
+    stopAllPolling()
+
+    if (!caseId) {
+      setSources([])
+      setSelectedSourceIds(new Set())
+      return
+    }
+
+    const fetchDocuments = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const documents = await workspaceApi.getCaseDocuments(caseId)
+        setSources(documents)
+
+        // Auto-select all sources by default
+        setSelectedSourceIds(new Set(documents.map((d) => d.id)))
+
+        // Start polling for documents with INDEXING or INDEXING_PENDING status
+        for (const doc of documents) {
+          if (doc.indexingStatus === 'INDEXING' || doc.indexingStatus === 'INDEXING_PENDING') {
+            startPolling(doc.id)
+          }
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to fetch documents'
+        setError(message)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchDocuments()
+
+    // Cleanup on unmount or caseId change
+    return () => {
+      stopAllPolling()
+    }
+  }, [caseId, startPolling, stopAllPolling])
 
   const toggleSourceSelection = useCallback((sourceId: string) => {
     setSelectedSourceIds((prev) => {
@@ -72,6 +186,11 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         // Step 4: Add to local state and auto-select
         setSources((prev) => [...prev, source])
         setSelectedSourceIds((prev) => new Set([...prev, source.id]))
+
+        // Step 5: Start polling if status needs it
+        if (source.indexingStatus === 'INDEXING' || source.indexingStatus === 'INDEXING_PENDING') {
+          startPolling(source.id)
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to upload file'
         setError(message)
@@ -80,13 +199,16 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         setIsUploading(false)
       }
     },
-    [caseId]
+    [caseId, startPolling]
   )
 
   const deleteSource = useCallback(
     async (sourceId: string) => {
       try {
-        // Delete from backend (no caseId needed in path)
+        // Stop polling before delete
+        stopPolling(sourceId)
+
+        // Delete from backend
         await workspaceApi.deleteCaseSource(sourceId)
 
         // Remove from local state
@@ -102,7 +224,7 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         throw err
       }
     },
-    []
+    [stopPolling]
   )
 
   const linkContent = useCallback(
@@ -113,18 +235,28 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         setSources((prev) =>
           prev.map((s) => (s.id === sourceId ? updatedSource : s))
         )
+
+        // Start polling after re-indexing
+        if (updatedSource.indexingStatus === 'INDEXING' || updatedSource.indexingStatus === 'INDEXING_PENDING') {
+          startPolling(sourceId)
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to link content'
         setError(message)
         throw err
       }
     },
-    []
+    [startPolling]
   )
 
   const batchDelete = useCallback(
     async (sourceIds: string[]) => {
       try {
+        // Stop polling for all
+        for (const id of sourceIds) {
+          stopPolling(id)
+        }
+
         await Promise.all(sourceIds.map((id) => workspaceApi.deleteCaseSource(id)))
         setSources((prev) => prev.filter((s) => !sourceIds.includes(s.id)))
         deselectAllSources()
@@ -134,7 +266,7 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         throw err
       }
     },
-    [deselectAllSources]
+    [deselectAllSources, stopPolling]
   )
 
   const batchLinkContent = useCallback(
@@ -149,19 +281,36 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
               : s
           )
         )
+
+        // Start polling for all re-indexed documents
+        for (const sourceId of sourceIds) {
+          startPolling(sourceId)
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to re-index sources'
         setError(message)
         throw err
       }
     },
-    []
+    [startPolling]
   )
 
-  const refresh = useCallback(() => {
-    // No GET endpoint for listing documents - state is maintained locally after uploads
-    // This is a no-op but kept for interface compatibility
-  }, [])
+  const refresh = useCallback(async () => {
+    if (!caseId) return
+
+    setIsLoading(true)
+    setError(null)
+    try {
+      const documents = await workspaceApi.getCaseDocuments(caseId)
+      setSources(documents)
+      // Keep current selection, just refresh data
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch documents'
+      setError(message)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [caseId])
 
   return {
     sources,

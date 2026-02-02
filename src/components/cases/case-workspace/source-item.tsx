@@ -16,7 +16,6 @@ interface SourceItemProps {
   source: CaseSource
   isSelected: boolean
   onToggleSelection: () => void
-  onView: () => void
   onDelete: () => void
   onLinkContent: () => void
 }
@@ -61,7 +60,6 @@ export function SourceItem({
   source,
   isSelected,
   onToggleSelection,
-  onView,
   onDelete,
   onLinkContent,
 }: SourceItemProps) {
@@ -93,9 +91,14 @@ export function SourceItem({
     }
   }
 
+  const handleView = () => {
+    window.open(source.storageUrl, '_blank')
+    setShowMenu(false)
+  }
+
   return (
     <div
-      className="group relative flex items-center gap-3 px-4 py-3 hover:bg-ledger-gray-50 transition-colors"
+      className="group relative flex items-center gap-2 px-3 py-2 hover:bg-ledger-gray-50 transition-colors"
       onMouseLeave={() => setShowMenu(false)}
     >
       {/* Checkbox */}
@@ -103,23 +106,24 @@ export function SourceItem({
         type="checkbox"
         checked={isSelected}
         onChange={onToggleSelection}
-        className="h-4 w-4 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0"
+        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0"
       />
 
       {/* File Icon */}
-      <Icon className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
+      <Icon className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
 
-      {/* File Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-ledger-black truncate" title={source.filename}>
-            {source.filename}
-          </p>
-          {getStatusBadge(source.indexingStatus)}
-        </div>
-        <p className="text-xs text-ledger-gray-400">
+      {/* File Info - single line */}
+      <div className="flex-1 min-w-0 flex items-center gap-1.5">
+        <span
+          className="text-xs text-ledger-black truncate flex-1 min-w-0"
+          title={source.filename}
+        >
+          {source.filename}
+        </span>
+        <span className="text-[10px] text-ledger-gray-400 flex-shrink-0">
           {formatFileSize(source.fileSize)}
-        </p>
+        </span>
+        {getStatusBadge(source.indexingStatus)}
       </div>
 
       {/* Menu Button */}
@@ -127,10 +131,10 @@ export function SourceItem({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 text-ledger-gray-400 hover:text-ledger-black hover:bg-ledger-gray-100 transition-colors"
+          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-ledger-black hover:bg-ledger-gray-100 transition-colors"
           onClick={() => setShowMenu(!showMenu)}
         >
-          <MoreVertical className="h-4 w-4" />
+          <MoreVertical className="h-3.5 w-3.5" />
         </Button>
 
         {/* Dropdown Menu */}
@@ -138,10 +142,7 @@ export function SourceItem({
           <div className="absolute right-0 top-full mt-1 w-36 bg-ledger-white border border-ledger-gray-200 rounded shadow-lg z-10">
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-ledger-black hover:bg-ledger-gray-50 transition-colors"
-              onClick={() => {
-                onView()
-                setShowMenu(false)
-              }}
+              onClick={handleView}
             >
               <Eye className="h-4 w-4" />
               View

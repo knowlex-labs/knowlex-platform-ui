@@ -15,10 +15,39 @@ interface PresignedUrlData {
   storageUrl: string
 }
 
+// Backend chat response structure
+interface BackendChatResponse {
+  answer: string
+  confidence: number
+  is_relevant: boolean
+  chunks: {
+    chunk_id: string
+    file_id: string
+    source: string
+    text: string
+    relevance_score: number
+    page_number: number | null
+    concepts: string[]
+  }[]
+}
+
 // Helper to map file extension to fileType enum
 function getFileType(filename: string): string {
   const ext = filename.split('.').pop()?.toUpperCase() || 'PDF'
   return ['PDF', 'DOCX', 'DOC', 'JPG', 'JPEG', 'PNG'].includes(ext) ? ext : 'PDF'
+}
+
+// Map backend chat response to frontend ChatResponse
+function mapChatResponse(data: BackendChatResponse): ChatResponse {
+  return {
+    content: data.answer,
+    confidence: data.confidence,
+    sources: data.chunks.map(chunk => ({
+      fileName: chunk.source,
+      page: chunk.page_number ?? 0,
+      textSnippet: chunk.text,
+    })),
+  }
 }
 
 export const workspaceApi = {
@@ -92,21 +121,23 @@ export const workspaceApi = {
   /**
    * Send a chat query about the case documents
    */
-  async sendChatQuery(message: string, filterFileIds: string[]): Promise<ChatResponse> {
-    return await apiClient.post<ChatResponse>('/api/v1/chat/query', {
-      message,
+  async sendChatQuery(query: string, filterFileIds: string[]): Promise<ChatResponse> {
+    const response = await apiClient.post<ApiResponse<BackendChatResponse>>('/api/v1/chat/query', {
+      query,
       filterFileIds,
     })
+    return mapChatResponse(response.data)
   },
 
   /**
    * Send a summary query (for summarize tool)
    */
-  async sendSummaryQuery(message: string, filterFileIds: string[]): Promise<ChatResponse> {
-    return await apiClient.post<ChatResponse>('/api/v1/chat/summary', {
-      message,
+  async sendSummaryQuery(query: string, filterFileIds: string[]): Promise<ChatResponse> {
+    const response = await apiClient.post<ApiResponse<BackendChatResponse>>('/api/v1/chat/summary', {
+      query,
       filterFileIds,
     })
+    return mapChatResponse(response.data)
   },
 
   /**
@@ -128,5 +159,15 @@ export const workspaceApi = {
         apiClient.post(`/api/v1/documents/${id}/link-content`)
       )
     )
+  },
+
+  /**
+   * Poll indexing status for a document
+   */
+  async getIndexingStatus(documentId: string): Promise<CaseSource['indexingStatus']> {
+    const response = await apiClient.get<ApiResponse<{ status: CaseSource['indexingStatus'] }>>(
+      `/api/v1/documents/${documentId}/indexing-status?refresh=true`
+    )
+    return response.data.status
   },
 }

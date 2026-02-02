@@ -18,7 +18,8 @@ function formatTime(date: Date): string {
 
 export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
   const isUser = message.role === 'user'
-  const isToolExecution = message.content.startsWith('[Executing tool:')
+  const content = message.content || ''
+  const isToolExecution = content.startsWith('[Executing tool:')
   const showEditButton = !isUser && !isToolExecution && onEditDraft
 
   return (
@@ -60,7 +61,7 @@ export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
         >
           {/* Render message content with basic markdown support */}
           <div className="text-sm whitespace-pre-wrap">
-            {message.content.split('\n').map((line, i) => {
+            {content.split('\n').map((line, i) => {
               // Handle bold text (**text**)
               const parts = line.split(/(\*\*.*?\*\*)/g)
               return (
@@ -75,7 +76,7 @@ export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
                     }
                     return part
                   })}
-                  {i < message.content.split('\n').length - 1 && <br />}
+                  {i < content.split('\n').length - 1 && <br />}
                 </span>
               )
             })}
@@ -89,7 +90,7 @@ export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
               variant="ghost"
               size="sm"
               className="h-6 px-2 text-xs gap-1 text-ledger-gray-500 hover:text-ledger-black"
-              onClick={() => onEditDraft(message.content)}
+              onClick={() => onEditDraft(content)}
             >
               <Pencil className="h-3 w-3" />
               Edit Draft
