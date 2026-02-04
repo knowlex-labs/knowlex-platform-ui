@@ -1,11 +1,44 @@
-import { User, Bot, Pencil } from 'lucide-react'
+import { useState } from 'react'
+import { User, Bot, ChevronDown, ChevronUp, FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { WorkspaceMessage } from '@/types'
 import { cn } from '@/lib/utils'
 
 interface ChatMessageProps {
   message: WorkspaceMessage
-  onEditDraft?: (content: string) => void
+}
+
+interface ParsedSource {
+  fileName: string
+  page: string
+  snippet: string
+}
+
+function parseMessageContent(content: string): { mainContent: string; sources: ParsedSource[] } {
+  // Look for the sources section
+  const sourcesMatch = content.match(/\n\n\*\*Sources:\*\*\n([\s\S]*)$/)
+
+  if (!sourcesMatch) {
+    return { mainContent: content, sources: [] }
+  }
+
+  const mainContent = content.replace(sourcesMatch[0], '').trim()
+  const sourcesText = sourcesMatch[1]
+
+  // Parse individual sources: - filename (p.X): "snippet"
+  const sourceRegex = /- (.+?) \(p\.(\d+)\): "(.+?)"/g
+  const sources: ParsedSource[] = []
+  let match
+
+  while ((match = sourceRegex.exec(sourcesText)) !== null) {
+    sources.push({
+      fileName: match[1],
+      page: match[2],
+      snippet: match[3],
+    })
+  }
+
+  return { mainContent, sources }
 }
 
 function formatTime(date: Date): string {
@@ -16,11 +49,14 @@ function formatTime(date: Date): string {
   })
 }
 
-export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
+export function ChatMessage({ message }: ChatMessageProps) {
+  const [sourcesExpanded, setSourcesExpanded] = useState(false)
   const isUser = message.role === 'user'
   const content = message.content || ''
   const isToolExecution = content.startsWith('[Executing tool:')
-  const showEditButton = !isUser && !isToolExecution && onEditDraft
+
+  const { mainContent, sources } = parseMessageContent(content)
+  const hasSources = sources.length > 0
 
   return (
     <div
@@ -46,22 +82,22 @@ export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
       {/* Message Content */}
       <div
         className={cn(
-          'flex flex-col max-w-[80%]',
+          'flex flex-col max-w-[85%]',
           isUser ? 'items-end' : 'items-start'
         )}
       >
         <div
           className={cn(
-            'px-4 py-2 rounded-lg',
+            'px-4 py-3 rounded-lg',
             isUser
               ? 'bg-ledger-black text-ledger-white'
               : 'bg-ledger-gray-100 text-ledger-black',
             isToolExecution && 'bg-ledger-gray-50 border border-ledger-gray-200 italic text-sm'
           )}
         >
-          {/* Render message content with basic markdown support */}
+          {/* Render main message content with basic markdown support */}
           <div className="text-sm whitespace-pre-wrap">
-            {content.split('\n').map((line, i) => {
+            {mainContent.split('\n').map((line, i) => {
               // Handle bold text (**text**)
               const parts = line.split(/(\*\*.*?\*\*)/g)
               return (
@@ -76,26 +112,59 @@ export function ChatMessage({ message, onEditDraft }: ChatMessageProps) {
                     }
                     return part
                   })}
-                  {i < content.split('\n').length - 1 && <br />}
+                  {i < mainContent.split('\n').length - 1 && <br />}
                 </span>
               )
             })}
           </div>
         </div>
 
-        {/* Actions and Timestamp */}
-        <div className="flex items-center gap-2 mt-1">
-          {showEditButton && (
+        {/* Sources Section */}
+        {hasSources && !isUser && (
+          <div className="mt-2 w-full">
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs gap-1 text-ledger-gray-500 hover:text-ledger-black"
-              onClick={() => onEditDraft(content)}
+              onClick={() => setSourcesExpanded(!sourcesExpanded)}
+              className="h-7 px-2 gap-1.5 text-xs text-ledger-gray-600 hover:text-ledger-black"
             >
-              <Pencil className="h-3 w-3" />
-              Edit Draft
+              <FileText className="h-3.5 w-3.5" />
+              {sources.length} source{sources.length !== 1 ? 's' : ''}
+              {sourcesExpanded ? (
+                <ChevronUp className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
             </Button>
-          )}
+
+            {sourcesExpanded && (
+              <div className="mt-2 space-y-2">
+                {sources.map((source, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-lg border border-ledger-gray-200 bg-ledger-white"
+                  >
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <FileText className="h-3.5 w-3.5 text-ledger-gray-500" />
+                      <span className="text-xs font-medium text-ledger-black truncate">
+                        {source.fileName}
+                      </span>
+                      <span className="text-xs text-ledger-gray-500 flex-shrink-0">
+                        Page {source.page}
+                      </span>
+                    </div>
+                    <p className="text-xs text-ledger-gray-600 italic line-clamp-2">
+                      "{source.snippet}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Timestamp */}
+        <div className="flex items-center gap-2 mt-1">
           <span className="text-xs text-ledger-gray-400">
             {formatTime(message.timestamp)}
           </span>

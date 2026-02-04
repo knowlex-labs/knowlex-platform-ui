@@ -44,34 +44,28 @@ export interface LegalTool {
 
 export const LEGAL_TOOLS: LegalTool[] = [
   {
-    id: 'summarize',
-    name: 'Summarize',
-    description: 'Create a summary of selected sources',
-    icon: 'FileText',
+    id: 'drafting',
+    name: 'Drafting',
+    description: 'Create legal documents from templates',
+    icon: 'PenLine',
   },
   {
-    id: 'create-report',
-    name: 'Create Report',
+    id: 'generate-report',
+    name: 'Generate Report',
     description: 'Generate a legal analysis report',
     icon: 'FileOutput',
   },
   {
-    id: 'extract-facts',
-    name: 'Extract Key Facts',
-    description: 'List key facts from documents',
+    id: 'generate-summary',
+    name: 'Generate Summary',
+    description: 'Summarize selected documents',
+    icon: 'FileText',
+  },
+  {
+    id: 'generate-facts',
+    name: 'Generate Case Facts',
+    description: 'Extract key facts from documents',
     icon: 'ListChecks',
-  },
-  {
-    id: 'find-precedents',
-    name: 'Find Precedents',
-    description: 'Search for relevant case precedents',
-    icon: 'Scale',
-  },
-  {
-    id: 'draft-response',
-    name: 'Draft Response',
-    description: 'Draft a legal response or brief',
-    icon: 'PenLine',
   },
 ]
 
@@ -107,6 +101,14 @@ export interface CaseFilter {
 }
 
 export type WorkspaceTab = 'chat' | 'drafts' | 'notes'
+
+// IDE-like tab system for workspace
+export interface WorkspaceTabItem {
+  id: string
+  type: 'chat' | 'draft'
+  label: string
+  draftId?: string
+}
 
 // Template types for draft generation
 export interface TemplateField {

@@ -1,21 +1,29 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Grid3x3, RefreshCw, Trash2 } from 'lucide-react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useNavigation } from '@/contexts/navigation-context'
 import { useCaseSources } from '@/hooks/use-case-sources'
 import { useWorkspaceChat } from '@/hooks/use-workspace-chat'
 import { useDrafts } from '@/hooks/use-drafts'
-import { SourcesPanel } from './sources-panel'
-import { ChatPanel } from './chat-panel'
-import { TemplateCard } from './template-card'
+import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
+import { LeftSidebar } from './left-sidebar'
+import { CenterPanel } from './center-panel'
+import { ToolsSidebar } from './tools-sidebar'
 import { TemplateFormModal } from './template-form-modal'
 import { DraftPreview } from './draft-preview'
-import { DraftItem } from './draft-item'
-import { DraftEditorModal } from './draft-editor-modal'
 import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
+import type { DocumentType } from '@/hooks/use-drafts'
+
+// Map template IDs to valid API document types
+const TEMPLATE_TO_DOCUMENT_TYPE: Record<string, DocumentType> = {
+  'notice': 'legal_notice',
+  'patent': 'application',
+  'application-draft': 'application',
+  'interim-application': 'application',
+  'affidavit': 'affidavit',
+}
 
 interface CaseWorkspaceProps {
   caseId: string
@@ -57,33 +65,16 @@ async function generateDraft(
   return { title, content }
 }
 
-function downloadDraft(title: string, content: string) {
-  const blob = new Blob([content], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.txt`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
 export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const { setSelectedCaseId, setSidebarCollapsed } = useNavigation()
-  const [sourcesOpen, setSourcesOpen] = useState(true)
-  const [chatOpen, setChatOpen] = useState(true)
-  const [showAllTemplates, setShowAllTemplates] = useState(false)
-  const [draftEditorOpen, setDraftEditorOpen] = useState(false)
-  const [editingContent, setEditingContent] = useState('')
+  const [leftPanelOpen, setLeftPanelOpen] = useState(true)
+  const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formModalOpen, setFormModalOpen] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewTitle, setPreviewTitle] = useState('')
   const [previewContent, setPreviewContent] = useState('')
-  const [editingDraft, setEditingDraft] = useState<Draft | null>(null)
-  const [editModalOpen, setEditModalOpen] = useState(false)
 
   const {
     sources,
@@ -114,10 +105,19 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     deleteDraft,
   } = useDrafts(caseId)
 
+  const {
+    tabs,
+    activeTabId,
+    splitMode,
+    openTab,
+    closeTab,
+    setActiveTab,
+    toggleSplitMode,
+  } = useWorkspaceTabs(drafts)
+
   // Auto-hide sidebar when workspace opens
   useEffect(() => {
     setSidebarCollapsed(true)
-    // Don't restore on unmount since handleBack already does it
   }, [setSidebarCollapsed])
 
   const handleBack = () => {
@@ -129,22 +129,42 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     await sendMessage(query, Array.from(selectedSourceIds))
   }
 
-  const handleEditDraft = (content: string) => {
-    setEditingContent(content)
-    setDraftEditorOpen(true)
+  const handleDraftClick = (draft: Draft) => {
+    openTab(draft)
   }
 
-  const handleSaveDraftFromChat = (id: string | null, title: string, content: string) => {
-    if (id) {
-      updateDraft(id, { title, content })
-    } else {
-      addDraft(title, content)
-    }
+  const handleSaveDraft = async (id: string, title: string, content: string) => {
+    await updateDraft(id, { title, content })
+  }
+
+  const handleDeleteDraft = async (id: string) => {
+    // Close the tab if it's open
+    const tabId = `draft-${id}`
+    closeTab(tabId)
+    await deleteDraft(id)
+  }
+
+  // Tool handlers
+  const handleDraftingClick = () => {
+    // Open template selection - show first template by default
+    setSelectedTemplate(DRAFT_TEMPLATES[0])
+    setFormModalOpen(true)
+  }
+
+  const handleGenerateReport = () => {
+    handleSendMessage('Generate a detailed legal analysis report from the selected documents.')
+  }
+
+  const handleGenerateSummary = () => {
+    handleSendMessage('Summarize the key points and important information from the selected documents.')
+  }
+
+  const handleGenerateFacts = () => {
+    handleSendMessage('Extract and list the key facts from the selected documents.')
   }
 
   const handleTemplateClick = (template: DraftTemplate) => {
     setSelectedTemplate(template)
-    setFormModalOpen(true)
   }
 
   const handleGenerate = async (
@@ -164,11 +184,17 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     }
   }
 
-  const handleSavePreview = (title: string, content: string) => {
-    addDraft(title, content)
+  const handleSavePreview = async (title: string, content: string) => {
+    const documentType = selectedTemplate
+      ? TEMPLATE_TO_DOCUMENT_TYPE[selectedTemplate.id] || 'legal_notice'
+      : 'legal_notice'
+    const newDraft = await addDraft(title, content, documentType)
     setPreviewOpen(false)
     setPreviewTitle('')
     setPreviewContent('')
+    setSelectedTemplate(null)
+    // Open the new draft as a tab
+    openTab(newDraft)
   }
 
   const handleClosePreview = () => {
@@ -176,25 +202,6 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     setPreviewTitle('')
     setPreviewContent('')
   }
-
-  const handleEditExistingDraft = (draft: Draft) => {
-    setEditingDraft(draft)
-    setEditModalOpen(true)
-  }
-
-  const handleSaveDraft = (id: string | null, title: string, content: string) => {
-    if (id) {
-      updateDraft(id, { title, content })
-    } else {
-      addDraft(title, content)
-    }
-  }
-
-  const handleDownloadDraft = (draft: Draft) => {
-    downloadDraft(draft.title, draft.content)
-  }
-
-  const displayedTemplates = showAllTemplates ? DRAFT_TEMPLATES : DRAFT_TEMPLATES.slice(0, 6)
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-gray-50/50">
@@ -245,144 +252,75 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSourcesOpen(!sourcesOpen)}
+            onClick={() => setLeftPanelOpen(!leftPanelOpen)}
             className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-ledger-black"
-            title={sourcesOpen ? 'Hide sources' : 'Show sources'}
+            title={leftPanelOpen ? 'Hide left panel' : 'Show left panel'}
           >
-            {sourcesOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+            {leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setChatOpen(!chatOpen)}
+            onClick={() => setRightPanelOpen(!rightPanelOpen)}
             className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-ledger-black"
-            title={chatOpen ? 'Hide chat' : 'Show chat'}
+            title={rightPanelOpen ? 'Hide tools' : 'Show tools'}
           >
-            {chatOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            {rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
           </Button>
         </div>
       </div>
 
       {/* Three-panel layout */}
       <div className="flex-1 flex gap-2 p-2 min-h-0 overflow-hidden bg-ledger-gray-50">
-        {/* Sources Panel - Collapsible Left */}
-        {sourcesOpen && (
+        {/* Left Sidebar - Sources + Drafts */}
+        {leftPanelOpen && (
           <div className="w-72 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
-            <SourcesPanel
+            <LeftSidebar
               sources={sources}
               selectedSourceIds={selectedSourceIds}
-              isLoading={sourcesLoading}
+              isSourcesLoading={sourcesLoading}
               isUploading={isUploading}
-              onToggleSelection={toggleSourceSelection}
-              onSelectAll={selectAllSources}
-              onDeselectAll={deselectAllSources}
+              drafts={drafts}
+              onToggleSourceSelection={toggleSourceSelection}
+              onSelectAllSources={selectAllSources}
+              onDeselectAllSources={deselectAllSources}
               onUploadFile={uploadFile}
               onDeleteSource={deleteSource}
               onLinkContent={linkContent}
-              onBatchDelete={batchDelete}
-              onBatchLinkContent={batchLinkContent}
+              onDraftClick={handleDraftClick}
             />
           </div>
         )}
 
-        {/* Main Content - Single Panel with Tabs */}
-        <div className="flex-1 min-h-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
-          <Tabs defaultValue="templates" className="flex-1 flex flex-col">
-            {/* Tab List */}
-            <div className="px-4 py-3 border-b border-ledger-gray-100">
-              <TabsList className="inline-flex flex-row h-9 items-center justify-center rounded-lg bg-ledger-gray-100 p-1 text-ledger-gray-500 w-auto">
-                <TabsTrigger
-                  value="templates"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ledger-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-ledger-black data-[state=active]:shadow-sm"
-                >
-                  Templates
-                </TabsTrigger>
-                <TabsTrigger
-                  value="drafts"
-                  className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-white transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ledger-gray-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-white data-[state=active]:text-ledger-black data-[state=active]:shadow-sm"
-                >
-                  Drafts
-                  {drafts.length > 0 && (
-                    <span className="ml-2 text-xs bg-ledger-gray-200 px-1.5 py-0.5 rounded-full">
-                      {drafts.length}
-                    </span>
-                  )}
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            {/* Tab Content */}
-            <TabsContent value="templates" className="flex-1 p-4 overflow-auto">
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-4">
-                  {displayedTemplates.map((template) => (
-                    <TemplateCard
-                      key={template.id}
-                      template={template}
-                      onClick={() => handleTemplateClick(template)}
-                    />
-                  ))}
-                </div>
-                {!showAllTemplates && DRAFT_TEMPLATES.length > 6 && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowAllTemplates(true)}
-                    className="w-full gap-2"
-                  >
-                    <Grid3x3 className="h-4 w-4" />
-                    Show More Templates ({DRAFT_TEMPLATES.length - 6} more)
-                  </Button>
-                )}
-                {showAllTemplates && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowAllTemplates(false)}
-                    className="w-full"
-                  >
-                    Show Less
-                  </Button>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="drafts" className="flex-1 mt-0 overflow-auto">
-              {drafts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="w-16 h-16 rounded-full bg-ledger-gray-100 flex items-center justify-center mb-3">
-                    <ArrowLeft className="h-6 w-6 text-ledger-gray-400 rotate-180" />
-                  </div>
-                  <p className="text-sm text-ledger-gray-600 font-medium">No drafts yet</p>
-                  <p className="text-xs text-ledger-gray-500 mt-1">
-                    Switch to Templates to generate your first draft
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  {drafts.map((draft) => (
-                    <DraftItem
-                      key={draft.id}
-                      draft={draft}
-                      onEdit={handleEditExistingDraft}
-                      onDelete={deleteDraft}
-                      onDownload={handleDownloadDraft}
-                    />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+        {/* Center Panel - Chat + Draft Tabs */}
+        <div className="flex-1 min-h-0 min-w-0">
+          <CenterPanel
+            tabs={tabs}
+            activeTabId={activeTabId}
+            splitMode={splitMode}
+            messages={messages}
+            isLoading={chatLoading}
+            selectedSourceCount={selectedSourceIds.size}
+            drafts={drafts}
+            onTabClick={setActiveTab}
+            onTabClose={closeTab}
+            onToggleSplit={toggleSplitMode}
+            onSendMessage={handleSendMessage}
+            onClearChat={clearChat}
+            onSaveDraft={handleSaveDraft}
+            onDeleteDraft={handleDeleteDraft}
+          />
         </div>
 
-        {/* Chat Panel - Collapsible Right */}
-        {chatOpen && (
-          <div className="w-80 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
-            <ChatPanel
-              messages={messages}
-              isLoading={chatLoading}
+        {/* Right Sidebar - Tools */}
+        {rightPanelOpen && (
+          <div className="w-64 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
+            <ToolsSidebar
+              onDraftingClick={handleDraftingClick}
+              onGenerateReport={handleGenerateReport}
+              onGenerateSummary={handleGenerateSummary}
+              onGenerateFacts={handleGenerateFacts}
               selectedSourceCount={selectedSourceIds.size}
-              onSendMessage={handleSendMessage}
-              onClearChat={clearChat}
-              onEditDraft={handleEditDraft}
             />
           </div>
         )}
@@ -393,10 +331,11 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
         template={selectedTemplate}
         isOpen={formModalOpen}
         sources={sources}
-        selectedSourceIds={selectedSourceIds}
         isGenerating={isGenerating}
         onClose={() => setFormModalOpen(false)}
         onGenerate={handleGenerate}
+        onTemplateChange={handleTemplateClick}
+        templates={DRAFT_TEMPLATES}
       />
 
       <DraftPreview
@@ -407,25 +346,6 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
         onSave={handleSavePreview}
         onContentChange={setPreviewContent}
         onTitleChange={setPreviewTitle}
-      />
-
-      <DraftEditorModal
-        draft={editingDraft}
-        isOpen={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        onSave={handleSaveDraft}
-        onDownload={downloadDraft}
-      />
-
-      <DraftEditorModal
-        draft={editingContent ? { id: '', title: 'AI Generated Draft', content: editingContent, caseId, createdAt: new Date(), updatedAt: new Date() } : null}
-        isOpen={draftEditorOpen}
-        onClose={() => {
-          setDraftEditorOpen(false)
-          setEditingContent('')
-        }}
-        onSave={handleSaveDraftFromChat}
-        onDownload={(title, content) => downloadDraft(title, content)}
       />
     </div>
   )
