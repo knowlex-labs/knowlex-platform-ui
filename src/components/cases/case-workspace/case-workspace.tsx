@@ -14,6 +14,16 @@ import { TemplateFormModal } from './template-form-modal'
 import { DraftPreview } from './draft-preview'
 import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
+import type { DocumentType } from '@/hooks/use-drafts'
+
+// Map template IDs to valid API document types
+const TEMPLATE_TO_DOCUMENT_TYPE: Record<string, DocumentType> = {
+  'notice': 'legal_notice',
+  'patent': 'application',
+  'application-draft': 'application',
+  'interim-application': 'application',
+  'affidavit': 'affidavit',
+}
 
 interface CaseWorkspaceProps {
   caseId: string
@@ -175,10 +185,14 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   }
 
   const handleSavePreview = async (title: string, content: string) => {
-    const newDraft = await addDraft(title, content)
+    const documentType = selectedTemplate
+      ? TEMPLATE_TO_DOCUMENT_TYPE[selectedTemplate.id] || 'legal_notice'
+      : 'legal_notice'
+    const newDraft = await addDraft(title, content, documentType)
     setPreviewOpen(false)
     setPreviewTitle('')
     setPreviewContent('')
+    setSelectedTemplate(null)
     // Open the new draft as a tab
     openTab(newDraft)
   }

@@ -14,11 +14,14 @@ function mapBackendToFrontend(backend: BackendDraft): Draft {
   }
 }
 
+// Valid document types accepted by the API
+export type DocumentType = 'contract' | 'agreement' | 'legal_notice' | 'demand_notice' | 'petition' | 'affidavit' | 'application'
+
 interface UseDraftsResult {
   drafts: Draft[]
   isLoading: boolean
   error: string | null
-  addDraft: (title: string, content: string) => Promise<Draft>
+  addDraft: (title: string, content: string, documentType?: DocumentType) => Promise<Draft>
   updateDraft: (id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
   getDraft: (id: string) => Draft | undefined
@@ -52,11 +55,11 @@ export function useDrafts(caseId: string): UseDraftsResult {
   }, [fetchDrafts])
 
   const addDraft = useCallback(
-    async (title: string, content: string): Promise<Draft> => {
+    async (title: string, content: string, documentType: DocumentType = 'legal_notice'): Promise<Draft> => {
       const response = await draftsApi.create({
         title,
         body: content,
-        document_type: 'draft',
+        document_type: documentType,
         file_ids: [],
         metadata: {},
         case_id: caseId,
