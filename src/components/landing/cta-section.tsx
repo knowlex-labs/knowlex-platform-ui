@@ -7,9 +7,17 @@ export function CTASection() {
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = React.useState('')
 
+  const isValidEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!email.trim()) return
+
+    if (!isValidEmail(email)) {
+      setStatus('error')
+      setErrorMessage('Please enter a valid email address.')
+      return
+    }
 
     setStatus('loading')
     setErrorMessage('')
