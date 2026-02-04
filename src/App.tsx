@@ -2,8 +2,6 @@ import * as React from 'react'
 import { AuthProvider, useAuth } from '@/contexts/auth-context'
 import { NavigationProvider, useNavigation } from '@/contexts/navigation-context'
 import { LandingPage } from '@/components/landing/landing-page'
-import { LoginModal } from '@/components/auth/login-modal'
-import { SignupModal } from '@/components/auth/signup-modal'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 import { DashboardHome } from '@/components/dashboard/dashboard-home'
 import { CaseList } from '@/components/cases/case-list'
@@ -17,38 +15,9 @@ import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
 
 function AppContent() {
-  const { isAuthenticated, continueAsGuest, isRestoringSession } = useAuth()
-  const { view, activeTab, selectedClientId, selectedCaseId, setView, setActiveTab } = useNavigation()
+  const { isAuthenticated, isRestoringSession } = useAuth()
+  const { view, activeTab, selectedClientId, selectedCaseId, setView } = useNavigation()
   const { toast } = useToast()
-
-  const [loginOpen, setLoginOpen] = React.useState(false)
-  const [signupOpen, setSignupOpen] = React.useState(false)
-  const [sessionExpired, setSessionExpired] = React.useState(false)
-
-  const handleTryIt = () => {
-    setLoginOpen(true)
-  }
-
-  const handleContinueAsGuest = async () => {
-    try {
-      await continueAsGuest()
-      setActiveTab('dashboard')
-      setView('dashboard')
-    } catch (err) {
-      console.error('Failed to continue as guest:', err)
-      // Error will be handled by the auth context
-    }
-  }
-
-  const handleSwitchToSignup = () => {
-    setLoginOpen(false)
-    setSignupOpen(true)
-  }
-
-  const handleSwitchToLogin = () => {
-    setSignupOpen(false)
-    setLoginOpen(true)
-  }
 
   // Listen for toast events
   React.useEffect(() => {
@@ -64,27 +33,17 @@ function AppContent() {
   // Handle session expiry
   React.useEffect(() => {
     const handleSessionExpired = () => {
-      setSessionExpired(true)
       setView('landing')
-      setLoginOpen(true)
     }
 
     window.addEventListener('auth:session-expired', handleSessionExpired)
     return () => window.removeEventListener('auth:session-expired', handleSessionExpired)
   }, [setView])
 
-  // Reset session expired flag on successful login
-  React.useEffect(() => {
-    if (isAuthenticated && sessionExpired) {
-      setSessionExpired(false)
-    }
-  }, [isAuthenticated, sessionExpired])
-
   // Redirect to landing if trying to access dashboard without auth
   React.useEffect(() => {
     if (!isAuthenticated && !isRestoringSession && view === 'dashboard') {
       setView('landing')
-      setLoginOpen(true)
     }
   }, [isAuthenticated, isRestoringSession, view, setView])
 
@@ -104,18 +63,7 @@ function AppContent() {
   if (view === 'landing') {
     return (
       <>
-        <LandingPage onSignIn={handleTryIt} onContinueAsGuest={handleContinueAsGuest} />
-        <LoginModal
-          open={loginOpen}
-          onOpenChange={setLoginOpen}
-          onSwitchToSignup={handleSwitchToSignup}
-          sessionExpired={sessionExpired}
-        />
-        <SignupModal
-          open={signupOpen}
-          onOpenChange={setSignupOpen}
-          onSwitchToLogin={handleSwitchToLogin}
-        />
+        <LandingPage />
         <Toaster />
       </>
     )

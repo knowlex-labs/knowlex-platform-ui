@@ -1,20 +1,14 @@
 import * as React from 'react'
-import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
 import { Menu, X } from 'lucide-react'
 
-interface LandingHeaderProps {
-  onSignIn: () => void
-}
-
 const navLinks = [
   { label: 'Features', sectionId: 'features' },
-  { label: 'Pricing', sectionId: 'pricing' },
   { label: 'Team', sectionId: 'team' },
   { label: 'About', sectionId: 'about' },
 ]
 
-export function LandingHeader({ onSignIn }: LandingHeaderProps) {
+export function LandingHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   const scrollToSection = (sectionId: string) => {
@@ -26,12 +20,12 @@ export function LandingHeader({ onSignIn }: LandingHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-ledger-white border-b border-ledger-gray-200">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <span className="text-xl font-serif font-semibold text-ledger-black">
+            <span className="text-2xl sm:text-3xl font-bold text-gray-900">
               {APP_NAME}
             </span>
           </div>
@@ -43,20 +37,17 @@ export function LandingHeader({ onSignIn }: LandingHeaderProps) {
                 key={link.sectionId}
                 type="button"
                 onClick={() => scrollToSection(link.sectionId)}
-                className="text-sm font-medium text-ledger-gray-600 hover:text-ledger-black transition-colors"
+                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
               >
                 {link.label}
               </button>
             ))}
-            <Button variant="outline" size="sm" onClick={onSignIn}>
-              Sign In
-            </Button>
           </nav>
 
           {/* Mobile Menu Button */}
           <button
             type="button"
-            className="md:hidden p-2 text-ledger-gray-600 hover:text-ledger-black"
+            className="md:hidden p-2 text-gray-500 hover:text-gray-900"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
@@ -66,21 +57,18 @@ export function LandingHeader({ onSignIn }: LandingHeaderProps) {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-ledger-gray-200">
+          <nav className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 <button
                   key={link.sectionId}
                   type="button"
                   onClick={() => scrollToSection(link.sectionId)}
-                  className="text-sm font-medium text-ledger-gray-600 hover:text-ledger-black transition-colors text-left py-2"
+                  className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors text-left py-2"
                 >
                   {link.label}
                 </button>
               ))}
-              <Button variant="outline" size="sm" onClick={onSignIn} className="w-full">
-                Sign In
-              </Button>
             </div>
           </nav>
         )}
