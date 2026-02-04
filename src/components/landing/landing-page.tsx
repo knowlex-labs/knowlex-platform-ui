@@ -3,17 +3,24 @@ import { HeroSection } from './hero-section'
 import { FeaturesSection } from './features-section'
 import { TeamSection } from './team-section'
 import { AboutSection } from './about-section'
-import { LandingFooter } from './landing-footer'
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
-      <LandingHeader />
-      <HeroSection />
-      <FeaturesSection />
-      <TeamSection />
-      <AboutSection />
-      <LandingFooter />
+    <div className="relative min-h-screen font-serif">
+      {/* Global Background Texture */}
+      <div
+        className="fixed inset-0 z-0 bg-[url('/bg_fill.png')] bg-repeat opacity-100"
+        style={{ backgroundSize: 'auto' }}
+      />
+
+      {/* Content Container */}
+      <div className="relative z-10">
+        <LandingHeader />
+        <HeroSection />
+        <FeaturesSection />
+        <TeamSection />
+        <AboutSection />
+      </div>
     </div>
   )
 }

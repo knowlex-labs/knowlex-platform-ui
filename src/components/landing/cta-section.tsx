@@ -29,18 +29,18 @@ export function CTASection() {
   }
 
   return (
-    <section className="py-12 sm:py-16 md:py-24 bg-white">
+    <section className="relative py-12 sm:py-16 md:py-24">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-3 sm:mb-4">
             Join the Waitlist
           </h2>
-          <p className="text-base sm:text-lg text-gray-500 mb-6 sm:mb-8">
+          <p className="text-base sm:text-lg text-gray-200 mb-6 sm:mb-8">
             Be among the first to experience Knowlex. Get early access and 1 month free.
           </p>
 
           {status === 'success' ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-6 py-4 text-emerald-700">
+            <div className="bg-emerald-900/50 border border-emerald-500/50 rounded-xl px-6 py-4 text-emerald-200">
               You're on the list! We'll be in touch soon.
             </div>
           ) : (
@@ -58,13 +58,13 @@ export function CTASection() {
                   type="submit"
                   size="lg"
                   disabled={status === 'loading'}
-                  className="bg-gray-900 text-white hover:bg-gray-800 rounded-xl px-6 font-medium transition-all"
+                  className="bg-white text-gray-900 hover:bg-gray-100 rounded-xl px-6 font-medium transition-all"
                 >
                   {status === 'loading' ? 'Joining...' : 'Join Waitlist'}
                 </Button>
               </div>
               {status === 'error' && (
-                <p className="mt-3 text-sm text-red-600">{errorMessage}</p>
+                <p className="mt-3 text-sm text-red-400">{errorMessage}</p>
               )}
             </form>
           )}

@@ -21,10 +21,12 @@ const team = [
 
 export function TeamSection() {
   return (
-    <section id="team" className="py-12 sm:py-16 md:py-24 bg-white">
-      <div className="max-w-6xl mx-auto px-4 md:px-8">
+    <section id="team" className="relative py-12 sm:py-16 md:py-24">
+      {/* Global overlay handles background darkening */}
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8">
         <div className="text-center mb-8 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 drop-shadow-md">
             Team
           </h2>
         </div>
@@ -35,7 +37,7 @@ export function TeamSection() {
               key={member.name}
               className="text-center"
             >
-              <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-48 md:h-48 bg-gray-100 rounded-full mx-auto mb-4 sm:mb-6 overflow-hidden ring-2 ring-gray-200">
+              <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-48 md:h-48 bg-white/30 backdrop-blur-sm rounded-full mx-auto mb-4 sm:mb-6 overflow-hidden ring-4 ring-gray-900/20 transition-all shadow-xl">
                 <img
                   src={member.image}
                   alt={member.name}
@@ -43,26 +45,26 @@ export function TeamSection() {
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
                     target.style.display = 'none'
-                    target.parentElement!.innerHTML = `<span class="flex items-center justify-center w-full h-full text-3xl sm:text-4xl font-semibold text-gray-400">${member.name.split(' ').map(n => n[0]).join('')}</span>`
+                    target.parentElement!.innerHTML = `<span class="flex items-center justify-center w-full h-full text-3xl sm:text-4xl font-semibold text-gray-900/40">${member.name.split(' ').map(n => n[0]).join('')}</span>`
                   }}
                 />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">
+              <h3 className="text-xl sm:text-2xl font-semibold text-gray-900 mb-1">
                 {member.name}
               </h3>
-              <p className="text-xs sm:text-sm font-medium text-gray-500 mb-3 sm:mb-4">
+              <p className="text-sm sm:text-base font-medium text-gray-900 mb-3 sm:mb-4">
                 {member.role} · {member.focus}
               </p>
-              <p className="text-sm sm:text-base text-gray-500 mb-4 max-w-sm mx-auto leading-relaxed">
+              <p className="text-base text-gray-900/90 mb-4 max-w-sm mx-auto leading-relaxed">
                 {member.bio}
               </p>
               <a
                 href={member.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-gray-400 hover:text-gray-900 transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-900/80 hover:text-gray-900 transition-colors"
               >
-                <Linkedin size={16} />
+                <Linkedin size={18} />
                 LinkedIn
               </a>
             </div>

@@ -35,13 +35,15 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="py-12 sm:py-16 md:py-24 bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 md:px-8">
+    <section id="features" className="relative py-12 sm:py-16 md:py-24">
+      {/* Overlay handled globally by LandingPage */}
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8">
         <div className="text-center mb-8 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 mb-3 sm:mb-4">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 drop-shadow-md">
             Features
           </h2>
-          <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-gray-900 max-w-2xl mx-auto">
             Everything you need to run your legal practice.
           </p>
         </div>
@@ -50,21 +52,21 @@ export function FeaturesSection() {
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="bg-white p-5 sm:p-6 md:p-8 rounded-xl border border-gray-200 hover:border-gray-300 hover:-translate-y-1 hover:shadow-lg transition-all duration-300"
+              className="group relative p-5 sm:p-6 md:p-8 rounded-2xl border border-gray-900/20 bg-white/50 backdrop-blur-sm hover:bg-white/70 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-lg flex items-center justify-center mb-3 sm:mb-4">
-                <feature.icon className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600" />
+              <div className="w-12 h-12 bg-gray-900/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-gray-900/20 transition-colors">
+                <feature.icon className="w-6 h-6 text-gray-900" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 sm:mb-3">
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
                 {feature.title}
               </h3>
-              <p className="text-sm sm:text-base text-gray-700 mb-4">
+              <p className="text-base text-gray-900 mb-5 leading-relaxed">
                 {feature.description}
               </p>
-              <ul className="space-y-2">
+              <ul className="space-y-3">
                 {feature.bullets.map((bullet) => (
-                  <li key={bullet} className="flex items-start gap-2 text-sm text-gray-700">
-                    <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-indigo-500/60" />
+                  <li key={bullet} className="flex items-start gap-3 text-sm text-gray-900/90 group-hover:text-gray-900 transition-colors">
+                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-gray-900" />
                     {bullet}
                   </li>
                 ))}

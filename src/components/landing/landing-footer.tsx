@@ -2,26 +2,14 @@ import { APP_NAME } from '@/lib/constants'
 
 export function LandingFooter() {
   return (
-    <footer className="py-6 sm:py-8 bg-white border-t border-gray-200">
-      <div className="max-w-6xl mx-auto px-4 md:px-8">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs sm:text-sm text-gray-500 text-center sm:text-left">
-            &copy; 2025 {APP_NAME}. Built for Indian Law Firms.
+    <footer className="relative py-6 sm:py-8 border-t border-white/10 bg-white/5 backdrop-blur-sm">
+      {/* Overlay handled globally */}
+
+      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8">
+        <div className="flex flex-col items-center justify-center gap-4">
+          <p className="text-sm text-white/60 text-center">
+            &copy; 2025 {APP_NAME}.
           </p>
-          <div className="flex items-center gap-4 sm:gap-6">
-            <a
-              href="#"
-              className="text-xs sm:text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Privacy Policy
-            </a>
-            <a
-              href="#"
-              className="text-xs sm:text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Terms of Service
-            </a>
-          </div>
         </div>
       </div>
     </footer>

@@ -20,12 +20,12 @@ export function LandingHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-200">
+    <header className="absolute top-0 left-0 right-0 z-50 bg-transparent pt-4 sm:pt-6">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <span className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
               {APP_NAME}
             </span>
           </div>
@@ -37,7 +37,7 @@ export function LandingHeader() {
                 key={link.sectionId}
                 type="button"
                 onClick={() => scrollToSection(link.sectionId)}
-                className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                className="text-base font-semibold text-gray-900/90 hover:text-gray-900 transition-colors"
               >
                 {link.label}
               </button>
@@ -47,7 +47,7 @@ export function LandingHeader() {
           {/* Mobile Menu Button */}
           <button
             type="button"
-            className="md:hidden p-2 text-gray-500 hover:text-gray-900"
+            className="md:hidden p-2 text-gray-900/90 hover:text-gray-900"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
@@ -57,14 +57,14 @@ export function LandingHeader() {
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-gray-200">
+          <nav className="md:hidden py-4 border-t border-white/20 bg-black/50 backdrop-blur-md -mx-4 px-4">
             <div className="flex flex-col gap-4">
               {navLinks.map((link) => (
                 <button
                   key={link.sectionId}
                   type="button"
                   onClick={() => scrollToSection(link.sectionId)}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors text-left py-2"
+                  className="text-base font-semibold text-gray-900/90 hover:text-gray-900 transition-colors text-left py-2"
                 >
                   {link.label}
                 </button>

@@ -3,27 +3,20 @@ import { Button } from '@/components/ui/button'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
+// Floating legal symbols configuration
 const floatingSymbols = [
-  // Scales of justice
-  { symbol: '\u2696', left: '3%', top: '12%', size: '56px', opacity: 0.08, duration: 18, delay: 0 },
-  { symbol: '\u2696', left: '82%', top: '18%', size: '72px', opacity: 0.06, duration: 20, delay: 1 },
-  { symbol: '\u2696', left: '48%', top: '8%', size: '48px', opacity: 0.07, duration: 19, delay: 7 },
-  { symbol: '\u2696', left: '12%', top: '42%', size: '40px', opacity: 0.06, duration: 25, delay: 10 },
-  { symbol: '\u2696', left: '92%', top: '55%', size: '60px', opacity: 0.05, duration: 22, delay: 3.5 },
-  // Section signs
-  { symbol: '\u00A7', left: '18%', top: '65%', size: '44px', opacity: 0.09, duration: 22, delay: 3 },
-  { symbol: '\u00A7', left: '88%', top: '72%', size: '50px', opacity: 0.08, duration: 16, delay: 5 },
-  { symbol: '\u00A7', left: '68%', top: '40%', size: '64px', opacity: 0.06, duration: 21, delay: 4 },
-  { symbol: '\u00A7', left: '38%', top: '28%', size: '36px', opacity: 0.09, duration: 23, delay: 8 },
-  { symbol: '\u00A7', left: '78%', top: '4%', size: '42px', opacity: 0.07, duration: 18, delay: 11 },
-  // Scroll / document
-  { symbol: '\uD83D\uDCDC', left: '28%', top: '82%', size: '38px', opacity: 0.07, duration: 24, delay: 2 },
-  { symbol: '\uD83D\uDCDC', left: '58%', top: '88%', size: '44px', opacity: 0.06, duration: 17, delay: 6 },
-  { symbol: '\uD83D\uDCDC', left: '42%', top: '52%', size: '32px', opacity: 0.08, duration: 20, delay: 9 },
-  // Gavel
-  { symbol: '\uD83D\uDD28', left: '6%', top: '78%', size: '46px', opacity: 0.07, duration: 21, delay: 4.5 },
-  { symbol: '\uD83D\uDD28', left: '72%', top: '82%', size: '38px', opacity: 0.06, duration: 19, delay: 12 },
-  { symbol: '\uD83D\uDD28', left: '52%', top: '22%', size: '34px', opacity: 0.05, duration: 23, delay: 1.5 },
+  { symbol: '⚖', size: 48, left: '8%', top: '15%', opacity: 0.15, delay: 0, duration: 25 },
+  { symbol: '§', size: 36, left: '85%', top: '20%', opacity: 0.12, delay: 2, duration: 22 },
+  { symbol: '⚖', size: 32, left: '72%', top: '65%', opacity: 0.18, delay: 4, duration: 28 },
+  { symbol: '§', size: 44, left: '15%', top: '70%', opacity: 0.14, delay: 1, duration: 24 },
+  { symbol: '📜', size: 28, left: '25%', top: '25%', opacity: 0.12, delay: 3, duration: 26 },
+  { symbol: '⚖', size: 56, left: '90%', top: '45%', opacity: 0.10, delay: 5, duration: 30 },
+  { symbol: '§', size: 40, left: '5%', top: '50%', opacity: 0.15, delay: 2.5, duration: 23 },
+  { symbol: '📜', size: 34, left: '60%', top: '12%', opacity: 0.12, delay: 1.5, duration: 27 },
+  { symbol: '⚖', size: 24, left: '45%', top: '80%', opacity: 0.18, delay: 4.5, duration: 21 },
+  { symbol: '§', size: 52, left: '78%', top: '35%', opacity: 0.10, delay: 3.5, duration: 29 },
+  { symbol: '📜', size: 30, left: '35%', top: '55%', opacity: 0.14, delay: 0.5, duration: 25 },
+  { symbol: '⚖', size: 38, left: '55%', top: '40%', opacity: 0.12, delay: 6, duration: 24 },
 ]
 
 export function HeroSection() {
@@ -62,38 +55,47 @@ export function HeroSection() {
   }
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-      {/* Light gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-50/50 via-white to-purple-50/40" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-indigo-100/40 via-transparent to-transparent" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-amber-50/30 via-transparent to-transparent" />
+    <section className="relative h-screen flex items-center justify-center overflow-hidden">
+      {/* Hero background image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+        style={{
+          backgroundImage: 'url(/bg_image.png)',
+          maskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 80%, transparent 100%)'
+        }}
+      />
 
       {/* Floating legal symbols */}
-      {floatingSymbols.map((s, i) => (
-        <span
-          key={i}
-          className="absolute pointer-events-none select-none text-gray-400"
-          style={{
-            left: s.left,
-            top: s.top,
-            fontSize: s.size,
-            opacity: s.opacity,
-            animation: `float-drift ${s.duration}s ease-in-out infinite`,
-            animationDelay: `${s.delay}s`,
-          }}
-        >
-          {s.symbol}
-        </span>
-      ))}
+      <div className="absolute inset-0 z-[15] pointer-events-none overflow-hidden">
+        {floatingSymbols.map((item, index) => (
+          <span
+            key={index}
+            className="absolute text-gray-900 font-bold select-none floating-symbol"
+            style={{
+              left: item.left,
+              top: item.top,
+              fontSize: `${item.size}px`,
+              opacity: item.opacity,
+              animationDelay: `${item.delay}s`,
+              animationDuration: `${item.duration}s`,
+            }}
+          >
+            {item.symbol}
+          </span>
+        ))}
+      </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 md:px-8 text-center">
+      {/* Overlay handled globally by LandingPage (z-20) */}
+
+      <div className="relative z-20 max-w-2xl mx-auto px-4 md:px-8 text-center pt-20">
         {/* Hero heading */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight">
-          Your Smart Legal Assistant
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight animate-fade-in drop-shadow-lg whitespace-nowrap">
+          Your Smart Legal Partner
         </h1>
 
-        <p className="text-lg sm:text-xl md:text-2xl text-gray-500 mb-10 sm:mb-14 max-w-3xl mx-auto">
-          AI-powered drafting assistant built for Indian law firms.
+        <p className="text-lg sm:text-xl md:text-2xl text-gray-900 mb-10 sm:mb-14 max-w-md mx-auto animate-fade-in-delay drop-shadow-md">
+          AI-powered drafting & research assistant for Indian law firms.
         </p>
 
         {/* Waitlist */}
@@ -109,12 +111,12 @@ export function HeroSection() {
               type="button"
               size="lg"
               onClick={() => setShowForm(true)}
-              className="bg-gray-900 text-white hover:bg-gray-800 rounded-2xl px-14 py-6 text-xl font-medium transition-all shadow-lg hover:shadow-xl"
+              className="bg-amber-600 text-white hover:bg-amber-700 rounded-2xl px-14 py-6 text-xl font-semibold transition-all shadow-lg hover:shadow-xl"
             >
               Join the Waitlist
             </Button>
-            <p className="text-base sm:text-lg text-gray-500">
-              Get early access and <span className="text-indigo-600 font-semibold">1 month free</span> when we launch.
+            <p className="text-base sm:text-lg text-gray-900">
+              Get early access and <span className="text-gray-900 font-bold">1 month free</span> when we launch.
             </p>
           </div>
         ) : (
@@ -139,7 +141,7 @@ export function HeroSection() {
               type="submit"
               size="lg"
               disabled={status === 'loading'}
-              className="w-full bg-gray-900 text-white hover:bg-gray-800 rounded-2xl px-10 py-6 text-xl font-medium transition-all shadow-lg hover:shadow-xl"
+              className="w-full bg-amber-600 text-white hover:bg-amber-700 rounded-2xl px-10 py-6 text-xl font-semibold transition-all shadow-lg hover:shadow-xl"
             >
               {status === 'loading' ? 'Submitting...' : 'Submit'}
             </Button>
@@ -153,10 +155,32 @@ export function HeroSection() {
       {/* CSS Animations */}
       <style>{`
         @keyframes float-drift {
-          0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
-          25% { transform: translateY(-20px) translateX(10px) rotate(3deg); }
-          50% { transform: translateY(-35px) translateX(-8px) rotate(-2deg); }
-          75% { transform: translateY(-15px) translateX(12px) rotate(1deg); }
+          0%, 100% {
+            transform: translateY(0) translateX(0) rotate(0deg);
+          }
+          25% {
+            transform: translateY(-30px) translateX(15px) rotate(5deg);
+          }
+          50% {
+            transform: translateY(-50px) translateX(-12px) rotate(-3deg);
+          }
+          75% {
+            transform: translateY(-25px) translateX(18px) rotate(2deg);
+          }
+        }
+        .floating-symbol {
+          animation: float-drift ease-in-out infinite;
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.8s ease-out forwards;
+        }
+        .animate-fade-in-delay {
+          animation: fade-in 0.8s ease-out 0.2s forwards;
+          opacity: 0;
         }
       `}</style>
     </section>
