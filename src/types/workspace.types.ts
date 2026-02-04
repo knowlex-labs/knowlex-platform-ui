@@ -74,7 +74,9 @@ export interface Draft {
   id: string
   title: string
   content: string
-  caseId: string
+  status: 'pending' | 'completed' | 'failed'
+  sections: string[]
+  summary: string
   createdAt: Date
   updatedAt: Date
 }
