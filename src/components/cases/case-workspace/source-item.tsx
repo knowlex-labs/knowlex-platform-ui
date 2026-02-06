@@ -70,8 +70,6 @@ export function SourceItem({
   const [isLinking, setIsLinking] = useState(false)
 
   const Icon = getFileIcon(source.fileType)
-  const showLinkAction = source.indexingStatus === 'INDEXING_PENDING' ||
-    source.indexingStatus === 'INDEXING_FAILED'
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -100,7 +98,7 @@ export function SourceItem({
 
   return (
     <div
-      className="group relative flex items-center gap-2 px-3 py-2 hover:bg-ledger-gray-50 transition-colors"
+      className="group relative flex items-center gap-2 px-3 py-2 hover:bg-ledger-gray-50 transition-colors border-b border-ledger-gray-100"
       onMouseLeave={() => setShowMenu(false)}
     >
       {/* Checkbox */}
@@ -112,28 +110,19 @@ export function SourceItem({
       />
 
       {/* File Icon */}
-      <Icon className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
+      <Icon className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
 
-      {/* File Info - single line */}
-      <div className="flex-1 min-w-0 flex items-center gap-1.5">
-        <span
-          className="text-xs text-ledger-black truncate flex-1 min-w-0"
-          title={source.filename}
-        >
-          {source.filename}
-        </span>
-        <span className="text-[10px] text-ledger-gray-400 flex-shrink-0">
-          {formatFileSize(source.fileSize)}
-        </span>
-        {getStatusBadge(source.indexingStatus)}
-      </div>
+      {/* Filename only */}
+      <span className="text-xs text-ledger-black truncate flex-1 min-w-0">
+        {source.filename}
+      </span>
 
       {/* Menu Button */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-ledger-black hover:bg-ledger-gray-100 transition-colors"
+          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-ledger-black hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
           onClick={() => setShowMenu(!showMenu)}
         >
           <MoreVertical className="h-3.5 w-3.5" />
@@ -141,7 +130,12 @@ export function SourceItem({
 
         {/* Dropdown Menu */}
         {showMenu && (
-          <div className="absolute right-0 top-full mt-1 w-36 bg-ledger-white border border-ledger-gray-200 rounded shadow-lg z-10">
+          <div className="absolute right-0 top-full mt-1 w-48 bg-ledger-white border border-ledger-gray-200 rounded-lg shadow-md z-10">
+            {/* File details */}
+            <div className="px-3 py-2 border-b border-ledger-gray-100">
+              <p className="text-xs text-ledger-gray-500">{formatFileSize(source.fileSize)}</p>
+              <div className="mt-1">{getStatusBadge(source.indexingStatus)}</div>
+            </div>
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-ledger-black hover:bg-ledger-gray-50 transition-colors"
               onClick={handleView}
@@ -149,18 +143,16 @@ export function SourceItem({
               <Eye className="h-4 w-4" />
               View
             </button>
-            {showLinkAction && (
-              <button
-                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                onClick={handleLinkContent}
-                disabled={isLinking}
-              >
-                <RefreshCw className="h-4 w-4" />
-                {isLinking ? 'Linking...' : 'Link Content'}
-              </button>
-            )}
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+              onClick={handleLinkContent}
+              disabled={isLinking}
+            >
+              <RefreshCw className="h-4 w-4" />
+              {isLinking ? 'Re-indexing...' : 'Re-index'}
+            </button>
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 rounded-b-lg"
               onClick={handleDelete}
               disabled={isDeleting}
             >

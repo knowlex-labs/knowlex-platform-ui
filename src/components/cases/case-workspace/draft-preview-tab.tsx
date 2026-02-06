@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useTextSelection } from '@/hooks/use-text-selection'
+import { renderDraftContent, renderDraftSections, buildExportHtml, buildExportText } from '@/lib/draft-renderer'
 import type { Draft } from '@/types'
 
 interface DraftPreviewTabProps {
@@ -24,9 +25,9 @@ export function DraftPreviewTab({
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const downloadMenuRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
-  const { selection, clearSelection } = useTextSelection(textareaRef)
+  const { selection, clearSelection } = useTextSelection(contentRef)
 
   // Sync with draft prop changes
   useEffect(() => {
@@ -52,6 +53,8 @@ export function DraftPreviewTab({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const hasSections = draft.sections && draft.sections.length > 0
+
   const handleSave = () => {
     onSave(draft.id, title, content)
     setHasChanges(false)
@@ -65,7 +68,8 @@ export function DraftPreviewTab({
   }
 
   const handleDownloadTxt = () => {
-    const blob = new Blob([content], { type: 'text/plain' })
+    const text = buildExportText(content, hasSections ? draft.sections : undefined)
+    const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -77,35 +81,7 @@ export function DraftPreviewTab({
   }
 
   const handleDownloadDoc = () => {
-    const htmlContent = `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>${title}</title>
-    <style>
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.5;
-        margin: 1in;
-      }
-      h1 {
-        font-size: 14pt;
-        font-weight: bold;
-        margin-bottom: 24pt;
-      }
-      p {
-        margin-bottom: 12pt;
-        text-align: justify;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>${title}</h1>
-    ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-  </body>
-</html>`
-
+    const htmlContent = buildExportHtml(title, content, hasSections ? draft.sections : undefined)
     const blob = new Blob([htmlContent], { type: 'application/msword' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -118,43 +94,19 @@ export function DraftPreviewTab({
   }
 
   const handleDownloadPdf = () => {
+    const htmlContent = buildExportHtml(title, content, hasSections ? draft.sections : undefined)
     const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>${title}</title>
-    <style>
-      @page {
-        margin: 1in;
-      }
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.5;
-      }
-      h1 {
-        font-size: 14pt;
-        font-weight: bold;
-        margin-bottom: 24pt;
-      }
-      p {
-        margin-bottom: 12pt;
-        text-align: justify;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>${title}</h1>
-    ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-  </body>
-</html>`)
+      printWindow.document.write(htmlContent)
       printWindow.document.close()
       printWindow.focus()
       printWindow.print()
     }
   }
+
+  const renderedHtml = hasSections
+    ? renderDraftSections(draft.sections)
+    : renderDraftContent(content)
 
   return (
     <div className="flex flex-col h-full">
@@ -235,29 +187,22 @@ export function DraftPreviewTab({
         </div>
       </div>
 
-      {/* Editor */}
-      <div className="flex-1 p-4 overflow-hidden relative">
-        <div className="h-full border border-ledger-gray-200 rounded-lg overflow-hidden relative">
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="w-full h-full p-6 resize-none focus:outline-none"
-            style={{
-              fontFamily: "'Times New Roman', Times, serif",
-              fontSize: '12pt',
-              lineHeight: '1.6',
-            }}
-            placeholder="Draft content..."
+      {/* Rendered Preview */}
+      <div className="flex-1 p-4 overflow-auto">
+        <div className="border border-ledger-gray-200 rounded-lg" ref={contentRef}>
+          <div
+            className="p-6"
+            style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.6' }}
+            dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />
 
           {/* Floating AI Fix Button */}
           {selection && selection.text.length > 0 && (
             <div
-              className="absolute z-10"
+              className="fixed z-50"
               style={{
-                top: Math.max(8, (selection.rect?.y || 0) - 180),
-                left: '50%',
+                top: (selection.rect?.y || 0) - 40,
+                left: (selection.rect?.x || 0) + ((selection.rect?.width || 0) / 2),
                 transform: 'translateX(-50%)',
               }}
             >

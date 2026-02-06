@@ -13,96 +13,70 @@ interface UseTextSelectionResult {
 }
 
 export function useTextSelection(
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>
+  containerRef: React.RefObject<HTMLElement | null>
 ): UseTextSelectionResult {
   const [selection, setSelection] = useState<TextSelection | null>(null)
 
   const handleSelectionChange = useCallback(() => {
-    const textarea = textareaRef.current
-    if (!textarea) {
+    const container = containerRef.current
+    if (!container) {
       setSelection(null)
       return
     }
 
-    const start = textarea.selectionStart
-    const end = textarea.selectionEnd
-
-    if (start === end) {
+    const sel = window.getSelection()
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
       setSelection(null)
       return
     }
 
-    const selectedText = textarea.value.substring(start, end)
+    const range = sel.getRangeAt(0)
+    if (!container.contains(range.commonAncestorContainer)) {
+      setSelection(null)
+      return
+    }
+
+    const selectedText = sel.toString()
     if (!selectedText.trim()) {
       setSelection(null)
       return
     }
 
-    // Get textarea position for floating icon placement
-    const rect = textarea.getBoundingClientRect()
-
-    // Calculate approximate position based on selection
-    // This is a simplified approach - getting exact cursor position in textarea is complex
-    const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight) || 20
-    const textBeforeSelection = textarea.value.substring(0, start)
-    const linesBeforeSelection = textBeforeSelection.split('\n').length
-
-    const approximateTop = rect.top + (linesBeforeSelection * lineHeight)
-    const selectionRect = new DOMRect(
-      rect.left + rect.width / 2, // Center horizontally
-      Math.min(approximateTop, rect.bottom - 40), // Clamp to textarea bounds
-      100,
-      20
-    )
-
     setSelection({
       text: selectedText,
-      start,
-      end,
-      rect: selectionRect,
+      start: 0,
+      end: selectedText.length,
+      rect: range.getBoundingClientRect(),
     })
-  }, [textareaRef])
+  }, [containerRef])
 
   const clearSelection = useCallback(() => {
     setSelection(null)
+    window.getSelection()?.removeAllRanges()
   }, [])
 
   useEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
+    const container = containerRef.current
+    if (!container) return
 
-    // Listen for selection changes via mouseup and keyup
     const handleMouseUp = () => {
-      // Small delay to ensure selection is complete
       setTimeout(handleSelectionChange, 10)
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      // Only handle selection-related keys
       if (e.shiftKey || e.key === 'Shift') {
         setTimeout(handleSelectionChange, 10)
       }
     }
 
-    const handleBlur = () => {
-      // Clear selection when textarea loses focus
-      setTimeout(() => {
-        if (document.activeElement !== textarea) {
-          setSelection(null)
-        }
-      }, 200)
-    }
-
-    textarea.addEventListener('mouseup', handleMouseUp)
-    textarea.addEventListener('keyup', handleKeyUp)
-    textarea.addEventListener('blur', handleBlur)
+    container.addEventListener('mouseup', handleMouseUp)
+    container.addEventListener('keyup', handleKeyUp)
 
     return () => {
-      textarea.removeEventListener('mouseup', handleMouseUp)
-      textarea.removeEventListener('keyup', handleKeyUp)
-      textarea.removeEventListener('blur', handleBlur)
+      container.removeEventListener('mouseup', handleMouseUp)
+      container.removeEventListener('keyup', handleKeyUp)
     }
-  }, [textareaRef, handleSelectionChange])
+  }, [containerRef, handleSelectionChange])
 
   return {
     selection,

@@ -1,28 +1,31 @@
 import { useState, useCallback, useEffect } from 'react'
-import { draftsApi, type BackendDraft } from '@/services/api/drafts-api'
+import { draftsApi, type DraftJobResponse, type CreateDraftRequest } from '@/services/api/drafts-api'
 import type { Draft } from '@/types'
 
-// Map backend draft to frontend draft
-function mapBackendToFrontend(backend: BackendDraft): Draft {
+export type { DocumentType } from '@/services/api/drafts-api'
+
+const POLL_INTERVAL_MS = 2000
+const MAX_POLL_ATTEMPTS = 60
+
+function mapJobToDraft(job: DraftJobResponse): Draft {
   return {
-    id: backend.id,
-    title: backend.title,
-    content: backend.body,
-    caseId: backend.case_id || '',
-    createdAt: new Date(backend.created_at),
-    updatedAt: new Date(backend.updated_at),
+    id: job.job_id,
+    title: job.result?.metadata.title || 'Untitled',
+    content: job.result?.draft || '',
+    status: job.status,
+    sections: job.result?.sections || [],
+    summary: job.result?.metadata.summary || '',
+    createdAt: new Date(job.created_at),
+    updatedAt: job.completed_at ? new Date(job.completed_at) : new Date(job.created_at),
   }
 }
-
-// Valid document types accepted by the API
-export type DocumentType = 'contract' | 'agreement' | 'legal_notice' | 'demand_notice' | 'petition' | 'affidavit' | 'application'
 
 interface UseDraftsResult {
   drafts: Draft[]
   isLoading: boolean
   error: string | null
-  addDraft: (title: string, content: string, documentType?: DocumentType) => Promise<Draft>
-  updateDraft: (id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => Promise<void>
+  createDraft: (request: CreateDraftRequest) => Promise<Draft>
+  updateDraft: (id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => void
   deleteDraft: (id: string) => Promise<void>
   getDraft: (id: string) => Draft | undefined
   refresh: () => Promise<void>
@@ -38,8 +41,8 @@ export function useDrafts(caseId: string): UseDraftsResult {
     setError(null)
     try {
       const response = await draftsApi.list(caseId)
-      const mappedDrafts = response.drafts.map(mapBackendToFrontend)
-      setDrafts(mappedDrafts)
+      const completedJobs = response.data.jobs.filter((job) => job.status === 'completed')
+      setDrafts(completedJobs.map(mapJobToDraft))
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch drafts'
       setError(message)
@@ -49,58 +52,56 @@ export function useDrafts(caseId: string): UseDraftsResult {
     }
   }, [caseId])
 
-  // Fetch drafts on mount and when caseId changes
   useEffect(() => {
     fetchDrafts()
   }, [fetchDrafts])
 
-  const addDraft = useCallback(
-    async (title: string, content: string, documentType: DocumentType = 'legal_notice'): Promise<Draft> => {
-      const response = await draftsApi.create({
-        title,
-        body: content,
-        document_type: documentType,
-        file_ids: [],
-        metadata: {},
-        case_id: caseId,
-      })
+  // POST to create the job, then poll GET until completed or failed
+  const createDraft = useCallback(async (request: CreateDraftRequest): Promise<Draft> => {
+    const createResponse = await draftsApi.create(caseId, request)
+    const jobId = createResponse.data.job_id
 
-      const newDraft = mapBackendToFrontend(response)
-      setDrafts((prev) => [newDraft, ...prev])
-      return newDraft
-    },
-    [caseId]
-  )
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      const jobResponse = await draftsApi.get(caseId, jobId)
+      const job = jobResponse.data
 
-  const updateDraft = useCallback(
-    async (id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => {
-      const updateData: { title?: string; body?: string } = {}
-      if (updates.title !== undefined) {
-        updateData.title = updates.title
-      }
-      if (updates.content !== undefined) {
-        updateData.body = updates.content
+      if (job.status === 'completed') {
+        const draft = mapJobToDraft(job)
+        setDrafts((prev) => [draft, ...prev])
+        return draft
       }
 
-      const response = await draftsApi.update(id, updateData)
-      const updatedDraft = mapBackendToFrontend(response)
+      if (job.status === 'failed') {
+        throw new Error(job.error || 'Draft generation failed')
+      }
 
-      setDrafts((prev) =>
-        prev.map((draft) => (draft.id === id ? updatedDraft : draft))
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
+    }
+
+    throw new Error('Draft generation timed out')
+  }, [caseId])
+
+  // Local-only update — the API has no update endpoint
+  const updateDraft = useCallback((id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => {
+    setDrafts((prev) =>
+      prev.map((draft) =>
+        draft.id === id ? { ...draft, ...updates, updatedAt: new Date() } : draft
       )
-    },
-    []
-  )
-
-  const deleteDraft = useCallback(async (id: string) => {
-    await draftsApi.delete(id)
-    setDrafts((prev) => prev.filter((draft) => draft.id !== id))
+    )
   }, [])
 
+  // DELETE only works on pending jobs; ignore errors for already-completed jobs
+  const deleteDraft = useCallback(async (id: string) => {
+    try {
+      await draftsApi.cancel(caseId, id)
+    } catch {
+      // job may already be completed — safe to ignore
+    }
+    setDrafts((prev) => prev.filter((draft) => draft.id !== id))
+  }, [caseId])
+
   const getDraft = useCallback(
-    (id: string): Draft | undefined => {
-      return drafts.find((draft) => draft.id === id)
-    },
+    (id: string): Draft | undefined => drafts.find((draft) => draft.id === id),
     [drafts]
   )
 
@@ -108,7 +109,7 @@ export function useDrafts(caseId: string): UseDraftsResult {
     drafts,
     isLoading,
     error,
-    addDraft,
+    createDraft,
     updateDraft,
     deleteDraft,
     getDraft,

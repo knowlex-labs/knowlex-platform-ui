@@ -9,60 +9,44 @@ import { useDrafts } from '@/hooks/use-drafts'
 import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
-import { ToolsSidebar } from './tools-sidebar'
+import { StudioPanel } from './studio-panel'
 import { TemplateFormModal } from './template-form-modal'
 import { DraftPreview } from './draft-preview'
-import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
+import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
+import type { Draft, DraftSection, DraftTemplate, TemplateFormData } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
-import type { DocumentType } from '@/hooks/use-drafts'
 
-// Map template IDs to valid API document types
-const TEMPLATE_TO_DOCUMENT_TYPE: Record<string, DocumentType> = {
-  'notice': 'legal_notice',
-  'patent': 'application',
-  'application-draft': 'application',
-  'interim-application': 'application',
-  'affidavit': 'affidavit',
+// Maps each template to its API document_type and optional subtype
+const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
+  'notice':              { documentType: 'legal_notice',  subtype: 'demand' },
+  'patent':              { documentType: 'application' },
+  'application-draft':   { documentType: 'application',  subtype: 'vakalatnama' },
+  'interim-application': { documentType: 'affidavit',    subtype: 'interim_application' },
+  'affidavit':           { documentType: 'affidavit',    subtype: 'plaint' },
+}
+
+// Assembles template form fields into plain-language instructions for the AI
+function assembleBody(templateId: string, formData: TemplateFormData): string {
+  const get = (key: string): string => (formData[key] as string) || ''
+  switch (templateId) {
+    case 'notice':
+      return `Draft a legal notice to ${get('recipient')}. ${get('body')}`.trim()
+    case 'patent':
+      return `Draft a patent application for inventor ${get('inventor')}. Description: ${get('description')}`.trim()
+    case 'application-draft':
+      return `Draft an application for applicant ${get('applicant')}. ${get('body')}`.trim()
+    case 'interim-application':
+      return `Draft an interim application. Plaintiff: ${get('plaintiff')}. Defendant: ${get('defendant')}. Grounds: ${get('grounds')}`.trim()
+    case 'affidavit':
+      return `Draft an affidavit for deponent ${get('deponent')}. Statements: ${get('statements')}`.trim()
+    default:
+      return 'Generate a legal document based on the provided information.'
+  }
 }
 
 interface CaseWorkspaceProps {
   caseId: string
   caseTitle?: string
-}
-
-// Mock generate function - replace with actual API call when backend is ready
-async function generateDraft(
-  templateId: string,
-  formData: TemplateFormData,
-  _sourceIds: string[],
-  _caseId: string
-): Promise<{ title: string; content: string }> {
-  await new Promise((resolve) => setTimeout(resolve, 2000))
-  const template = DRAFT_TEMPLATES.find((t) => t.id === templateId)
-  const title = (formData['title'] as string) || template?.name || 'Untitled'
-
-  let content = ''
-  switch (templateId) {
-    case 'notice':
-      content = `LEGAL NOTICE\n\nTo: ${formData['recipient'] || '[Recipient Name]'}\nDate: ${new Date().toLocaleDateString()}\n\nRE: ${title}\n\nDear ${formData['recipient'] || '[Recipient Name]'},\n\n${formData['body'] || 'This notice is being served to inform you of the following matter requiring your immediate attention.'}\n\nPlease take notice that the undersigned hereby demands that you comply with all applicable legal requirements within the timeframe specified by law.\n\nFailure to respond to this notice within the prescribed period may result in further legal action being taken without additional notice.\n\nPlease govern yourself accordingly.\n\nRespectfully,\n[Sender Name]\n[Designation]`
-      break
-    case 'patent':
-      content = `PATENT APPLICATION\n\nTitle: ${title}\n\nInventor: ${formData['inventor'] || '[Inventor Name]'}\nFiling Date: ${new Date().toLocaleDateString()}\n\nABSTRACT\n\n${formData['description'] || '[Description of the invention]'}\n\nBACKGROUND OF THE INVENTION\n\nField of the Invention:\nThis invention relates to the technical field as described herein.\n\nDescription of Related Art:\nThe present invention addresses limitations in existing solutions.\n\nDETAILED DESCRIPTION\n\n${formData['description'] || '[Detailed description of the invention, including preferred embodiments]'}\n\nCLAIMS\n\n1. A method/apparatus/system for [brief description], comprising:\n   a) [First element or step]\n   b) [Second element or step]\n   c) [Additional elements or steps as needed]\n\n2. The method/apparatus/system of claim 1, wherein [additional limitation].\n\n3. The method/apparatus/system of claim 1, further comprising [additional feature].`
-      break
-    case 'application-draft':
-      content = `APPLICATION\n\n${title}\n\nApplicant: ${formData['applicant'] || '[Applicant Name]'}\nDate: ${new Date().toLocaleDateString()}\n\nTO THE HONORABLE COURT/AUTHORITY:\n\n${formData['body'] || 'The applicant respectfully submits this application for your consideration.'}\n\nGROUNDS FOR APPLICATION:\n\n1. The applicant is duly authorized to file this application.\n2. All necessary requirements have been fulfilled.\n3. The application is made in good faith.\n\nPRAYER:\n\nIn light of the above, the applicant respectfully prays that this Honorable Court/Authority may be pleased to:\n\n1. Accept and process this application.\n2. Grant the relief sought herein.\n3. Pass any other order deemed fit and proper.\n\nRespectfully submitted,\n\n${formData['applicant'] || '[Applicant Name]'}\n[Date]`
-      break
-    case 'interim-application':
-      content = `IN THE [COURT NAME]\n\nINTERIM APPLICATION\n\n${title}\n\n${formData['plaintiff'] || '[Plaintiff Name]'} .............. Plaintiff/Applicant\nVERSUS\n${formData['defendant'] || '[Defendant Name]'} .............. Defendant/Respondent\n\nAPPLICATION UNDER [SECTION/RULE]\n\nMost Respectfully Showeth:\n\n1. That the above-named applicant has filed the main case which is pending before this Honorable Court.\n\n2. That the applicant is constrained to file this interim application on the following grounds:\n\nGROUNDS:\n\n${formData['grounds'] || '[State the grounds for the interim application]'}\n\nPRAYER:\n\nIn view of the above facts and circumstances, it is most respectfully prayed that this Honorable Court may be pleased to:\n\na) Grant interim relief as prayed for.\nb) Issue appropriate directions to the respondent.\nc) Pass any other order deemed fit in the interests of justice.\n\nPlace: [City]\nDate: ${new Date().toLocaleDateString()}\n\n${formData['plaintiff'] || '[Plaintiff Name]'}\nThrough Counsel`
-      break
-    case 'affidavit':
-      content = `AFFIDAVIT\n\n${title}\n\nI, ${formData['deponent'] || '[Deponent Name]'}, aged ___ years, residing at [Address], do hereby solemnly affirm and state as follows:\n\n${formData['statements'] || '1. That I am the deponent herein and am competent to swear this affidavit.\\n\\n2. That I have personal knowledge of the facts stated herein.\\n\\n3. [Additional statements]'}\n\nVERIFICATION\n\nI, the above-named deponent, do hereby verify that the contents of paragraphs 1 to ___ of this affidavit are true to my personal knowledge, and nothing material has been concealed therefrom.\n\nVerified at [Place] on this ${new Date().toLocaleDateString()}.\n\n_______________________\n${formData['deponent'] || '[Deponent Name]'}\n(Deponent)\n\nSWORN BEFORE ME\n\n_______________________\nNotary Public / Oath Commissioner`
-      break
-    default:
-      content = `${title}\n\nGenerated draft content based on the provided information.`
-  }
-
-  return { title, content }
 }
 
 export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
@@ -75,6 +59,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewTitle, setPreviewTitle] = useState('')
   const [previewContent, setPreviewContent] = useState('')
+  const [previewSections, setPreviewSections] = useState<DraftSection[]>([])
 
   const {
     sources,
@@ -100,10 +85,12 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
 
   const {
     drafts,
-    addDraft,
+    createDraft,
     updateDraft,
     deleteDraft,
   } = useDrafts(caseId)
+
+  const [createdDraft, setCreatedDraft] = useState<Draft | null>(null)
 
   const {
     tabs,
@@ -133,8 +120,8 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     openTab(draft)
   }
 
-  const handleSaveDraft = async (id: string, title: string, content: string) => {
-    await updateDraft(id, { title, content })
+  const handleSaveDraft = (id: string, title: string, content: string) => {
+    updateDraft(id, { title, content })
   }
 
   const handleDeleteDraft = async (id: string) => {
@@ -174,9 +161,27 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   ) => {
     setIsGenerating(true)
     try {
-      const result = await generateDraft(templateId, formData, sourceIds, caseId)
-      setPreviewTitle(result.title)
-      setPreviewContent(result.content)
+      const config = TEMPLATE_TO_DOC_CONFIG[templateId] || { documentType: 'legal_notice' as DocumentType }
+      const title = (formData['title'] as string) || DRAFT_TEMPLATES.find((t) => t.id === templateId)?.name || 'Untitled'
+
+      const body = assembleBody(templateId, formData)
+      const hasText = body.length > 0
+      const hasFiles = sourceIds.length > 0
+
+      const request: CreateDraftRequest = {
+        title,
+        document_type: config.documentType,
+        input_mode: hasFiles && !hasText ? 'file' : 'freetext',
+        subtype: config.subtype,
+        freetext_body: hasText ? body : undefined,
+        file_ids: hasFiles ? sourceIds : undefined,
+      }
+
+      const draft = await createDraft(request)
+      setCreatedDraft(draft)
+      setPreviewTitle(draft.title)
+      setPreviewContent(draft.content)
+      setPreviewSections(draft.sections)
       setFormModalOpen(false)
       setPreviewOpen(true)
     } finally {
@@ -184,27 +189,28 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     }
   }
 
-  const handleSavePreview = async (title: string, content: string) => {
-    const documentType = selectedTemplate
-      ? TEMPLATE_TO_DOCUMENT_TYPE[selectedTemplate.id] || 'legal_notice'
-      : 'legal_notice'
-    const newDraft = await addDraft(title, content, documentType)
+  const handleSavePreview = (title: string, content: string) => {
+    if (createdDraft) {
+      updateDraft(createdDraft.id, { title, content })
+      openTab({ ...createdDraft, title, content })
+    }
     setPreviewOpen(false)
     setPreviewTitle('')
     setPreviewContent('')
+    setPreviewSections([])
+    setCreatedDraft(null)
     setSelectedTemplate(null)
-    // Open the new draft as a tab
-    openTab(newDraft)
   }
 
   const handleClosePreview = () => {
     setPreviewOpen(false)
     setPreviewTitle('')
     setPreviewContent('')
+    setPreviewSections([])
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-gray-50/50">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-ledger-gray-200 bg-ledger-white">
         <div className="flex items-center gap-3">
@@ -271,10 +277,10 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
       </div>
 
       {/* Three-panel layout */}
-      <div className="flex-1 flex gap-2 p-2 min-h-0 overflow-hidden bg-ledger-gray-50">
+      <div className="flex-1 flex min-h-0 overflow-hidden bg-ledger-white">
         {/* Left Sidebar - Sources + Drafts */}
         {leftPanelOpen && (
-          <div className="w-72 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
+          <div className="w-72 flex-shrink-0 flex flex-col border-r border-ledger-gray-200 overflow-hidden">
             <LeftSidebar
               sources={sources}
               selectedSourceIds={selectedSourceIds}
@@ -314,8 +320,8 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
 
         {/* Right Sidebar - Tools */}
         {rightPanelOpen && (
-          <div className="w-64 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
-            <ToolsSidebar
+          <div className="w-80 flex-shrink-0 flex flex-col border-l border-ledger-gray-200 overflow-hidden">
+            <StudioPanel
               onDraftingClick={handleDraftingClick}
               onGenerateReport={handleGenerateReport}
               onGenerateSummary={handleGenerateSummary}
@@ -341,6 +347,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
       <DraftPreview
         title={previewTitle}
         content={previewContent}
+        sections={previewSections}
         isOpen={previewOpen}
         onClose={handleClosePreview}
         onSave={handleSavePreview}

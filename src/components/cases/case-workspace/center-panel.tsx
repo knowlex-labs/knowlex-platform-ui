@@ -59,7 +59,7 @@ export function CenterPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
+    <div className="flex flex-col h-full bg-ledger-white overflow-hidden">
       {/* Tab Bar */}
       <WorkspaceTabBar
         tabs={tabs}

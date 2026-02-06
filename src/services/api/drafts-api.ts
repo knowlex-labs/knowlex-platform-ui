@@ -1,67 +1,78 @@
 import { apiClient } from './api-client'
+import type { ApiResponse } from '@/types'
 
-// Backend API types
-export interface BackendDraft {
-  id: string
-  title: string
-  body: string
-  document_type: string
-  file_ids: string[]
-  metadata: Record<string, unknown>
-  case_id?: string
-  created_at: string
-  updated_at: string
-}
+export type DocumentType =
+  | 'contract'
+  | 'agreement'
+  | 'legal_notice'
+  | 'demand_notice'
+  | 'petition'
+  | 'affidavit'
+  | 'application'
+
+export type InputMode = 'structured' | 'freetext' | 'file'
 
 export interface CreateDraftRequest {
   title: string
-  body: string
-  document_type: string
-  file_ids: string[]
-  metadata: Record<string, unknown>
-  case_id?: string
+  document_type: DocumentType
+  input_mode: InputMode
+  subtype?: string
+  freetext_body?: string
+  file_ids?: string[]
 }
 
-export interface UpdateDraftRequest {
-  title?: string
-  body?: string
-  document_type?: string
-  file_ids?: string[]
-  metadata?: Record<string, unknown>
+export interface CreateDraftResponse {
+  job_id: string
+  status: 'pending'
+  created_at: string
+}
+
+export interface DraftResult {
+  draft: string
+  sections: Array<{ title: string; content: string; order: number }>
+  metadata: {
+    document_type: string
+    title: string
+    summary: string
+    subtype?: string
+    input_mode?: string
+  }
+}
+
+export interface DraftJobResponse {
+  job_id: string
+  status: 'pending' | 'completed' | 'failed'
+  created_at: string
+  completed_at: string | null
+  result: DraftResult | null
+  error: string | null
 }
 
 export interface ListDraftsResponse {
-  drafts: BackendDraft[]
+  jobs: DraftJobResponse[]
   total: number
   limit: number
   offset: number
 }
 
 export const draftsApi = {
-  create: async (data: CreateDraftRequest): Promise<BackendDraft> => {
-    return apiClient.post<BackendDraft>('/api/v1/drafts', data)
+  create: async (caseId: string, data: CreateDraftRequest): Promise<ApiResponse<CreateDraftResponse>> => {
+    return apiClient.post<ApiResponse<CreateDraftResponse>>(`/api/v1/cases/${caseId}/drafts`, data)
   },
 
-  list: async (caseId?: string, limit = 50, offset = 0): Promise<ListDraftsResponse> => {
+  get: async (caseId: string, jobId: string): Promise<ApiResponse<DraftJobResponse>> => {
+    return apiClient.get<ApiResponse<DraftJobResponse>>(`/api/v1/cases/${caseId}/drafts/${jobId}`)
+  },
+
+  list: async (caseId: string, limit = 10, offset = 0): Promise<ApiResponse<ListDraftsResponse>> => {
     const params = new URLSearchParams({
       limit: limit.toString(),
       offset: offset.toString(),
     })
-    if (caseId) {
-      params.append('case_id', caseId)
-    }
-    return apiClient.get<ListDraftsResponse>(`/api/v1/drafts?${params}`)
+    return apiClient.get<ApiResponse<ListDraftsResponse>>(`/api/v1/cases/${caseId}/drafts?${params}`)
   },
 
-  get: async (id: string): Promise<BackendDraft> => {
-    return apiClient.get<BackendDraft>(`/api/v1/drafts/${id}`)
-  },
-
-  update: async (id: string, data: UpdateDraftRequest): Promise<BackendDraft> => {
-    return apiClient.put<BackendDraft>(`/api/v1/drafts/${id}`, data)
-  },
-
-  delete: async (id: string): Promise<void> => {
-    return apiClient.delete(`/api/v1/drafts/${id}`)
+  cancel: async (caseId: string, jobId: string): Promise<ApiResponse<null>> => {
+    return apiClient.delete<ApiResponse<null>>(`/api/v1/cases/${caseId}/drafts/${jobId}`)
   },
 }
