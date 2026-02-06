@@ -1,3 +1,5 @@
+import type { DraftSection } from '@/types'
+
 // Escapes HTML entities before injecting into dangerouslySetInnerHTML
 function escapeHtml(text: string): string {
   return text
@@ -71,4 +73,87 @@ export function renderDraftContent(content: string): string {
         .join('')
     })
     .join('\n')
+}
+
+/**
+ * Renders structured sections into styled HTML for on-screen display.
+ * Sorts by `order`, renders each section with an uppercase heading + bottom border,
+ * reuses `renderDraftContent()` for each section's content.
+ */
+export function renderDraftSections(sections: DraftSection[]): string {
+  const sorted = [...sections].sort((a, b) => a.order - b.order)
+
+  return sorted
+    .map((section) => {
+      const heading = `<div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:6px;margin-bottom:12px;border-bottom:1px solid #d1d5db;">${escapeHtml(section.title)}</div>`
+      const body = renderDraftContent(section.content)
+      return `<div style="margin-bottom:24px;">${heading}${body}</div>`
+    })
+    .join('')
+}
+
+/**
+ * Builds a full HTML document for DOC/PDF download with section-aware structure.
+ */
+export function buildExportHtml(title: string, content: string, sections?: DraftSection[]): string {
+  let bodyHtml: string
+  if (sections && sections.length > 0) {
+    const sorted = [...sections].sort((a, b) => a.order - b.order)
+    bodyHtml = sorted
+      .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${s.content.split('\n').map((p) => `<p>${escapeHtml(p)}</p>`).join('\n')}`)
+      .join('\n')
+  } else {
+    bodyHtml = content.split('\n').map((p) => `<p>${escapeHtml(p)}</p>`).join('\n')
+  }
+
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>${escapeHtml(title)}</title>
+    <style>
+      body {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 12pt;
+        line-height: 1.5;
+        margin: 1in;
+      }
+      h1 {
+        font-size: 14pt;
+        font-weight: bold;
+        margin-bottom: 24pt;
+      }
+      h2 {
+        font-size: 13pt;
+        font-weight: bold;
+        margin-top: 18pt;
+        margin-bottom: 12pt;
+        text-transform: uppercase;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 4pt;
+      }
+      p {
+        margin-bottom: 12pt;
+        text-align: justify;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>${escapeHtml(title)}</h1>
+    ${bodyHtml}
+  </body>
+</html>`
+}
+
+/**
+ * Builds plain-text output for TXT download with section-aware structure.
+ */
+export function buildExportText(content: string, sections?: DraftSection[]): string {
+  if (sections && sections.length > 0) {
+    const sorted = [...sections].sort((a, b) => a.order - b.order)
+    return sorted
+      .map((s) => `=== ${s.title.toUpperCase()} ===\n\n${s.content}`)
+      .join('\n\n')
+  }
+  return content
 }

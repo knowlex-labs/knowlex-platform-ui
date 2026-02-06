@@ -3,11 +3,13 @@ import { Download, Save, FileDown, FileText, ChevronDown, X } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { renderDraftContent } from '@/lib/draft-renderer'
+import { renderDraftContent, renderDraftSections, buildExportHtml, buildExportText } from '@/lib/draft-renderer'
+import type { DraftSection } from '@/types'
 
 interface DraftPreviewProps {
   title: string
   content: string
+  sections?: DraftSection[]
   isOpen: boolean
   onClose: () => void
   onSave: (title: string, content: string) => void | Promise<void>
@@ -18,10 +20,11 @@ interface DraftPreviewProps {
 export function DraftPreview({
   title,
   content,
+  sections,
   isOpen,
   onClose,
   onSave,
-  onContentChange,
+  onContentChange: _onContentChange,
   onTitleChange,
 }: DraftPreviewProps) {
   const [localTitle, setLocalTitle] = useState(title)
@@ -48,8 +51,11 @@ export function DraftPreview({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const hasSections = sections && sections.length > 0
+
   const handleDownloadTxt = () => {
-    const blob = new Blob([content], { type: 'text/plain' })
+    const text = buildExportText(content, sections)
+    const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -61,36 +67,7 @@ export function DraftPreview({
   }
 
   const handleDownloadDoc = () => {
-    // Create a simple HTML document that Word can open
-    const htmlContent = `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>${localTitle}</title>
-    <style>
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.5;
-        margin: 1in;
-      }
-      h1 {
-        font-size: 14pt;
-        font-weight: bold;
-        margin-bottom: 24pt;
-      }
-      p {
-        margin-bottom: 12pt;
-        text-align: justify;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>${localTitle}</h1>
-    ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-  </body>
-</html>`
-
+    const htmlContent = buildExportHtml(localTitle, content, sections)
     const blob = new Blob([htmlContent], { type: 'application/msword' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -103,39 +80,10 @@ export function DraftPreview({
   }
 
   const handleDownloadPdf = () => {
-    // Use browser print-to-PDF via a new window
+    const htmlContent = buildExportHtml(localTitle, content, sections)
     const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>${localTitle}</title>
-    <style>
-      @page {
-        margin: 1in;
-      }
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.5;
-      }
-      h1 {
-        font-size: 14pt;
-        font-weight: bold;
-        margin-bottom: 24pt;
-      }
-      p {
-        margin-bottom: 12pt;
-        text-align: justify;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>${localTitle}</h1>
-    ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-  </body>
-</html>`)
+      printWindow.document.write(htmlContent)
       printWindow.document.close()
       printWindow.focus()
       printWindow.print()
@@ -147,6 +95,10 @@ export function DraftPreview({
   }
 
   if (!isOpen) return null
+
+  const renderedHtml = hasSections
+    ? renderDraftSections(sections)
+    : renderDraftContent(content)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -219,7 +171,7 @@ export function DraftPreview({
           <div
             className="max-w-3xl mx-auto bg-ledger-white border border-ledger-gray-200 rounded-lg p-10"
             style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.6' }}
-            dangerouslySetInnerHTML={{ __html: renderDraftContent(content) }}
+            dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />
         </div>
 

@@ -70,8 +70,6 @@ export function SourceItem({
   const [isLinking, setIsLinking] = useState(false)
 
   const Icon = getFileIcon(source.fileType)
-  const showLinkAction = source.indexingStatus === 'INDEXING_PENDING' ||
-    source.indexingStatus === 'INDEXING_FAILED'
 
   const handleDelete = async () => {
     setIsDeleting(true)

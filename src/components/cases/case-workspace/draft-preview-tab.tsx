@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useTextSelection } from '@/hooks/use-text-selection'
-import { renderDraftContent } from '@/lib/draft-renderer'
+import { renderDraftContent, renderDraftSections, buildExportHtml, buildExportText } from '@/lib/draft-renderer'
 import type { Draft } from '@/types'
 
 interface DraftPreviewTabProps {
@@ -53,6 +53,8 @@ export function DraftPreviewTab({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const hasSections = draft.sections && draft.sections.length > 0
+
   const handleSave = () => {
     onSave(draft.id, title, content)
     setHasChanges(false)
@@ -66,7 +68,8 @@ export function DraftPreviewTab({
   }
 
   const handleDownloadTxt = () => {
-    const blob = new Blob([content], { type: 'text/plain' })
+    const text = buildExportText(content, hasSections ? draft.sections : undefined)
+    const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -78,35 +81,7 @@ export function DraftPreviewTab({
   }
 
   const handleDownloadDoc = () => {
-    const htmlContent = `<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>${title}</title>
-    <style>
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.5;
-        margin: 1in;
-      }
-      h1 {
-        font-size: 14pt;
-        font-weight: bold;
-        margin-bottom: 24pt;
-      }
-      p {
-        margin-bottom: 12pt;
-        text-align: justify;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>${title}</h1>
-    ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-  </body>
-</html>`
-
+    const htmlContent = buildExportHtml(title, content, hasSections ? draft.sections : undefined)
     const blob = new Blob([htmlContent], { type: 'application/msword' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -119,43 +94,19 @@ export function DraftPreviewTab({
   }
 
   const handleDownloadPdf = () => {
+    const htmlContent = buildExportHtml(title, content, hasSections ? draft.sections : undefined)
     const printWindow = window.open('', '_blank')
     if (printWindow) {
-      printWindow.document.write(`<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>${title}</title>
-    <style>
-      @page {
-        margin: 1in;
-      }
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.5;
-      }
-      h1 {
-        font-size: 14pt;
-        font-weight: bold;
-        margin-bottom: 24pt;
-      }
-      p {
-        margin-bottom: 12pt;
-        text-align: justify;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>${title}</h1>
-    ${content.split('\n').map((p) => `<p>${p}</p>`).join('')}
-  </body>
-</html>`)
+      printWindow.document.write(htmlContent)
       printWindow.document.close()
       printWindow.focus()
       printWindow.print()
     }
   }
+
+  const renderedHtml = hasSections
+    ? renderDraftSections(draft.sections)
+    : renderDraftContent(content)
 
   return (
     <div className="flex flex-col h-full">
@@ -242,7 +193,7 @@ export function DraftPreviewTab({
           <div
             className="p-6"
             style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.6' }}
-            dangerouslySetInnerHTML={{ __html: renderDraftContent(content) }}
+            dangerouslySetInnerHTML={{ __html: renderedHtml }}
           />
 
           {/* Floating AI Fix Button */}

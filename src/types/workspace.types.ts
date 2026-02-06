@@ -70,12 +70,18 @@ export const LEGAL_TOOLS: LegalTool[] = [
 ]
 
 // Draft types for workspace
+export interface DraftSection {
+  title: string
+  content: string
+  order: number
+}
+
 export interface Draft {
   id: string
   title: string
   content: string
   status: 'pending' | 'completed' | 'failed'
-  sections: string[]
+  sections: DraftSection[]
   summary: string
   createdAt: Date
   updatedAt: Date

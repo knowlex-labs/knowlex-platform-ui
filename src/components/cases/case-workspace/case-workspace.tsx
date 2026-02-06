@@ -13,7 +13,7 @@ import { StudioPanel } from './studio-panel'
 import { TemplateFormModal } from './template-form-modal'
 import { DraftPreview } from './draft-preview'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
-import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
+import type { Draft, DraftSection, DraftTemplate, TemplateFormData } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
 
 // Maps each template to its API document_type and optional subtype
@@ -59,6 +59,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewTitle, setPreviewTitle] = useState('')
   const [previewContent, setPreviewContent] = useState('')
+  const [previewSections, setPreviewSections] = useState<DraftSection[]>([])
 
   const {
     sources,
@@ -163,18 +164,24 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
       const config = TEMPLATE_TO_DOC_CONFIG[templateId] || { documentType: 'legal_notice' as DocumentType }
       const title = (formData['title'] as string) || DRAFT_TEMPLATES.find((t) => t.id === templateId)?.name || 'Untitled'
 
+      const body = assembleBody(templateId, formData)
+      const hasText = body.length > 0
+      const hasFiles = sourceIds.length > 0
+
       const request: CreateDraftRequest = {
         title,
-        body: assembleBody(templateId, formData),
         document_type: config.documentType,
-        file_ids: sourceIds.length > 0 ? sourceIds : undefined,
-        metadata: config.subtype ? { subtype: config.subtype } : undefined,
+        input_mode: hasFiles && !hasText ? 'file' : 'freetext',
+        subtype: config.subtype,
+        freetext_body: hasText ? body : undefined,
+        file_ids: hasFiles ? sourceIds : undefined,
       }
 
       const draft = await createDraft(request)
       setCreatedDraft(draft)
       setPreviewTitle(draft.title)
       setPreviewContent(draft.content)
+      setPreviewSections(draft.sections)
       setFormModalOpen(false)
       setPreviewOpen(true)
     } finally {
@@ -190,6 +197,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     setPreviewOpen(false)
     setPreviewTitle('')
     setPreviewContent('')
+    setPreviewSections([])
     setCreatedDraft(null)
     setSelectedTemplate(null)
   }
@@ -198,6 +206,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     setPreviewOpen(false)
     setPreviewTitle('')
     setPreviewContent('')
+    setPreviewSections([])
   }
 
   return (
@@ -338,6 +347,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
       <DraftPreview
         title={previewTitle}
         content={previewContent}
+        sections={previewSections}
         isOpen={previewOpen}
         onClose={handleClosePreview}
         onSave={handleSavePreview}

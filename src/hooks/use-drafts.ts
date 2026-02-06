@@ -31,7 +31,7 @@ interface UseDraftsResult {
   refresh: () => Promise<void>
 }
 
-export function useDrafts(_caseId: string): UseDraftsResult {
+export function useDrafts(caseId: string): UseDraftsResult {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,7 +40,7 @@ export function useDrafts(_caseId: string): UseDraftsResult {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await draftsApi.list()
+      const response = await draftsApi.list(caseId)
       const completedJobs = response.data.jobs.filter((job) => job.status === 'completed')
       setDrafts(completedJobs.map(mapJobToDraft))
     } catch (err) {
@@ -50,7 +50,7 @@ export function useDrafts(_caseId: string): UseDraftsResult {
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [caseId])
 
   useEffect(() => {
     fetchDrafts()
@@ -58,11 +58,11 @@ export function useDrafts(_caseId: string): UseDraftsResult {
 
   // POST to create the job, then poll GET until completed or failed
   const createDraft = useCallback(async (request: CreateDraftRequest): Promise<Draft> => {
-    const createResponse = await draftsApi.create(request)
+    const createResponse = await draftsApi.create(caseId, request)
     const jobId = createResponse.data.job_id
 
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-      const jobResponse = await draftsApi.get(jobId)
+      const jobResponse = await draftsApi.get(caseId, jobId)
       const job = jobResponse.data
 
       if (job.status === 'completed') {
@@ -79,7 +79,7 @@ export function useDrafts(_caseId: string): UseDraftsResult {
     }
 
     throw new Error('Draft generation timed out')
-  }, [])
+  }, [caseId])
 
   // Local-only update — the API has no update endpoint
   const updateDraft = useCallback((id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => {
@@ -93,12 +93,12 @@ export function useDrafts(_caseId: string): UseDraftsResult {
   // DELETE only works on pending jobs; ignore errors for already-completed jobs
   const deleteDraft = useCallback(async (id: string) => {
     try {
-      await draftsApi.cancel(id)
+      await draftsApi.cancel(caseId, id)
     } catch {
       // job may already be completed — safe to ignore
     }
     setDrafts((prev) => prev.filter((draft) => draft.id !== id))
-  }, [])
+  }, [caseId])
 
   const getDraft = useCallback(
     (id: string): Draft | undefined => drafts.find((draft) => draft.id === id),

@@ -10,14 +10,15 @@ export type DocumentType =
   | 'affidavit'
   | 'application'
 
+export type InputMode = 'structured' | 'freetext' | 'file'
+
 export interface CreateDraftRequest {
   title: string
-  body: string
   document_type: DocumentType
+  input_mode: InputMode
+  subtype?: string
+  freetext_body?: string
   file_ids?: string[]
-  metadata?: {
-    subtype?: string
-  }
 }
 
 export interface CreateDraftResponse {
@@ -28,11 +29,13 @@ export interface CreateDraftResponse {
 
 export interface DraftResult {
   draft: string
-  sections: string[]
+  sections: Array<{ title: string; content: string; order: number }>
   metadata: {
     document_type: string
     title: string
     summary: string
+    subtype?: string
+    input_mode?: string
   }
 }
 
@@ -53,23 +56,23 @@ export interface ListDraftsResponse {
 }
 
 export const draftsApi = {
-  create: async (data: CreateDraftRequest): Promise<ApiResponse<CreateDraftResponse>> => {
-    return apiClient.post<ApiResponse<CreateDraftResponse>>('/api/v1/drafts', data)
+  create: async (caseId: string, data: CreateDraftRequest): Promise<ApiResponse<CreateDraftResponse>> => {
+    return apiClient.post<ApiResponse<CreateDraftResponse>>(`/api/v1/cases/${caseId}/drafts`, data)
   },
 
-  get: async (jobId: string): Promise<ApiResponse<DraftJobResponse>> => {
-    return apiClient.get<ApiResponse<DraftJobResponse>>(`/api/v1/drafts/${jobId}`)
+  get: async (caseId: string, jobId: string): Promise<ApiResponse<DraftJobResponse>> => {
+    return apiClient.get<ApiResponse<DraftJobResponse>>(`/api/v1/cases/${caseId}/drafts/${jobId}`)
   },
 
-  list: async (limit = 10, offset = 0): Promise<ApiResponse<ListDraftsResponse>> => {
+  list: async (caseId: string, limit = 10, offset = 0): Promise<ApiResponse<ListDraftsResponse>> => {
     const params = new URLSearchParams({
       limit: limit.toString(),
       offset: offset.toString(),
     })
-    return apiClient.get<ApiResponse<ListDraftsResponse>>(`/api/v1/drafts?${params}`)
+    return apiClient.get<ApiResponse<ListDraftsResponse>>(`/api/v1/cases/${caseId}/drafts?${params}`)
   },
 
-  cancel: async (jobId: string): Promise<ApiResponse<null>> => {
-    return apiClient.delete<ApiResponse<null>>(`/api/v1/drafts/${jobId}`)
+  cancel: async (caseId: string, jobId: string): Promise<ApiResponse<null>> => {
+    return apiClient.delete<ApiResponse<null>>(`/api/v1/cases/${caseId}/drafts/${jobId}`)
   },
 }
