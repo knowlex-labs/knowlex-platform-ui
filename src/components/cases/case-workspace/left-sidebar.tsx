@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, FileText, Plus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import type { CaseSource, Draft } from '@/types'
 import { SourceItem } from './source-item'
@@ -52,10 +51,10 @@ export function LeftSidebar({
   }
 
   return (
-    <div className="flex flex-col h-full bg-ledger-white">
-      <ScrollArea className="flex-1">
+    <div className="flex flex-col h-full overflow-hidden bg-ledger-white">
+      <div className="flex-1 overflow-y-auto">
         {/* Sources Section */}
-        <div className="border-b border-ledger-gray-200">
+        <div className="pb-2">
           <button
             className="w-full flex items-center justify-between px-4 py-3 hover:bg-ledger-gray-50 transition-colors"
             onClick={() => setSourcesExpanded(!sourcesExpanded)}
@@ -68,7 +67,7 @@ export function LeftSidebar({
               )}
               <span className="text-sm font-semibold text-ledger-black">Sources</span>
               {sources.length > 0 && (
-                <span className="text-xs text-ledger-gray-500 bg-ledger-gray-100 px-1.5 py-0.5 rounded">
+                <span className="text-xs text-ledger-gray-400 px-1.5">
                   {sources.length}
                 </span>
               )}
@@ -81,13 +80,13 @@ export function LeftSidebar({
           </button>
 
           {sourcesExpanded && (
-            <div className="pb-2">
+            <div>
               {/* Add Sources Button */}
-              <div className="px-4 py-2">
+              <div className="px-4 pt-1 pb-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full justify-center gap-2"
+                  className="w-full h-8 gap-2 bg-ledger-gray-100 hover:bg-ledger-gray-200 border-ledger-gray-200 text-ledger-black text-xs font-normal"
                   onClick={() => setAddModalOpen(true)}
                   disabled={isUploading}
                 >
@@ -102,7 +101,7 @@ export function LeftSidebar({
 
               {/* Select All */}
               {sources.length > 0 && (
-                <div className="px-4 py-1.5">
+                <div className="px-4 pb-1">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -159,7 +158,7 @@ export function LeftSidebar({
               )}
               <span className="text-sm font-semibold text-ledger-black">Drafts</span>
               {drafts.length > 0 && (
-                <span className="text-xs text-ledger-gray-500 bg-ledger-gray-100 px-1.5 py-0.5 rounded">
+                <span className="text-xs text-ledger-gray-400 px-1.5">
                   {drafts.length}
                 </span>
               )}
@@ -202,13 +201,6 @@ export function LeftSidebar({
             </div>
           )}
         </div>
-      </ScrollArea>
-
-      {/* Footer with counts */}
-      <div className="px-4 py-2 border-t border-ledger-gray-200 bg-ledger-gray-50">
-        <p className="text-xs text-ledger-gray-500">
-          {sources.length} sources, {drafts.length} drafts
-        </p>
       </div>
 
       {/* Modals */}

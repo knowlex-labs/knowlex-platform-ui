@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Trash2, Loader2, FileCheck } from 'lucide-react'
+import { Send, Trash2, Loader2, FileCheck, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { WorkspaceMessage } from '@/types'
 import { ChatMessage } from './chat-message'
@@ -23,7 +22,8 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -42,7 +42,7 @@ export function ChatInterface({
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter') {
       e.preventDefault()
       handleSubmit(e)
     }
@@ -96,39 +96,65 @@ export function ChatInterface({
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-4 border-t border-ledger-gray-200">
+      <div className="px-4 pb-4 pt-2">
         <form onSubmit={handleSubmit}>
-          <div className="relative">
-            <Textarea
-              ref={textareaRef}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-ledger-gray-50 focus-within:bg-ledger-white focus-within:ring-1 focus-within:ring-ledger-gray-300 transition-all">
+            {/* File upload button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+              onChange={(e) => {
+                // Handle file upload here
+                const file = e.target.files?.[0]
+                if (file) {
+                  console.log('File selected:', file.name)
+                  // TODO: Integrate with upload handler
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-ledger-gray-400 hover:text-ledger-black flex-shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+
+            {/* Source count badge */}
+            <div className="flex items-center gap-1.5 text-xs text-ledger-gray-400 flex-shrink-0">
+              <FileCheck className="h-3 w-3" />
+              <span>{selectedSourceCount}</span>
+            </div>
+
+            {/* Input field */}
+            <input
+              ref={inputRef}
+              type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your documents..."
-              className="min-h-[100px] pr-12 resize-none"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-black placeholder:text-ledger-gray-400"
               disabled={isLoading}
             />
+
+            {/* Send button */}
             <Button
               type="submit"
               size="sm"
-              className="absolute right-2 bottom-2 h-8 w-8 p-0"
+              className="h-8 w-8 p-0 rounded-full flex-shrink-0"
               disabled={!input.trim() || isLoading}
             >
               {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Send className="h-4 w-4" />
+                <Send className="h-3.5 w-3.5" />
               )}
             </Button>
-          </div>
-          <div className="flex items-center justify-between mt-2">
-            <div className="flex items-center gap-1.5 text-xs text-ledger-gray-400">
-              <FileCheck className="h-3.5 w-3.5" />
-              {selectedSourceCount} source{selectedSourceCount !== 1 ? 's' : ''} selected
-            </div>
-            <p className="text-xs text-ledger-gray-400">
-              Press Enter to send
-            </p>
           </div>
         </form>
       </div>

@@ -23,7 +23,7 @@ export function WorkspaceTabBar({
   onToggleSplit,
 }: WorkspaceTabBarProps) {
   return (
-    <div className="flex items-center justify-between border-b border-ledger-gray-200 bg-ledger-gray-50 px-1">
+    <div className="flex items-center justify-between border-b border-ledger-gray-200 bg-ledger-white px-1">
       <div className="flex items-center gap-0.5 overflow-x-auto">
         {tabs.map((tab) => (
           <div
@@ -31,8 +31,8 @@ export function WorkspaceTabBar({
             className={cn(
               'group flex items-center gap-1.5 px-3 py-2 text-sm cursor-pointer border-b-2 transition-colors',
               activeTabId === tab.id
-                ? 'border-ledger-black bg-ledger-white text-ledger-black'
-                : 'border-transparent text-ledger-gray-600 hover:text-ledger-black hover:bg-ledger-gray-100'
+                ? 'border-ledger-black text-ledger-black'
+                : 'border-transparent text-ledger-gray-400 hover:text-ledger-black'
             )}
             onClick={() => onTabClick(tab.id)}
           >

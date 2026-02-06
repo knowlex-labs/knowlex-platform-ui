@@ -9,7 +9,7 @@ import { useDrafts } from '@/hooks/use-drafts'
 import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
-import { ToolsSidebar } from './tools-sidebar'
+import { StudioPanel } from './studio-panel'
 import { TemplateFormModal } from './template-form-modal'
 import { DraftPreview } from './draft-preview'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
@@ -201,7 +201,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-gray-50/50">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-ledger-gray-200 bg-ledger-white">
         <div className="flex items-center gap-3">
@@ -268,10 +268,10 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
       </div>
 
       {/* Three-panel layout */}
-      <div className="flex-1 flex gap-2 p-2 min-h-0 overflow-hidden bg-ledger-gray-50">
+      <div className="flex-1 flex min-h-0 overflow-hidden bg-ledger-white">
         {/* Left Sidebar - Sources + Drafts */}
         {leftPanelOpen && (
-          <div className="w-72 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
+          <div className="w-72 flex-shrink-0 flex flex-col border-r border-ledger-gray-200 overflow-hidden">
             <LeftSidebar
               sources={sources}
               selectedSourceIds={selectedSourceIds}
@@ -311,8 +311,8 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
 
         {/* Right Sidebar - Tools */}
         {rightPanelOpen && (
-          <div className="w-64 flex-shrink-0 flex flex-col bg-ledger-white rounded-lg border border-ledger-gray-200 overflow-hidden">
-            <ToolsSidebar
+          <div className="w-80 flex-shrink-0 flex flex-col border-l border-ledger-gray-200 overflow-hidden">
+            <StudioPanel
               onDraftingClick={handleDraftingClick}
               onGenerateReport={handleGenerateReport}
               onGenerateSummary={handleGenerateSummary}
