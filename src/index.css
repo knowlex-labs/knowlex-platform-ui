@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ledger-black: #000000;
+  --ledger-white: #ffffff;
+  --ledger-gray-50: #fafafa;
+  --ledger-gray-100: #f4f4f5;
+  --ledger-gray-200: #e4e4e7;
+  --ledger-gray-300: #d4d4d8;
+  --ledger-gray-400: #a1a1aa;
+  --ledger-gray-500: #71717a;
+  --ledger-gray-600: #52525b;
+  --ledger-gray-700: #3f3f46;
+  --ledger-gray-800: #27272a;
+  --ledger-gray-900: #18181b;
+  --ledger-gray-950: #09090b;
+
+  /* Mobile-first safe area insets */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+@layer base {
+  * {
+    @apply border-ledger-gray-200;
+  }
+
+  html {
+    /* Prevent iOS bounce scroll */
+    overscroll-behavior: none;
+    /* Smooth scrolling for anchors */
+    scroll-behavior: smooth;
+    /* Prevent text size adjustment on orientation change */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-ledger-white text-ledger-black font-sans antialiased;
+    /* Improve touch scrolling performance */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent pull-to-refresh on mobile */
+    overscroll-behavior-y: contain;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-serif;
+  }
+
+  /* Touch-friendly focus states */
+  @media (hover: none) and (pointer: coarse) {
+    button:focus,
+    a:focus,
+    input:focus,
+    select:focus,
+    textarea:focus {
+      outline: 2px solid var(--ledger-black);
+      outline-offset: 2px;
+    }
+  }
+
+  /* Prevent zooming on input focus in iOS */
+  @media screen and (max-width: 767px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="tel"],
+    input[type="number"],
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer components {
+  .ledger-border {
+    @apply border border-ledger-black;
+  }
+
+  .ledger-border-subtle {
+    @apply border border-ledger-gray-200;
+  }
+
+  .ledger-focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ledger-black focus:ring-offset-2;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ledger-gray-400) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--ledger-gray-400);
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ledger-gray-500);
+  }
+
+  /* Hide scrollbar on mobile for cleaner look */
+  @media (max-width: 767px) {
+    .scrollbar-thin {
+      scrollbar-width: none;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  /* Touch-friendly tap highlight */
+  .tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Safe area padding for notched devices */
+  .safe-area-bottom {
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+
+  .safe-area-top {
+    padding-top: var(--safe-area-inset-top);
+  }
+}
