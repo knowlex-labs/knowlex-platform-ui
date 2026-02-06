@@ -3,6 +3,7 @@ import { Download, Save, FileDown, FileText, ChevronDown, X } from 'lucide-react
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { renderDraftContent } from '@/lib/draft-renderer'
 
 interface DraftPreviewProps {
   title: string
@@ -213,21 +214,13 @@ export function DraftPreview({
           </div>
         </div>
 
-        {/* Editor */}
-        <div className="flex-1 p-6 overflow-hidden">
-          <div className="h-full border border-ledger-gray-200 rounded-lg overflow-hidden">
-            <textarea
-              value={content}
-              onChange={(e) => onContentChange(e.target.value)}
-              className="w-full h-full p-8 resize-none focus:outline-none"
-              style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: '12pt',
-                lineHeight: '1.5',
-              }}
-              placeholder="Draft content will appear here..."
-            />
-          </div>
+        {/* Rendered Preview */}
+        <div className="flex-1 p-6 overflow-auto">
+          <div
+            className="max-w-3xl mx-auto bg-ledger-white border border-ledger-gray-200 rounded-lg p-10"
+            style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.6' }}
+            dangerouslySetInnerHTML={{ __html: renderDraftContent(content) }}
+          />
         </div>
 
         {/* Footer */}
