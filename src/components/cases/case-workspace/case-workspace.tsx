@@ -3,6 +3,7 @@ import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOp
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useNavigation } from '@/contexts/navigation-context'
+import { caseApi } from '@/services/api/case-api'
 import { useCaseSources } from '@/hooks/use-case-sources'
 import { useWorkspaceChat } from '@/hooks/use-workspace-chat'
 import { useDrafts } from '@/hooks/use-drafts'
@@ -18,11 +19,11 @@ import { DRAFT_TEMPLATES } from '@/types'
 
 // Maps each template to its API document_type and optional subtype
 const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
-  'notice':              { documentType: 'legal_notice',  subtype: 'demand' },
-  'patent':              { documentType: 'application' },
-  'application-draft':   { documentType: 'application',  subtype: 'vakalatnama' },
-  'interim-application': { documentType: 'affidavit',    subtype: 'interim_application' },
-  'affidavit':           { documentType: 'affidavit',    subtype: 'plaint' },
+  'notice': { documentType: 'legal_notice', subtype: 'demand' },
+  'patent': { documentType: 'application' },
+  'application-draft': { documentType: 'application', subtype: 'vakalatnama' },
+  'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
+  'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
 }
 
 // Assembles template form fields into plain-language instructions for the AI
@@ -51,6 +52,7 @@ interface CaseWorkspaceProps {
 
 export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const { setSelectedCaseId, setSidebarCollapsed } = useNavigation()
+  const [caseName, setCaseName] = useState(caseTitle ?? 'Case Workspace')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
@@ -100,12 +102,22 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     closeTab,
     setActiveTab,
     toggleSplitMode,
+    setTabDirty,
   } = useWorkspaceTabs(drafts)
 
   // Auto-hide sidebar when workspace opens
   useEffect(() => {
     setSidebarCollapsed(true)
   }, [setSidebarCollapsed])
+
+  // Fetch actual case name
+  useEffect(() => {
+    caseApi.getById(caseId).then((response) => {
+      setCaseName(response.data.caseTitle ?? 'Case Workspace')
+    }).catch(() => {
+      // Keep default name on error
+    })
+  }, [caseId])
 
   const handleBack = () => {
     setSelectedCaseId(null)
@@ -210,7 +222,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-white">
+    <div className="h-screen flex flex-col bg-ledger-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-ledger-gray-200 bg-ledger-white">
         <div className="flex items-center gap-3">
@@ -220,27 +232,23 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
           </Button>
           <div className="h-4 w-px bg-ledger-gray-300" />
           <h2 className="text-base font-semibold text-ledger-black truncate">
-            {caseTitle ?? 'Case Workspace'}
+            {caseName}
           </h2>
         </div>
         <div className="flex items-center gap-2">
           {selectedSourceIds.size > 0 && (
             <>
-              {sources.filter(s => selectedSourceIds.has(s.id)).some(
-                s => s.indexingStatus === 'INDEXING_PENDING' || s.indexingStatus === 'INDEXING_FAILED'
-              ) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => batchLinkContent(Array.from(selectedSourceIds))}
-                    disabled={sourcesLoading || isUploading}
-                    className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
-                    title="Re-index selected sources"
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
-                    <span className="hidden sm:inline">Re-index</span>
-                  </Button>
-                )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => batchLinkContent(Array.from(selectedSourceIds))}
+                disabled={sourcesLoading || isUploading}
+                className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
+                title="Re-index selected sources"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
+                <span className="hidden sm:inline">Re-index</span>
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -315,6 +323,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
             onClearChat={clearChat}
             onSaveDraft={handleSaveDraft}
             onDeleteDraft={handleDeleteDraft}
+            onTabDirtyChange={setTabDirty}
           />
         </div>
 

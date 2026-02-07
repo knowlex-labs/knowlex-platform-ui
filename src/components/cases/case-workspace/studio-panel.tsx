@@ -15,24 +15,28 @@ const tools = [
     name: 'Drafting',
     icon: PenLine,
     requiresSources: false,
+    comingSoon: false,
   },
   {
     id: 'generate-report',
     name: 'Report',
     icon: FileOutput,
     requiresSources: true,
+    comingSoon: true,
   },
   {
     id: 'generate-summary',
     name: 'Summary',
     icon: FileText,
     requiresSources: true,
+    comingSoon: true,
   },
   {
     id: 'generate-facts',
     name: 'Key Facts',
     icon: ListChecks,
     requiresSources: true,
+    comingSoon: true,
   },
 ]
 
@@ -64,7 +68,7 @@ export function StudioPanel({
     <div className="flex flex-col h-full bg-ledger-white">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
-        <h3 className="text-sm font-medium text-ledger-gray-600">Tools</h3>
+        <h3 className="text-base font-semibold text-ledger-black">Tools</h3>
         {selectedSourceCount > 0 && (
           <p className="text-xs text-ledger-gray-400 mt-1">
             {selectedSourceCount} source{selectedSourceCount !== 1 ? 's' : ''} selected
@@ -79,9 +83,9 @@ export function StudioPanel({
             <StudioToolCard
               key={tool.id}
               id={tool.id}
-              name={tool.name}
+              name={tool.comingSoon ? `${tool.name} (Coming Soon)` : tool.name}
               icon={tool.icon}
-              disabled={tool.requiresSources && selectedSourceCount === 0}
+              disabled={tool.comingSoon || (tool.requiresSources && selectedSourceCount === 0)}
               onClick={() => handleToolClick(tool.id)}
               onEditClick={
                 tool.id === 'drafting'

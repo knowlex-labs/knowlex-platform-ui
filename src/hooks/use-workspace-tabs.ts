@@ -17,6 +17,7 @@ interface UseWorkspaceTabsResult {
   toggleSplitMode: () => void
   getActiveDraft: () => Draft | null
   activeDraftTab: WorkspaceTabItem | null
+  setTabDirty: (tabId: string, isDirty: boolean) => void
 }
 
 export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
@@ -88,6 +89,12 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
   // Find the first draft tab (for split mode)
   const activeDraftTab = tabs.find((t) => t.type === 'draft') || null
 
+  const setTabDirty = useCallback((tabId: string, isDirty: boolean) => {
+    setTabs((prev) =>
+      prev.map((t) => (t.id === tabId ? { ...t, isUnsaved: isDirty } : t))
+    )
+  }, [])
+
   return {
     tabs,
     activeTabId,
@@ -98,5 +105,6 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
     toggleSplitMode,
     getActiveDraft,
     activeDraftTab,
+    setTabDirty,
   }
 }

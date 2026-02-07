@@ -1,5 +1,9 @@
 import type { DraftSection } from '@/types'
 
+// Re-export template-based rendering system
+export { getTemplateRenderer, templateRenderers } from './drafts/templates'
+export type { DraftTemplateType } from './drafts/templates'
+
 // Escapes HTML entities before injecting into dangerouslySetInnerHTML
 function escapeHtml(text: string): string {
   return text
@@ -23,73 +27,107 @@ function renderInline(text: string): string {
  *   **Label:** value     → key/value row
  *   1. clause text       → indented numbered clause
  *   ---                  → horizontal rule
+ *   Lines with leading spaces → preserved as pre-formatted
  *   everything else      → justified paragraph
  */
 export function renderDraftContent(content: string): string {
-  const blocks = content.split(/\n\n/)
+  const lines = content.split('\n')
+  const htmlLines: string[] = []
 
-  return blocks
-    .map((block) => {
-      const trimmed = block.trim()
-      if (!trimmed) return ''
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
 
-      // Horizontal rule
-      if (/^[-*_]{3,}$/.test(trimmed)) {
-        return '<hr style="border:none;border-top:1px solid #d1d5db;margin:18px 0;" />'
+    // Empty line → paragraph break
+    if (!trimmed) {
+      htmlLines.push('<div style="height:8px;"></div>')
+      continue
+    }
+
+    // Horizontal rule
+    if (/^[-*_]{3,}$/.test(trimmed)) {
+      htmlLines.push('<hr style="border:none;border-top:1px solid #d1d5db;margin:18px 0;" />')
+      continue
+    }
+
+    // Check if line has significant leading whitespace (for party details, addresses, etc.)
+    const leadingSpaces = line.match(/^(\s+)/)?.[1].length || 0
+    const hasIndent = leadingSpaces >= 4
+
+    // Court name / centered heading (often in ALL CAPS at top)
+    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.includes(':') && i < 10) {
+      htmlLines.push(`<p style="text-align:center;font-weight:700;font-size:13px;margin:4px 0;">${escapeHtml(trimmed)}</p>`)
+      continue
+    }
+
+    // "Vs." or "V/s" separator - center it
+    if (/^v[\/.]?s\.?$/i.test(trimmed)) {
+      htmlLines.push(`<p style="text-align:center;font-size:12px;margin:12px 0;">${escapeHtml(trimmed)}</p>`)
+      continue
+    }
+
+    // Lines ending with "…Plaintiff" or "…Defendant" - right-align and preserve
+    if (/\.\.\.\.*\s*(Plaintiff|Defendant)$/i.test(trimmed)) {
+      htmlLines.push(`<p style="font-size:12px;margin:4px 0;text-align:right;padding-right:20px;">${escapeHtml(trimmed)}</p>`)
+      continue
+    }
+
+    // Entire block is a single **…** line → heading or bold line
+    if (/^\*\*[^*\n]+\*\*$/.test(trimmed)) {
+      const inner = trimmed.slice(2, -2)
+      const escaped = escapeHtml(inner)
+      if (inner === inner.toUpperCase() || inner.endsWith(':')) {
+        htmlLines.push(`<p style="text-align:center;font-weight:700;font-size:13px;margin:18px 0 10px;">${escaped}</p>`)
+      } else {
+        htmlLines.push(`<p style="font-weight:700;font-size:12px;margin-bottom:10px;">${escaped}</p>`)
       }
+      continue
+    }
 
-      // Entire block is a single **…** line → heading or bold line
-      if (/^\*\*[^*\n]+\*\*$/.test(trimmed)) {
-        const inner = trimmed.slice(2, -2)
-        const escaped = escapeHtml(inner)
-        if (inner === inner.toUpperCase() || inner.endsWith(':')) {
-          return `<p style="text-align:center;font-weight:700;font-size:13px;margin:18px 0 10px;">${escaped}</p>`
-        }
-        return `<p style="font-weight:700;font-size:12px;margin-bottom:10px;">${escaped}</p>`
-      }
+    // Numbered clause "1. …"
+    const numMatch = trimmed.match(/^(\d+)\.\s+(.+)/)
+    if (numMatch) {
+      htmlLines.push(`<p style="font-size:12px;margin-bottom:8px;text-align:justify;padding-left:24px;text-indent:-24px;"><strong>${numMatch[1]}.</strong> ${renderInline(numMatch[2])}</p>`)
+      continue
+    }
 
-      // Multi-line block → each line individually
-      return trimmed
-        .split('\n')
-        .map((line) => {
-          const t = line.trim()
-          if (!t) return ''
+    // Key-value "**Label:** value"
+    const kvMatch = trimmed.match(/^\*\*(.+?)\*\*\s*(.*)/)
+    if (kvMatch) {
+      htmlLines.push(`<p style="font-size:12px;margin-bottom:4px;"><strong>${escapeHtml(kvMatch[1])}</strong> ${renderInline(kvMatch[2])}</p>`)
+      continue
+    }
 
-          // Numbered clause  "1. …"
-          const numMatch = t.match(/^(\d+)\.\s+(.+)/)
-          if (numMatch) {
-            return `<p style="font-size:12px;margin-bottom:8px;text-align:justify;padding-left:18px;"><strong>${numMatch[1]}.</strong> ${renderInline(numMatch[2])}</p>`
-          }
+    // Preserve indentation for pre-formatted lines (like party addresses)
+    if (hasIndent) {
+      const paddingLeft = Math.min(leadingSpaces * 6, 120) // max 120px indent
+      htmlLines.push(`<p style="font-size:12px;margin:2px 0;padding-left:${paddingLeft}px;white-space:pre-wrap;">${escapeHtml(trimmed)}</p>`)
+      continue
+    }
 
-          // Key-value  "**Label:** value"
-          const kvMatch = t.match(/^\*\*(.+?)\*\*\s*(.*)/)
-          if (kvMatch) {
-            return `<p style="font-size:12px;margin-bottom:4px;"><strong>${escapeHtml(kvMatch[1])}</strong> ${renderInline(kvMatch[2])}</p>`
-          }
+    // Plain line
+    htmlLines.push(`<p style="font-size:12px;margin-bottom:4px;text-align:justify;">${renderInline(trimmed)}</p>`)
+  }
 
-          // Plain line
-          return `<p style="font-size:12px;margin-bottom:8px;text-align:justify;">${renderInline(t)}</p>`
-        })
-        .join('')
-    })
-    .join('\n')
+  return htmlLines.join('\n')
 }
 
 /**
  * Renders structured sections into styled HTML for on-screen display.
- * Sorts by `order`, renders each section with an uppercase heading + bottom border,
- * reuses `renderDraftContent()` for each section's content.
+ * Sorts by `order` and renders each section's content.
+ * Section headings are typically already included in the content from the backend,
+ * so we don't add extra headings here to avoid duplication.
  */
 export function renderDraftSections(sections: DraftSection[]): string {
   const sorted = [...sections].sort((a, b) => a.order - b.order)
 
   return sorted
     .map((section) => {
-      const heading = `<div style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:6px;margin-bottom:12px;border-bottom:1px solid #d1d5db;">${escapeHtml(section.title)}</div>`
       const body = renderDraftContent(section.content)
-      return `<div style="margin-bottom:24px;">${heading}${body}</div>`
+      // Add subtle separator between sections, but no extra heading
+      return `<div style="margin-bottom:16px;">${body}</div>`
     })
-    .join('')
+    .join('<div style="height:12px;"></div>')
 }
 
 /**

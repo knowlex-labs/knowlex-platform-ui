@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { WorkspaceTabBar } from './workspace-tab-bar'
 import { ChatInterface } from './chat-interface'
 import { DraftPreviewTab } from './draft-preview-tab'
@@ -18,6 +19,7 @@ interface CenterPanelProps {
   onClearChat: () => void
   onSaveDraft: (id: string, title: string, content: string) => void | Promise<void>
   onDeleteDraft: (id: string) => void | Promise<void>
+  onTabDirtyChange: (tabId: string, isDirty: boolean) => void
 }
 
 export function CenterPanel({
@@ -35,6 +37,7 @@ export function CenterPanel({
   onClearChat,
   onSaveDraft,
   onDeleteDraft,
+  onTabDirtyChange,
 }: CenterPanelProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId)
   const hasDraftTabs = tabs.some((t) => t.type === 'draft')
@@ -57,6 +60,20 @@ export function CenterPanel({
       onTabClick('chat')
     }
   }
+
+  // Memoize the dirty handlers to prevent infinite loops in DraftPreviewTab
+  // These dependencies are critical - we only want to recreate if IDs change
+  const handleSplitDirtyChange = useCallback((isDirty: boolean) => {
+    if (splitDraft && firstDraftTab) {
+      onTabDirtyChange(firstDraftTab.id, isDirty)
+    }
+  }, [splitDraft?.id, firstDraftTab?.id, onTabDirtyChange])
+
+  const handleActiveDirtyChange = useCallback((isDirty: boolean) => {
+    if (activeTab) {
+      onTabDirtyChange(activeTab.id, isDirty)
+    }
+  }, [activeTab?.id, onTabDirtyChange])
 
   return (
     <div className="flex flex-col h-full bg-ledger-white overflow-hidden">
@@ -95,6 +112,7 @@ export function CenterPanel({
                   onSave={onSaveDraft}
                   onDelete={onDeleteDraft}
                   onSendToChat={handleSendToChat}
+                  onDirtyChange={handleSplitDirtyChange}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-sm text-ledger-gray-500">
@@ -120,6 +138,7 @@ export function CenterPanel({
                 onSave={onSaveDraft}
                 onDelete={onDeleteDraft}
                 onSendToChat={handleSendToChat}
+                onDirtyChange={handleActiveDirtyChange}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-sm text-ledger-gray-500">

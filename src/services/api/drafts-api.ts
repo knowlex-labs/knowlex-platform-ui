@@ -39,6 +39,7 @@ export interface DraftResult {
   }
 }
 
+// Legacy format (for polling single job)
 export interface DraftJobResponse {
   job_id: string
   status: 'pending' | 'completed' | 'failed'
@@ -48,11 +49,33 @@ export interface DraftJobResponse {
   error: string | null
 }
 
-export interface ListDraftsResponse {
-  jobs: DraftJobResponse[]
-  total: number
-  limit: number
-  offset: number
+// New format returned by list endpoint
+export interface DraftListItem {
+  job_id: string
+  title: string
+  document_type: string
+  status: 'pending' | 'completed' | 'failed'
+  draft_body: string
+  sections: Array<{ title: string; content: string; order: number }>
+  metadata: {
+    document_type: string
+    title: string
+    summary: string
+    subtype?: string
+    input_mode?: string
+    case_id?: string
+  }
+  created_at: string
+  updated_at: string
+  completed_at: string | null
+}
+
+// The list endpoint returns data as an array directly
+export type ListDraftsResponse = DraftListItem[]
+
+export interface UpdateDraftRequest {
+  title?: string
+  draft_body?: string
 }
 
 export const draftsApi = {
@@ -74,5 +97,9 @@ export const draftsApi = {
 
   cancel: async (caseId: string, jobId: string): Promise<ApiResponse<null>> => {
     return apiClient.delete<ApiResponse<null>>(`/api/v1/cases/${caseId}/drafts/${jobId}`)
+  },
+
+  update: async (caseId: string, jobId: string, data: UpdateDraftRequest): Promise<ApiResponse<DraftListItem>> => {
+    return apiClient.put<ApiResponse<DraftListItem>>(`/api/v1/cases/${caseId}/drafts/${jobId}`, data)
   },
 }
