@@ -210,7 +210,7 @@ export function TemplateFormModal({
               </div>
             </DialogHeader>
 
-            <ScrollArea className="flex-1 min-h-0 max-h-[calc(85vh-180px)] pr-4">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-4">
               <div className="space-y-4 py-2">
                 {template?.fields.map((field) => {
                   if (field.type === 'sources') {
@@ -316,7 +316,7 @@ export function TemplateFormModal({
                   )
                 })}
               </div>
-            </ScrollArea>
+            </div>
 
             <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
               <Button variant="outline" onClick={handleBack} disabled={isGenerating}>

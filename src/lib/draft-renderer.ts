@@ -1,8 +1,16 @@
 import type { DraftSection } from '@/types'
+import {
+  documentToHtml,
+  deserializeDocument,
+  isRichDocumentString,
+} from './drafts/document-serializer'
 
 // Re-export template-based rendering system
-export { getTemplateRenderer, templateRenderers } from './drafts/templates'
+export { templateRenderers } from './drafts/templates'
 export type { DraftTemplateType } from './drafts/templates'
+
+import { getTemplateRenderer } from './drafts/templates'
+export { getTemplateRenderer }
 
 // Escapes HTML entities before injecting into dangerouslySetInnerHTML
 function escapeHtml(text: string): string {
@@ -194,4 +202,86 @@ export function buildExportText(content: string, sections?: DraftSection[]): str
       .join('\n\n')
   }
   return content
+}
+
+// ============================================================================
+// Shared Utilities (used by DraftPreview and DraftPreviewTab)
+// ============================================================================
+
+/**
+ * Render draft content to HTML, handling all content formats:
+ * 1. Structured sections → renderDraftSections
+ * 2. Serialized RichDocument JSON → documentToHtml
+ * 3. Plain text with templateType → template-specific renderer
+ * 4. Plain text fallback → renderDraftContent
+ */
+export function renderDraftToHtml(
+  content: string,
+  sections?: DraftSection[],
+  templateType?: string
+): string {
+  if (sections && sections.length > 0) {
+    return renderDraftSections(sections)
+  }
+
+  if (isRichDocumentString(content)) {
+    const richDoc = deserializeDocument(content)
+    if (richDoc) {
+      return documentToHtml(richDoc)
+    }
+  }
+
+  if (templateType) {
+    return getTemplateRenderer(templateType)(content)
+  }
+
+  return renderDraftContent(content)
+}
+
+/**
+ * Trigger a file download in the browser.
+ */
+function triggerDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function sanitizeFilename(title: string): string {
+  return title.replace(/[^a-z0-9]/gi, '_')
+}
+
+/**
+ * Download draft as a plain text file.
+ */
+export function downloadAsTxt(title: string, content: string, sections?: DraftSection[]): void {
+  const text = buildExportText(content, sections)
+  triggerDownload(new Blob([text], { type: 'text/plain' }), `${sanitizeFilename(title)}.txt`)
+}
+
+/**
+ * Download draft as a DOC file (HTML wrapped as application/msword).
+ */
+export function downloadAsDoc(title: string, content: string, sections?: DraftSection[]): void {
+  const html = buildExportHtml(title, content, sections)
+  triggerDownload(new Blob([html], { type: 'application/msword' }), `${sanitizeFilename(title)}.doc`)
+}
+
+/**
+ * Download draft as PDF via print dialog.
+ */
+export function downloadAsPdf(title: string, content: string, sections?: DraftSection[]): void {
+  const html = buildExportHtml(title, content, sections)
+  const printWindow = window.open('', '_blank')
+  if (printWindow) {
+    printWindow.document.write(html)
+    printWindow.document.close()
+    printWindow.focus()
+    printWindow.print()
+  }
 }

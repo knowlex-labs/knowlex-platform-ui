@@ -143,4 +143,33 @@
   .safe-area-top {
     padding-top: var(--safe-area-inset-top);
   }
+
+  /* Typewriter bouncing dots for draft generation */
+  .typewriter-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--ledger-gray-400);
+    animation: typewriter-bounce 1.4s ease-in-out infinite;
+  }
+
+  .typewriter-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+
+  .typewriter-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+}
+
+@keyframes typewriter-bounce {
+  0%, 80%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  40% {
+    transform: translateY(-8px);
+    opacity: 1;
+  }
 }

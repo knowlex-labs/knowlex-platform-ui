@@ -23,7 +23,7 @@ export interface CreateDraftRequest {
 
 export interface CreateDraftResponse {
   job_id: string
-  status: 'pending'
+  status: 'pending' | 'processing'
   created_at: string
 }
 
@@ -42,19 +42,20 @@ export interface DraftResult {
 // Legacy format (for polling single job)
 export interface DraftJobResponse {
   job_id: string
-  status: 'pending' | 'completed' | 'failed'
+  status: 'pending' | 'processing' | 'completed' | 'failed'
   created_at: string
   completed_at: string | null
   result: DraftResult | null
   error: string | null
 }
 
-// New format returned by list endpoint
+// Item format returned by the list endpoint (flat structure, not nested in result)
 export interface DraftListItem {
+  id: string
   job_id: string
   title: string
   document_type: string
-  status: 'pending' | 'completed' | 'failed'
+  status: 'pending' | 'processing' | 'completed' | 'failed'
   draft_body: string
   sections: Array<{ title: string; content: string; order: number }>
   metadata: {
@@ -70,7 +71,7 @@ export interface DraftListItem {
   completed_at: string | null
 }
 
-// The list endpoint returns data as an array directly
+// List endpoint returns data as a direct array
 export type ListDraftsResponse = DraftListItem[]
 
 export interface UpdateDraftRequest {
@@ -99,7 +100,7 @@ export const draftsApi = {
     return apiClient.delete<ApiResponse<null>>(`/api/v1/cases/${caseId}/drafts/${jobId}`)
   },
 
-  update: async (caseId: string, jobId: string, data: UpdateDraftRequest): Promise<ApiResponse<DraftListItem>> => {
-    return apiClient.put<ApiResponse<DraftListItem>>(`/api/v1/cases/${caseId}/drafts/${jobId}`, data)
+  update: async (caseId: string, jobId: string, data: UpdateDraftRequest): Promise<ApiResponse<DraftJobResponse>> => {
+    return apiClient.put<ApiResponse<DraftJobResponse>>(`/api/v1/cases/${caseId}/drafts/${jobId}`, data)
   },
 }

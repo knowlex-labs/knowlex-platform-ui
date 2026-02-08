@@ -17,7 +17,8 @@ interface CenterPanelProps {
   onToggleSplit: () => void
   onSendMessage: (query: string) => Promise<void>
   onClearChat: () => void
-  onSaveDraft: (id: string, title: string, content: string) => void | Promise<void>
+  onSaveDraftLocal: (id: string, title: string, content: string) => void
+  onSaveDraftToBackend: (id: string, title: string, content: string) => void | Promise<void>
   onDeleteDraft: (id: string) => void | Promise<void>
   onTabDirtyChange: (tabId: string, isDirty: boolean) => void
 }
@@ -35,7 +36,8 @@ export function CenterPanel({
   onToggleSplit,
   onSendMessage,
   onClearChat,
-  onSaveDraft,
+  onSaveDraftLocal,
+  onSaveDraftToBackend,
   onDeleteDraft,
   onTabDirtyChange,
 }: CenterPanelProps) {
@@ -109,7 +111,8 @@ export function CenterPanel({
               {splitDraft ? (
                 <DraftPreviewTab
                   draft={splitDraft}
-                  onSave={onSaveDraft}
+                  onSaveLocal={onSaveDraftLocal}
+                  onSaveToBackend={onSaveDraftToBackend}
                   onDelete={onDeleteDraft}
                   onSendToChat={handleSendToChat}
                   onDirtyChange={handleSplitDirtyChange}
@@ -135,7 +138,8 @@ export function CenterPanel({
             ) : activeDraft ? (
               <DraftPreviewTab
                 draft={activeDraft}
-                onSave={onSaveDraft}
+                onSaveLocal={onSaveDraftLocal}
+                onSaveToBackend={onSaveDraftToBackend}
                 onDelete={onDeleteDraft}
                 onSendToChat={handleSendToChat}
                 onDirtyChange={handleActiveDirtyChange}

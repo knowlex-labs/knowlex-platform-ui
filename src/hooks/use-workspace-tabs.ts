@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import type { WorkspaceTabItem, Draft } from '@/types'
 
 const CHAT_TAB: WorkspaceTabItem = {
@@ -88,6 +88,47 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
 
   // Find the first draft tab (for split mode)
   const activeDraftTab = tabs.find((t) => t.type === 'draft') || null
+
+  // Sync tab labels when drafts change (e.g. placeholder → final title after generation)
+  useEffect(() => {
+    setTabs((prev) =>
+      prev.map((tab) => {
+        if (tab.type !== 'draft' || !tab.draftId) return tab
+        const draft = drafts.find((d) => d.id === tab.draftId)
+        if (!draft) return tab
+        const newLabel = draft.title.length > 20 ? draft.title.slice(0, 20) + '...' : draft.title
+        if (tab.label === newLabel) return tab
+        return { ...tab, label: newLabel }
+      })
+    )
+  }, [drafts])
+
+  // Update tab draftIds when placeholder IDs are replaced with real job IDs
+  useEffect(() => {
+    setTabs((prev) => {
+      let changed = false
+      const updated = prev.map((tab) => {
+        if (tab.type !== 'draft' || !tab.draftId) return tab
+        const stillExists = drafts.some((d) => d.id === tab.draftId)
+        if (stillExists) return tab
+        // Find a draft whose ID changed (placeholder → real)
+        const tabDraftIds = new Set(prev.filter((t) => t.type === 'draft').map((t) => t.draftId))
+        const untracked = drafts.find((d) => !tabDraftIds.has(d.id))
+        if (untracked) {
+          const oldTabId = tab.id
+          const newTabId = `draft-${untracked.id}`
+          changed = true
+          // Also update activeTabId if this was the active tab
+          setActiveTabId((currentActive) =>
+            currentActive === oldTabId ? newTabId : currentActive
+          )
+          return { ...tab, id: newTabId, draftId: untracked.id }
+        }
+        return tab
+      })
+      return changed ? updated : prev
+    })
+  }, [drafts])
 
   const setTabDirty = useCallback((tabId: string, isDirty: boolean) => {
     setTabs((prev) =>
