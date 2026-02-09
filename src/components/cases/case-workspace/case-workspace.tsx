@@ -183,7 +183,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
 
   const handleSaveDraftToBackend = async (id: string, title: string, content: string) => {
     updateDraftLocal(id, { title, content })
-    await saveDraftToBackend(id)
+    await saveDraftToBackend(id, title, content)
   }
 
   const handleDeleteDraft = async (id: string) => {

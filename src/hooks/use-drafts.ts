@@ -53,7 +53,7 @@ interface UseDraftsResult {
   error: string | null
   createDraft: (request: CreateDraftRequest) => Draft
   updateDraftLocal: (id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => void
-  saveDraftToBackend: (id: string) => Promise<void>
+  saveDraftToBackend: (id: string, title?: string, content?: string) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
   getDraft: (id: string) => Draft | undefined
   refresh: () => Promise<void>
@@ -268,14 +268,17 @@ export function useDrafts(caseId: string): UseDraftsResult {
   }, [])
 
   // Persist a single draft to backend
-  const saveDraftToBackend = useCallback(async (id: string) => {
-    const draft = draftsRef.current.find((d) => d.id === id)
-    if (!draft) return
+  // When title/content are provided, use them directly (avoids stale ref race condition).
+  // When omitted (e.g. batch save), fall back to draftsRef.
+  const saveDraftToBackend = useCallback(async (id: string, title?: string, content?: string) => {
+    const resolvedTitle = title ?? draftsRef.current.find((d) => d.id === id)?.title
+    const resolvedContent = content ?? draftsRef.current.find((d) => d.id === id)?.content
+    if (resolvedTitle === undefined || resolvedContent === undefined) return
 
     try {
       await draftsApi.update(caseId, id, {
-        title: draft.title,
-        draft_body: draft.content,
+        title: resolvedTitle,
+        draft_body: resolvedContent,
       })
       dirtyDraftIdsRef.current.delete(id)
     } catch (error) {
