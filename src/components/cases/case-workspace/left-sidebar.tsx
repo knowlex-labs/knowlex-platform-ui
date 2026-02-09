@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, FileText, Plus, Loader2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileText, Plus, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import type { CaseSource, Draft } from '@/types'
@@ -12,9 +12,13 @@ interface LeftSidebarProps {
   isSourcesLoading: boolean
   isUploading: boolean
   drafts: Draft[]
+  selectedDraftIds: Set<string>
   onToggleSourceSelection: (sourceId: string) => void
   onSelectAllSources: () => void
   onDeselectAllSources: () => void
+  onToggleDraftSelection: (draftId: string) => void
+  onSelectAllDrafts: () => void
+  onDeselectAllDrafts: () => void
   onUploadFile: (file: File) => Promise<void>
   onDeleteSource: (sourceId: string) => Promise<void>
   onLinkContent: (sourceId: string) => Promise<void>
@@ -27,9 +31,13 @@ export function LeftSidebar({
   isSourcesLoading,
   isUploading,
   drafts,
+  selectedDraftIds,
   onToggleSourceSelection,
   onSelectAllSources,
   onDeselectAllSources,
+  onToggleDraftSelection,
+  onSelectAllDrafts,
+  onDeselectAllDrafts,
   onUploadFile,
   onDeleteSource,
   onLinkContent,
@@ -39,14 +47,25 @@ export function LeftSidebar({
   const [draftsExpanded, setDraftsExpanded] = useState(true)
   const [addModalOpen, setAddModalOpen] = useState(false)
 
-  const allSelected = sources.length > 0 && selectedSourceIds.size === sources.length
-  const someSelected = selectedSourceIds.size > 0 && selectedSourceIds.size < sources.length
+  const allSourcesSelected = sources.length > 0 && selectedSourceIds.size === sources.length
+  const someSourcesSelected = selectedSourceIds.size > 0 && selectedSourceIds.size < sources.length
 
-  const handleSelectAllToggle = () => {
-    if (allSelected || someSelected) {
+  const allDraftsSelected = drafts.length > 0 && selectedDraftIds.size === drafts.length
+  const someDraftsSelected = selectedDraftIds.size > 0 && selectedDraftIds.size < drafts.length
+
+  const handleSourcesSelectAll = () => {
+    if (allSourcesSelected || someSourcesSelected) {
       onDeselectAllSources()
     } else {
       onSelectAllSources()
+    }
+  }
+
+  const handleDraftsSelectAll = () => {
+    if (allDraftsSelected || someDraftsSelected) {
+      onDeselectAllDrafts()
+    } else {
+      onSelectAllDrafts()
     }
   }
 
@@ -55,29 +74,43 @@ export function LeftSidebar({
       <div className="flex-1 overflow-y-auto">
         {/* Sources Section */}
         <div className="pb-2">
-          <button
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-ledger-gray-50 transition-colors"
-            onClick={() => setSourcesExpanded(!sourcesExpanded)}
-          >
-            <div className="flex items-center gap-2">
-              {sourcesExpanded ? (
-                <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
-              )}
-              <span className="text-sm font-semibold text-ledger-black">Sources</span>
-              {sources.length > 0 && (
-                <span className="text-xs text-ledger-gray-400 px-1.5">
-                  {sources.length}
+          <div className="flex items-center px-4 py-3 hover:bg-ledger-gray-50 transition-colors">
+            {sources.length > 0 && (
+              <input
+                type="checkbox"
+                checked={allSourcesSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someSourcesSelected
+                }}
+                onChange={handleSourcesSelectAll}
+                onClick={(e) => e.stopPropagation()}
+                className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0 mr-2"
+              />
+            )}
+            <button
+              className="flex-1 flex items-center justify-between"
+              onClick={() => setSourcesExpanded(!sourcesExpanded)}
+            >
+              <div className="flex items-center gap-2">
+                {sourcesExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
+                )}
+                <span className="text-sm font-semibold text-ledger-black">Sources</span>
+                {sources.length > 0 && (
+                  <span className="text-xs text-ledger-gray-400 px-1.5">
+                    {sources.length}
+                  </span>
+                )}
+              </div>
+              {selectedSourceIds.size > 0 && (
+                <span className="text-xs text-ledger-gray-500">
+                  {selectedSourceIds.size} selected
                 </span>
               )}
-            </div>
-            {selectedSourceIds.size > 0 && (
-              <span className="text-xs text-ledger-gray-500">
-                {selectedSourceIds.size} selected
-              </span>
-            )}
-          </button>
+            </button>
+          </div>
 
           {sourcesExpanded && (
             <div>
@@ -98,24 +131,6 @@ export function LeftSidebar({
                   Add sources
                 </Button>
               </div>
-
-              {/* Select All */}
-              {sources.length > 0 && (
-                <div className="px-4 pb-1">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = someSelected
-                      }}
-                      onChange={handleSelectAllToggle}
-                      className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black"
-                    />
-                    <span className="text-xs text-ledger-gray-600">Select all</span>
-                  </label>
-                </div>
-              )}
 
               {/* Sources List */}
               {isSourcesLoading ? (
@@ -146,24 +161,43 @@ export function LeftSidebar({
 
         {/* Drafts Section */}
         <div>
-          <button
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-ledger-gray-50 transition-colors"
-            onClick={() => setDraftsExpanded(!draftsExpanded)}
-          >
-            <div className="flex items-center gap-2">
-              {draftsExpanded ? (
-                <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
-              )}
-              <span className="text-sm font-semibold text-ledger-black">Drafts</span>
-              {drafts.length > 0 && (
-                <span className="text-xs text-ledger-gray-400 px-1.5">
-                  {drafts.length}
+          <div className="flex items-center px-4 py-3 hover:bg-ledger-gray-50 transition-colors">
+            {drafts.length > 0 && (
+              <input
+                type="checkbox"
+                checked={allDraftsSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = someDraftsSelected
+                }}
+                onChange={handleDraftsSelectAll}
+                onClick={(e) => e.stopPropagation()}
+                className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0 mr-2"
+              />
+            )}
+            <button
+              className="flex-1 flex items-center justify-between"
+              onClick={() => setDraftsExpanded(!draftsExpanded)}
+            >
+              <div className="flex items-center gap-2">
+                {draftsExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
+                )}
+                <span className="text-sm font-semibold text-ledger-black">Drafts</span>
+                {drafts.length > 0 && (
+                  <span className="text-xs text-ledger-gray-400 px-1.5">
+                    {drafts.length}
+                  </span>
+                )}
+              </div>
+              {selectedDraftIds.size > 0 && (
+                <span className="text-xs text-ledger-gray-500">
+                  {selectedDraftIds.size} selected
                 </span>
               )}
-            </div>
-          </button>
+            </button>
+          </div>
 
           {draftsExpanded && (
             <div className="pb-2">
@@ -177,24 +211,45 @@ export function LeftSidebar({
               ) : (
                 <div className="space-y-0.5">
                   {drafts.map((draft) => (
-                    <button
+                    <div
                       key={draft.id}
                       className={cn(
-                        'w-full flex items-center gap-2 px-4 py-2 text-left',
-                        'hover:bg-ledger-gray-50 transition-colors'
+                        'flex items-center gap-2 px-4 py-2',
+                        'hover:bg-ledger-gray-50 transition-colors',
+                        draft.status === 'failed' && 'opacity-60'
                       )}
-                      onClick={() => onDraftClick(draft)}
                     >
-                      <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-ledger-black truncate">
-                          {draft.title}
-                        </p>
-                        <p className="text-xs text-ledger-gray-400 truncate">
-                          {draft.updatedAt.toLocaleDateString()}
-                        </p>
-                      </div>
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={selectedDraftIds.has(draft.id)}
+                        onChange={() => onToggleDraftSelection(draft.id)}
+                        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0"
+                      />
+                      <button
+                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                        onClick={() => onDraftClick(draft)}
+                      >
+                        {draft.status === 'pending' ? (
+                          <Loader2 className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0 animate-spin" />
+                        ) : draft.status === 'failed' ? (
+                          <AlertCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+                        ) : (
+                          <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-ledger-black truncate">
+                            {draft.title}
+                          </p>
+                          <p className="text-xs text-ledger-gray-400 truncate">
+                            {draft.status === 'pending'
+                              ? 'Generating...'
+                              : draft.status === 'failed'
+                                ? 'Generation failed'
+                                : draft.updatedAt.toLocaleDateString()}
+                          </p>
+                        </div>
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}

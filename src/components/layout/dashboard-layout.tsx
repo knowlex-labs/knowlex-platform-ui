@@ -10,7 +10,8 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { sidebarCollapsed } = useNavigation()
+  const { sidebarCollapsed, selectedCaseId, activeTab } = useNavigation()
+  const isWorkspaceView = activeTab === 'cases' && !!selectedCaseId
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   const handleMenuClose = () => {
@@ -48,8 +49,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <main className={`min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
         {/* Mobile top padding to account for fixed header */}
-        <div className="pt-14 md:pt-0">
-          <div className="p-4 md:p-8">
+        <div className={isWorkspaceView ? '' : 'pt-14 md:pt-0'}>
+          <div className={isWorkspaceView ? '' : 'p-4 md:p-8'}>
             {children}
           </div>
         </div>

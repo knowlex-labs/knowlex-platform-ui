@@ -83,6 +83,7 @@ export interface Draft {
   status: 'pending' | 'completed' | 'failed'
   sections: DraftSection[]
   summary: string
+  templateType?: string  // e.g., 'interim-application', 'notice', 'affidavit', etc.
   createdAt: Date
   updatedAt: Date
 }
@@ -116,6 +117,7 @@ export interface WorkspaceTabItem {
   type: 'chat' | 'draft'
   label: string
   draftId?: string
+  isUnsaved?: boolean
 }
 
 // Template types for draft generation
@@ -157,7 +159,8 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'FileWarning',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter notice title' },
-      { id: 'recipient', label: 'Recipient Name', type: 'text', required: true, placeholder: 'Enter recipient name' },
+      { id: 'sender', label: 'Sender Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'recipient', label: 'Recipient Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'body', label: 'Notice Content', type: 'textarea', required: false, placeholder: 'Enter initial content (optional)' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],
@@ -190,8 +193,8 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'FileClock',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter application title' },
-      { id: 'plaintiff', label: 'Plaintiff Name', type: 'text', required: true, placeholder: 'Enter plaintiff name' },
-      { id: 'defendant', label: 'Defendant Name', type: 'text', required: true, placeholder: 'Enter defendant name' },
+      { id: 'plaintiff', label: 'Plaintiff Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'defendant', label: 'Defendant Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'grounds', label: 'Grounds', type: 'textarea', required: true, placeholder: 'Enter grounds for application' },
       { id: 'sources', label: 'Supporting Documents', type: 'sources', required: false },
     ],
@@ -202,7 +205,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'Scale',
     fields: [
       { id: 'title', label: 'Affidavit Title', type: 'text', required: true, placeholder: 'Enter affidavit title' },
-      { id: 'deponent', label: 'Deponent Name', type: 'text', required: true, placeholder: 'Enter deponent name' },
+      { id: 'deponent', label: 'Deponent Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'statements', label: 'Statements', type: 'textarea', required: true, placeholder: 'Enter affidavit statements' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],

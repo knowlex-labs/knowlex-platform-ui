@@ -137,15 +137,15 @@ export function TemplateFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
         {step === 'select' ? (
           <>
             {/* Step 1: Template Selection */}
-            <DialogHeader>
+            <DialogHeader className="flex-shrink-0">
               <DialogTitle>Select Template</DialogTitle>
             </DialogHeader>
 
-            <ScrollArea className="flex-1 pr-4">
+            <ScrollArea className="flex-1 min-h-0 pr-4">
               <p className="text-sm text-ledger-gray-600 mb-4">
                 Choose a template to start drafting your document
               </p>
@@ -195,7 +195,7 @@ export function TemplateFormModal({
         ) : (
           <>
             {/* Step 2: Form */}
-            <DialogHeader>
+            <DialogHeader className="flex-shrink-0">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
@@ -210,7 +210,7 @@ export function TemplateFormModal({
               </div>
             </DialogHeader>
 
-            <ScrollArea className="flex-1 pr-4">
+            <div className="flex-1 min-h-0 overflow-y-auto pr-4">
               <div className="space-y-4 py-2">
                 {template?.fields.map((field) => {
                   if (field.type === 'sources') {
@@ -316,9 +316,9 @@ export function TemplateFormModal({
                   )
                 })}
               </div>
-            </ScrollArea>
+            </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
+            <DialogFooter className="flex-shrink-0 gap-2 sm:gap-0">
               <Button variant="outline" onClick={handleBack} disabled={isGenerating}>
                 Back
               </Button>

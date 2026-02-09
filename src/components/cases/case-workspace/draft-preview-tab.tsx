@@ -1,228 +1,281 @@
-import { useState, useRef, useEffect } from 'react'
-import { Download, Save, FileDown, FileText, ChevronDown, Wand2, Trash2 } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Wand2, Trash2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { useTextSelection } from '@/hooks/use-text-selection'
-import { renderDraftContent, renderDraftSections, buildExportHtml, buildExportText } from '@/lib/draft-renderer'
+import { useEditorFormatting } from '@/hooks/use-editor-formatting'
+import { FormattingToolbar } from './formatting-toolbar'
+import {
+  renderDraftToHtml,
+} from '@/lib/draft-renderer'
+import {
+  htmlToDocument,
+  serializeDocument,
+} from '@/lib/drafts/document-serializer'
 import type { Draft } from '@/types'
 
 interface DraftPreviewTabProps {
   draft: Draft
-  onSave: (id: string, title: string, content: string) => void | Promise<void>
+  onSaveLocal: (id: string, title: string, content: string) => void
+  onSaveToBackend: (id: string, title: string, content: string) => void | Promise<void>
   onDelete: (id: string) => void | Promise<void>
   onSendToChat: (text: string) => void
+  onDirtyChange?: (isDirty: boolean) => void
 }
 
 export function DraftPreviewTab({
   draft,
-  onSave,
+  onSaveLocal,
+  onSaveToBackend,
   onDelete,
   onSendToChat,
+  onDirtyChange,
+}: DraftPreviewTabProps) {
+  // --- Pending state ---
+  if (draft.status === 'pending') {
+    return (
+      <div className="flex flex-col h-full items-center justify-center bg-ledger-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="typewriter-dot" />
+            <span className="typewriter-dot" />
+            <span className="typewriter-dot" />
+          </div>
+          <p className="text-sm text-ledger-gray-500 font-medium">
+            Generating your draft...
+          </p>
+          <p className="text-xs text-ledger-gray-400">
+            This may take a minute or two. You can continue working.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // --- Failed state ---
+  if (draft.status === 'failed') {
+    return (
+      <div className="flex flex-col h-full items-center justify-center bg-ledger-white">
+        <div className="flex flex-col items-center gap-4">
+          <AlertCircle className="h-10 w-10 text-red-400" />
+          <p className="text-sm text-ledger-gray-700 font-medium">
+            Draft generation failed
+          </p>
+          <p className="text-xs text-ledger-gray-400 text-center max-w-xs">
+            Something went wrong while generating this draft. You can delete it and try again.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onDelete(draft.id)}
+            className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Delete Draft
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // --- Completed state (existing editor) ---
+  return (
+    <CompletedDraftEditor
+      draft={draft}
+      onSaveLocal={onSaveLocal}
+      onSaveToBackend={onSaveToBackend}
+      onDelete={onDelete}
+      onSendToChat={onSendToChat}
+      onDirtyChange={onDirtyChange}
+    />
+  )
+}
+
+// Extracted the completed-draft editor into its own component so hooks are called unconditionally
+function CompletedDraftEditor({
+  draft,
+  onSaveLocal,
+  onSaveToBackend,
+  onSendToChat,
+  onDirtyChange,
 }: DraftPreviewTabProps) {
   const [title, setTitle] = useState(draft.title)
-  const [content, setContent] = useState(draft.content)
-  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const downloadMenuRef = useRef<HTMLDivElement>(null)
-  const contentRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Track whether we caused the draft.content change (to avoid re-rendering the editor)
+  const isLocalEditRef = useRef(false)
 
-  const { selection, clearSelection } = useTextSelection(contentRef)
+  const { selection, clearSelection } = useTextSelection(editorRef)
 
-  // Sync with draft prop changes
-  useEffect(() => {
-    setTitle(draft.title)
-    setContent(draft.content)
-    setHasChanges(false)
-  }, [draft.id, draft.title, draft.content])
+  const markDirty = useCallback(() => {
+    setHasChanges(true)
+    onDirtyChange?.(true)
+  }, [onDirtyChange])
 
-  // Track changes
-  useEffect(() => {
-    const changed = title !== draft.title || content !== draft.content
-    setHasChanges(changed)
-  }, [title, content, draft.title, draft.content])
+  const formatting = useEditorFormatting(editorRef, markDirty)
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
-        setDownloadMenuOpen(false)
-      }
+  // Capture current editor content and save to local state
+  const flushToLocalState = useCallback(() => {
+    if (editorRef.current) {
+      const richDoc = htmlToDocument(editorRef.current.innerHTML)
+      const serializedContent = serializeDocument(richDoc)
+      isLocalEditRef.current = true
+      onSaveLocal(draft.id, title, serializedContent)
     }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [draft.id, title, onSaveLocal])
+
+  // Sync editor HTML only when draft changes from OUTSIDE (e.g. polling, different draft opened)
+  // Skip if the change came from our own auto-save (isLocalEditRef)
+  useEffect(() => {
+    if (isLocalEditRef.current) {
+      isLocalEditRef.current = false
+      return
+    }
+    setTitle(draft.title)
+    setHasChanges(false)
+    if (editorRef.current) {
+      const hasSections = draft.sections && draft.sections.length > 0
+      const html = renderDraftToHtml(
+        draft.content,
+        hasSections ? draft.sections : undefined,
+        draft.templateType
+      )
+      editorRef.current.innerHTML = html
+    }
+  }, [draft.id, draft.content, draft.title, draft.sections, draft.templateType])
+
+  // Auto-save to local state on input (debounced 500ms)
+  const handleEditorInput = useCallback(() => {
+    setHasChanges(true)
+    onDirtyChange?.(true)
+
+    // Debounce: save to local state after 500ms of inactivity
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(() => {
+      flushToLocalState()
+    }, 500)
+  }, [onDirtyChange, flushToLocalState])
+
+  // Flush to local state on unmount (switching tabs)
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+      // Can't call flushToLocalState here because editorRef may already be gone
+      // Instead, the debounced save handles most cases
+    }
   }, [])
 
-  const hasSections = draft.sections && draft.sections.length > 0
+  // Save to local state when switching away from this tab (before unmount)
+  // This captures the latest DOM content before it's destroyed
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && editorRef.current) {
+        flushToLocalState()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [flushToLocalState])
 
-  const handleSave = () => {
-    onSave(draft.id, title, content)
+  // Explicit save to backend (Ctrl+S)
+  const handleSaveToBackend = useCallback(() => {
+    if (editorRef.current) {
+      const richDoc = htmlToDocument(editorRef.current.innerHTML)
+      const serializedContent = serializeDocument(richDoc)
+      onSaveToBackend(draft.id, title, serializedContent)
+    }
     setHasChanges(false)
-  }
+    onDirtyChange?.(false)
+  }, [draft.id, title, onSaveToBackend, onDirtyChange])
+
+  // Keyboard shortcuts (Ctrl/Cmd + S to save to backend)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        handleSaveToBackend()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [handleSaveToBackend])
 
   const handleFixWithAI = () => {
     if (selection?.text) {
-      onSendToChat(`Please help me fix/improve this text:\n\n"${selection.text}"`)
+      onSendToChat(`Please fix or improve the following text:\n\n"${selection.text}"`)
       clearSelection()
     }
   }
 
-  const handleDownloadTxt = () => {
-    const text = buildExportText(content, hasSections ? draft.sections : undefined)
-    const blob = new Blob([text], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.txt`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  const handleDownloadDoc = () => {
-    const htmlContent = buildExportHtml(title, content, hasSections ? draft.sections : undefined)
-    const blob = new Blob([htmlContent], { type: 'application/msword' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.doc`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }
-
-  const handleDownloadPdf = () => {
-    const htmlContent = buildExportHtml(title, content, hasSections ? draft.sections : undefined)
-    const printWindow = window.open('', '_blank')
-    if (printWindow) {
-      printWindow.document.write(htmlContent)
-      printWindow.document.close()
-      printWindow.focus()
-      printWindow.print()
-    }
-  }
-
-  const renderedHtml = hasSections
-    ? renderDraftSections(draft.sections)
-    : renderDraftContent(content)
+  const hasSections = draft.sections && draft.sections.length > 0
+  const initialHtml = renderDraftToHtml(
+    draft.content,
+    hasSections ? draft.sections : undefined,
+    draft.templateType
+  )
 
   return (
     <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-ledger-gray-200 bg-ledger-gray-50">
-        <div className="flex-1 mr-4">
-          <Label htmlFor="draft-title" className="sr-only">
-            Draft Title
-          </Label>
-          <Input
-            id="draft-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="text-sm font-semibold border-none bg-transparent p-0 h-auto focus-visible:ring-0"
-            placeholder="Untitled Draft"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Download Dropdown */}
-          <div className="relative" ref={downloadMenuRef}>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 h-8"
-              onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
-            >
-              <Download className="h-3.5 w-3.5" />
-              Download
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-            {downloadMenuOpen && (
-              <div className="absolute right-0 mt-1 w-44 rounded border border-ledger-gray-200 bg-ledger-white shadow-md z-50">
-                <button
-                  onClick={() => { handleDownloadPdf(); setDownloadMenuOpen(false) }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
-                >
-                  <FileDown className="h-4 w-4" />
-                  PDF
-                </button>
-                <button
-                  onClick={() => { handleDownloadDoc(); setDownloadMenuOpen(false) }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
-                >
-                  <FileText className="h-4 w-4" />
-                  DOC
-                </button>
-                <button
-                  onClick={() => { handleDownloadTxt(); setDownloadMenuOpen(false) }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
-                >
-                  <FileText className="h-4 w-4" />
-                  TXT
-                </button>
-              </div>
-            )}
-          </div>
+      {/* Formatting Toolbar */}
+      <FormattingToolbar
+        onBold={formatting.handleBold}
+        onItalic={formatting.handleItalic}
+        onUnderline={formatting.handleUnderline}
+        onAlignLeft={formatting.handleAlignLeft}
+        onAlignCenter={formatting.handleAlignCenter}
+        onAlignRight={formatting.handleAlignRight}
+        onBulletList={formatting.handleBulletList}
+        onNumberedList={formatting.handleNumberedList}
+        onFontSize={formatting.handleFontSize}
+        className="bg-white"
+      />
 
-          {/* Save Button */}
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={!hasChanges}
-            className="gap-1.5 h-8"
-          >
-            <Save className="h-3.5 w-3.5" />
-            Save
-          </Button>
-
-          {/* Delete Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(draft.id)}
-            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Rendered Preview */}
+      {/* Editable Content Area */}
       <div className="flex-1 p-4 overflow-auto">
-        <div className="border border-ledger-gray-200 rounded-lg" ref={contentRef}>
-          <div
-            className="p-6"
-            style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.6' }}
-            dangerouslySetInnerHTML={{ __html: renderedHtml }}
-          />
+        <div
+          ref={editorRef}
+          contentEditable
+          suppressContentEditableWarning
+          onInput={handleEditorInput}
+          onBlur={flushToLocalState}
+          className="h-full border border-ledger-gray-200 rounded-lg overflow-auto focus:outline-none focus:ring-2 focus:ring-ledger-gray-300 bg-white"
+          style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.8', fontSize: '12pt', minHeight: '400px', padding: '40px 60px' }}
+          dangerouslySetInnerHTML={{ __html: initialHtml }}
+        />
 
-          {/* Floating AI Fix Button */}
-          {selection && selection.text.length > 0 && (
-            <div
-              className="fixed z-50"
-              style={{
-                top: (selection.rect?.y || 0) - 40,
-                left: (selection.rect?.x || 0) + ((selection.rect?.width || 0) / 2),
-                transform: 'translateX(-50%)',
-              }}
+        {/* Floating AI Fix Button */}
+        {selection && selection.text.length > 0 && (
+          <div
+            className="fixed z-50"
+            style={{
+              top: (selection.rect?.y || 0) - 40,
+              left: (selection.rect?.x || 0) + ((selection.rect?.width || 0) / 2),
+              transform: 'translateX(-50%)',
+            }}
+          >
+            <Button
+              size="sm"
+              onClick={handleFixWithAI}
+              className="gap-1.5 shadow-lg bg-ledger-black hover:bg-ledger-gray-800"
             >
-              <Button
-                size="sm"
-                onClick={handleFixWithAI}
-                className="gap-1.5 shadow-lg bg-ledger-black hover:bg-ledger-gray-800"
-              >
-                <Wand2 className="h-3.5 w-3.5" />
-                Fix with AI
-              </Button>
-            </div>
-          )}
-        </div>
+              <Wand2 className="h-3.5 w-3.5" />
+              Fix with AI
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-ledger-gray-200 bg-ledger-gray-50">
+      <div className="px-4 py-2 border-t border-ledger-gray-200 bg-ledger-gray-50 flex items-center justify-between">
         <p className="text-xs text-ledger-gray-500">
-          {hasChanges ? 'Unsaved changes' : `Last saved: ${draft.updatedAt.toLocaleString()}`}
+          {hasChanges ? (
+            <span className="text-amber-600 font-medium">Unsaved changes</span>
+          ) : (
+            `Last saved: ${draft.updatedAt.toLocaleString()}`
+          )}
+        </p>
+        <p className="text-xs text-ledger-gray-400">
+          <span className="font-medium">Ctrl+S</span> to save • <span className="font-medium">Ctrl+Z</span> to undo
         </p>
       </div>
     </div>

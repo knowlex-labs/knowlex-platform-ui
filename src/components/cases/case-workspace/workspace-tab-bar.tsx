@@ -23,7 +23,7 @@ export function WorkspaceTabBar({
   onToggleSplit,
 }: WorkspaceTabBarProps) {
   return (
-    <div className="flex items-center justify-between border-b border-ledger-gray-200 bg-ledger-white px-1">
+    <div className="flex items-center justify-between border-b border-ledger-gray-200 bg-ledger-gray-50 px-1">
       <div className="flex items-center gap-0.5 overflow-x-auto">
         {tabs.map((tab) => (
           <div
@@ -31,8 +31,8 @@ export function WorkspaceTabBar({
             className={cn(
               'group flex items-center gap-1.5 px-3 py-2 text-sm cursor-pointer border-b-2 transition-colors',
               activeTabId === tab.id
-                ? 'border-ledger-black text-ledger-black'
-                : 'border-transparent text-ledger-gray-400 hover:text-ledger-black'
+                ? 'border-ledger-black text-ledger-black bg-ledger-white font-medium'
+                : 'border-transparent text-ledger-gray-500 hover:text-ledger-black'
             )}
             onClick={() => onTabClick(tab.id)}
           >
@@ -42,9 +42,12 @@ export function WorkspaceTabBar({
               <FileText className="h-3.5 w-3.5" />
             )}
             <span className="truncate max-w-[120px]">{tab.label}</span>
+            {tab.isUnsaved && (
+              <span className="ml-1 text-amber-500 font-bold text-lg leading-none">*</span>
+            )}
             {tab.type === 'draft' && (
               <button
-                className="ml-1 p-0.5 rounded hover:bg-ledger-gray-200 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="ml-1 p-0.5 rounded hover:bg-ledger-gray-200 opacity-40 group-hover:opacity-100 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation()
                   onTabClose(tab.id)
@@ -64,7 +67,7 @@ export function WorkspaceTabBar({
           size="sm"
           className={cn(
             'h-7 px-2 gap-1.5 mr-1',
-            splitMode && 'bg-ledger-gray-200'
+            splitMode && 'bg-ledger-gray-200 text-ledger-black'
           )}
           onClick={onToggleSplit}
           title={splitMode ? 'Exit split view' : 'Split view'}

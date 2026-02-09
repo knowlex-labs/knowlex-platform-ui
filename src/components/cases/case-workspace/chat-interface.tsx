@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Trash2, Loader2, FileCheck, Paperclip } from 'lucide-react'
+import { ArrowUp, Trash2, Loader2, FileCheck, Paperclip } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { WorkspaceMessage } from '@/types'
@@ -50,29 +50,10 @@ export function ChatInterface({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-ledger-gray-200">
-        <h3 className="text-sm font-semibold text-ledger-black">Chat</h3>
-        {messages.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClearChat}
-            className="h-7 gap-1.5 text-ledger-gray-500 hover:text-ledger-black"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Clear
-          </Button>
-        )}
-      </div>
-
       {/* Messages */}
       <ScrollArea className="flex-1 px-4" ref={scrollRef}>
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full py-12 text-center">
-            <div className="w-16 h-16 rounded-full bg-ledger-gray-100 flex items-center justify-center mb-4">
-              <Send className="h-6 w-6 text-ledger-gray-400" />
-            </div>
+          <div className="flex flex-col items-center justify-center min-h-full pb-6 text-center">
             <p className="text-sm text-ledger-gray-600 font-medium mb-1">
               Start a conversation
             </p>
@@ -96,9 +77,9 @@ export function ChatInterface({
       </ScrollArea>
 
       {/* Input */}
-      <div className="px-4 pb-4 pt-2">
+      <div className="px-4 pb-3 pt-1">
         <form onSubmit={handleSubmit}>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-ledger-gray-50 focus-within:bg-ledger-white focus-within:ring-1 focus-within:ring-ledger-gray-300 transition-all">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-ledger-gray-200 bg-ledger-gray-50 focus-within:bg-ledger-white focus-within:ring-1 focus-within:ring-ledger-gray-300 transition-all">
             {/* File upload button */}
             <input
               ref={fileInputRef}
@@ -118,11 +99,25 @@ export function ChatInterface({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 text-ledger-gray-400 hover:text-ledger-black flex-shrink-0"
+              className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-ledger-black flex-shrink-0"
               onClick={() => fileInputRef.current?.click()}
             >
               <Paperclip className="h-4 w-4" />
             </Button>
+
+            {/* Clear chat button */}
+            {messages.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-ledger-black flex-shrink-0"
+                onClick={onClearChat}
+                title="Clear chat"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
 
             {/* Source count badge */}
             <div className="flex items-center gap-1.5 text-xs text-ledger-gray-400 flex-shrink-0">
@@ -146,13 +141,13 @@ export function ChatInterface({
             <Button
               type="submit"
               size="sm"
-              className="h-8 w-8 p-0 rounded-full flex-shrink-0"
+              className="h-7 w-7 p-0 rounded-full flex-shrink-0 bg-ledger-black text-white hover:bg-ledger-gray-800"
               disabled={!input.trim() || isLoading}
             >
               {isLoading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Send className="h-3.5 w-3.5" />
+                <ArrowUp className="h-3.5 w-3.5" />
               )}
             </Button>
           </div>

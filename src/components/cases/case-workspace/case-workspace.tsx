@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, Trash2 } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, Trash2, Download, FileDown, FileText, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useNavigation } from '@/contexts/navigation-context'
+import { caseApi } from '@/services/api/case-api'
 import { useCaseSources } from '@/hooks/use-case-sources'
 import { useWorkspaceChat } from '@/hooks/use-workspace-chat'
 import { useDrafts } from '@/hooks/use-drafts'
@@ -11,18 +12,18 @@ import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
 import { StudioPanel } from './studio-panel'
 import { TemplateFormModal } from './template-form-modal'
-import { DraftPreview } from './draft-preview'
+import { downloadAsTxt, downloadAsDoc, downloadAsPdf } from '@/lib/draft-renderer'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
-import type { Draft, DraftSection, DraftTemplate, TemplateFormData } from '@/types'
+import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
 
 // Maps each template to its API document_type and optional subtype
 const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
-  'notice':              { documentType: 'legal_notice',  subtype: 'demand' },
-  'patent':              { documentType: 'application' },
-  'application-draft':   { documentType: 'application',  subtype: 'vakalatnama' },
-  'interim-application': { documentType: 'affidavit',    subtype: 'interim_application' },
-  'affidavit':           { documentType: 'affidavit',    subtype: 'plaint' },
+  'notice': { documentType: 'legal_notice', subtype: 'demand' },
+  'patent': { documentType: 'application' },
+  'application-draft': { documentType: 'application', subtype: 'vakalatnama' },
+  'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
+  'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
 }
 
 // Assembles template form fields into plain-language instructions for the AI
@@ -51,15 +52,16 @@ interface CaseWorkspaceProps {
 
 export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const { setSelectedCaseId, setSidebarCollapsed } = useNavigation()
+  const [caseName, setCaseName] = useState(caseTitle ?? 'Case Workspace')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formModalOpen, setFormModalOpen] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
-  const [previewTitle, setPreviewTitle] = useState('')
-  const [previewContent, setPreviewContent] = useState('')
-  const [previewSections, setPreviewSections] = useState<DraftSection[]>([])
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
+  const downloadMenuRef = useRef<HTMLDivElement>(null)
+
+  // Draft selection state
+  const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set())
 
   const {
     sources,
@@ -72,7 +74,7 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     uploadFile,
     deleteSource,
     linkContent,
-    batchDelete,
+    batchDelete: batchDeleteSources,
     batchLinkContent,
   } = useCaseSources(caseId)
 
@@ -86,11 +88,10 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const {
     drafts,
     createDraft,
-    updateDraft,
+    updateDraftLocal,
+    saveDraftToBackend,
     deleteDraft,
   } = useDrafts(caseId)
-
-  const [createdDraft, setCreatedDraft] = useState<Draft | null>(null)
 
   const {
     tabs,
@@ -100,12 +101,68 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     closeTab,
     setActiveTab,
     toggleSplitMode,
+    setTabDirty,
   } = useWorkspaceTabs(drafts)
 
   // Auto-hide sidebar when workspace opens
   useEffect(() => {
     setSidebarCollapsed(true)
   }, [setSidebarCollapsed])
+
+  // Fetch actual case name
+  useEffect(() => {
+    caseApi.getById(caseId).then((response) => {
+      setCaseName(response.data.caseTitle ?? 'Case Workspace')
+    }).catch(() => {
+      // Keep default name on error
+    })
+  }, [caseId])
+
+  // Close download dropdown when clicking outside
+  useEffect(() => {
+    if (!downloadMenuOpen) return
+    function handleClickOutside(event: MouseEvent) {
+      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
+        setDownloadMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [downloadMenuOpen])
+
+  // Clean up draft selections when drafts change (remove stale IDs)
+  useEffect(() => {
+    setSelectedDraftIds((prev) => {
+      const draftIdSet = new Set(drafts.map((d) => d.id))
+      const cleaned = new Set([...prev].filter((id) => draftIdSet.has(id)))
+      return cleaned.size === prev.size ? prev : cleaned
+    })
+  }, [drafts])
+
+  // Draft selection handlers
+  const toggleDraftSelection = useCallback((draftId: string) => {
+    setSelectedDraftIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(draftId)) {
+        next.delete(draftId)
+      } else {
+        next.add(draftId)
+      }
+      return next
+    })
+  }, [])
+
+  const selectAllDrafts = useCallback(() => {
+    setSelectedDraftIds(new Set(drafts.map((d) => d.id)))
+  }, [drafts])
+
+  const deselectAllDrafts = useCallback(() => {
+    setSelectedDraftIds(new Set())
+  }, [])
+
+  // Whether anything is selected
+  const hasSelection = selectedSourceIds.size > 0 || selectedDraftIds.size > 0
+  const totalSelected = selectedSourceIds.size + selectedDraftIds.size
 
   const handleBack = () => {
     setSelectedCaseId(null)
@@ -120,20 +177,53 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     openTab(draft)
   }
 
-  const handleSaveDraft = (id: string, title: string, content: string) => {
-    updateDraft(id, { title, content })
+  const handleSaveDraftLocal = (id: string, title: string, content: string) => {
+    updateDraftLocal(id, { title, content })
+  }
+
+  const handleSaveDraftToBackend = async (id: string, title: string, content: string) => {
+    updateDraftLocal(id, { title, content })
+    await saveDraftToBackend(id, title, content)
   }
 
   const handleDeleteDraft = async (id: string) => {
-    // Close the tab if it's open
     const tabId = `draft-${id}`
     closeTab(tabId)
     await deleteDraft(id)
   }
 
+  // Unified header actions
+  const handleReindex = () => {
+    if (selectedSourceIds.size > 0) {
+      batchLinkContent(Array.from(selectedSourceIds))
+    }
+  }
+
+  const handleDownload = (format: 'pdf' | 'doc' | 'txt') => {
+    const selectedDrafts = drafts.filter((d) => selectedDraftIds.has(d.id) && d.status === 'completed')
+    for (const draft of selectedDrafts) {
+      const sections = draft.sections?.length ? draft.sections : undefined
+      if (format === 'pdf') downloadAsPdf(draft.title, draft.content, sections)
+      else if (format === 'doc') downloadAsDoc(draft.title, draft.content, sections)
+      else downloadAsTxt(draft.title, draft.content, sections)
+    }
+    setDownloadMenuOpen(false)
+  }
+
+  const handleDeleteSelected = async () => {
+    // Delete selected sources
+    if (selectedSourceIds.size > 0) {
+      await batchDeleteSources(Array.from(selectedSourceIds))
+    }
+    // Delete selected drafts
+    for (const id of selectedDraftIds) {
+      await handleDeleteDraft(id)
+    }
+    setSelectedDraftIds(new Set())
+  }
+
   // Tool handlers
   const handleDraftingClick = () => {
-    // Open template selection - show first template by default
     setSelectedTemplate(DRAFT_TEMPLATES[0])
     setFormModalOpen(true)
   }
@@ -159,58 +249,30 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
     formData: TemplateFormData,
     sourceIds: string[]
   ) => {
-    setIsGenerating(true)
-    try {
-      const config = TEMPLATE_TO_DOC_CONFIG[templateId] || { documentType: 'legal_notice' as DocumentType }
-      const title = (formData['title'] as string) || DRAFT_TEMPLATES.find((t) => t.id === templateId)?.name || 'Untitled'
+    const config = TEMPLATE_TO_DOC_CONFIG[templateId] || { documentType: 'legal_notice' as DocumentType }
+    const title = (formData['title'] as string) || DRAFT_TEMPLATES.find((t) => t.id === templateId)?.name || 'Untitled'
 
-      const body = assembleBody(templateId, formData)
-      const hasText = body.length > 0
-      const hasFiles = sourceIds.length > 0
+    const body = assembleBody(templateId, formData)
+    const hasText = body.length > 0
+    const hasFiles = sourceIds.length > 0
 
-      const request: CreateDraftRequest = {
-        title,
-        document_type: config.documentType,
-        input_mode: hasFiles && !hasText ? 'file' : 'freetext',
-        subtype: config.subtype,
-        freetext_body: hasText ? body : undefined,
-        file_ids: hasFiles ? sourceIds : undefined,
-      }
-
-      const draft = await createDraft(request)
-      setCreatedDraft(draft)
-      setPreviewTitle(draft.title)
-      setPreviewContent(draft.content)
-      setPreviewSections(draft.sections)
-      setFormModalOpen(false)
-      setPreviewOpen(true)
-    } finally {
-      setIsGenerating(false)
+    const request: CreateDraftRequest = {
+      title,
+      document_type: config.documentType,
+      input_mode: hasFiles && !hasText ? 'file' : 'freetext',
+      subtype: config.subtype,
+      freetext_body: hasText ? body : undefined,
+      file_ids: hasFiles ? sourceIds : undefined,
     }
-  }
 
-  const handleSavePreview = (title: string, content: string) => {
-    if (createdDraft) {
-      updateDraft(createdDraft.id, { title, content })
-      openTab({ ...createdDraft, title, content })
-    }
-    setPreviewOpen(false)
-    setPreviewTitle('')
-    setPreviewContent('')
-    setPreviewSections([])
-    setCreatedDraft(null)
+    const pendingDraft = createDraft(request)
+    setFormModalOpen(false)
     setSelectedTemplate(null)
-  }
-
-  const handleClosePreview = () => {
-    setPreviewOpen(false)
-    setPreviewTitle('')
-    setPreviewContent('')
-    setPreviewSections([])
+    openTab(pendingDraft)
   }
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col bg-ledger-white">
+    <div className="h-screen flex flex-col bg-ledger-white">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-ledger-gray-200 bg-ledger-white">
         <div className="flex items-center gap-3">
@@ -220,34 +282,71 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
           </Button>
           <div className="h-4 w-px bg-ledger-gray-300" />
           <h2 className="text-base font-semibold text-ledger-black truncate">
-            {caseTitle ?? 'Case Workspace'}
+            {caseName}
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {selectedSourceIds.size > 0 && (
+          {hasSelection && (
             <>
-              {sources.filter(s => selectedSourceIds.has(s.id)).some(
-                s => s.indexingStatus === 'INDEXING_PENDING' || s.indexingStatus === 'INDEXING_FAILED'
-              ) && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => batchLinkContent(Array.from(selectedSourceIds))}
-                    disabled={sourcesLoading || isUploading}
-                    className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
-                    title="Re-index selected sources"
-                  >
-                    <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
-                    <span className="hidden sm:inline">Re-index</span>
-                  </Button>
-                )}
+              <span className="text-xs text-ledger-gray-500 mr-1">
+                {totalSelected} selected
+              </span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => batchDelete(Array.from(selectedSourceIds))}
+                onClick={handleReindex}
+                disabled={sourcesLoading || isUploading}
+                className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
+                title="Re-index selected"
+              >
+                <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
+                <span className="hidden sm:inline">Re-index</span>
+              </Button>
+              {/* Download Dropdown */}
+              <div className="relative" ref={downloadMenuRef}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1.5 text-ledger-gray-600 border-ledger-gray-300"
+                  onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Download</span>
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+                {downloadMenuOpen && (
+                  <div className="absolute right-0 mt-1 w-44 rounded border border-ledger-gray-200 bg-ledger-white shadow-md z-50">
+                    <button
+                      onClick={() => handleDownload('pdf')}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      PDF
+                    </button>
+                    <button
+                      onClick={() => handleDownload('doc')}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
+                    >
+                      <FileText className="h-4 w-4" />
+                      DOC
+                    </button>
+                    <button
+                      onClick={() => handleDownload('txt')}
+                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
+                    >
+                      <FileText className="h-4 w-4" />
+                      TXT
+                    </button>
+                  </div>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteSelected}
                 disabled={sourcesLoading || isUploading}
                 className="h-8 gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                title="Delete selected sources"
+                title="Delete selected"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Delete</span>
@@ -287,9 +386,13 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
               isSourcesLoading={sourcesLoading}
               isUploading={isUploading}
               drafts={drafts}
+              selectedDraftIds={selectedDraftIds}
               onToggleSourceSelection={toggleSourceSelection}
               onSelectAllSources={selectAllSources}
               onDeselectAllSources={deselectAllSources}
+              onToggleDraftSelection={toggleDraftSelection}
+              onSelectAllDrafts={selectAllDrafts}
+              onDeselectAllDrafts={deselectAllDrafts}
               onUploadFile={uploadFile}
               onDeleteSource={deleteSource}
               onLinkContent={linkContent}
@@ -313,8 +416,10 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
             onToggleSplit={toggleSplitMode}
             onSendMessage={handleSendMessage}
             onClearChat={clearChat}
-            onSaveDraft={handleSaveDraft}
+            onSaveDraftLocal={handleSaveDraftLocal}
+            onSaveDraftToBackend={handleSaveDraftToBackend}
             onDeleteDraft={handleDeleteDraft}
+            onTabDirtyChange={setTabDirty}
           />
         </div>
 
@@ -332,27 +437,16 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
         )}
       </div>
 
-      {/* Modals */}
+      {/* Template Form Modal */}
       <TemplateFormModal
         template={selectedTemplate}
         isOpen={formModalOpen}
         sources={sources}
-        isGenerating={isGenerating}
+        isGenerating={false}
         onClose={() => setFormModalOpen(false)}
         onGenerate={handleGenerate}
         onTemplateChange={handleTemplateClick}
         templates={DRAFT_TEMPLATES}
-      />
-
-      <DraftPreview
-        title={previewTitle}
-        content={previewContent}
-        sections={previewSections}
-        isOpen={previewOpen}
-        onClose={handleClosePreview}
-        onSave={handleSavePreview}
-        onContentChange={setPreviewContent}
-        onTitleChange={setPreviewTitle}
       />
     </div>
   )
