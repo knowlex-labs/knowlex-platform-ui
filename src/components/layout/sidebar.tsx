@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, KanbanSquare, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,6 @@ const iconMap = {
   briefcase: Briefcase,
   users: Users,
   brain: Brain,
-  'kanban-square': KanbanSquare,
 }
 
 interface SidebarContentProps {
@@ -209,24 +208,25 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   )
 }
 
-export function Sidebar() {
+export function Sidebar({ forceCollapsed }: { forceCollapsed?: boolean }) {
   const { sidebarCollapsed } = useNavigation()
+  const collapsed = forceCollapsed || sidebarCollapsed
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+    <aside className={`fixed left-0 top-0 h-screen bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-ledger-gray-200">
-        <h1 className={`text-xl font-serif font-semibold text-ledger-black transition-opacity duration-300 ${sidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+        <h1 className={`text-xl font-serif font-semibold text-ledger-black transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
           {APP_NAME}
         </h1>
-        {sidebarCollapsed && (
+        {collapsed && (
           <div className="flex items-center justify-center -ml-4">
             <span className="text-xl font-serif font-semibold text-ledger-black">K</span>
           </div>
         )}
       </div>
 
-      <SidebarContent collapsed={sidebarCollapsed} />
+      <SidebarContent collapsed={collapsed} />
     </aside>
   )
 }

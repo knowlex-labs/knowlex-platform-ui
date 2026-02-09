@@ -11,7 +11,6 @@ import { CaseWorkspace } from '@/components/cases/case-workspace'
 import { ClientList } from '@/components/clients/client-list'
 import { ClientDetail } from '@/components/clients/client-detail'
 import { AIResearch } from '@/components/ai-research/ai-research'
-import { TimelinesBoard } from '@/components/timelines/timelines-board'
 import { AccountSettings } from '@/components/settings/account-settings'
 import { Toaster } from '@/components/ui/toaster'
 import { useToast } from '@/hooks/use-toast'
@@ -139,7 +138,6 @@ function AppContent() {
           selectedClientId ? <ClientDetail /> : <ClientList />
         )}
         {activeTab === 'ai-research' && <AIResearch />}
-        {activeTab === 'timelines' && <TimelinesBoard />}
         {activeTab === 'account-settings' && <AccountSettings />}
       </DashboardLayout>
       <Toaster />
