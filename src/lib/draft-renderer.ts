@@ -224,6 +224,11 @@ export function renderDraftToHtml(
     return renderDraftSections(sections)
   }
 
+  // Content saved as HTML from the editor — return directly
+  if (content.trim().startsWith('<')) {
+    return content
+  }
+
   if (isRichDocumentString(content)) {
     const richDoc = deserializeDocument(content)
     if (richDoc) {

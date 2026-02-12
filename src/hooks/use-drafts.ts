@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { draftsApi, type DraftJobResponse, type DraftListItem, type CreateDraftRequest } from '@/services/api/drafts-api'
+import { draftsApi, type DraftListItem, type CreateDraftRequest } from '@/services/api/drafts-api'
 import { config } from '@/config/env'
 import type { Draft } from '@/types'
 
@@ -8,31 +8,15 @@ export type { DocumentType } from '@/services/api/drafts-api'
 const POLL_INTERVAL_MS = 3000
 const MAX_POLL_ATTEMPTS = 60
 
-// Normalize API status: backend returns "processing" for in-progress jobs
+// Normalize API status: backend returns "processing" | "completed" | "failed"
 function normalizeStatus(status: string): 'pending' | 'completed' | 'failed' {
-  if (status === 'completed') return 'completed'
-  if (status === 'failed') return 'failed'
+  const s = status.toLowerCase()
+  if (s === 'completed') return 'completed'
+  if (s === 'failed') return 'failed'
   return 'pending'
 }
 
-// Maps a DraftJobResponse (single GET / polling) to Draft
-function mapJobToDraft(job: DraftJobResponse, draftId: string): Draft {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const raw = job as any
-  return {
-    id: raw.id || draftId,
-    title: job.result?.metadata?.title || raw.title || 'Untitled',
-    content: job.result?.draft || raw.draft_body || '',
-    status: normalizeStatus(job.status),
-    sections: job.result?.sections || raw.sections || [],
-    summary: job.result?.metadata?.summary || raw.metadata?.summary || '',
-    templateType: job.result?.metadata?.document_type || raw.document_type || raw.metadata?.document_type,
-    createdAt: new Date(job.created_at),
-    updatedAt: job.completed_at ? new Date(job.completed_at) : raw.updated_at ? new Date(raw.updated_at) : new Date(job.created_at),
-  }
-}
-
-// Maps a DraftListItem (flat format from list endpoint)
+// Maps a flat CaseDraftResponse (used by list, single GET, and create endpoints) to Draft
 function mapListItemToDraft(item: DraftListItem): Draft {
   return {
     id: item.id,
@@ -96,11 +80,11 @@ export function useDrafts(caseId: string): UseDraftsResult {
 
       try {
         const jobResponse = await draftsApi.get(caseIdRef.current, jobId)
-        const job = jobResponse.data
-        const status = normalizeStatus(job.status)
+        const item = jobResponse.data
+        const status = normalizeStatus(item.status)
 
         if (status === 'completed') {
-          const draft = mapJobToDraft(job, info.draftId)
+          const draft = mapListItemToDraft(item)
           setDrafts((prev) =>
             prev.map((d) => (d.id === info.draftId ? draft : d))
           )
@@ -234,17 +218,18 @@ export function useDrafts(caseId: string): UseDraftsResult {
     setDrafts((prev) => [placeholder, ...prev])
 
     draftsApi.create(caseId, request).then((createResponse) => {
-      const jobId = createResponse.data.job_id
+      const data = createResponse.data
+      // Use database id as the draft identifier; fall back to job_id for older API shapes
+      const draftId = data.id || data.job_id
 
-      // Use job_id as temporary draft.id until list fetch provides the real record id
       setDrafts((prev) =>
         prev.map((d) =>
-          d.id === placeholderId ? { ...d, id: jobId } : d
+          d.id === placeholderId ? { ...d, id: draftId } : d
         )
       )
 
-      // Start polling (job_id for GET URL, current draft.id = jobId for matching)
-      pollingJobsRef.current.set(jobId, { attempts: 0, draftId: jobId })
+      // Poll using the database id (backend GET endpoint expects id in URL)
+      pollingJobsRef.current.set(draftId, { attempts: 0, draftId })
       ensurePolling()
     }).catch(() => {
       setDrafts((prev) =>
@@ -261,7 +246,9 @@ export function useDrafts(caseId: string): UseDraftsResult {
   const updateDraftLocal = useCallback((id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => {
     setDrafts((prev) =>
       prev.map((draft) =>
-        draft.id === id ? { ...draft, ...updates, updatedAt: new Date() } : draft
+        draft.id === id
+          ? { ...draft, ...updates, updatedAt: new Date(), ...(updates.content !== undefined ? { sections: [] } : {}) }
+          : draft
       )
     )
     dirtyDraftIdsRef.current.add(id)

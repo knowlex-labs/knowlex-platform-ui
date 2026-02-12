@@ -21,33 +21,9 @@ export interface CreateDraftRequest {
   file_ids?: string[]
 }
 
-export interface CreateDraftResponse {
-  job_id: string
-  status: 'pending' | 'processing'
-  created_at: string
-}
-
-export interface DraftResult {
-  draft: string
-  sections: Array<{ title: string; content: string; order: number }>
-  metadata: {
-    document_type: string
-    title: string
-    summary: string
-    subtype?: string
-    input_mode?: string
-  }
-}
-
-// Legacy format (for polling single job)
-export interface DraftJobResponse {
-  job_id: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  created_at: string
-  completed_at: string | null
-  result: DraftResult | null
-  error: string | null
-}
+// Both create and single GET return the same flat CaseDraftResponse shape as list items
+export type CreateDraftResponse = DraftListItem
+export type DraftJobResponse = DraftListItem
 
 // Item format returned by the list endpoint (flat structure, not nested in result)
 export interface DraftListItem {

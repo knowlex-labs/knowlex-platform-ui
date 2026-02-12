@@ -1,4 +1,3 @@
-import { cn } from '@/lib/utils'
 import { MarkdownRenderer } from './markdown-renderer'
 import { StreamingIndicator } from './streaming-indicator'
 import type { ResearchMessage } from '@/types'

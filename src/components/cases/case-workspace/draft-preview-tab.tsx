@@ -7,10 +7,6 @@ import { FormattingToolbar } from './formatting-toolbar'
 import {
   renderDraftToHtml,
 } from '@/lib/draft-renderer'
-import {
-  htmlToDocument,
-  serializeDocument,
-} from '@/lib/drafts/document-serializer'
 import type { Draft } from '@/types'
 
 interface DraftPreviewTabProps {
@@ -117,10 +113,8 @@ function CompletedDraftEditor({
   // Capture current editor content and save to local state
   const flushToLocalState = useCallback(() => {
     if (editorRef.current) {
-      const richDoc = htmlToDocument(editorRef.current.innerHTML)
-      const serializedContent = serializeDocument(richDoc)
       isLocalEditRef.current = true
-      onSaveLocal(draft.id, title, serializedContent)
+      onSaveLocal(draft.id, title, editorRef.current.innerHTML)
     }
   }, [draft.id, title, onSaveLocal])
 
@@ -180,9 +174,8 @@ function CompletedDraftEditor({
   // Explicit save to backend (Ctrl+S)
   const handleSaveToBackend = useCallback(() => {
     if (editorRef.current) {
-      const richDoc = htmlToDocument(editorRef.current.innerHTML)
-      const serializedContent = serializeDocument(richDoc)
-      onSaveToBackend(draft.id, title, serializedContent)
+      isLocalEditRef.current = true
+      onSaveToBackend(draft.id, title, editorRef.current.innerHTML)
     }
     setHasChanges(false)
     onDirtyChange?.(false)
