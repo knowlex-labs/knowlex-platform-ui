@@ -5,9 +5,12 @@ import { researchApi } from '@/services/api/research-api'
 const SESSIONS_STORAGE_KEY = 'knowlex_chat_sessions'
 const SETTINGS_STORAGE_KEY = 'knowlex_chat_settings'
 
+const VALID_MODELS = ['openai', 'gemini'] as const
+const DEFAULT_MODEL = 'openai'
+
 const DEFAULT_SETTINGS: ResearchSettings = {
   creativity: 'balanced',
-  model: 'openai',
+  model: DEFAULT_MODEL,
   knowledgeBaseEnabled: true,
 }
 
@@ -37,11 +40,20 @@ function loadSettings(): ResearchSettings {
     const stored = localStorage.getItem(SETTINGS_STORAGE_KEY)
     if (!stored) return DEFAULT_SETTINGS
     const parsed = JSON.parse(stored)
-    return {
+    const model = VALID_MODELS.includes(parsed.model as (typeof VALID_MODELS)[number])
+      ? parsed.model
+      : DEFAULT_MODEL
+    const settings: ResearchSettings = {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      model,
       knowledgeBaseEnabled: parsed.knowledgeBaseEnabled === true,
     }
+    // Persist corrected model if it was invalid (e.g. "default")
+    if (model !== parsed.model) {
+      persistSettings(settings)
+    }
+    return settings
   } catch {
     return DEFAULT_SETTINGS
   }

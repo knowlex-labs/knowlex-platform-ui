@@ -66,7 +66,15 @@ export const researchApi = {
     fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/messages`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ message, enable_kb: options?.enableKb === true, model: options?.model || 'openai', style: options?.style || 'balanced' }),
+      body: JSON.stringify({
+        message,
+        enable_kb: options?.enableKb === true,
+        model:
+          options?.model && ['openai', 'gemini'].includes(options.model)
+            ? options.model
+            : 'openai',
+        style: options?.style || 'balanced',
+      }),
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -88,15 +96,18 @@ export const researchApi = {
 
         const decoder = new TextDecoder()
         let currentEvent: string | null = null
+        let buffer = ''
 
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
 
-          const text = decoder.decode(value, { stream: true })
-          const lines = text.split('\n')
+          buffer += decoder.decode(value, { stream: true })
+          const allLines = buffer.split('\n')
+          // Keep the last part in buffer (incomplete line if no trailing \n)
+          buffer = allLines.pop() ?? ''
 
-          for (const line of lines) {
+          for (const line of allLines) {
             if (line.startsWith('event:')) {
               currentEvent = line.substring(6).trim()
             } else if (line.startsWith('data:')) {

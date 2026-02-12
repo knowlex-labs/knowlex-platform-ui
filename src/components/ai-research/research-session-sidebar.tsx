@@ -160,10 +160,10 @@ export function MobileSidebarToggle({ onClick }: { onClick: () => void }) {
     <Button
       variant="ghost"
       size="sm"
-      className="md:hidden h-8 w-8 text-ledger-gray-500"
+      className="md:hidden h-10 w-10 text-ledger-gray-500 p-0"
       onClick={onClick}
     >
-      <Menu className="h-4 w-4" />
+      <Menu className="h-5 w-5" />
     </Button>
   )
 }

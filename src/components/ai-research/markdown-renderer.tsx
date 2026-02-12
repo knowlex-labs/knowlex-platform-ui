@@ -16,7 +16,7 @@ interface MarkdownNode {
 }
 
 function parseBlocks(text: string): MarkdownNode[] {
-  const lines = text.split('\n')
+  const lines = text.split(/\r?\n/)
   const blocks: MarkdownNode[] = []
   let i = 0
 
@@ -153,7 +153,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
             const sizeClass = block.level === 1 ? 'text-lg font-bold' :
                               block.level === 2 ? 'text-base font-bold' :
                               'text-sm font-semibold'
-            return <Tag key={i} className={sizeClass}>{renderInline(block.content)}</Tag>
+            return <Tag key={i} className={cn(sizeClass, 'whitespace-pre-line')}>{renderInline(block.content)}</Tag>
           }
 
           case 'code-block':
@@ -172,7 +172,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
           case 'blockquote':
             return (
-              <blockquote key={i} className="border-l-2 border-ledger-gray-300 pl-3 text-ledger-gray-600 italic">
+              <blockquote key={i} className="border-l-2 border-ledger-gray-300 pl-3 text-ledger-gray-600 italic whitespace-pre-line">
                 {renderInline(block.content)}
               </blockquote>
             )
@@ -190,7 +190,11 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
 
           case 'paragraph':
           default:
-            return <p key={i}>{renderInline(block.content)}</p>
+            return (
+              <p key={i} className="whitespace-pre-line">
+                {renderInline(block.content)}
+              </p>
+            )
         }
       })}
     </div>
