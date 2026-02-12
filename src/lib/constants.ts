@@ -11,7 +11,6 @@ export const SIDEBAR_TABS: SidebarTabConfig[] = [
   { id: 'cases', label: 'Cases', icon: 'briefcase' },
   { id: 'clients', label: 'Clients', icon: 'users' },
   { id: 'ai-research', label: 'AI Research', icon: 'brain' },
-  { id: 'timelines', label: 'Timelines', icon: 'kanban-square' },
 ]
 
 export const STATUS_COLORS = {

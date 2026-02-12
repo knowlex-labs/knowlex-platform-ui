@@ -5,7 +5,6 @@ export type DashboardTab =
   | 'cases'
   | 'clients'
   | 'ai-research'
-  | 'timelines'
   | 'account-settings'
 
 export interface NavigationState {

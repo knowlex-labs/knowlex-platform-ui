@@ -23,7 +23,7 @@ export function WorkspaceTabBar({
   onToggleSplit,
 }: WorkspaceTabBarProps) {
   return (
-    <div className="flex items-center justify-between border-b border-ledger-gray-200 bg-ledger-gray-50 px-1">
+    <div className="flex items-center justify-between border-b border-ledger-gray-200 bg-ledger-gray-50 px-2 pt-1">
       <div className="flex items-center gap-0.5 overflow-x-auto">
         {tabs.map((tab) => (
           <div

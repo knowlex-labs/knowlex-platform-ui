@@ -1,123 +1,107 @@
 import { useState } from 'react'
-import { ChatSidebar } from './chat-sidebar'
-import { ChatMessageList } from './chat-message-list'
-import { ChatInput } from './chat-input'
-import type { ChatSession, ChatMessage } from '@/types/chat.types'
-
-// Initial placeholder session
-const INITIAL_SESSION: ChatSession = {
-  id: '1',
-  title: 'New Research Session',
-  messages: [
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Hello! I\'m your AI legal research assistant. How can I help you today?',
-      timestamp: new Date(),
-    },
-  ],
-  createdAt: new Date(),
-}
+import { useResearchChat } from '@/hooks/use-research-chat'
+import { ResearchChatHeader } from './research-chat-header'
+import { ResearchChatArea } from './research-chat-area'
+import {
+  ResearchSessionSidebarDesktop,
+  ResearchSessionSidebarMobile,
+  MobileSidebarToggle,
+} from './research-session-sidebar'
+import { ResearchSettingsPanel } from './research-settings-panel'
 
 export function AIResearch() {
-  const [sessions, setSessions] = useState<ChatSession[]>([INITIAL_SESSION])
-  const [activeSessionId, setActiveSessionId] = useState<string>('1')
+  const {
+    sessions,
+    activeSessionId,
+    setActiveSessionId,
+    messages,
+    isStreaming,
+    isLoadingHistory,
+    error,
+    sendMessage,
+    cancelStream,
+    createSession,
+    deleteSession,
+    settings,
+    updateSettings,
+  } = useResearchChat()
 
-  const activeSession = sessions.find((s) => s.id === activeSessionId) || sessions[0]
+  const [settingsOpen, setSettingsOpen] = useState(true)
+  const [sidebarVisible, setSidebarVisible] = useState(true)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
-  const handleSendMessage = (content: string) => {
-    if (!content.trim() || !activeSession) return
-
-    const userMessage: ChatMessage = {
-      id: `msg-${Date.now()}-user`,
-      role: 'user',
-      content: content.trim(),
-      timestamp: new Date(),
-    }
-
-    // Simulate AI response
-    const assistantMessage: ChatMessage = {
-      id: `msg-${Date.now()}-assistant`,
-      role: 'assistant',
-      content: 'This is a placeholder response. AI research backend integration is coming soon.',
-      timestamp: new Date(),
-    }
-
-    setSessions((prev) =>
-      prev.map((session) =>
-        session.id === activeSessionId
-          ? {
-              ...session,
-              messages: [...session.messages, userMessage, assistantMessage],
-            }
-          : session
-      )
-    )
-  }
-
-  const handleNewChat = () => {
-    const newSession: ChatSession = {
-      id: `session-${Date.now()}`,
-      title: 'New Research Session',
-      messages: [
-        {
-          id: `msg-${Date.now()}`,
-          role: 'assistant',
-          content: 'Hello! I\'m your AI legal research assistant. How can I help you today?',
-          timestamp: new Date(),
-        },
-      ],
-      createdAt: new Date(),
-    }
-
-    setSessions((prev) => [newSession, ...prev])
-    setActiveSessionId(newSession.id)
-  }
-
-  const handleDeleteSession = (sessionId: string) => {
-    if (sessions.length === 1) {
-      // Don't delete the last session, just reset it
-      setSessions([INITIAL_SESSION])
-      setActiveSessionId(INITIAL_SESSION.id)
-      return
-    }
-
-    setSessions((prev) => prev.filter((s) => s.id !== sessionId))
-
-    if (activeSessionId === sessionId) {
-      setActiveSessionId(sessions[0].id)
-    }
-  }
+  const activeSession = sessions.find((s) => s.id === activeSessionId)
+  const headerTitle = activeSession?.title || 'AI Research'
 
   return (
-    <div className="flex h-[calc(100vh-64px)] md:h-screen gap-4">
-      {/* Sidebar */}
-      <ChatSidebar
+    <div className="flex h-[calc(100vh-56px)] md:h-screen">
+      {/* Desktop session sidebar */}
+      <ResearchSessionSidebarDesktop
+        visible={sidebarVisible}
         sessions={sessions}
         activeSessionId={activeSessionId}
         onSessionSelect={setActiveSessionId}
-        onNewChat={handleNewChat}
-        onDeleteSession={handleDeleteSession}
+        onNewChat={createSession}
+        onDeleteSession={deleteSession}
       />
 
-      {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col border border-ledger-gray-200 rounded-lg overflow-hidden bg-ledger-white">
+      {/* Mobile session sidebar (Sheet) */}
+      <ResearchSessionSidebarMobile
+        open={mobileSidebarOpen}
+        onOpenChange={setMobileSidebarOpen}
+        sessions={sessions}
+        activeSessionId={activeSessionId}
+        onSessionSelect={setActiveSessionId}
+        onNewChat={createSession}
+        onDeleteSession={deleteSession}
+      />
+
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="px-4 md:px-6 py-4 border-b border-ledger-gray-200">
-          <h2 className="text-lg font-semibold text-ledger-black">
-            {activeSession.title}
-          </h2>
-          <p className="text-xs text-ledger-gray-500 mt-0.5">
-            AI-powered legal research assistant
-          </p>
+        <div className="flex items-center">
+          {/* Mobile menu button */}
+          <div className="md:hidden pl-2">
+            <MobileSidebarToggle onClick={() => setMobileSidebarOpen(true)} />
+          </div>
+          <div className="flex-1">
+            <ResearchChatHeader
+              title={headerTitle}
+              settingsOpen={settingsOpen}
+              onToggleSettings={() => setSettingsOpen(!settingsOpen)}
+              sidebarVisible={sidebarVisible}
+              onToggleSidebar={() => setSidebarVisible(!sidebarVisible)}
+            />
+          </div>
         </div>
 
-        {/* Messages */}
-        <ChatMessageList messages={activeSession.messages} />
+        {/* Error banner */}
+        {error && (
+          <div className="px-4 py-2 bg-red-50 border-b border-red-200 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
-        {/* Input */}
-        <ChatInput onSendMessage={handleSendMessage} />
+        {/* Chat area */}
+        <ResearchChatArea
+          messages={messages}
+          isStreaming={isStreaming}
+          isLoadingHistory={isLoadingHistory}
+          onSendMessage={sendMessage}
+          onCancelStream={cancelStream}
+          hasActiveSession={!!activeSessionId}
+        />
       </div>
+
+      {/* Right settings panel (inline, no overlay) */}
+      {settingsOpen && (
+        <div className="hidden md:flex">
+          <ResearchSettingsPanel
+            settings={settings}
+            onUpdateSettings={updateSettings}
+          />
+        </div>
+      )}
     </div>
   )
 }
