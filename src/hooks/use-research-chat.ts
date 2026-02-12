@@ -219,10 +219,10 @@ export function useResearchChat() {
         setError(errorMsg)
         abortControllerRef.current = null
       },
-    }, { enableKb: settings.knowledgeBaseEnabled })
+    }, { enableKb: settings.knowledgeBaseEnabled, model: settings.model, style: settings.creativity })
 
     abortControllerRef.current = controller
-  }, [activeSessionId, isStreaming, createSession, settings.knowledgeBaseEnabled])
+  }, [activeSessionId, isStreaming, createSession, settings.knowledgeBaseEnabled, settings.model, settings.creativity])
 
   const cancelStream = useCallback(() => {
     abortControllerRef.current?.abort()

@@ -52,7 +52,7 @@ export const researchApi = {
     await apiClient.delete<DeleteSessionResponse>(`/api/v1/chat/sessions/${sessionId}`)
   },
 
-  sendMessage: (sessionId: string, message: string, callbacks: SSECallbacks, options?: { enableKb?: boolean }): AbortController => {
+  sendMessage: (sessionId: string, message: string, callbacks: SSECallbacks, options?: { enableKb?: boolean; model?: string; style?: string }): AbortController => {
     const controller = new AbortController()
     const token = localStorage.getItem('auth_token')
     const userId = localStorage.getItem('auth_user_id')
@@ -66,7 +66,7 @@ export const researchApi = {
     fetch(`${API_BASE_URL}/api/v1/chat/sessions/${sessionId}/messages`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ message, enable_kb: options?.enableKb === true }),
+      body: JSON.stringify({ message, enable_kb: options?.enableKb === true, model: options?.model || 'openai', style: options?.style || 'balanced' }),
       signal: controller.signal,
     })
       .then(async (response) => {
@@ -100,7 +100,8 @@ export const researchApi = {
             if (line.startsWith('event:')) {
               currentEvent = line.substring(6).trim()
             } else if (line.startsWith('data:')) {
-              const data = line.substring(5).trim()
+              // Keep everything after "data:" — the space is part of the token content
+              const raw = line.substring(5)
 
               if (currentEvent === 'end') {
                 callbacks.onEnd()
@@ -108,12 +109,12 @@ export const researchApi = {
               }
 
               if (currentEvent === 'error') {
-                callbacks.onError(data)
+                callbacks.onError(raw.trim())
                 return
               }
 
               if (currentEvent === 'token') {
-                callbacks.onToken(data)
+                callbacks.onToken(raw)
               }
             }
           }

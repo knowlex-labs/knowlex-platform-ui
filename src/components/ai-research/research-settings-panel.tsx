@@ -11,7 +11,7 @@ interface ResearchSettingsPanelProps {
 const CREATIVITY_OPTIONS: Array<{ value: ResearchSettings['creativity']; label: string; description: string }> = [
   { value: 'precise', label: 'Precise', description: 'Factual and focused' },
   { value: 'balanced', label: 'Balanced', description: 'Best for most tasks' },
-  { value: 'creative', label: 'Creative', description: 'More exploratory' },
+  { value: 'detailed', label: 'Detailed', description: 'In-depth and thorough' },
 ]
 
 const MODEL_OPTIONS = [

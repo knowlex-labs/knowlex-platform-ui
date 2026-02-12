@@ -13,7 +13,7 @@ export interface ResearchSession {
 }
 
 export interface ResearchSettings {
-  creativity: 'precise' | 'balanced' | 'creative'
+  creativity: 'precise' | 'balanced' | 'detailed'
   model: string
   knowledgeBaseEnabled: boolean
 }

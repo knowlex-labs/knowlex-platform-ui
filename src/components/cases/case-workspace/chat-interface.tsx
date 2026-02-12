@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ArrowUp, Trash2, Loader2, FileCheck, Paperclip } from 'lucide-react'
+import { ArrowUp, Trash2, Loader2, FileCheck, Paperclip, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { WorkspaceMessage } from '@/types'
@@ -51,17 +51,20 @@ export function ChatInterface({
   return (
     <div className="flex flex-col h-full">
       {/* Messages */}
-      <ScrollArea className="flex-1 px-4" ref={scrollRef}>
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-full pb-6 text-center">
-            <p className="text-sm text-ledger-gray-600 font-medium mb-1">
-              Start a conversation
-            </p>
-            <p className="text-xs text-ledger-gray-500 max-w-[280px]">
-              Ask questions about your documents or use the tools on the right to analyze them
-            </p>
+      {messages.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
+          <div className="h-10 w-10 rounded-xl bg-ledger-gray-100 flex items-center justify-center mb-4">
+            <MessageSquare className="h-5 w-5 text-ledger-gray-400" />
           </div>
-        ) : (
+          <p className="text-base text-ledger-gray-700 font-semibold mb-2">
+            Start a conversation
+          </p>
+          <p className="text-sm text-ledger-gray-400 max-w-[320px] leading-relaxed">
+            Ask questions about your documents or use the tools on the right to analyze them
+          </p>
+        </div>
+      ) : (
+        <ScrollArea className="flex-1 px-4" ref={scrollRef}>
           <div className="py-4 space-y-4">
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
@@ -73,13 +76,13 @@ export function ChatInterface({
               </div>
             )}
           </div>
-        )}
-      </ScrollArea>
+        </ScrollArea>
+      )}
 
       {/* Input */}
-      <div className="px-4 pb-3 pt-1">
+      <div className="px-5 pb-4 pt-2">
         <form onSubmit={handleSubmit}>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-ledger-gray-200 bg-ledger-gray-50 focus-within:bg-ledger-white focus-within:ring-1 focus-within:ring-ledger-gray-300 transition-all">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-ledger-gray-200 bg-white shadow-md focus-within:shadow-lg focus-within:border-ledger-gray-300 transition-all">
             {/* File upload button */}
             <input
               ref={fileInputRef}
@@ -133,7 +136,7 @@ export function ChatInterface({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your documents..."
-              className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-black placeholder:text-ledger-gray-400"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-gray-800 placeholder:text-ledger-gray-400"
               disabled={isLoading}
             />
 
@@ -141,7 +144,7 @@ export function ChatInterface({
             <Button
               type="submit"
               size="sm"
-              className="h-7 w-7 p-0 rounded-full flex-shrink-0 bg-ledger-black text-white hover:bg-ledger-gray-800"
+              className="h-8 w-8 p-0 rounded-full flex-shrink-0 bg-ledger-gray-900 text-white hover:bg-ledger-black shadow-sm"
               disabled={!input.trim() || isLoading}
             >
               {isLoading ? (
