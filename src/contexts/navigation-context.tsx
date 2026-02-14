@@ -36,6 +36,7 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
       selectedClientId: restoredState.selectedClientId || null,
       selectedCaseId: restoredState.selectedCaseId || null,
       sidebarCollapsed: savedCollapsed === 'true',
+      showAddCaseModal: false,
     }
   })
 
@@ -77,6 +78,10 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     setState((prev) => ({ ...prev, sidebarCollapsed }))
   }, [])
 
+  const setShowAddCaseModal = React.useCallback((showAddCaseModal: boolean) => {
+    setState((prev) => ({ ...prev, showAddCaseModal }))
+  }, [])
+
   // Persist navigation state to localStorage
   React.useEffect(() => {
     const stateToSave = {
@@ -105,6 +110,7 @@ export function NavigationProvider({ children }: NavigationProviderProps) {
     setSelectedClientId,
     setSelectedCaseId,
     setSidebarCollapsed,
+    setShowAddCaseModal,
   }
 
   return (

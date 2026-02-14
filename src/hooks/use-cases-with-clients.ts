@@ -68,9 +68,9 @@ export function useCasesWithClients(
         clientsResponse.data.content.forEach((backendClient) => {
           const client = mapBackendClient(backendClient)
           clientMap.set(client.id, client.name)
-          if (client.caseId) {
-            clientIdByCaseId.set(client.caseId, client.id)
-          }
+          client.caseIds.forEach((cId) => {
+            clientIdByCaseId.set(cId, client.id)
+          })
         })
       }
 

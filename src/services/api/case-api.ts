@@ -5,6 +5,7 @@ import type {
   ApiResponse,
   BackendCase,
   BackendCaseStatus,
+  BackendClient,
   CreateCaseRequest,
   PaginatedData,
   UpdateCaseRequest,
@@ -47,5 +48,9 @@ export const caseApi = {
 
   delete: (id: string): Promise<ApiResponse<null>> => {
     return apiClient.delete<ApiResponse<null>>(`${CASES_ENDPOINT}/${id}`)
+  },
+
+  getClients: (caseId: string): Promise<ApiResponse<BackendClient[]>> => {
+    return apiClient.get<ApiResponse<BackendClient[]>>(`${CASES_ENDPOINT}/${caseId}/clients`)
   },
 }

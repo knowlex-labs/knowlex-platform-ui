@@ -33,7 +33,7 @@ function formatDate(date: Date): string {
 }
 
 export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
-  const caseData = client.case
+  const caseData = client.cases[0] ?? null
 
   return (
     <div className="border border-ledger-gray-200 rounded p-4 md:p-6">
@@ -49,7 +49,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
         </div>
         <div className="flex items-center gap-2">
           {caseData?.status && <StatusBadge status={caseData.status} />}
-          {!caseData && onAddCase && (
+          {client.cases.length === 0 && onAddCase && (
             <Button onClick={onAddCase} size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Add Case

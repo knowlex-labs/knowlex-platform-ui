@@ -8,7 +8,6 @@ import {
   Gavel,
 } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { DemoBadge } from '@/components/ui/demo-badge'
 import { cn } from '@/lib/utils'
 import type { Activity, ActivityType } from '@/types'
 
@@ -47,14 +46,20 @@ function formatDate(date: Date): string {
 export function ActivityFeed({ activities }: ActivityFeedProps) {
   return (
     <div className="border border-ledger-gray-200 rounded">
-      <div className="px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
         <h3 className="text-sm font-medium text-ledger-black">
           Activity Timeline
         </h3>
-        <DemoBadge />
       </div>
 
-      {/* Mobile: max-height with auto overflow, Desktop: fixed height */}
+      {activities.length === 0 ? (
+        <div className="p-4">
+          <p className="text-sm text-ledger-gray-500 text-center py-8">
+            No activity recorded yet.
+          </p>
+        </div>
+      ) : (
+      /* Mobile: max-height with auto overflow, Desktop: fixed height */
       <ScrollArea className="h-auto max-h-[50vh] md:h-[400px] md:max-h-none">
         <div className="p-4">
           <div className="relative">
@@ -118,6 +123,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
           </div>
         </div>
       </ScrollArea>
+      )}
     </div>
   )
 }

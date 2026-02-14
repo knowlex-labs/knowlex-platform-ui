@@ -3,6 +3,7 @@
 import { apiClient } from './api-client'
 import type {
   ApiResponse,
+  BackendCase,
   BackendClient,
   BackendClientType,
   CreateClientRequest,
@@ -47,5 +48,17 @@ export const clientApi = {
 
   delete: (id: string): Promise<ApiResponse<null>> => {
     return apiClient.delete<ApiResponse<null>>(`${CLIENTS_ENDPOINT}/${id}`)
+  },
+
+  linkCase: (clientId: string, caseId: string): Promise<ApiResponse<null>> => {
+    return apiClient.post<ApiResponse<null>>(`${CLIENTS_ENDPOINT}/${clientId}/cases/${caseId}`, {})
+  },
+
+  unlinkCase: (clientId: string, caseId: string): Promise<ApiResponse<null>> => {
+    return apiClient.delete<ApiResponse<null>>(`${CLIENTS_ENDPOINT}/${clientId}/cases/${caseId}`)
+  },
+
+  getCases: (clientId: string): Promise<ApiResponse<BackendCase[]>> => {
+    return apiClient.get<ApiResponse<BackendCase[]>>(`${CLIENTS_ENDPOINT}/${clientId}/cases`)
   },
 }

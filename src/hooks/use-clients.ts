@@ -51,9 +51,9 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
       const mappedClients = backendClients.map(mapBackendClient)
 
       // Fetch associated cases for each client
-      const caseIds = [...new Set(backendClients.map((c) => c.caseId).filter(Boolean))] as string[]
+      const allCaseIds = [...new Set(backendClients.flatMap((c) => c.caseIds ?? []))]
 
-      const casePromises = caseIds.map((id) =>
+      const casePromises = allCaseIds.map((id) =>
         caseApi.getById(id).catch(() => null)
       )
       const caseResponses = await Promise.all(casePromises)
@@ -70,7 +70,9 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
       // Combine clients with their cases
       const clientsWithCases: ClientWithCase[] = mappedClients.map((client) => ({
         ...client,
-        case: client.caseId ? casesMap.get(client.caseId) ?? null : null,
+        cases: client.caseIds
+          .map((cId) => casesMap.get(cId))
+          .filter((c): c is NonNullable<typeof c> => c != null),
       }))
 
       setClients(clientsWithCases)

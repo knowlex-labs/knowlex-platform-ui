@@ -34,7 +34,7 @@ export function AIResearch() {
   const headerTitle = activeSession?.title || 'AI Research'
 
   return (
-    <div className="flex h-[calc(100vh-56px)] md:h-screen">
+    <div className="flex h-[calc(100vh-56px)] md:h-[calc(100vh-16px)]">
       {/* Desktop session sidebar */}
       <ResearchSessionSidebarDesktop
         visible={sidebarVisible}
