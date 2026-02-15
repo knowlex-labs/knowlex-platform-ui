@@ -18,12 +18,16 @@ interface HistoryToolCall {
 }
 
 interface ChatHistoryResponse {
-  session_id: string
-  messages: Array<{
-    role: 'human' | 'ai'
-    content: string
-    toolCalls: HistoryToolCall[] | null
-  }>
+  status: string
+  message: string
+  data: {
+    session_id: string
+    messages: Array<{
+      role: 'human' | 'ai'
+      content: string
+      toolCalls: HistoryToolCall[] | null
+    }>
+  }
 }
 
 interface DeleteSessionResponse {
@@ -51,7 +55,7 @@ export const researchApi = {
 
   getHistory: async (sessionId: string): Promise<Array<{ role: 'user' | 'assistant'; content: string; toolCalls?: Array<{ name: string; args: Record<string, unknown>; result?: string }> }>> => {
     const response = await apiClient.get<ChatHistoryResponse>(`/api/v1/chat/sessions/${sessionId}/history`)
-    return response.messages.map((msg) => ({
+    return (response.data?.messages ?? []).map((msg) => ({
       role: msg.role === 'human' ? 'user' as const : 'assistant' as const,
       content: msg.content,
       toolCalls: msg.toolCalls ?? undefined,
@@ -106,7 +110,33 @@ export const researchApi = {
 
         const decoder = new TextDecoder()
         let currentEvent: string | null = null
+        let currentData: string | null = null
         let buffer = ''
+
+        const dispatchEvent = () => {
+          if (currentEvent && currentData !== null) {
+            if (currentEvent === 'end') {
+              callbacks.onEnd()
+              return 'end'
+            }
+            if (currentEvent === 'error') {
+              callbacks.onError(currentData.trim())
+              return 'error'
+            }
+            if (currentEvent === 'thinking') {
+              callbacks.onThinking(currentData)
+            } else if (currentEvent === 'tool_call') {
+              callbacks.onToolCall(currentData)
+            } else if (currentEvent === 'tool_result') {
+              callbacks.onToolResult(currentData)
+            } else if (currentEvent === 'answer') {
+              callbacks.onAnswer(currentData)
+            }
+          }
+          currentEvent = null
+          currentData = null
+          return null
+        }
 
         while (true) {
           const { done, value } = await reader.read()
@@ -121,8 +151,9 @@ export const researchApi = {
             const line = rawLine.replace(/\r$/, '')
 
             if (line === '') {
-              // Blank line = event boundary
-              currentEvent = null
+              // Blank line = dispatch buffered event
+              const result = dispatchEvent()
+              if (result === 'end' || result === 'error') return
               continue
             }
 
@@ -130,33 +161,16 @@ export const researchApi = {
               currentEvent = line.substring(6).trim()
             } else if (line.startsWith('data:')) {
               // Per SSE spec: strip one optional leading space after "data:"
-              const data = line[5] === ' ' ? line.substring(6) : line.substring(5)
-
-              if (currentEvent === 'end') {
-                callbacks.onEnd()
-                return
-              }
-
-              if (currentEvent === 'error') {
-                callbacks.onError(data.trim())
-                return
-              }
-
-              if (currentEvent === 'thinking') {
-                callbacks.onThinking(data)
-              } else if (currentEvent === 'tool_call') {
-                callbacks.onToolCall(data)
-              } else if (currentEvent === 'tool_result') {
-                callbacks.onToolResult(data)
-              } else if (currentEvent === 'answer') {
-                callbacks.onAnswer(data)
-              }
+              currentData = line[5] === ' ' ? line.substring(6) : line.substring(5)
             }
           }
         }
 
-        // If we exit the loop without an end event, still signal completion
-        callbacks.onEnd()
+        // Dispatch any remaining buffered event (stream may end without trailing blank line)
+        const result = dispatchEvent()
+        if (result !== 'end') {
+          callbacks.onEnd()
+        }
       })
       .catch((err) => {
         if (err.name === 'AbortError') return

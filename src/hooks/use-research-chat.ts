@@ -50,7 +50,6 @@ function loadSettings(): ResearchSettings {
       model,
       knowledgeBaseEnabled: parsed.knowledgeBaseEnabled === true,
     }
-    // Persist corrected model if it was invalid (e.g. "default")
     if (model !== parsed.model) {
       persistSettings(settings)
     }
@@ -85,7 +84,7 @@ export function useResearchChat() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const isFirstMessageRef = useRef(true)
 
-  // Streaming token batching — accumulate in ref, flush at 60fps via rAF
+  // Streaming refs
   const thinkingContentRef = useRef('')
   const answerContentRef = useRef('')
   const toolCallsRef = useRef<ToolCall[]>([])
@@ -93,7 +92,7 @@ export function useResearchChat() {
   const streamingMsgIdRef = useRef<string | null>(null)
   const rafIdRef = useRef<number | null>(null)
 
-  // Persist sessions whenever they change
+  // Persist sessions
   useEffect(() => {
     persistSessions(sessions)
   }, [sessions])
@@ -107,7 +106,7 @@ export function useResearchChat() {
     }
   }, [activeSessionId])
 
-  // Clear active session on auth expiry
+  // Clear on auth expiry
   useEffect(() => {
     const handleExpired = () => {
       setActiveSessionId(null)
@@ -124,6 +123,9 @@ export function useResearchChat() {
       setMessages([])
       return
     }
+
+    // Don't wipe messages if we're mid-stream (first message auto-created the session)
+    if (streamingMsgIdRef.current) return
 
     let cancelled = false
     isFirstMessageRef.current = true
@@ -144,13 +146,11 @@ export function useResearchChat() {
         }))
         setMessages(mapped)
 
-        // If there are already messages, it's not the first message anymore
         if (mapped.length > 0) {
           isFirstMessageRef.current = false
         }
-      } catch (err) {
+      } catch {
         if (cancelled) return
-        // Session might be new with no history yet - that's ok
         setMessages([])
       } finally {
         if (!cancelled) setIsLoadingHistory(false)
@@ -174,43 +174,27 @@ export function useResearchChat() {
     }
   }, [])
 
-  const createSession = useCallback(async () => {
-    setError(null)
-    try {
-      const sessionId = await researchApi.createSession(settings.knowledgeBaseEnabled)
-      const newSession: ResearchSession = {
-        id: sessionId,
-        title: 'New Chat',
-        createdAt: new Date(),
-      }
-      setSessions((prev) => [newSession, ...prev])
-      setActiveSessionId(sessionId)
-      setMessages([])
-      isFirstMessageRef.current = true
-      return sessionId
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to create session'
-      setError(msg)
-      return null
-    }
-  }, [settings.knowledgeBaseEnabled])
-
   const sendMessage = useCallback(async (content: string) => {
     const trimmed = content.trim()
     if (!trimmed || isStreaming) return
 
     let sessionId = activeSessionId
 
-    // Auto-create session if none is active
+    // Auto-create session if needed
     if (!sessionId) {
-      const newId = await createSession()
-      if (!newId) return
-      sessionId = newId
+      setError(null)
+      try {
+        sessionId = await researchApi.createSession(settings.knowledgeBaseEnabled)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to create session')
+        return
+      }
+      setSessions((prev) => [{ id: sessionId!, title: 'New Chat', createdAt: new Date() }, ...prev])
+      isFirstMessageRef.current = true
     }
 
     setError(null)
 
-    // Add optimistic user message
     const userMessage: ResearchMessage = {
       id: `msg-${Date.now()}-user`,
       role: 'user',
@@ -218,7 +202,6 @@ export function useResearchChat() {
       timestamp: new Date(),
     }
 
-    // Add placeholder assistant message
     const assistantId = `msg-${Date.now()}-assistant`
     const assistantMessage: ResearchMessage = {
       id: assistantId,
@@ -236,8 +219,8 @@ export function useResearchChat() {
 
     setMessages((prev) => [...prev, userMessage, assistantMessage])
     setIsStreaming(true)
+    if (!activeSessionId) setActiveSessionId(sessionId)
 
-    // Auto-title: set session title from first user message
     if (isFirstMessageRef.current) {
       const title = trimmed.length > 50 ? trimmed.substring(0, 50) + '...' : trimmed
       setSessions((prev) =>
@@ -246,7 +229,6 @@ export function useResearchChat() {
       isFirstMessageRef.current = false
     }
 
-    // Flush accumulated tokens to React state (called via requestAnimationFrame)
     const flushStreamContent = () => {
       const content = answerContentRef.current || thinkingContentRef.current
       const msgId = streamingMsgIdRef.current
@@ -276,6 +258,10 @@ export function useResearchChat() {
     const controller = researchApi.sendMessage(sessionId, trimmed, {
       onThinking: (token) => {
         phaseRef.current = 'thinking'
+        const prev = thinkingContentRef.current
+        if (prev.length > 0 && !prev.endsWith(' ') && !prev.endsWith('\n') && !/^[.,;:!?)}\]>]/.test(token)) {
+          thinkingContentRef.current += ' '
+        }
         thinkingContentRef.current += token
         scheduleFlush()
       },
@@ -285,7 +271,7 @@ export function useResearchChat() {
           const parsed = JSON.parse(data)
           toolCallsRef.current = [...toolCallsRef.current, { name: parsed.name, args: parsed.args }]
           scheduleFlush()
-        } catch { /* ignore malformed data */ }
+        } catch { /* ignore malformed */ }
       },
       onToolResult: (data) => {
         if (toolCallsRef.current.length > 0) {
@@ -297,6 +283,10 @@ export function useResearchChat() {
       },
       onAnswer: (token) => {
         phaseRef.current = 'answering'
+        const prev = answerContentRef.current
+        if (prev.length > 0 && !prev.endsWith(' ') && !prev.endsWith('\n') && !/^[.,;:!?)}\]>]/.test(token)) {
+          answerContentRef.current += ' '
+        }
         answerContentRef.current += token
         scheduleFlush()
       },
@@ -342,7 +332,7 @@ export function useResearchChat() {
     }, { enableKb: settings.knowledgeBaseEnabled, model: settings.model, style: settings.creativity })
 
     abortControllerRef.current = controller
-  }, [activeSessionId, isStreaming, createSession, settings.knowledgeBaseEnabled, settings.model, settings.creativity])
+  }, [activeSessionId, isStreaming, settings.knowledgeBaseEnabled, settings.model, settings.creativity])
 
   const cancelStream = useCallback(() => {
     abortControllerRef.current?.abort()
@@ -366,7 +356,6 @@ export function useResearchChat() {
   }, [])
 
   const startNewChat = useCallback(() => {
-    // No-op if already on empty state
     if (!activeSessionId && messages.length === 0) return
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
@@ -391,7 +380,6 @@ export function useResearchChat() {
 
     setSessions((prev) => {
       const updated = prev.filter((s) => s.id !== id)
-      // If we're deleting the active session, switch to the next one
       if (activeSessionId === id) {
         const nextSession = updated[0] || null
         setActiveSessionId(nextSession?.id ?? null)
@@ -419,7 +407,6 @@ export function useResearchChat() {
     error,
     sendMessage,
     cancelStream,
-    createSession,
     startNewChat,
     deleteSession,
     settings,

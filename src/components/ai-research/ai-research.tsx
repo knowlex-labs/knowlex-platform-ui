@@ -20,7 +20,6 @@ export function AIResearch() {
     error,
     sendMessage,
     cancelStream,
-    createSession,
     startNewChat,
     deleteSession,
     settings,
