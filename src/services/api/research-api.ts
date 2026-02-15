@@ -160,8 +160,9 @@ export const researchApi = {
             if (line.startsWith('event:')) {
               currentEvent = line.substring(6).trim()
             } else if (line.startsWith('data:')) {
-              // Per SSE spec: strip one optional leading space after "data:"
-              currentData = line[5] === ' ' ? line.substring(6) : line.substring(5)
+              // Keep leading space — backend sends LLM tokens where the space is
+              // part of the data (e.g. " The" becomes "data: The")
+              currentData = line.substring(5)
             }
           }
         }

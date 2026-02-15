@@ -258,10 +258,6 @@ export function useResearchChat() {
     const controller = researchApi.sendMessage(sessionId, trimmed, {
       onThinking: (token) => {
         phaseRef.current = 'thinking'
-        const prev = thinkingContentRef.current
-        if (prev.length > 0 && !prev.endsWith(' ') && !prev.endsWith('\n') && !/^[.,;:!?)}\]>]/.test(token)) {
-          thinkingContentRef.current += ' '
-        }
         thinkingContentRef.current += token
         scheduleFlush()
       },
@@ -283,10 +279,6 @@ export function useResearchChat() {
       },
       onAnswer: (token) => {
         phaseRef.current = 'answering'
-        const prev = answerContentRef.current
-        if (prev.length > 0 && !prev.endsWith(' ') && !prev.endsWith('\n') && !/^[.,;:!?)}\]>]/.test(token)) {
-          answerContentRef.current += ' '
-        }
         answerContentRef.current += token
         scheduleFlush()
       },
