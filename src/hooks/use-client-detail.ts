@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { clientApi, caseApi, ApiError } from '@/services/api'
 import { mapBackendClient, mapBackendCase } from '@/services/mappers'
-import { getMockActivities, getMockAIResearch } from '@/data/mock-activities'
 import type { ClientDetailView } from '@/types'
 
 interface UseClientDetailResult {
@@ -39,28 +38,21 @@ export function useClientDetail(clientId: string | null): UseClientDetailResult 
       const backendClient = clientResponse.data
       const mappedClient = mapBackendClient(backendClient)
 
-      // Fetch associated case if exists
-      let mappedCase = null
-      if (backendClient.caseId) {
-        try {
-          const caseResponse = await caseApi.getById(backendClient.caseId)
-          if (caseResponse.status === 'success') {
-            mappedCase = mapBackendCase(caseResponse.data)
-          }
-        } catch {
-          // Case fetch failed, proceed without case data
-        }
-      }
-
-      // Use mock data for activities and AI research (demo data)
-      const activities = getMockActivities(clientId)
-      const aiResearch = getMockAIResearch(clientId)
+      // Fetch associated cases
+      const caseIds = backendClient.caseIds ?? []
+      const casePromises = caseIds.map((cId) =>
+        caseApi.getById(cId).catch(() => null)
+      )
+      const caseResponses = await Promise.all(casePromises)
+      const mappedCases = caseResponses
+        .filter((r) => r?.status === 'success' && r.data)
+        .map((r) => mapBackendCase(r!.data))
 
       const clientDetail: ClientDetailView = {
         ...mappedClient,
-        case: mappedCase,
-        activities,
-        aiResearch,
+        cases: mappedCases,
+        activities: [],
+        aiResearch: [],
       }
 
       setClient(clientDetail)

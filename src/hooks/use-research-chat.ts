@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { ResearchMessage, ResearchSession, ResearchSettings } from '@/types'
+import type { ResearchMessage, ResearchSession, ResearchSettings, StreamingPhase, ToolCall } from '@/types'
 import { researchApi } from '@/services/api/research-api'
 
 const SESSIONS_STORAGE_KEY = 'knowlex_chat_sessions'
 const SETTINGS_STORAGE_KEY = 'knowlex_chat_settings'
+const ACTIVE_SESSION_STORAGE_KEY = 'knowlex_active_chat_session'
 
 const VALID_MODELS = ['openai', 'gemini'] as const
 const DEFAULT_MODEL = 'openai'
@@ -65,7 +66,16 @@ function persistSettings(settings: ResearchSettings) {
 
 export function useResearchChat() {
   const [sessions, setSessions] = useState<ResearchSession[]>(() => loadSessions())
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    try {
+      const stored = localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY)
+      if (!stored) return null
+      const allSessions = loadSessions()
+      return allSessions.some((s) => s.id === stored) ? stored : null
+    } catch {
+      return null
+    }
+  })
   const [messages, setMessages] = useState<ResearchMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
@@ -75,10 +85,38 @@ export function useResearchChat() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const isFirstMessageRef = useRef(true)
 
+  // Streaming token batching — accumulate in ref, flush at 60fps via rAF
+  const thinkingContentRef = useRef('')
+  const answerContentRef = useRef('')
+  const toolCallsRef = useRef<ToolCall[]>([])
+  const phaseRef = useRef<StreamingPhase>('waiting')
+  const streamingMsgIdRef = useRef<string | null>(null)
+  const rafIdRef = useRef<number | null>(null)
+
   // Persist sessions whenever they change
   useEffect(() => {
     persistSessions(sessions)
   }, [sessions])
+
+  // Persist active session id
+  useEffect(() => {
+    if (activeSessionId) {
+      localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, activeSessionId)
+    } else {
+      localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+    }
+  }, [activeSessionId])
+
+  // Clear active session on auth expiry
+  useEffect(() => {
+    const handleExpired = () => {
+      setActiveSessionId(null)
+      setMessages([])
+      localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+    }
+    window.addEventListener('auth:session-expired', handleExpired)
+    return () => window.removeEventListener('auth:session-expired', handleExpired)
+  }, [])
 
   // Load history when active session changes
   useEffect(() => {
@@ -102,6 +140,7 @@ export function useResearchChat() {
           role: msg.role,
           content: msg.content,
           timestamp: new Date(),
+          toolCalls: msg.toolCalls,
         }))
         setMessages(mapped)
 
@@ -129,6 +168,9 @@ export function useResearchChat() {
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort()
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+      }
     }
   }, [])
 
@@ -186,6 +228,12 @@ export function useResearchChat() {
       isStreaming: true,
     }
 
+    thinkingContentRef.current = ''
+    answerContentRef.current = ''
+    toolCallsRef.current = []
+    phaseRef.current = 'waiting'
+    streamingMsgIdRef.current = assistantId
+
     setMessages((prev) => [...prev, userMessage, assistantMessage])
     setIsStreaming(true)
 
@@ -198,37 +246,97 @@ export function useResearchChat() {
       isFirstMessageRef.current = false
     }
 
-    const controller = researchApi.sendMessage(sessionId, trimmed, {
-      onToken: (token) => {
+    // Flush accumulated tokens to React state (called via requestAnimationFrame)
+    const flushStreamContent = () => {
+      const content = answerContentRef.current || thinkingContentRef.current
+      const msgId = streamingMsgIdRef.current
+      if (msgId) {
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantId
-              ? { ...msg, content: msg.content + token }
+            msg.id === msgId
+              ? {
+                  ...msg,
+                  content,
+                  streamingPhase: phaseRef.current,
+                  toolCalls: toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined,
+                }
               : msg
           )
         )
+      }
+      rafIdRef.current = null
+    }
+
+    const scheduleFlush = () => {
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(flushStreamContent)
+      }
+    }
+
+    const controller = researchApi.sendMessage(sessionId, trimmed, {
+      onThinking: (token) => {
+        phaseRef.current = 'thinking'
+        thinkingContentRef.current += token
+        scheduleFlush()
+      },
+      onToolCall: (data) => {
+        phaseRef.current = 'tools'
+        try {
+          const parsed = JSON.parse(data)
+          toolCallsRef.current = [...toolCallsRef.current, { name: parsed.name, args: parsed.args }]
+          scheduleFlush()
+        } catch { /* ignore malformed data */ }
+      },
+      onToolResult: (data) => {
+        if (toolCallsRef.current.length > 0) {
+          const updated = [...toolCallsRef.current]
+          updated[updated.length - 1] = { ...updated[updated.length - 1], result: data }
+          toolCallsRef.current = updated
+          scheduleFlush()
+        }
+      },
+      onAnswer: (token) => {
+        phaseRef.current = 'answering'
+        answerContentRef.current += token
+        scheduleFlush()
       },
       onEnd: () => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current)
+          rafIdRef.current = null
+        }
+        const finalContent = answerContentRef.current || thinkingContentRef.current
+        const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+        const msgId = streamingMsgIdRef.current
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantId
-              ? { ...msg, isStreaming: false }
+            msg.id === msgId
+              ? { ...msg, content: finalContent, toolCalls: finalToolCalls, isStreaming: false, streamingPhase: undefined }
               : msg
           )
         )
         setIsStreaming(false)
+        streamingMsgIdRef.current = null
         abortControllerRef.current = null
       },
       onError: (errorMsg) => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current)
+          rafIdRef.current = null
+        }
+        const finalContent = answerContentRef.current || thinkingContentRef.current
+        const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+        const msgId = streamingMsgIdRef.current
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantId
-              ? { ...msg, content: msg.content || 'An error occurred.', isStreaming: false }
+            msg.id === msgId
+              ? { ...msg, content: finalContent || 'An error occurred.', toolCalls: finalToolCalls, isStreaming: false, streamingPhase: undefined }
               : msg
           )
         )
         setIsStreaming(false)
         setError(errorMsg)
+        streamingMsgIdRef.current = null
         abortControllerRef.current = null
       },
     }, { enableKb: settings.knowledgeBaseEnabled, model: settings.model, style: settings.creativity })
@@ -239,13 +347,40 @@ export function useResearchChat() {
   const cancelStream = useCallback(() => {
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    const finalContent = answerContentRef.current || thinkingContentRef.current
+    const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+    const msgId = streamingMsgIdRef.current
     setIsStreaming(false)
     setMessages((prev) =>
       prev.map((msg) =>
-        msg.isStreaming ? { ...msg, isStreaming: false } : msg
+        msg.id === msgId
+          ? { ...msg, content: finalContent || msg.content, toolCalls: finalToolCalls, isStreaming: false, streamingPhase: undefined }
+          : msg.isStreaming ? { ...msg, isStreaming: false, streamingPhase: undefined } : msg
       )
     )
+    streamingMsgIdRef.current = null
   }, [])
+
+  const startNewChat = useCallback(() => {
+    // No-op if already on empty state
+    if (!activeSessionId && messages.length === 0) return
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    setActiveSessionId(null)
+    setMessages([])
+    setIsStreaming(false)
+    setError(null)
+    streamingMsgIdRef.current = null
+    isFirstMessageRef.current = true
+  }, [activeSessionId, messages.length])
 
   const deleteSession = useCallback(async (id: string) => {
     try {
@@ -285,6 +420,7 @@ export function useResearchChat() {
     sendMessage,
     cancelStream,
     createSession,
+    startNewChat,
     deleteSession,
     settings,
     updateSettings,

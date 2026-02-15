@@ -10,11 +10,18 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { sidebarCollapsed, selectedCaseId, activeTab } = useNavigation()
+  const { sidebarCollapsed, setSidebarCollapsed, selectedCaseId, activeTab } = useNavigation()
   const isWorkspaceView = activeTab === 'cases' && !!selectedCaseId
   const isFullBleed = isWorkspaceView || activeTab === 'ai-research'
-  const forceCollapseNav = activeTab === 'ai-research'
-  const effectiveCollapsed = forceCollapseNav || sidebarCollapsed
+  const prevTabRef = React.useRef(activeTab)
+
+  // Auto-collapse sidebar when entering AI Research, but don't force it
+  React.useEffect(() => {
+    if (activeTab === 'ai-research' && prevTabRef.current !== 'ai-research') {
+      setSidebarCollapsed(true)
+    }
+    prevTabRef.current = activeTab
+  }, [activeTab, setSidebarCollapsed])
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   const handleMenuClose = () => {
@@ -28,8 +35,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="min-h-screen bg-ledger-white">
-      {/* Desktop Sidebar — force-collapsed on AI Research */}
-      <Sidebar forceCollapsed={forceCollapseNav} />
+      {/* Desktop Sidebar */}
+      <Sidebar />
 
       {/* Mobile Header */}
       <MobileHeader
@@ -50,10 +57,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </Sheet>
 
       {/* Main Content */}
-      <main className={`min-h-screen transition-all duration-300 ${effectiveCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
+      <main className={`min-h-screen transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
         {/* Mobile top padding to account for fixed header */}
         <div className="pt-14 md:pt-0">
-          <div className={isFullBleed ? '' : 'p-4 md:p-8'}>
+          <div className={isFullBleed ? 'md:pt-2' : 'p-4 md:p-8'}>
             {children}
           </div>
         </div>

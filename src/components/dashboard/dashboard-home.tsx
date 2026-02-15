@@ -16,7 +16,7 @@ function getGreeting(): string {
 
 export function DashboardHome() {
   const { user } = useAuth()
-  const { setActiveTab, setSelectedCaseId } = useNavigation()
+  const { setActiveTab, setSelectedCaseId, setShowAddCaseModal } = useNavigation()
   const { cases, chatSessions, isLoading } = useDashboardData()
 
   const displayName = user?.firstName || user?.username || 'there'
@@ -42,7 +42,7 @@ export function DashboardHome() {
       <div className="space-y-6 md:space-y-8">
         {/* Greeting Header */}
         <div>
-          <h1 className="text-2xl md:text-3xl font-serif font-semibold">
+          <h1 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
             {greeting}, {displayName}
           </h1>
           <p className="text-sm text-ledger-gray-500 mt-1">
@@ -52,7 +52,7 @@ export function DashboardHome() {
 
         {/* Continue Where You Left Off - Active Cases */}
         <section>
-          <h2 className="text-lg font-semibold mb-4">Continue where you left off</h2>
+          <h2 className="text-base font-semibold text-ledger-black mb-4">Continue where you left off</h2>
           <ActiveCaseCards
             cases={activeCases}
             isLoading={isLoading}
@@ -63,7 +63,10 @@ export function DashboardHome() {
         {/* Quick Actions */}
         <section>
           <QuickActionsBar
-            onNewCase={() => setActiveTab('cases')}
+            onNewCase={() => {
+              setShowAddCaseModal(true)
+              setActiveTab('cases')
+            }}
             onNewClient={() => setActiveTab('clients')}
             onResearch={() => setActiveTab('ai-research')}
           />
@@ -76,7 +79,7 @@ export function DashboardHome() {
 
         {/* Latest Research Sessions */}
         <section>
-          <h2 className="text-lg font-semibold mb-4">Recent research</h2>
+          <h2 className="text-base font-semibold text-ledger-black mb-4">Recent research</h2>
           <LatestResearchWidget
             sessions={chatSessions}
             isLoading={isLoading}
@@ -88,7 +91,7 @@ export function DashboardHome() {
       {/* News Panel - Right Column */}
       <div className="hidden lg:block">
         <div className="sticky top-6">
-          <h2 className="text-lg font-semibold mb-4">Latest news</h2>
+          <h2 className="text-base font-semibold text-ledger-black mb-4">Latest news</h2>
           <LatestNewsWidget />
         </div>
       </div>

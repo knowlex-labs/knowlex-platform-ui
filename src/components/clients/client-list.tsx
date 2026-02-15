@@ -123,27 +123,27 @@ function ClientCard({ client, onClick }: { client: ClientWithCase; onClick: () =
             {client.name}
           </p>
           <p className="text-xs text-ledger-gray-500 truncate mt-0.5">
-            {client.case?.caseTitle ?? 'No case assigned'}
+            {client.cases[0]?.caseTitle ?? 'No case assigned'}
           </p>
-          {client.case?.caseNumber && (
+          {client.cases[0]?.caseNumber && (
             <code className="text-xs font-mono text-ledger-gray-400 mt-1 block">
-              {client.case.caseNumber}
+              {client.cases[0].caseNumber}
             </code>
           )}
         </div>
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
           <div className="flex items-center gap-1">
-            {client.case?.status && <StatusBadge status={client.case.status} />}
+            {client.cases[0]?.status && <StatusBadge status={client.cases[0].status} />}
           </div>
           <ContactActions
             phone={client.phone}
             email={client.email}
             onCardClick={(e) => e.stopPropagation()}
           />
-          {client.case?.nextHearingDate && (
+          {client.cases[0]?.nextHearingDate && (
             <div className="flex items-center gap-1 text-xs text-ledger-gray-400">
               <Calendar className="h-3 w-3" />
-              <span>{formatDate(client.case.nextHearingDate)}</span>
+              <span>{formatDate(client.cases[0].nextHearingDate)}</span>
             </div>
           )}
         </div>
@@ -176,17 +176,17 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
           {client.name}
         </p>
         <p className="text-xs text-ledger-gray-500 truncate mt-0.5">
-          {client.case?.caseTitle ?? 'No case assigned'}
+          {client.cases[0]?.caseTitle ?? 'No case assigned'}
         </p>
       </div>
       <div className="col-span-3">
         <code className="text-xs font-mono text-ledger-gray-600">
-          {client.case?.caseNumber ?? '-'}
+          {client.cases[0]?.caseNumber ?? '-'}
         </code>
       </div>
       <div className="col-span-2">
-        {client.case?.status ? (
-          <StatusBadge status={client.case.status} />
+        {client.cases[0]?.status ? (
+          <StatusBadge status={client.cases[0].status} />
         ) : (
           <span className="text-xs text-ledger-gray-400">-</span>
         )}
@@ -199,16 +199,16 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
         />
       </div>
       <div className="col-span-2">
-        {client.case?.courtName ? (
+        {client.cases[0]?.courtName ? (
           <p className="text-xs text-ledger-gray-600 truncate">
-            {client.case.courtName}
+            {client.cases[0].courtName}
           </p>
         ) : (
           <span className="text-xs text-ledger-gray-400">-</span>
         )}
-        {client.case?.nextHearingDate && (
+        {client.cases[0]?.nextHearingDate && (
           <p className="text-xs text-ledger-gray-400 mt-0.5">
-            Next: {formatDate(client.case.nextHearingDate)}
+            Next: {formatDate(client.cases[0].nextHearingDate)}
           </p>
         )}
       </div>
@@ -235,7 +235,7 @@ export function ClientList() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
           <div>
             <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
-              My Clients
+              Clients
             </h2>
             <p className="text-sm text-ledger-gray-500 mt-1">
               Manage your client cases and activities
@@ -282,7 +282,7 @@ export function ClientList() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
           <div>
             <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
-              My Clients
+              Clients
             </h2>
             <p className="text-sm text-ledger-gray-500 mt-1">
               Manage your client cases and activities
@@ -314,7 +314,7 @@ export function ClientList() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
         <div>
           <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
-            My Clients
+            Clients
           </h2>
           <p className="text-sm text-ledger-gray-500 mt-1">
             Manage your client cases and activities

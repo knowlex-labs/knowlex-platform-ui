@@ -208,9 +208,8 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   )
 }
 
-export function Sidebar({ forceCollapsed }: { forceCollapsed?: boolean }) {
-  const { sidebarCollapsed } = useNavigation()
-  const collapsed = forceCollapsed || sidebarCollapsed
+export function Sidebar() {
+  const { sidebarCollapsed: collapsed } = useNavigation()
 
   return (
     <aside className={`fixed left-0 top-0 h-screen bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>

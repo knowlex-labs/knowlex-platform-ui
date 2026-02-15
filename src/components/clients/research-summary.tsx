@@ -1,6 +1,5 @@
 import { Brain, ExternalLink } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { DemoBadge } from '@/components/ui/demo-badge'
 import { cn } from '@/lib/utils'
 import type { AIResearchItem } from '@/types'
 
@@ -24,14 +23,13 @@ function formatDate(date: Date): string {
 export function ResearchSummary({ items }: ResearchSummaryProps) {
   return (
     <div className="border border-ledger-gray-200 rounded">
-      <div className="px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50 flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-ledger-gray-500" />
           <h3 className="text-sm font-medium text-ledger-black">
             AI Research
           </h3>
         </div>
-        <DemoBadge />
       </div>
 
       <ScrollArea className="h-[400px]">

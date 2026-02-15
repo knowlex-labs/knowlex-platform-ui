@@ -28,7 +28,7 @@ export interface BackendClient {
   phoneNumber: string | null
   address: string | null
   clientType: BackendClientType
-  caseId: string | null
+  caseIds: string[]
   createdAt: string // ISO datetime string
   updatedAt: string // ISO datetime string
 }
@@ -94,7 +94,6 @@ export interface CreateClientRequest {
   phoneNumber?: string
   address?: string
   clientType: BackendClientType
-  caseId?: string
 }
 
 export interface UpdateClientRequest {
@@ -103,5 +102,4 @@ export interface UpdateClientRequest {
   phoneNumber?: string
   address?: string
   clientType?: BackendClientType
-  caseId?: string
 }

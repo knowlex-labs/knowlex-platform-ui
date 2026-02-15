@@ -13,6 +13,7 @@ export interface NavigationState {
   selectedClientId: string | null
   selectedCaseId: string | null
   sidebarCollapsed: boolean
+  showAddCaseModal: boolean
 }
 
 export interface NavigationContextValue extends NavigationState {
@@ -21,4 +22,5 @@ export interface NavigationContextValue extends NavigationState {
   setSelectedClientId: (id: string | null) => void
   setSelectedCaseId: (id: string | null) => void
   setSidebarCollapsed: (collapsed: boolean) => void
+  setShowAddCaseModal: (show: boolean) => void
 }

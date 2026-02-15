@@ -16,7 +16,7 @@ export function mapBackendClient(backendClient: BackendClient): Client {
     phone: backendClient.phoneNumber, // Field name mapping: phoneNumber -> phone
     address: backendClient.address,
     clientType: clientTypeMap[backendClient.clientType],
-    caseId: backendClient.caseId,
+    caseIds: backendClient.caseIds ?? [],
     createdAt: new Date(backendClient.createdAt),
     updatedAt: new Date(backendClient.updatedAt),
   }

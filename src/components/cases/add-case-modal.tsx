@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import {
   Dialog,
@@ -13,14 +13,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { caseApi, clientApi } from '@/services/api'
+import { mapBackendClient } from '@/services/mappers'
 import type { BackendCaseType, BackendCaseStatus } from '@/types'
 
 interface AddCaseModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  clientId: string
-  clientName: string
   onSuccess: () => void
+}
+
+interface ClientOption {
+  id: string
+  name: string
 }
 
 interface FormData {
@@ -32,6 +36,7 @@ interface FormData {
   courtLocation: string
   judgeName: string
   nextHearingDate: string
+  clientId: string
 }
 
 const initialFormData: FormData = {
@@ -43,18 +48,37 @@ const initialFormData: FormData = {
   courtLocation: '',
   judgeName: '',
   nextHearingDate: '',
+  clientId: '',
 }
 
 export function AddCaseModal({
   open,
   onOpenChange,
-  clientId,
-  clientName,
   onSuccess,
 }: AddCaseModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [clients, setClients] = useState<ClientOption[]>([])
+
+  useEffect(() => {
+    if (!open) return
+    const fetchClients = async () => {
+      try {
+        const response = await clientApi.getAll({ page: 0, size: 100 })
+        if (response.status === 'success') {
+          const mapped = response.data.content.map((c) => {
+            const client = mapBackendClient(c)
+            return { id: client.id, name: client.name }
+          })
+          setClients(mapped)
+        }
+      } catch {
+        // Silently fail
+      }
+    }
+    fetchClients()
+  }, [open])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -66,6 +90,11 @@ export function AddCaseModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!formData.clientId) {
+      setError('Please select a client')
+      return
+    }
 
     setIsSubmitting(true)
     setError(null)
@@ -89,8 +118,10 @@ export function AddCaseModal({
 
       const createdCase = caseResponse.data
 
-      // Link the case to the client
-      await clientApi.linkCase(clientId, createdCase.id)
+      // Link the case to the selected client (skip if "other")
+      if (formData.clientId !== 'other') {
+        await clientApi.linkCase(formData.clientId, createdCase.id)
+      }
 
       setFormData(initialFormData)
       onSuccess()
@@ -117,9 +148,9 @@ export function AddCaseModal({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Case for {clientName}</DialogTitle>
+          <DialogTitle>Add New Case</DialogTitle>
           <DialogDescription>
-            Enter the case details below. All fields are optional.
+            Enter the case details below. Client assignment is required.
           </DialogDescription>
         </DialogHeader>
 
@@ -240,6 +271,27 @@ export function AddCaseModal({
                 disabled={isSubmitting}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="clientId">Assign to Client *</Label>
+            <Select
+              id="clientId"
+              name="clientId"
+              value={formData.clientId}
+              onChange={handleChange}
+              disabled={isSubmitting}
+              searchable
+              searchPlaceholder="Search clients..."
+            >
+              <option value="">Select a client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+              <option value="other">Other (no client)</option>
+            </Select>
           </div>
 
           <DialogFooter className="pt-4">

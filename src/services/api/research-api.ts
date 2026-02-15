@@ -11,16 +11,19 @@ interface CreateSessionResponse {
   }
 }
 
+interface HistoryToolCall {
+  name: string
+  args: Record<string, unknown>
+  result: string
+}
+
 interface ChatHistoryResponse {
-  status: string
-  message: string
-  data: {
-    session_id: string
-    messages: Array<{
-      role: 'user' | 'assistant'
-      content: string
-    }>
-  }
+  session_id: string
+  messages: Array<{
+    role: 'human' | 'ai'
+    content: string
+    toolCalls: HistoryToolCall[] | null
+  }>
 }
 
 interface DeleteSessionResponse {
@@ -32,7 +35,10 @@ interface DeleteSessionResponse {
 }
 
 export interface SSECallbacks {
-  onToken: (token: string) => void
+  onThinking: (token: string) => void
+  onToolCall: (data: string) => void
+  onToolResult: (data: string) => void
+  onAnswer: (token: string) => void
   onEnd: () => void
   onError: (error: string) => void
 }
@@ -43,9 +49,13 @@ export const researchApi = {
     return response.data.session_id
   },
 
-  getHistory: async (sessionId: string): Promise<Array<{ role: 'user' | 'assistant'; content: string }>> => {
+  getHistory: async (sessionId: string): Promise<Array<{ role: 'user' | 'assistant'; content: string; toolCalls?: Array<{ name: string; args: Record<string, unknown>; result?: string }> }>> => {
     const response = await apiClient.get<ChatHistoryResponse>(`/api/v1/chat/sessions/${sessionId}/history`)
-    return response.data.messages
+    return response.messages.map((msg) => ({
+      role: msg.role === 'human' ? 'user' as const : 'assistant' as const,
+      content: msg.content,
+      toolCalls: msg.toolCalls ?? undefined,
+    }))
   },
 
   deleteSession: async (sessionId: string): Promise<void> => {
@@ -107,12 +117,20 @@ export const researchApi = {
           // Keep the last part in buffer (incomplete line if no trailing \n)
           buffer = allLines.pop() ?? ''
 
-          for (const line of allLines) {
+          for (const rawLine of allLines) {
+            const line = rawLine.replace(/\r$/, '')
+
+            if (line === '') {
+              // Blank line = event boundary
+              currentEvent = null
+              continue
+            }
+
             if (line.startsWith('event:')) {
               currentEvent = line.substring(6).trim()
             } else if (line.startsWith('data:')) {
-              // Keep everything after "data:" — the space is part of the token content
-              const raw = line.substring(5)
+              // Per SSE spec: strip one optional leading space after "data:"
+              const data = line[5] === ' ' ? line.substring(6) : line.substring(5)
 
               if (currentEvent === 'end') {
                 callbacks.onEnd()
@@ -120,12 +138,18 @@ export const researchApi = {
               }
 
               if (currentEvent === 'error') {
-                callbacks.onError(raw.trim())
+                callbacks.onError(data.trim())
                 return
               }
 
-              if (currentEvent === 'token') {
-                callbacks.onToken(raw)
+              if (currentEvent === 'thinking') {
+                callbacks.onThinking(data)
+              } else if (currentEvent === 'tool_call') {
+                callbacks.onToolCall(data)
+              } else if (currentEvent === 'tool_result') {
+                callbacks.onToolResult(data)
+              } else if (currentEvent === 'answer') {
+                callbacks.onAnswer(data)
               }
             }
           }

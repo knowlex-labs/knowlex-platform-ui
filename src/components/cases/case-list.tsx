@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { useNavigation } from '@/contexts/navigation-context'
@@ -7,6 +7,7 @@ import { useCasesWithClients, type CaseWithClient } from '@/hooks/use-cases-with
 import { useCaseFilters } from '@/hooks/use-case-filters'
 import { CaseFolderGrid, CaseFolderGridSkeleton } from './case-folder-grid'
 import { CaseFilters } from './case-filters'
+import { AddCaseModal } from './add-case-modal'
 import { clientApi } from '@/services/api'
 import { mapBackendClient } from '@/services/mappers'
 
@@ -16,7 +17,7 @@ interface ClientOption {
 }
 
 export function CaseList() {
-  const { setSelectedCaseId, setSidebarCollapsed } = useNavigation()
+  const { setSelectedCaseId, setSidebarCollapsed, showAddCaseModal: showAddCaseModalFromNav, setShowAddCaseModal: setShowAddCaseModalFromNav } = useNavigation()
   const {
     cases,
     isLoading,
@@ -39,6 +40,15 @@ export function CaseList() {
   } = useCaseFilters()
 
   const [clients, setClients] = useState<ClientOption[]>([])
+  const [showAddCaseModal, setShowAddCaseModal] = useState(false)
+
+  // Consume showAddCaseModal flag from navigation context (set by dashboard)
+  useEffect(() => {
+    if (showAddCaseModalFromNav) {
+      setShowAddCaseModal(true)
+      setShowAddCaseModalFromNav(false)
+    }
+  }, [showAddCaseModalFromNav, setShowAddCaseModalFromNav])
 
   // Fetch clients for filter dropdown
   useEffect(() => {
@@ -79,6 +89,10 @@ export function CaseList() {
               Manage your case files and proceedings
             </p>
           </div>
+          <Button onClick={() => setShowAddCaseModal(true)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Case
+          </Button>
         </div>
         <div className="bg-ledger-white p-8 text-center">
           <p className="text-sm text-ledger-gray-500 mb-4">{error}</p>
@@ -86,6 +100,11 @@ export function CaseList() {
             Try Again
           </Button>
         </div>
+        <AddCaseModal
+          open={showAddCaseModal}
+          onOpenChange={setShowAddCaseModal}
+          onSuccess={refresh}
+        />
       </div>
     )
   }
@@ -101,6 +120,10 @@ export function CaseList() {
             Manage your case files and proceedings
           </p>
         </div>
+        <Button onClick={() => setShowAddCaseModal(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Case
+        </Button>
       </div>
 
       {/* Filters */}
@@ -123,7 +146,7 @@ export function CaseList() {
           <CaseFolderGridSkeleton />
         ) : (
           <ScrollArea className="h-[calc(100vh-320px)]">
-            <CaseFolderGrid cases={filteredCases} onCaseClick={handleCaseClick} />
+            <CaseFolderGrid cases={filteredCases} onCaseClick={handleCaseClick} onRefresh={refresh} />
           </ScrollArea>
         )}
 
@@ -156,6 +179,12 @@ export function CaseList() {
           </div>
         )}
       </div>
+
+      <AddCaseModal
+        open={showAddCaseModal}
+        onOpenChange={setShowAddCaseModal}
+        onSuccess={refresh}
+      />
     </div>
   )
 }

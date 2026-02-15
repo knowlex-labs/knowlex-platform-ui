@@ -4,6 +4,7 @@ import type { CaseWithClient } from '@/hooks/use-cases-with-clients'
 interface CaseFolderGridProps {
   cases: CaseWithClient[]
   onCaseClick: (caseItem: CaseWithClient) => void
+  onRefresh: () => void
 }
 
 export function CaseFolderGridSkeleton() {
@@ -32,7 +33,7 @@ export function CaseFolderGridSkeleton() {
   )
 }
 
-export function CaseFolderGrid({ cases, onCaseClick }: CaseFolderGridProps) {
+export function CaseFolderGrid({ cases, onCaseClick, onRefresh }: CaseFolderGridProps) {
   if (cases.length === 0) {
     return (
       <div className="py-12 text-center">
@@ -51,6 +52,7 @@ export function CaseFolderGrid({ cases, onCaseClick }: CaseFolderGridProps) {
           key={caseItem.id}
           caseItem={caseItem}
           onClick={() => onCaseClick(caseItem)}
+          onRefresh={onRefresh}
         />
       ))}
     </div>

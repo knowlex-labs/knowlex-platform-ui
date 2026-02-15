@@ -40,14 +40,14 @@ export interface Client {
   phone: string | null
   address: string | null
   clientType: ClientType
-  caseId: string | null
+  caseIds: string[]
   createdAt: Date
   updatedAt: Date
 }
 
 // Composite type for UI display (client with case info joined)
 export interface ClientWithCase extends Client {
-  case: Case | null
+  cases: Case[]
 }
 
 // Full client view with activities and research (for detail page)
