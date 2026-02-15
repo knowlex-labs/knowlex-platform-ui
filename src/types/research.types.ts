@@ -4,14 +4,16 @@ export interface ToolCall {
   result?: string
 }
 
+export type StreamingPhase = 'waiting' | 'thinking' | 'tools' | 'answering'
+
 export interface ResearchMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
   isStreaming?: boolean
+  streamingPhase?: StreamingPhase
   toolCalls?: ToolCall[]
-  thinkingContent?: string
 }
 
 export interface ResearchSession {

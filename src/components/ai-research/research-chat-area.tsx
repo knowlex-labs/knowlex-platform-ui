@@ -1,4 +1,3 @@
-import { Bot } from 'lucide-react'
 import { ResearchMessageList } from './research-message-list'
 import { ResearchChatInput } from './research-chat-input'
 import type { ResearchMessage } from '@/types'
@@ -24,24 +23,18 @@ export function ResearchChatArea({
 
   if (showEmptyState) {
     return (
-      <div className="flex-1 flex flex-col">
-        {/* Centered greeting + input */}
-        <div className="flex-1 flex flex-col items-center justify-center px-4">
-          <div className="h-12 w-12 rounded-full bg-ledger-gray-100 flex items-center justify-center mb-4">
-            <Bot className="h-6 w-6 text-ledger-gray-500" />
-          </div>
-          <h2 className="text-xl md:text-2xl font-semibold text-ledger-black mb-1">
-            Legal Research Assistant
-          </h2>
-          <p className="text-sm text-ledger-gray-500 mb-8">
-            Ask questions about case law, statutes, and legal research
-          </p>
+      <div className="flex-1 flex flex-col items-center justify-center px-4">
+        <h2 className="text-2xl md:text-3xl font-semibold text-ledger-black mb-8">
+          What can I help you research?
+        </h2>
+        <div className="w-full max-w-2xl">
+          <ResearchChatInput
+            onSendMessage={onSendMessage}
+            onCancelStream={onCancelStream}
+            isStreaming={isStreaming}
+            variant="hero"
+          />
         </div>
-        <ResearchChatInput
-          onSendMessage={onSendMessage}
-          onCancelStream={onCancelStream}
-          isStreaming={isStreaming}
-        />
       </div>
     )
   }
@@ -58,7 +51,7 @@ export function ResearchChatArea({
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-ledger-gray-50">
+    <div className="flex-1 flex flex-col overflow-hidden">
       <ResearchMessageList messages={messages} />
       <ResearchChatInput
         onSendMessage={onSendMessage}

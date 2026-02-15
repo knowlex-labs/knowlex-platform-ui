@@ -15,12 +15,7 @@ interface ResearchSessionSidebarProps {
   onDeleteSession: (id: string) => void
 }
 
-interface SessionGroup {
-  label: string
-  sessions: ResearchSession[]
-}
-
-function groupSessions(sessions: ResearchSession[]): SessionGroup[] {
+function groupSessions(sessions: ResearchSession[]) {
   const groups: Record<string, ResearchSession[]> = {
     Today: [],
     Yesterday: [],
@@ -30,20 +25,25 @@ function groupSessions(sessions: ResearchSession[]): SessionGroup[] {
 
   for (const session of sessions) {
     const date = new Date(session.createdAt)
-    if (isToday(date)) {
-      groups['Today'].push(session)
-    } else if (isYesterday(date)) {
-      groups['Yesterday'].push(session)
-    } else if (isThisWeek(date)) {
-      groups['This Week'].push(session)
-    } else {
-      groups['Older'].push(session)
-    }
+    if (isToday(date)) groups['Today'].push(session)
+    else if (isYesterday(date)) groups['Yesterday'].push(session)
+    else if (isThisWeek(date)) groups['This Week'].push(session)
+    else groups['Older'].push(session)
   }
 
   return Object.entries(groups)
     .filter(([, items]) => items.length > 0)
-    .map(([label, items]) => ({ label, sessions: items }))
+    .map(([label, sessions]) => ({ label, sessions }))
+}
+
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, onClose: () => void) {
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [ref, onClose])
 }
 
 function SessionItem({
@@ -60,56 +60,32 @@ function SessionItem({
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [menuOpen])
+  useClickOutside(menuRef, () => setMenuOpen(false))
 
   return (
     <div
       className={cn(
-        'group relative rounded-lg px-2 py-2 cursor-pointer transition-colors flex items-center gap-2',
-        isActive
-          ? 'bg-ledger-gray-100 border-l-2 border-ledger-black'
-          : 'hover:bg-ledger-gray-50'
+        'group rounded-lg px-2 py-2 cursor-pointer transition-colors flex items-center gap-2',
+        isActive ? 'bg-ledger-gray-100 border-l-2 border-ledger-black' : 'hover:bg-ledger-gray-50'
       )}
       onClick={onSelect}
     >
       <MessageSquare className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
-      <p className="text-sm text-ledger-black truncate flex-1 min-w-0 pr-1">
-        {session.title}
-      </p>
-      {/* Absolutely positioned so it doesn't steal space from the title text */}
-      <div
-        ref={menuRef}
-        className={cn(
-          'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
-          menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        )}
-      >
+      <p className="text-sm text-ledger-black truncate flex-1 min-w-0">{session.title}</p>
+      <div ref={menuRef} className="relative flex-shrink-0">
         <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setMenuOpen((prev) => !prev)
-          }}
-          className="p-1 rounded bg-white hover:bg-ledger-gray-200 text-ledger-gray-500 hover:text-ledger-gray-700 shadow-sm border border-ledger-gray-200 transition-colors"
+          onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v) }}
+          className={cn(
+            'p-1 rounded text-ledger-gray-400 hover:bg-ledger-gray-200 hover:text-ledger-gray-700 transition-all',
+            menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          )}
         >
           <MoreVertical className="h-3.5 w-3.5" />
         </button>
         {menuOpen && (
           <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-ledger-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setMenuOpen(false)
-                onDelete()
-              }}
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete() }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 transition-colors"
             >
               <Trash2 className="h-3 w-3" />
@@ -122,31 +98,17 @@ function SessionItem({
   )
 }
 
-function SessionList({
-  sessions,
-  activeSessionId,
-  onSessionSelect,
-  onNewChat,
-  onDeleteSession,
-}: ResearchSessionSidebarProps) {
+function SessionList({ sessions, activeSessionId, onSessionSelect, onNewChat, onDeleteSession }: ResearchSessionSidebarProps) {
   const groups = groupSessions(sessions)
 
   return (
     <div className="flex flex-col h-full">
-      {/* New Chat button */}
       <div className="p-3 border-b border-ledger-gray-200">
-        <Button
-          onClick={onNewChat}
-          variant="outline"
-          className="w-full justify-start gap-2 h-9 text-sm"
-          size="sm"
-        >
+        <Button onClick={onNewChat} variant="outline" className="w-full justify-start gap-2 h-9 text-sm" size="sm">
           <Plus className="h-4 w-4" />
           New Chat
         </Button>
       </div>
-
-      {/* Session list */}
       <ScrollArea className="flex-1">
         <div className="p-2">
           {groups.length === 0 && (
@@ -157,13 +119,13 @@ function SessionList({
               <p className="text-[10px] font-medium text-ledger-gray-400 uppercase tracking-wider px-2 mb-1">
                 {group.label}
               </p>
-              {group.sessions.map((session) => (
+              {group.sessions.map((s) => (
                 <SessionItem
-                  key={session.id}
-                  session={session}
-                  isActive={activeSessionId === session.id}
-                  onSelect={() => onSessionSelect(session.id)}
-                  onDelete={() => onDeleteSession(session.id)}
+                  key={s.id}
+                  session={s}
+                  isActive={activeSessionId === s.id}
+                  onSelect={() => onSessionSelect(s.id)}
+                  onDelete={() => onDeleteSession(s.id)}
                 />
               ))}
             </div>
@@ -174,10 +136,8 @@ function SessionList({
   )
 }
 
-// Desktop sidebar (inline panel)
 export function ResearchSessionSidebarDesktop(props: ResearchSessionSidebarProps & { visible: boolean }) {
   if (!props.visible) return null
-
   return (
     <div className="hidden md:flex w-72 border-r border-ledger-gray-200 bg-white flex-col flex-shrink-0">
       <SessionList {...props} />
@@ -185,7 +145,6 @@ export function ResearchSessionSidebarDesktop(props: ResearchSessionSidebarProps
   )
 }
 
-// Mobile sidebar (Sheet)
 export function ResearchSessionSidebarMobile(
   props: ResearchSessionSidebarProps & { open: boolean; onOpenChange: (open: boolean) => void }
 ) {
@@ -198,14 +157,8 @@ export function ResearchSessionSidebarMobile(
         <SessionList
           sessions={props.sessions}
           activeSessionId={props.activeSessionId}
-          onSessionSelect={(id) => {
-            props.onSessionSelect(id)
-            props.onOpenChange(false)
-          }}
-          onNewChat={() => {
-            props.onNewChat()
-            props.onOpenChange(false)
-          }}
+          onSessionSelect={(id) => { props.onSessionSelect(id); props.onOpenChange(false) }}
+          onNewChat={() => { props.onNewChat(); props.onOpenChange(false) }}
           onDeleteSession={props.onDeleteSession}
         />
       </SheetContent>
@@ -213,15 +166,9 @@ export function ResearchSessionSidebarMobile(
   )
 }
 
-// Mobile menu toggle button
 export function MobileSidebarToggle({ onClick }: { onClick: () => void }) {
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="md:hidden h-10 w-10 text-ledger-gray-500 p-0"
-      onClick={onClick}
-    >
+    <Button variant="ghost" size="sm" className="md:hidden h-10 w-10 text-ledger-gray-500 p-0" onClick={onClick}>
       <Menu className="h-5 w-5" />
     </Button>
   )

@@ -21,6 +21,7 @@ export function AIResearch() {
     sendMessage,
     cancelStream,
     createSession,
+    startNewChat,
     deleteSession,
     settings,
     updateSettings,
@@ -41,7 +42,7 @@ export function AIResearch() {
         sessions={sessions}
         activeSessionId={activeSessionId}
         onSessionSelect={setActiveSessionId}
-        onNewChat={createSession}
+        onNewChat={startNewChat}
         onDeleteSession={deleteSession}
       />
 
@@ -52,7 +53,7 @@ export function AIResearch() {
         sessions={sessions}
         activeSessionId={activeSessionId}
         onSessionSelect={setActiveSessionId}
-        onNewChat={createSession}
+        onNewChat={startNewChat}
         onDeleteSession={deleteSession}
       />
 

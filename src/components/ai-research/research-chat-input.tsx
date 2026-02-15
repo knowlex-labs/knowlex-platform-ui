@@ -7,6 +7,7 @@ interface ResearchChatInputProps {
   onCancelStream?: () => void
   isStreaming: boolean
   disabled?: boolean
+  variant?: 'default' | 'hero'
 }
 
 export function ResearchChatInput({
@@ -14,7 +15,9 @@ export function ResearchChatInput({
   onCancelStream,
   isStreaming,
   disabled,
+  variant = 'default',
 }: ResearchChatInputProps) {
+  const isHero = variant === 'hero'
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isMultiline = input.includes('\n') || (textareaRef.current && textareaRef.current.scrollHeight > 44)
@@ -50,24 +53,29 @@ export function ResearchChatInput({
     fileInput.click()
   }
 
+  const btnSize = isHero ? 'h-9 w-9' : 'h-8 w-8'
+  const iconSize = isHero ? 'h-4 w-4' : 'h-3.5 w-3.5'
+
   return (
-    <div className="px-4 py-3">
-      <div className="max-w-xl mx-auto">
+    <div className={cn('px-4 py-3', !isHero && 'border-t border-ledger-gray-100')}>
+      <div className={cn(!isHero && 'max-w-2xl mx-auto')}>
         <div
           className={cn(
-            'flex items-end gap-1.5 border border-ledger-gray-200 bg-white transition-all shadow-sm',
-            'focus-within:border-ledger-gray-300 focus-within:shadow-md',
+            'flex items-end gap-2 border border-ledger-gray-200 bg-white transition-all',
+            isHero
+              ? 'shadow-md focus-within:shadow-lg focus-within:border-ledger-gray-300'
+              : 'shadow-sm focus-within:shadow-md focus-within:border-ledger-gray-300',
             isMultiline ? 'rounded-xl' : 'rounded-full',
-            'px-2 py-1.5'
+            isHero ? 'px-3 py-2' : 'px-2 py-1.5'
           )}
         >
           <button
             type="button"
-            className="h-7 w-7 flex items-center justify-center flex-shrink-0 text-ledger-gray-400 hover:text-ledger-gray-600 transition-colors rounded-full"
+            className={cn(btnSize, 'flex items-center justify-center flex-shrink-0 text-ledger-gray-400 hover:text-ledger-gray-600 transition-colors rounded-full')}
             onClick={handleFileClick}
             title="Attach file"
           >
-            <Paperclip className="h-3.5 w-3.5" />
+            <Paperclip className={iconSize} />
           </button>
 
           <textarea
@@ -75,30 +83,33 @@ export function ResearchChatInput({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask a legal question..."
+            placeholder={isHero ? 'Ask about case law, statutes, or legal concepts...' : 'Ask a legal question...'}
             rows={1}
-            className="flex-1 bg-transparent border-none outline-none resize-none text-sm py-1 placeholder:text-ledger-gray-400 max-h-[160px] min-h-[28px] leading-5"
+            className={cn(
+              'flex-1 bg-transparent border-none outline-none resize-none py-1 placeholder:text-ledger-gray-400 max-h-[160px] min-h-[28px] leading-5',
+              isHero ? 'text-base' : 'text-sm'
+            )}
             disabled={disabled}
           />
 
           {isStreaming ? (
             <button
               type="button"
-              className="h-7 w-7 flex items-center justify-center flex-shrink-0 text-ledger-gray-500 hover:text-ledger-black transition-colors rounded-full"
+              className={cn(btnSize, 'flex items-center justify-center flex-shrink-0 text-ledger-gray-500 hover:text-ledger-black transition-colors rounded-full')}
               onClick={onCancelStream}
               title="Stop generating"
             >
-              <Square className="h-3.5 w-3.5 fill-current" />
+              <Square className={cn(iconSize, 'fill-current')} />
             </button>
           ) : (
             <button
               type="button"
-              className="h-7 w-7 flex items-center justify-center flex-shrink-0 bg-ledger-black text-white rounded-full disabled:opacity-30 hover:bg-ledger-gray-800 transition-colors"
+              className={cn(btnSize, 'flex items-center justify-center flex-shrink-0 bg-ledger-black text-white rounded-full disabled:opacity-30 hover:bg-ledger-gray-800 transition-colors')}
               onClick={handleSubmit}
               disabled={!input.trim() || disabled}
               title="Send message"
             >
-              <Send className="h-3 w-3" />
+              <Send className={isHero ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
             </button>
           )}
         </div>
