@@ -1,6 +1,8 @@
+import { useState } from 'react'
+import { ChevronDown, ChevronRight, Wrench } from 'lucide-react'
 import { MarkdownRenderer } from './markdown-renderer'
 import { StreamingIndicator } from './streaming-indicator'
-import type { ResearchMessage } from '@/types'
+import type { ResearchMessage, ToolCall } from '@/types'
 
 interface ResearchMessageBubbleProps {
   message: ResearchMessage
@@ -38,6 +40,35 @@ function AgentAvatar() {
   )
 }
 
+function ToolCallsCollapsible({ toolCalls }: { toolCalls: ToolCall[] }) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="mb-2">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 text-xs text-ledger-gray-500 hover:text-ledger-gray-700 transition-colors"
+      >
+        <Wrench className="h-3 w-3" />
+        <span>Used {toolCalls.length} tool{toolCalls.length > 1 ? 's' : ''}</span>
+        {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+      </button>
+      {isOpen && (
+        <div className="mt-1.5 space-y-1.5 pl-4 border-l-2 border-ledger-gray-200">
+          {toolCalls.map((tc, i) => (
+            <div key={i} className="text-xs">
+              <span className="font-medium text-ledger-gray-600">{tc.name}</span>
+              {tc.result && (
+                <p className="text-ledger-gray-400 mt-0.5 line-clamp-2">{tc.result}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function ResearchMessageBubble({ message }: ResearchMessageBubbleProps) {
   const isUser = message.role === 'user'
 
@@ -62,6 +93,9 @@ export function ResearchMessageBubble({ message }: ResearchMessageBubbleProps) {
       <AgentAvatar />
       <div className="flex flex-col gap-1 items-start flex-1">
         <div className="rounded-2xl rounded-bl-sm bg-white border border-ledger-gray-200 px-4 py-2.5">
+          {message.toolCalls && message.toolCalls.length > 0 && (
+            <ToolCallsCollapsible toolCalls={message.toolCalls} />
+          )}
           {message.isStreaming && !message.content ? (
             <StreamingIndicator />
           ) : (

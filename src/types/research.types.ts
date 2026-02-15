@@ -1,9 +1,17 @@
+export interface ToolCall {
+  name: string
+  args: Record<string, unknown>
+  result?: string
+}
+
 export interface ResearchMessage {
   id: string
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
   isStreaming?: boolean
+  toolCalls?: ToolCall[]
+  thinkingContent?: string
 }
 
 export interface ResearchSession {

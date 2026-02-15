@@ -1,4 +1,5 @@
-import { Plus, MessageSquare, Trash2, Menu } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Plus, MessageSquare, MoreVertical, Trash2, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
@@ -45,6 +46,82 @@ function groupSessions(sessions: ResearchSession[]): SessionGroup[] {
     .map(([label, items]) => ({ label, sessions: items }))
 }
 
+function SessionItem({
+  session,
+  isActive,
+  onSelect,
+  onDelete,
+}: {
+  session: ResearchSession
+  isActive: boolean
+  onSelect: () => void
+  onDelete: () => void
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [menuOpen])
+
+  return (
+    <div
+      className={cn(
+        'group relative rounded-lg px-2 py-2 cursor-pointer transition-colors flex items-center gap-2',
+        isActive
+          ? 'bg-ledger-gray-100 border-l-2 border-ledger-black'
+          : 'hover:bg-ledger-gray-50'
+      )}
+      onClick={onSelect}
+    >
+      <MessageSquare className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
+      <p className="text-sm text-ledger-black truncate flex-1 min-w-0 pr-1">
+        {session.title}
+      </p>
+      {/* Absolutely positioned so it doesn't steal space from the title text */}
+      <div
+        ref={menuRef}
+        className={cn(
+          'absolute right-1 top-1/2 -translate-y-1/2 transition-opacity',
+          menuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        )}
+      >
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            setMenuOpen((prev) => !prev)
+          }}
+          className="p-1 rounded bg-white hover:bg-ledger-gray-200 text-ledger-gray-500 hover:text-ledger-gray-700 shadow-sm border border-ledger-gray-200 transition-colors"
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </button>
+        {menuOpen && (
+          <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-ledger-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setMenuOpen(false)
+                onDelete()
+              }}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="h-3 w-3" />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function SessionList({
   sessions,
   activeSessionId,
@@ -81,31 +158,13 @@ function SessionList({
                 {group.label}
               </p>
               {group.sessions.map((session) => (
-                <div
+                <SessionItem
                   key={session.id}
-                  className={cn(
-                    'group relative rounded-lg px-2 py-2 cursor-pointer transition-colors flex items-center gap-2',
-                    activeSessionId === session.id
-                      ? 'bg-ledger-gray-100 border-l-2 border-ledger-black'
-                      : 'hover:bg-ledger-gray-50'
-                  )}
-                  onClick={() => onSessionSelect(session.id)}
-                >
-                  <MessageSquare className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
-                  <p className="text-sm text-ledger-black truncate flex-1">
-                    {session.title}
-                  </p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onDeleteSession(session.id)
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-ledger-gray-200 transition-opacity flex-shrink-0"
-                    title="Delete"
-                  >
-                    <Trash2 className="h-3 w-3 text-ledger-gray-500" />
-                  </button>
-                </div>
+                  session={session}
+                  isActive={activeSessionId === session.id}
+                  onSelect={() => onSessionSelect(session.id)}
+                  onDelete={() => onDeleteSession(session.id)}
+                />
               ))}
             </div>
           ))}

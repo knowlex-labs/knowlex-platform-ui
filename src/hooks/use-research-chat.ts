@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { ResearchMessage, ResearchSession, ResearchSettings } from '@/types'
+import type { ResearchMessage, ResearchSession, ResearchSettings, ToolCall } from '@/types'
 import { researchApi } from '@/services/api/research-api'
 
 const SESSIONS_STORAGE_KEY = 'knowlex_chat_sessions'
@@ -75,6 +75,13 @@ export function useResearchChat() {
   const abortControllerRef = useRef<AbortController | null>(null)
   const isFirstMessageRef = useRef(true)
 
+  // Streaming token batching — accumulate in ref, flush at 60fps via rAF
+  const thinkingContentRef = useRef('')
+  const answerContentRef = useRef('')
+  const toolCallsRef = useRef<ToolCall[]>([])
+  const streamingMsgIdRef = useRef<string | null>(null)
+  const rafIdRef = useRef<number | null>(null)
+
   // Persist sessions whenever they change
   useEffect(() => {
     persistSessions(sessions)
@@ -102,6 +109,7 @@ export function useResearchChat() {
           role: msg.role,
           content: msg.content,
           timestamp: new Date(),
+          toolCalls: msg.toolCalls,
         }))
         setMessages(mapped)
 
@@ -129,6 +137,9 @@ export function useResearchChat() {
   useEffect(() => {
     return () => {
       abortControllerRef.current?.abort()
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current)
+      }
     }
   }, [])
 
@@ -186,6 +197,12 @@ export function useResearchChat() {
       isStreaming: true,
     }
 
+    // Reset streaming refs
+    thinkingContentRef.current = ''
+    answerContentRef.current = ''
+    toolCallsRef.current = []
+    streamingMsgIdRef.current = assistantId
+
     setMessages((prev) => [...prev, userMessage, assistantMessage])
     setIsStreaming(true)
 
@@ -198,37 +215,94 @@ export function useResearchChat() {
       isFirstMessageRef.current = false
     }
 
-    const controller = researchApi.sendMessage(sessionId, trimmed, {
-      onToken: (token) => {
+    // Flush accumulated tokens to React state (called via requestAnimationFrame)
+    const flushStreamContent = () => {
+      // Display answer tokens if we have them, otherwise fall back to thinking tokens
+      const content = answerContentRef.current || thinkingContentRef.current
+      const msgId = streamingMsgIdRef.current
+      if (msgId) {
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantId
-              ? { ...msg, content: msg.content + token }
+            msg.id === msgId
+              ? { ...msg, content, toolCalls: toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined }
               : msg
           )
         )
+      }
+      rafIdRef.current = null
+    }
+
+    const scheduleFlush = () => {
+      if (rafIdRef.current === null) {
+        rafIdRef.current = requestAnimationFrame(flushStreamContent)
+      }
+    }
+
+    const controller = researchApi.sendMessage(sessionId, trimmed, {
+      onThinking: (token) => {
+        thinkingContentRef.current += token
+        scheduleFlush()
+      },
+      onToolCall: (data) => {
+        try {
+          const parsed = JSON.parse(data)
+          toolCallsRef.current = [...toolCallsRef.current, { name: parsed.name, args: parsed.args }]
+          scheduleFlush()
+        } catch {
+          // Ignore malformed tool_call data
+        }
+      },
+      onToolResult: (data) => {
+        // Attach result to the last tool call
+        if (toolCallsRef.current.length > 0) {
+          const updated = [...toolCallsRef.current]
+          updated[updated.length - 1] = { ...updated[updated.length - 1], result: data }
+          toolCallsRef.current = updated
+          scheduleFlush()
+        }
+      },
+      onAnswer: (token) => {
+        answerContentRef.current += token
+        scheduleFlush()
       },
       onEnd: () => {
+        // Cancel any pending frame and do a final flush
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current)
+          rafIdRef.current = null
+        }
+        const finalContent = answerContentRef.current || thinkingContentRef.current
+        const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+        const msgId = streamingMsgIdRef.current
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantId
-              ? { ...msg, isStreaming: false }
+            msg.id === msgId
+              ? { ...msg, content: finalContent, toolCalls: finalToolCalls, isStreaming: false }
               : msg
           )
         )
         setIsStreaming(false)
+        streamingMsgIdRef.current = null
         abortControllerRef.current = null
       },
       onError: (errorMsg) => {
+        if (rafIdRef.current !== null) {
+          cancelAnimationFrame(rafIdRef.current)
+          rafIdRef.current = null
+        }
+        const finalContent = answerContentRef.current || thinkingContentRef.current
+        const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+        const msgId = streamingMsgIdRef.current
         setMessages((prev) =>
           prev.map((msg) =>
-            msg.id === assistantId
-              ? { ...msg, content: msg.content || 'An error occurred.', isStreaming: false }
+            msg.id === msgId
+              ? { ...msg, content: finalContent || 'An error occurred.', toolCalls: finalToolCalls, isStreaming: false }
               : msg
           )
         )
         setIsStreaming(false)
         setError(errorMsg)
+        streamingMsgIdRef.current = null
         abortControllerRef.current = null
       },
     }, { enableKb: settings.knowledgeBaseEnabled, model: settings.model, style: settings.creativity })
@@ -239,12 +313,22 @@ export function useResearchChat() {
   const cancelStream = useCallback(() => {
     abortControllerRef.current?.abort()
     abortControllerRef.current = null
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    const finalContent = answerContentRef.current || thinkingContentRef.current
+    const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+    const msgId = streamingMsgIdRef.current
     setIsStreaming(false)
     setMessages((prev) =>
       prev.map((msg) =>
-        msg.isStreaming ? { ...msg, isStreaming: false } : msg
+        msg.id === msgId
+          ? { ...msg, content: finalContent || msg.content, toolCalls: finalToolCalls, isStreaming: false }
+          : msg.isStreaming ? { ...msg, isStreaming: false } : msg
       )
     )
+    streamingMsgIdRef.current = null
   }, [])
 
   const deleteSession = useCallback(async (id: string) => {
