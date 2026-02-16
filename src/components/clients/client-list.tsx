@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ClientListSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { AddClientModal } from '@/components/clients/add-client-modal'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useNavigate } from 'react-router-dom'
 import { useClients } from '@/hooks/use-clients'
 import { STATUS_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
@@ -217,7 +217,7 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
 }
 
 export function ClientList() {
-  const { setSelectedClientId } = useNavigation()
+  const navigate = useNavigate()
   const [showAddClientModal, setShowAddClientModal] = useState(false)
   const {
     clients,
@@ -356,7 +356,7 @@ export function ClientList() {
                 <ClientCard
                   key={client.id}
                   client={client}
-                  onClick={() => setSelectedClientId(client.id)}
+                  onClick={() => navigate(`/clients/${client.id}`)}
                 />
               ))}
             </div>
@@ -367,7 +367,7 @@ export function ClientList() {
                 <ClientTableRow
                   key={client.id}
                   client={client}
-                  onClick={() => setSelectedClientId(client.id)}
+                  onClick={() => navigate(`/clients/${client.id}`)}
                 />
               ))}
             </div>

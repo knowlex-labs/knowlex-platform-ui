@@ -100,20 +100,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setAuthTokens(null, null, null)
       setAuthState({ isAuthenticated: false, user: null })
 
-      // Clear navigation state to force home page on next login
-      const savedNavState = localStorage.getItem('knowlex_navigation_state')
-      if (savedNavState) {
-        try {
-          localStorage.setItem('knowlex_navigation_state', JSON.stringify({
-            activeTab: 'dashboard',
-            selectedClientId: null,
-            selectedCaseId: null
-          }))
-        } catch (e) {
-          console.error('Failed to clear navigation state:', e)
-        }
-      }
-
       // Trigger toast notification
       window.dispatchEvent(new CustomEvent('toast:show', {
         detail: {

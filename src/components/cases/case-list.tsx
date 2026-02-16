@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useNavigate } from 'react-router-dom'
+import { useUIState } from '@/contexts/ui-context'
 import { useCasesWithClients, type CaseWithClient } from '@/hooks/use-cases-with-clients'
 import { useCaseFilters } from '@/hooks/use-case-filters'
 import { CaseFolderGrid, CaseFolderGridSkeleton } from './case-folder-grid'
@@ -17,7 +18,8 @@ interface ClientOption {
 }
 
 export function CaseList() {
-  const { setSelectedCaseId, setSidebarCollapsed, showAddCaseModal: showAddCaseModalFromNav, setShowAddCaseModal: setShowAddCaseModalFromNav } = useNavigation()
+  const navigate = useNavigate()
+  const { setSidebarCollapsed, showAddCaseModal: showAddCaseModalFromNav, setShowAddCaseModal: setShowAddCaseModalFromNav } = useUIState()
   const {
     cases,
     isLoading,
@@ -74,7 +76,7 @@ export function CaseList() {
   const handleCaseClick = (caseItem: CaseWithClient) => {
     // Auto-collapse sidebar when opening a case
     setSidebarCollapsed(true)
-    setSelectedCaseId(caseItem.id)
+    navigate(`/cases/${caseItem.id}`)
   }
 
   if (error) {

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { ClientDetailSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-display'
@@ -7,13 +8,15 @@ import { ClientHeader } from './client-header'
 import { ActivityFeed } from './activity-feed'
 import { ResearchSummary } from './research-summary'
 import { AddCaseModal } from './add-case-modal'
-import { useNavigation } from '@/contexts/navigation-context'
 import { useClientDetail } from '@/hooks/use-client-detail'
 
 export function ClientDetail() {
-  const { selectedClientId, setSelectedClientId } = useNavigation()
-  const { client, isLoading, error, refresh } = useClientDetail(selectedClientId)
+  const { clientId } = useParams<{ clientId: string }>()
+  const navigate = useNavigate()
+  const { client, isLoading, error, refresh } = useClientDetail(clientId ?? null)
   const [showAddCaseModal, setShowAddCaseModal] = useState(false)
+
+  const goBack = () => navigate('/clients')
 
   if (isLoading) {
     return (
@@ -22,7 +25,7 @@ export function ClientDetail() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedClientId(null)}
+            onClick={goBack}
             className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -41,7 +44,7 @@ export function ClientDetail() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setSelectedClientId(null)}
+            onClick={goBack}
             className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -65,7 +68,7 @@ export function ClientDetail() {
         <p className="text-ledger-gray-500">Client not found</p>
         <Button
           variant="ghost"
-          onClick={() => setSelectedClientId(null)}
+          onClick={goBack}
           className="mt-4"
         >
           Back to Clients
@@ -81,7 +84,7 @@ export function ClientDetail() {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setSelectedClientId(null)}
+          onClick={goBack}
           className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
         >
           <ArrowLeft className="h-4 w-4" />

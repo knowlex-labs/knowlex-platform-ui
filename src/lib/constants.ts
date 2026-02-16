@@ -4,13 +4,14 @@ export interface SidebarTabConfig {
   id: DashboardTab
   label: string
   icon: string
+  path: string
 }
 
 export const SIDEBAR_TABS: SidebarTabConfig[] = [
-  { id: 'dashboard', label: 'Home', icon: 'home' },
-  { id: 'cases', label: 'Cases', icon: 'briefcase' },
-  { id: 'clients', label: 'Clients', icon: 'users' },
-  { id: 'ai-research', label: 'AI Research', icon: 'brain' },
+  { id: 'dashboard', label: 'Home', icon: 'home', path: '/dashboard' },
+  { id: 'cases', label: 'Cases', icon: 'briefcase', path: '/cases' },
+  { id: 'clients', label: 'Clients', icon: 'users', path: '/clients' },
+  { id: 'ai-research', label: 'AI Research', icon: 'brain', path: '/ai-research' },
 ]
 
 export const STATUS_COLORS = {

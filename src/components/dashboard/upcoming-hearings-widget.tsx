@@ -1,6 +1,6 @@
 import { Calendar } from 'lucide-react'
 import { DashboardCard } from './dashboard-card'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useNavigate } from 'react-router-dom'
 import type { Case } from '@/types'
 
 interface UpcomingHearingsWidgetProps {
@@ -32,7 +32,7 @@ export function UpcomingHearingsWidget({
   cases,
   isLoading,
 }: UpcomingHearingsWidgetProps) {
-  const { setActiveTab } = useNavigation()
+  const navigate = useNavigate()
 
   // Filter cases with upcoming hearings and sort by date
   const upcomingHearings = cases
@@ -48,7 +48,7 @@ export function UpcomingHearingsWidget({
       <DashboardCard
         title="Upcoming Hearings"
         icon={Calendar}
-        action={{ label: 'See All', onClick: () => setActiveTab('cases') }}
+        action={{ label: 'See All', onClick: () => navigate('/cases') }}
       >
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
@@ -66,7 +66,7 @@ export function UpcomingHearingsWidget({
     <DashboardCard
       title="Upcoming Hearings"
       icon={Calendar}
-      action={{ label: 'See All', onClick: () => setActiveTab('cases') }}
+      action={{ label: 'See All', onClick: () => navigate('/cases') }}
     >
       {upcomingHearings.length === 0 ? (
         <p className="text-sm text-ledger-gray-500 text-center py-4">

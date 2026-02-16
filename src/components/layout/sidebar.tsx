@@ -10,10 +10,10 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useUIState } from '@/contexts/ui-context'
 import { useAuth } from '@/contexts/auth-context'
 import { SIDEBAR_TABS, APP_NAME, DEMO_USER_USERNAME } from '@/lib/constants'
-import type { DashboardTab } from '@/types'
 import * as React from 'react'
 
 const iconMap = {
@@ -23,20 +23,34 @@ const iconMap = {
   brain: Brain,
 }
 
+// Derive active tab ID from the current pathname
+function getActiveTabFromPath(pathname: string): string {
+  for (const tab of SIDEBAR_TABS) {
+    if (pathname.startsWith(tab.path)) {
+      return tab.id
+    }
+  }
+  return 'dashboard'
+}
+
 interface SidebarContentProps {
   onItemClick?: () => void
   collapsed?: boolean
 }
 
 export function SidebarContent({ onItemClick, collapsed = false }: SidebarContentProps) {
-  const { activeTab, setActiveTab, setView, setSidebarCollapsed } = useNavigation()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { setSidebarCollapsed } = useUIState()
   const { user, logout } = useAuth()
   const [showHelpDialog, setShowHelpDialog] = React.useState(false)
   const [showUserMenu, setShowUserMenu] = React.useState(false)
 
+  const activeTab = getActiveTabFromPath(location.pathname)
+
   const handleLogout = () => {
     logout()
-    setView('landing')
+    navigate('/')
     setShowUserMenu(false)
     onItemClick?.()
   }
@@ -51,7 +65,10 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const isDemoUser = user?.username === DEMO_USER_USERNAME
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value as DashboardTab)
+    const tab = SIDEBAR_TABS.find(t => t.id === value)
+    if (tab) {
+      navigate(tab.path)
+    }
     onItemClick?.()
   }
 
@@ -153,7 +170,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
               <div className="absolute bottom-full left-0 right-0 mb-2 bg-ledger-white border border-ledger-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
                 <button
                   onClick={() => {
-                    setActiveTab('account-settings' as DashboardTab)
+                    navigate('/settings')
                     setShowUserMenu(false)
                     onItemClick?.()
                   }}
@@ -209,7 +226,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
 }
 
 export function Sidebar() {
-  const { sidebarCollapsed: collapsed } = useNavigation()
+  const { sidebarCollapsed: collapsed } = useUIState()
 
   return (
     <aside className={`fixed left-0 top-0 h-screen bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>

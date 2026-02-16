@@ -1,5 +1,6 @@
 import { useAuth } from '@/contexts/auth-context'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useNavigate } from 'react-router-dom'
+import { useUIState } from '@/contexts/ui-context'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { ActiveCaseCards } from './active-case-cards'
 import { QuickActionsBar } from './quick-actions-bar'
@@ -16,7 +17,8 @@ function getGreeting(): string {
 
 export function DashboardHome() {
   const { user } = useAuth()
-  const { setActiveTab, setSelectedCaseId, setShowAddCaseModal } = useNavigation()
+  const navigate = useNavigate()
+  const { setShowAddCaseModal } = useUIState()
   const { cases, chatSessions, isLoading } = useDashboardData()
 
   const displayName = user?.firstName || user?.username || 'there'
@@ -28,12 +30,11 @@ export function DashboardHome() {
   )
 
   const handleCaseClick = (caseId: string) => {
-    setSelectedCaseId(caseId)
-    setActiveTab('cases')
+    navigate(`/cases/${caseId}`)
   }
 
   const handleResearchClick = () => {
-    setActiveTab('ai-research')
+    navigate('/ai-research')
   }
 
   return (
@@ -65,10 +66,10 @@ export function DashboardHome() {
           <QuickActionsBar
             onNewCase={() => {
               setShowAddCaseModal(true)
-              setActiveTab('cases')
+              navigate('/cases')
             }}
-            onNewClient={() => setActiveTab('clients')}
-            onResearch={() => setActiveTab('ai-research')}
+            onNewClient={() => navigate('/clients')}
+            onResearch={() => navigate('/ai-research')}
           />
         </section>
 

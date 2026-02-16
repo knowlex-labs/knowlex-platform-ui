@@ -1,6 +1,6 @@
 import { Briefcase } from 'lucide-react'
 import { DashboardCard } from './dashboard-card'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useNavigate } from 'react-router-dom'
 import { STATUS_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 import type { Case, CaseStatus } from '@/types'
@@ -25,14 +25,14 @@ function StatusBadge({ status }: { status: CaseStatus }) {
 }
 
 export function RecentCasesWidget({ cases, isLoading }: RecentCasesWidgetProps) {
-  const { setActiveTab } = useNavigation()
+  const navigate = useNavigate()
 
   if (isLoading) {
     return (
       <DashboardCard
         title="Recent Cases"
         icon={Briefcase}
-        action={{ label: 'See All', onClick: () => setActiveTab('cases') }}
+        action={{ label: 'See All', onClick: () => navigate('/cases') }}
       >
         <div className="space-y-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -50,7 +50,7 @@ export function RecentCasesWidget({ cases, isLoading }: RecentCasesWidgetProps) 
     <DashboardCard
       title="Recent Cases"
       icon={Briefcase}
-      action={{ label: 'See All', onClick: () => setActiveTab('cases') }}
+      action={{ label: 'See All', onClick: () => navigate('/cases') }}
     >
       {cases.length === 0 ? (
         <p className="text-sm text-ledger-gray-500 text-center py-4">

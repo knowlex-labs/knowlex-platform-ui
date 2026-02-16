@@ -1,27 +1,31 @@
 import * as React from 'react'
+import { useLocation } from 'react-router-dom'
 import { Sidebar, SidebarContent } from './sidebar'
 import { MobileHeader } from './mobile-header'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { APP_NAME } from '@/lib/constants'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useUIState } from '@/contexts/ui-context'
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { sidebarCollapsed, setSidebarCollapsed, selectedCaseId, activeTab } = useNavigation()
-  const isWorkspaceView = activeTab === 'cases' && !!selectedCaseId
-  const isFullBleed = isWorkspaceView || activeTab === 'ai-research'
-  const prevTabRef = React.useRef(activeTab)
+  const { sidebarCollapsed, setSidebarCollapsed } = useUIState()
+  const location = useLocation()
 
-  // Auto-collapse sidebar when entering AI Research, but don't force it
+  const isWorkspaceView = /^\/cases\/[^/]+/.test(location.pathname)
+  const isFullBleed = isWorkspaceView || location.pathname === '/ai-research'
+  const prevPathRef = React.useRef(location.pathname)
+
+  // Auto-collapse sidebar when entering AI Research
   React.useEffect(() => {
-    if (activeTab === 'ai-research' && prevTabRef.current !== 'ai-research') {
+    if (location.pathname === '/ai-research' && prevPathRef.current !== '/ai-research') {
       setSidebarCollapsed(true)
     }
-    prevTabRef.current = activeTab
-  }, [activeTab, setSidebarCollapsed])
+    prevPathRef.current = location.pathname
+  }, [location.pathname, setSidebarCollapsed])
+
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   const handleMenuClose = () => {
@@ -29,7 +33,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const handleUserMenuClick = () => {
-    // Open the drawer - user can access their menu from the sidebar
     setMobileMenuOpen(true)
   }
 

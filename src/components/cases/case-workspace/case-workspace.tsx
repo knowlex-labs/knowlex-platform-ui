@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, Trash2, Download, FileDown, FileText, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useNavigation } from '@/contexts/navigation-context'
+import { useParams, useNavigate } from 'react-router-dom'
+import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
 import { useCaseSources } from '@/hooks/use-case-sources'
 import { useWorkspaceChat } from '@/hooks/use-workspace-chat'
@@ -45,14 +46,12 @@ function assembleBody(templateId: string, formData: TemplateFormData): string {
   }
 }
 
-interface CaseWorkspaceProps {
-  caseId: string
-  caseTitle?: string
-}
-
-export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
-  const { setSelectedCaseId, setSidebarCollapsed } = useNavigation()
-  const [caseName, setCaseName] = useState(caseTitle ?? 'Case Workspace')
+export function CaseWorkspace() {
+  const { caseId: caseIdParam } = useParams<{ caseId: string }>()
+  const caseId = caseIdParam!
+  const navigate = useNavigate()
+  const { setSidebarCollapsed } = useUIState()
+  const [caseName, setCaseName] = useState('Case Workspace')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
@@ -165,8 +164,8 @@ export function CaseWorkspace({ caseId, caseTitle }: CaseWorkspaceProps) {
   const totalSelected = selectedSourceIds.size + selectedDraftIds.size
 
   const handleBack = () => {
-    setSelectedCaseId(null)
     setSidebarCollapsed(false)
+    navigate('/cases')
   }
 
   const handleSendMessage = async (query: string) => {
