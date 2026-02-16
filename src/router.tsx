@@ -18,7 +18,7 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedLayout />,
     children: [
-      { path: '/dashboard', element: <DashboardHome /> },
+      { path: '/home', element: <DashboardHome /> },
       { path: '/cases', element: <CaseList /> },
       { path: '/cases/:caseId', element: <CaseWorkspace /> },
       { path: '/clients', element: <ClientList /> },

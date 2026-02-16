@@ -87,7 +87,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
 
     try {
       await googleLogin(response.credential)
-      navigate('/dashboard')
+      navigate('/home')
       onOpenChange(false)
     } catch (err) {
       console.error('Google login failed:', err)
@@ -258,7 +258,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
 
     try {
       await login({ username, password })
-      navigate('/dashboard')
+      navigate('/home')
       onOpenChange(false)
     } catch (err) {
       console.error('Login failed:', err)
@@ -361,7 +361,7 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
             onClick={async () => {
               try {
                 await continueAsGuest()
-                navigate('/dashboard')
+                navigate('/home')
                 onOpenChange(false)
               } catch (err) {
                 console.error('Failed to continue as guest:', err)

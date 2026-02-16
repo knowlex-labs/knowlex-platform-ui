@@ -23,13 +23,12 @@ export function LandingRoute() {
     }
   }, [location.state])
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to home — always land on /home after login
   React.useEffect(() => {
     if (isAuthenticated && !isRestoringSession) {
-      const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard'
-      navigate(from, { replace: true })
+      navigate('/home', { replace: true })
     }
-  }, [isAuthenticated, isRestoringSession, navigate, location.state])
+  }, [isAuthenticated, isRestoringSession, navigate])
 
   // Listen for toast events
   React.useEffect(() => {

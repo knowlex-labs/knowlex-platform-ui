@@ -131,6 +131,16 @@ export const workspaceApi = {
   },
 
   /**
+   * Get a presigned download URL for viewing/downloading a document
+   */
+  async getDownloadUrl(documentId: string): Promise<string> {
+    const response = await apiClient.get<ApiResponse<{ downloadUrl: string }>>(
+      `/api/v1/documents/${documentId}/download-url`
+    )
+    return response.data.downloadUrl
+  },
+
+  /**
    * Delete a document
    */
   async deleteCaseSource(documentId: string): Promise<void> {

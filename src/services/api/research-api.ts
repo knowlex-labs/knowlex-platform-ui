@@ -30,6 +30,12 @@ interface ChatHistoryResponse {
   }
 }
 
+interface ListSessionsResponse {
+  status: string
+  message: string
+  data: Array<{ session_id: string }>
+}
+
 interface DeleteSessionResponse {
   status: string
   message: string
@@ -48,6 +54,11 @@ export interface SSECallbacks {
 }
 
 export const researchApi = {
+  getSessions: async (): Promise<string[]> => {
+    const response = await apiClient.get<ListSessionsResponse>('/api/v1/chat/sessions')
+    return (response.data ?? []).map((s) => s.session_id)
+  },
+
   createSession: async (enableKb = true): Promise<string> => {
     const response = await apiClient.post<CreateSessionResponse>('/api/v1/chat/sessions', { enable_kb: enableKb })
     return response.data.session_id
