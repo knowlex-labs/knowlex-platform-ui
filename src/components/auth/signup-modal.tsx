@@ -98,7 +98,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
 
     try {
       await googleLogin(response.credential)
-      navigate('/dashboard')
+      navigate('/home')
       onOpenChange(false)
     } catch (err) {
       console.error('Google signup failed:', err)
@@ -285,7 +285,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
 
     try {
       await signup(formData)
-      navigate('/dashboard')
+      navigate('/home')
       onOpenChange(false)
     } catch (err) {
       console.error('Signup failed:', err)

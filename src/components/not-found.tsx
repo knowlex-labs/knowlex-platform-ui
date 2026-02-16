@@ -7,7 +7,7 @@ export function NotFound() {
         <h1 className="text-4xl font-serif font-semibold text-ledger-black mb-2">404</h1>
         <p className="text-ledger-gray-600 mb-6">Page not found</p>
         <Link
-          to="/dashboard"
+          to="/home"
           className="inline-flex items-center px-4 py-2 text-sm font-medium text-ledger-white bg-ledger-black rounded hover:bg-ledger-gray-800 transition-colors"
         >
           Back to Dashboard

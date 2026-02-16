@@ -209,12 +209,12 @@ export function LeftSidebar({
                   </p>
                 </div>
               ) : (
-                <div className="space-y-0.5">
+                <div>
                   {drafts.map((draft) => (
                     <div
                       key={draft.id}
                       className={cn(
-                        'flex items-center gap-2 px-4 py-2',
+                        'flex items-center gap-2 px-4 py-2.5',
                         'hover:bg-ledger-gray-50 transition-colors',
                         draft.status === 'failed' && 'opacity-60'
                       )}
@@ -236,18 +236,15 @@ export function LeftSidebar({
                         ) : (
                           <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
                         )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-ledger-black truncate">
-                            {draft.title}
-                          </p>
-                          <p className="text-xs text-ledger-gray-400 truncate">
-                            {draft.status === 'pending'
-                              ? 'Generating...'
-                              : draft.status === 'failed'
-                                ? 'Generation failed'
-                                : draft.updatedAt.toLocaleDateString()}
-                          </p>
-                        </div>
+                        <span className="text-sm text-ledger-black truncate flex-1 min-w-0">
+                          {draft.title}
+                          {draft.status === 'pending' && (
+                            <span className="text-ledger-gray-400 ml-1">- Generating...</span>
+                          )}
+                          {draft.status === 'failed' && (
+                            <span className="text-red-400 ml-1">- Failed</span>
+                          )}
+                        </span>
                       </button>
                     </div>
                   ))}

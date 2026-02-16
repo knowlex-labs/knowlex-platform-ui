@@ -2,9 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import type { ResearchMessage, ResearchSession, ResearchSettings, StreamingPhase, ToolCall } from '@/types'
 import { researchApi } from '@/services/api/research-api'
 
-const SESSIONS_STORAGE_KEY = 'knowlex_chat_sessions'
 const SETTINGS_STORAGE_KEY = 'knowlex_chat_settings'
-const ACTIVE_SESSION_STORAGE_KEY = 'knowlex_active_chat_session'
 
 const VALID_MODELS = ['openai', 'gemini'] as const
 const DEFAULT_MODEL = 'openai'
@@ -13,27 +11,6 @@ const DEFAULT_SETTINGS: ResearchSettings = {
   creativity: 'balanced',
   model: DEFAULT_MODEL,
   knowledgeBaseEnabled: true,
-}
-
-interface StoredSession {
-  id: string
-  title: string
-  createdAt: string
-}
-
-function loadSessions(): ResearchSession[] {
-  try {
-    const stored = localStorage.getItem(SESSIONS_STORAGE_KEY)
-    if (!stored) return []
-    const parsed: StoredSession[] = JSON.parse(stored)
-    return parsed.map((s) => ({ ...s, createdAt: new Date(s.createdAt) }))
-  } catch {
-    return []
-  }
-}
-
-function persistSessions(sessions: ResearchSession[]) {
-  localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessions))
 }
 
 function loadSettings(): ResearchSettings {
@@ -64,20 +41,12 @@ function persistSettings(settings: ResearchSettings) {
 }
 
 export function useResearchChat() {
-  const [sessions, setSessions] = useState<ResearchSession[]>(() => loadSessions())
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
-    try {
-      const stored = localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY)
-      if (!stored) return null
-      const allSessions = loadSessions()
-      return allSessions.some((s) => s.id === stored) ? stored : null
-    } catch {
-      return null
-    }
-  })
+  const [sessions, setSessions] = useState<ResearchSession[]>([])
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ResearchMessage[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [settings, setSettings] = useState<ResearchSettings>(() => loadSettings())
 
@@ -92,26 +61,56 @@ export function useResearchChat() {
   const streamingMsgIdRef = useRef<string | null>(null)
   const rafIdRef = useRef<number | null>(null)
 
-  // Persist sessions
+  // Load sessions from API on mount
   useEffect(() => {
-    persistSessions(sessions)
-  }, [sessions])
+    let cancelled = false
 
-  // Persist active session id
-  useEffect(() => {
-    if (activeSessionId) {
-      localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, activeSessionId)
-    } else {
-      localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
+    const fetchSessions = async () => {
+      setIsLoadingSessions(true)
+      try {
+        const sessionIds = await researchApi.getSessions()
+
+        if (cancelled) return
+
+        // For each session, fetch history to derive a title from the first user message
+        const sessionPromises = sessionIds.map(async (id) => {
+          try {
+            const history = await researchApi.getHistory(id)
+            const firstUserMsg = history.find((m) => m.role === 'user')
+            const title = firstUserMsg
+              ? firstUserMsg.content.length > 50
+                ? firstUserMsg.content.substring(0, 50) + '...'
+                : firstUserMsg.content
+              : 'New Chat'
+            return { id, title, createdAt: new Date() } as ResearchSession
+          } catch {
+            return { id, title: 'New Chat', createdAt: new Date() } as ResearchSession
+          }
+        })
+
+        const loaded = await Promise.all(sessionPromises)
+        if (!cancelled) {
+          setSessions(loaded)
+        }
+      } catch {
+        // Silently fail — user just sees empty sidebar
+      } finally {
+        if (!cancelled) setIsLoadingSessions(false)
+      }
     }
-  }, [activeSessionId])
+
+    fetchSessions()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Clear on auth expiry
   useEffect(() => {
     const handleExpired = () => {
       setActiveSessionId(null)
       setMessages([])
-      localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY)
     }
     window.addEventListener('auth:session-expired', handleExpired)
     return () => window.removeEventListener('auth:session-expired', handleExpired)
@@ -189,7 +188,8 @@ export function useResearchChat() {
         setError(err instanceof Error ? err.message : 'Failed to create session')
         return
       }
-      setSessions((prev) => [{ id: sessionId!, title: 'New Chat', createdAt: new Date() }, ...prev])
+      const title = trimmed.length > 50 ? trimmed.substring(0, 50) + '...' : trimmed
+      setSessions((prev) => [{ id: sessionId!, title, createdAt: new Date() }, ...prev])
       isFirstMessageRef.current = true
     }
 
@@ -396,6 +396,7 @@ export function useResearchChat() {
     messages,
     isStreaming,
     isLoadingHistory,
+    isLoadingSessions,
     error,
     sendMessage,
     cancelStream,
