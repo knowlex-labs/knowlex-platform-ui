@@ -47,7 +47,7 @@ export function FeatureShowcase({
         <ul className="space-y-3">
           {bullets.map((bullet) => (
             <li key={bullet} className="flex items-start gap-3 text-sm text-kx-text-secondary">
-              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-kx-primary-500 shrink-0" />
+              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-red-800 shrink-0" />
               {bullet}
             </li>
           ))}

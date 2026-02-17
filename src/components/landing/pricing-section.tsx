@@ -79,7 +79,7 @@ export function PricingSection() {
               key={plan.name}
               className={`scroll-reveal bg-white rounded-2xl p-5 sm:p-6 md:p-8 border flex flex-col ${isVisible ? 'is-visible' : ''} ${
                 plan.highlighted
-                  ? 'border-kx-primary-600 ring-2 ring-kx-primary-600'
+                  ? 'border-[#7a2e2e] ring-2 ring-[#7a2e2e]'
                   : 'border-gray-200'
               }`}
             >
@@ -113,8 +113,8 @@ export function PricingSection() {
               <Button
                 className={`w-full mb-6 sm:mb-8 ${
                   plan.highlighted
-                    ? 'bg-kx-primary-600 text-white hover:bg-kx-primary-700'
-                    : 'border-kx-primary-600 text-kx-primary-600 hover:bg-kx-primary-50 bg-transparent'
+                    ? 'bg-[#7a2e2e] text-white hover:bg-[#5e2323]'
+                    : 'border-[#7a2e2e] text-[#7a2e2e] hover:bg-red-50 bg-transparent'
                 }`}
                 variant={plan.highlighted ? 'primary' : 'outline'}
                 onClick={plan.name === 'Enterprise' ? handleContactUs : () => window.open(CALENDLY_URL, '_blank')}
@@ -125,7 +125,7 @@ export function PricingSection() {
               <ul className="space-y-2 sm:space-y-3 flex-1">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <Check className="w-4 h-4 sm:w-5 sm:h-5 text-kx-primary-600 flex-shrink-0 mt-0.5" />
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5 text-[#7a2e2e] flex-shrink-0 mt-0.5" />
                     <span className="text-sm sm:text-base text-kx-text-secondary">{feature}</span>
                   </li>
                 ))}

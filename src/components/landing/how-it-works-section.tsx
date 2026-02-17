@@ -9,8 +9,8 @@ const steps = [
     description:
       'Add a new case to set up your workspace — all drafts, research, and documents organized in one place.',
     highlight: 'Your workspace',
-    iconBg: 'bg-indigo-100',
-    iconColor: 'text-indigo-600',
+    iconBg: 'bg-red-100',
+    iconColor: 'text-red-800',
   },
   {
     number: 2,
@@ -19,8 +19,8 @@ const steps = [
     description:
       'Generate drafts from predefined legal templates, edit them yourself, or refine with AI. Upload supporting documents right alongside.',
     highlight: 'AI-assisted',
-    iconBg: 'bg-violet-100',
-    iconColor: 'text-violet-600',
+    iconBg: 'bg-orange-100',
+    iconColor: 'text-orange-700',
   },
   {
     number: 3,
@@ -54,7 +54,7 @@ export function HowItWorksSection() {
           className={`scroll-reveal-stagger relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 lg:gap-10 mb-12 sm:mb-16`}
         >
           {/* Connector lines — desktop only */}
-          <div className="hidden md:block absolute top-16 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-0.5 bg-gradient-to-r from-indigo-200 via-violet-200 to-amber-200" />
+          <div className="hidden md:block absolute top-16 left-[calc(16.67%+24px)] right-[calc(16.67%+24px)] h-0.5 bg-gradient-to-r from-red-200 via-orange-200 to-amber-200" />
 
           {steps.map((step) => (
             <div
@@ -95,10 +95,10 @@ export function HowItWorksSection() {
 
         {/* Differentiator callout */}
         <div
-          className={`scroll-reveal ${isVisible ? 'is-visible' : ''} bg-[#16103a] rounded-2xl p-8 sm:p-10 text-center`}
+          className={`scroll-reveal ${isVisible ? 'is-visible' : ''} bg-[#2d1518] rounded-2xl p-8 sm:p-10 text-center`}
           style={{ transitionDelay: '360ms' }}
         >
-          <Database className="w-8 h-8 text-violet-400 mx-auto mb-4" />
+          <Database className="w-8 h-8 text-orange-400 mx-auto mb-4" />
           <h3 className="text-lg sm:text-xl font-serif font-semibold text-white mb-2">
             The only platform built on a curated Indian judgements database
           </h3>

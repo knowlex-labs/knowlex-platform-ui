@@ -21,8 +21,8 @@ const ACTIONS: QuickAction[] = [
     icon: Plus,
     title: 'New Case',
     subtitle: 'Start a new case',
-    iconColors: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-    hoverGlow: 'dark:hover:border-blue-500/50 dark:hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]',
+    iconColors: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    hoverGlow: 'dark:hover:border-red-500/50 dark:hover:shadow-[0_0_20px_rgba(122,46,46,0.2)]',
   },
   {
     icon: UserPlus,
@@ -35,8 +35,8 @@ const ACTIONS: QuickAction[] = [
     icon: Brain,
     title: 'AI Research',
     subtitle: 'Start AI research',
-    iconColors: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-    hoverGlow: 'dark:hover:border-purple-500/50 dark:hover:shadow-[0_0_20px_rgba(168,85,247,0.2)]',
+    iconColors: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+    hoverGlow: 'dark:hover:border-orange-500/50 dark:hover:shadow-[0_0_20px_rgba(194,108,62,0.2)]',
   },
 ]
 

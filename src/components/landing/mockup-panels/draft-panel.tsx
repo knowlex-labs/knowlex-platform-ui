@@ -42,11 +42,11 @@ export function DraftPanel({ imageSrc }: DraftPanelProps) {
               resident of Mumbai and has deep roots in the community...
             </p>
           </div>
-          <span className="inline-block w-[2px] h-3 bg-kx-primary-500 animate-blink" />
+          <span className="inline-block w-[2px] h-3 bg-red-800 animate-blink" />
         </div>
         {/* Floating AI button */}
         <div className="absolute top-12 right-4">
-          <div className="flex items-center gap-1 bg-kx-primary-600 text-white rounded px-1.5 py-0.5 shadow-sm">
+          <div className="flex items-center gap-1 bg-[#7a2e2e] text-white rounded px-1.5 py-0.5 shadow-sm">
             <Wand2 className="w-2.5 h-2.5" />
             <span className="text-[8px] font-medium">Fix with AI</span>
           </div>

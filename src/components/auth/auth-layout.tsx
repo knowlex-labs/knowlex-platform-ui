@@ -29,10 +29,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
         <div className="relative z-10 text-center px-12">
           <h1 className="text-5xl font-serif font-semibold text-white mb-4">{APP_NAME}</h1>
-          <p className="text-xl text-indigo-200 font-light">
+          <p className="text-xl text-red-200 font-light">
             India's Smart Legal Workflow
           </p>
-          <p className="text-sm text-indigo-300/80 mt-6 max-w-sm mx-auto leading-relaxed">
+          <p className="text-sm text-red-300/80 mt-6 max-w-sm mx-auto leading-relaxed">
             AI-powered drafting, legal research, and client management — built for Indian law firms.
           </p>
           <Link

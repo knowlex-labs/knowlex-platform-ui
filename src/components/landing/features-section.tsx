@@ -27,8 +27,8 @@ export function FeaturesSection() {
               'Edit yourself or refine sections with AI assistance',
             ]}
             icon={FileText}
-            iconBg="bg-kx-primary-100"
-            iconColor="text-kx-primary-600"
+            iconBg="bg-red-100"
+            iconColor="text-red-800"
             mockup={<DraftPanel />}
           />
 
@@ -41,8 +41,8 @@ export function FeaturesSection() {
               'Search your own docs and the knowledge base together',
             ]}
             icon={Scale}
-            iconBg="bg-violet-100"
-            iconColor="text-violet-600"
+            iconBg="bg-orange-100"
+            iconColor="text-orange-700"
             mockup={<ResearchPanel />}
             reversed
           />

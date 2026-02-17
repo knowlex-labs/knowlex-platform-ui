@@ -33,7 +33,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#2a3eb1] border-b-0 shadow-[0_8px_30px_rgba(22,16,58,0.6),inset_0_1px_0_rgba(255,255,255,0.1)]">
+      <header className="sticky top-0 z-50 bg-[#7a2e2e] border-b-0 shadow-[0_8px_30px_rgba(45,21,24,0.6),inset_0_1px_0_rgba(255,255,255,0.1)]">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="flex items-center justify-center h-[60px] relative">
             {/* Logo — left */}
@@ -65,7 +65,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
             <div className="hidden md:block absolute right-0">
               <button
                 onClick={() => setCalendlyOpen(true)}
-                className="text-base font-semibold text-white border-2 border-white rounded-full px-6 py-2 hover:bg-white hover:text-[#2a3eb1] transition-all"
+                className="text-base font-semibold text-white border-2 border-white rounded-full px-6 py-2 hover:bg-white hover:text-[#7a2e2e] transition-all"
               >
                 Book a Demo
               </button>

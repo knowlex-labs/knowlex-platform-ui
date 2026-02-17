@@ -39,7 +39,7 @@ const components: Components = {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-blue-600 dark:text-blue-400 underline underline-offset-2 hover:text-blue-800 dark:hover:text-blue-300"
+      className="text-kx-primary-600 dark:text-kx-primary-400 underline underline-offset-2 hover:text-kx-primary-700 dark:hover:text-kx-primary-300"
     >
       {children}
     </a>

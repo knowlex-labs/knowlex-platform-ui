@@ -66,7 +66,7 @@ export function TeamSection() {
                 href={member.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-kx-text-secondary hover:text-kx-primary-600 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-kx-text-secondary hover:text-[#7a2e2e] transition-colors"
               >
                 <Linkedin size={16} />
                 LinkedIn

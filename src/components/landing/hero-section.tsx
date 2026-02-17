@@ -2,19 +2,19 @@ import { HeroSlideshow } from './hero-slideshow'
 
 export function HeroSection() {
   return (
-    <section className="relative py-16 sm:py-20 md:py-24 lg:py-32 bg-[#16103a] overflow-hidden">
+    <section className="relative py-16 sm:py-20 md:py-24 lg:py-32 bg-[#2d1518] overflow-hidden">
       {/* Subtle dot grid */}
       <div
         className="absolute inset-0 opacity-[0.03]"
         style={{
-          backgroundImage: 'radial-gradient(circle, #8b7cf7 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(circle, #c4795a 1px, transparent 1px)',
           backgroundSize: '24px 24px',
         }}
       />
 
       {/* Glow effects */}
-      <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px]" />
-      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px]" />
+      <div className="absolute top-10 left-1/4 w-96 h-96 bg-red-900/15 rounded-full blur-[120px]" />
+      <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-amber-800/10 rounded-full blur-[100px]" />
 
       <div className="relative max-w-7xl mx-auto px-4 md:px-8">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
@@ -22,7 +22,7 @@ export function HeroSection() {
           <div className="animate-fade-in-up lg:w-[38%] lg:flex-shrink-0 text-center lg:text-left max-w-xl">
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-semibold text-white leading-[1.05] mb-4 sm:mb-6">
               Your Smart{' '}
-              <span className="bg-gradient-to-r from-purple-300 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-amber-300 via-orange-300 to-red-400 bg-clip-text text-transparent">
                 Legal Assistant
               </span>
             </h1>

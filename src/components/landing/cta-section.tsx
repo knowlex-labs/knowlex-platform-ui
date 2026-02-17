@@ -9,7 +9,7 @@ export function CTASection() {
   return (
     <section
       ref={ref}
-      className={`py-16 sm:py-20 md:py-28 bg-[#16103a] scroll-reveal ${isVisible ? 'is-visible' : ''}`}
+      className={`py-16 sm:py-20 md:py-28 bg-[#2d1518] scroll-reveal ${isVisible ? 'is-visible' : ''}`}
     >
       <div className="max-w-6xl mx-auto px-4 md:px-8 text-center">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-white mb-3 sm:mb-4">
@@ -22,7 +22,7 @@ export function CTASection() {
           <Button
             size="lg"
             onClick={() => window.open(CALENDLY_URL, '_blank')}
-            className="w-full sm:w-auto bg-white text-[#16103a] hover:bg-gray-100 font-semibold"
+            className="w-full sm:w-auto bg-white text-[#2d1518] hover:bg-gray-100 font-semibold"
           >
             Book a Demo
           </Button>

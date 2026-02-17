@@ -156,7 +156,7 @@ export function SourceItem({
               {isLoadingView ? 'Opening...' : 'View'}
             </button>
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-600 dark:text-kx-primary-400 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950 transition-colors disabled:opacity-50"
               onClick={handleLinkContent}
               disabled={isLinking}
             >
