@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
@@ -8,20 +9,45 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'ledger-black': '#000000',
-        'ledger-white': '#FFFFFF',
+        'ledger-black': 'var(--ledger-black)',
+        'ledger-white': 'var(--ledger-white)',
         'ledger-gray': {
-          50: '#fafafa',
-          100: '#f4f4f5',
-          200: '#e4e4e7',
-          300: '#d4d4d8',
-          400: '#a1a1aa',
-          500: '#71717a',
-          600: '#52525b',
-          700: '#3f3f46',
-          800: '#27272a',
-          900: '#18181b',
-          950: '#09090b',
+          50: 'var(--ledger-gray-50)',
+          100: 'var(--ledger-gray-100)',
+          200: 'var(--ledger-gray-200)',
+          300: 'var(--ledger-gray-300)',
+          400: 'var(--ledger-gray-400)',
+          500: 'var(--ledger-gray-500)',
+          600: 'var(--ledger-gray-600)',
+          700: 'var(--ledger-gray-700)',
+          800: 'var(--ledger-gray-800)',
+          900: 'var(--ledger-gray-900)',
+          950: 'var(--ledger-gray-950)',
+        },
+        'kx-primary': {
+          50: 'var(--kx-primary-50)',
+          100: 'var(--kx-primary-100)',
+          200: 'var(--kx-primary-200)',
+          300: 'var(--kx-primary-300)',
+          400: 'var(--kx-primary-400)',
+          500: 'var(--kx-primary-500)',
+          600: 'var(--kx-primary-600)',
+          700: 'var(--kx-primary-700)',
+          800: 'var(--kx-primary-800)',
+          900: 'var(--kx-primary-900)',
+          950: 'var(--kx-primary-950)',
+        },
+        'kx-card': 'var(--kx-card-bg)',
+        'kx-card-border': 'var(--kx-card-border)',
+        'kx-surface': 'var(--kx-surface)',
+        'kx-accent': {
+          400: 'var(--kx-accent-400)',
+          500: 'var(--kx-accent-500)',
+          600: 'var(--kx-accent-600)',
+        },
+        'kx-text': {
+          primary: 'var(--kx-text-primary)',
+          secondary: 'var(--kx-text-secondary)',
         },
       },
       fontFamily: {
@@ -40,10 +66,48 @@ const config: Config = {
         full: '9999px',
       },
       boxShadow: {
-        DEFAULT: '0 1px 2px rgba(0,0,0,0.04)',
-        sm: '0 1px 2px rgba(0,0,0,0.03)',
-        md: '0 2px 8px rgba(0,0,0,0.06)',
-        lg: '0 4px 16px rgba(0,0,0,0.08)',
+        DEFAULT: '0 1px 3px var(--shadow-sm)',
+        sm: '0 1px 2px var(--shadow-xs)',
+        md: '0 4px 12px var(--shadow-md)',
+        lg: '0 8px 24px var(--shadow-lg)',
+        xl: '0 16px 48px var(--shadow-xl)',
+        'glow': '0 0 20px var(--shadow-glow)',
+      },
+      animation: {
+        'fade-in-up': 'fade-in-up 0.6s ease-out forwards',
+        'fade-in': 'fade-in 0.6s ease-out forwards',
+        'gradient-shift': 'gradient-shift 8s ease infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'blink': 'blink 1s step-end infinite',
+        'bounce-in': 'bounce-in 0.5s ease-out forwards',
+      },
+      keyframes: {
+        'fade-in-up': {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'gradient-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-12px)' },
+        },
+        'blink': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        },
+        'bounce-in': {
+          '0%': { opacity: '0', transform: 'translateY(16px) scale(0.97)' },
+          '60%': { opacity: '1', transform: 'translateY(-4px) scale(1.01)' },
+          '80%': { transform: 'translateY(2px) scale(0.995)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
       },
     },
   },

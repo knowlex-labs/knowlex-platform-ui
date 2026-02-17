@@ -26,13 +26,13 @@ const activityIcons: Record<ActivityType, ElementType> = {
 }
 
 const activityColors: Record<ActivityType, string> = {
-  filing: 'bg-ledger-black text-ledger-white',
+  filing: 'bg-kx-primary-600 text-ledger-white',
   hearing: 'bg-ledger-gray-800 text-ledger-white',
   document: 'bg-ledger-gray-600 text-ledger-white',
   communication: 'bg-ledger-gray-500 text-ledger-white',
   research: 'bg-ledger-gray-400 text-ledger-white',
   payment: 'bg-ledger-gray-700 text-ledger-white',
-  note: 'bg-ledger-gray-300 text-ledger-black',
+  note: 'bg-ledger-gray-300 text-kx-primary-900',
 }
 
 function formatDate(date: Date): string {
@@ -47,7 +47,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
   return (
     <div className="border border-ledger-gray-200 rounded">
       <div className="px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
-        <h3 className="text-sm font-medium text-ledger-black">
+        <h3 className="text-sm font-medium text-kx-primary-900">
           Activity Timeline
         </h3>
       </div>
@@ -95,7 +95,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
                           {formatDate(activity.date)}
                         </span>
                       </div>
-                      <h4 className="text-sm font-medium text-ledger-black">
+                      <h4 className="text-sm font-medium text-kx-primary-900">
                         {activity.title}
                       </h4>
                       <p className="text-sm text-ledger-gray-600 mt-1">

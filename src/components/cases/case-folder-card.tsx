@@ -81,10 +81,10 @@ export function CaseFolderCard({ caseItem, onClick, onRefresh }: CaseFolderCardP
       <div
         onClick={onClick}
         className={cn(
-          'group relative w-full p-4 text-left rounded-lg border border-ledger-gray-200 cursor-pointer',
-          'bg-ledger-white',
-          'hover:border-ledger-gray-300 hover:shadow-md',
-          'active:bg-ledger-gray-50 transition-all duration-200',
+          'group relative w-full p-4 text-left rounded-lg border border-kx-card-border cursor-pointer',
+          'bg-kx-card shadow-sm card-elevated',
+          'hover:border-ledger-gray-300',
+          'active:bg-ledger-gray-50',
           'flex flex-col gap-3'
         )}
       >
@@ -104,14 +104,14 @@ export function CaseFolderCard({ caseItem, onClick, onRefresh }: CaseFolderCardP
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 mt-1 w-36 bg-white border border-ledger-gray-200 rounded-md shadow-lg py-1">
+            <div className="absolute right-0 mt-1 w-36 bg-kx-card border border-kx-card-border rounded-md shadow-lg py-1">
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   setMenuOpen(false)
                   setShowEditModal(true)
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-ledger-black hover:bg-ledger-gray-50 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
@@ -122,7 +122,7 @@ export function CaseFolderCard({ caseItem, onClick, onRefresh }: CaseFolderCardP
                   setMenuOpen(false)
                   setShowDeleteDialog(true)
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete
@@ -133,14 +133,14 @@ export function CaseFolderCard({ caseItem, onClick, onRefresh }: CaseFolderCardP
 
         {/* Header with folder icon */}
         <div className="flex items-start">
-          <div className="h-10 w-10 rounded-lg bg-ledger-gray-100 flex items-center justify-center">
-            <FolderOpen className="h-5 w-5 text-ledger-gray-600" />
+          <div className="h-10 w-10 rounded-lg bg-kx-primary-50 flex items-center justify-center">
+            <FolderOpen className="h-5 w-5 text-kx-primary-500" />
           </div>
         </div>
 
         {/* Title and case number */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-ledger-black line-clamp-2">
+          <h3 className="text-sm font-medium text-kx-primary-900 line-clamp-2">
             {caseItem.caseTitle || 'Untitled Case'}
           </h3>
           {caseItem.caseNumber && (

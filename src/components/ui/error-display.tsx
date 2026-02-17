@@ -17,7 +17,7 @@ export function ErrorDisplay({
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-ledger-gray-100 mb-4">
         <AlertCircle className="h-6 w-6 text-ledger-gray-500" />
       </div>
-      <h3 className="text-sm font-medium text-ledger-black mb-1">{title}</h3>
+      <h3 className="text-sm font-medium text-kx-primary-900 mb-1">{title}</h3>
       <p className="text-sm text-ledger-gray-500 max-w-sm mb-4">{message}</p>
       {onRetry && (
         <Button

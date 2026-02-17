@@ -63,7 +63,7 @@ export function DraftPreviewTab({
             variant="outline"
             size="sm"
             onClick={() => onDelete(draft.id)}
-            className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+            className="gap-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300"
           >
             <Trash2 className="h-3.5 w-3.5" />
             Delete Draft
@@ -220,7 +220,7 @@ function CompletedDraftEditor({
         onBulletList={formatting.handleBulletList}
         onNumberedList={formatting.handleNumberedList}
         onFontSize={formatting.handleFontSize}
-        className="bg-white"
+        className="bg-ledger-white"
       />
 
       {/* Editable Content Area */}
@@ -231,7 +231,7 @@ function CompletedDraftEditor({
           suppressContentEditableWarning
           onInput={handleEditorInput}
           onBlur={flushToLocalState}
-          className="h-full border border-ledger-gray-200 rounded-lg overflow-auto focus:outline-none focus:ring-2 focus:ring-ledger-gray-300 bg-white"
+          className="h-full border border-ledger-gray-200 rounded-lg overflow-auto focus:outline-none focus:ring-2 focus:ring-ledger-gray-300 bg-ledger-white"
           style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.8', fontSize: '12pt', minHeight: '400px', padding: '40px 60px' }}
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
@@ -249,7 +249,7 @@ function CompletedDraftEditor({
             <Button
               size="sm"
               onClick={handleFixWithAI}
-              className="gap-1.5 shadow-lg bg-ledger-black hover:bg-ledger-gray-800"
+              className="gap-1.5 shadow-lg bg-kx-primary-600 hover:bg-kx-primary-700"
             >
               <Wand2 className="h-3.5 w-3.5" />
               Fix with AI
@@ -262,7 +262,7 @@ function CompletedDraftEditor({
       <div className="px-4 py-2 border-t border-ledger-gray-200 bg-ledger-gray-50 flex items-center justify-between">
         <p className="text-xs text-ledger-gray-500">
           {hasChanges ? (
-            <span className="text-amber-600 font-medium">Unsaved changes</span>
+            <span className="text-amber-600 dark:text-amber-400 font-medium">Unsaved changes</span>
           ) : (
             `Last saved: ${draft.updatedAt.toLocaleString()}`
           )}

@@ -77,7 +77,7 @@ export function AIResearch() {
 
         {/* Error banner */}
         {error && (
-          <div className="px-4 py-2 bg-red-50 border-b border-red-200 text-sm text-red-700">
+          <div className="px-4 py-2 bg-red-50 dark:bg-red-950 border-b border-red-200 dark:border-red-800 text-sm text-red-700 dark:text-red-400">
             {error}
           </div>
         )}

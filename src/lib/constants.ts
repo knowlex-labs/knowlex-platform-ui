@@ -15,12 +15,12 @@ export const SIDEBAR_TABS: SidebarTabConfig[] = [
 ]
 
 export const STATUS_COLORS = {
-  active: 'bg-green-100 text-green-800 border border-green-200',
-  pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
-  closed: 'bg-gray-100 text-gray-800 border border-gray-200',
-  'on-hold': 'bg-orange-100 text-orange-800 border border-orange-200',
-  appealed: 'bg-blue-100 text-blue-800 border border-blue-200',
-  blocked: 'bg-red-100 text-red-800 border border-red-200',
+  active: 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
+  pending: 'bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800',
+  closed: 'bg-gray-100 text-gray-800 border border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800',
+  'on-hold': 'bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+  appealed: 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+  blocked: 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
 } as const
 
 export const APP_NAME = 'Knowlex'

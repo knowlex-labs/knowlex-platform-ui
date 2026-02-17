@@ -130,8 +130,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           onClick={() => !disabled && setOpen(!open)}
           className={cn(
             'flex h-10 w-full items-center justify-between rounded border border-ledger-gray-300 bg-ledger-white px-3 py-2',
-            'text-sm font-sans text-ledger-black text-left',
-            'focus:outline-none focus:ring-2 focus:ring-ledger-black focus:ring-offset-1',
+            'text-sm font-sans text-kx-primary-900 text-left',
+            'focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-1',
             'disabled:cursor-not-allowed disabled:opacity-50',
             'transition-colors',
             !selectedOption?.value && 'text-ledger-gray-400',
@@ -170,8 +170,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                     placeholder={searchPlaceholder ?? 'Search...'}
                     className={cn(
                       'w-full h-8 pl-8 pr-3 text-sm rounded border border-ledger-gray-200 bg-ledger-white',
-                      'placeholder:text-ledger-gray-400 text-ledger-black',
-                      'focus:outline-none focus:ring-1 focus:ring-ledger-black'
+                      'placeholder:text-ledger-gray-400 text-kx-primary-900',
+                      'focus:outline-none focus:ring-1 focus:ring-kx-primary-500'
                     )}
                   />
                 </div>
@@ -199,7 +199,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                         'flex w-full items-center gap-2 px-3 py-2 text-sm text-left',
                         'transition-colors',
                         isSelected
-                          ? 'bg-ledger-gray-100 text-ledger-black font-medium'
+                          ? 'bg-kx-primary-50 text-kx-primary-700 font-medium'
                           : 'text-ledger-gray-700 hover:bg-ledger-gray-50',
                         option.disabled && 'opacity-50 cursor-not-allowed'
                       )}

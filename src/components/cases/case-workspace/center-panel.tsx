@@ -78,7 +78,7 @@ export function CenterPanel({
   }, [activeTab?.id, onTabDirtyChange])
 
   return (
-    <div className="flex flex-col h-full bg-ledger-white overflow-hidden">
+    <div className="flex flex-col h-full bg-kx-card overflow-hidden">
       {/* Tab Bar */}
       <WorkspaceTabBar
         tabs={tabs}

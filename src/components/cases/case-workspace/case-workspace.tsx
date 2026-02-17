@@ -59,7 +59,6 @@ export function CaseWorkspace() {
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
   const downloadMenuRef = useRef<HTMLDivElement>(null)
 
-  // Draft selection state
   const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set())
 
   const {
@@ -138,7 +137,6 @@ export function CaseWorkspace() {
     })
   }, [drafts])
 
-  // Draft selection handlers
   const toggleDraftSelection = useCallback((draftId: string) => {
     setSelectedDraftIds((prev) => {
       const next = new Set(prev)
@@ -159,7 +157,6 @@ export function CaseWorkspace() {
     setSelectedDraftIds(new Set())
   }, [])
 
-  // Whether anything is selected
   const hasSelection = selectedSourceIds.size > 0 || selectedDraftIds.size > 0
   const totalSelected = selectedSourceIds.size + selectedDraftIds.size
 
@@ -191,7 +188,6 @@ export function CaseWorkspace() {
     await deleteDraft(id)
   }
 
-  // Unified header actions
   const handleReindex = () => {
     if (selectedSourceIds.size > 0) {
       batchLinkContent(Array.from(selectedSourceIds))
@@ -210,18 +206,15 @@ export function CaseWorkspace() {
   }
 
   const handleDeleteSelected = async () => {
-    // Delete selected sources
-    if (selectedSourceIds.size > 0) {
+      if (selectedSourceIds.size > 0) {
       await batchDeleteSources(Array.from(selectedSourceIds))
     }
-    // Delete selected drafts
     for (const id of selectedDraftIds) {
       await handleDeleteDraft(id)
     }
     setSelectedDraftIds(new Set())
   }
 
-  // Tool handlers
   const handleDraftingClick = () => {
     setSelectedTemplate(DRAFT_TEMPLATES[0])
     setFormModalOpen(true)
@@ -271,16 +264,15 @@ export function CaseWorkspace() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-ledger-white">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-ledger-gray-200 bg-ledger-white">
+    <div className="h-screen flex flex-col bg-kx-card">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-kx-card-border bg-kx-card">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-ledger-black">
+          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-kx-primary-700">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
           <div className="h-4 w-px bg-ledger-gray-300" />
-          <h2 className="text-base font-semibold text-ledger-black truncate">
+          <h2 className="text-base font-semibold text-kx-primary-900 truncate">
             {caseName}
           </h2>
         </div>
@@ -301,7 +293,6 @@ export function CaseWorkspace() {
                 <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
                 <span className="hidden sm:inline">Re-index</span>
               </Button>
-              {/* Download Dropdown */}
               <div className="relative" ref={downloadMenuRef}>
                 <Button
                   variant="outline"
@@ -314,7 +305,7 @@ export function CaseWorkspace() {
                   <ChevronDown className="h-3 w-3" />
                 </Button>
                 {downloadMenuOpen && (
-                  <div className="absolute right-0 mt-1 w-44 rounded border border-ledger-gray-200 bg-ledger-white shadow-md z-50">
+                  <div className="absolute right-0 mt-1 w-44 rounded border border-kx-card-border bg-kx-card shadow-md z-50">
                     <button
                       onClick={() => handleDownload('pdf')}
                       className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
@@ -344,7 +335,7 @@ export function CaseWorkspace() {
                 size="sm"
                 onClick={handleDeleteSelected}
                 disabled={sourcesLoading || isUploading}
-                className="h-8 gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                className="h-8 gap-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-700"
                 title="Delete selected"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -357,7 +348,7 @@ export function CaseWorkspace() {
             variant="ghost"
             size="sm"
             onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-ledger-black"
+            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700"
             title={leftPanelOpen ? 'Hide left panel' : 'Show left panel'}
           >
             {leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
@@ -366,7 +357,7 @@ export function CaseWorkspace() {
             variant="ghost"
             size="sm"
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-ledger-black"
+            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700"
             title={rightPanelOpen ? 'Hide tools' : 'Show tools'}
           >
             {rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
@@ -374,11 +365,9 @@ export function CaseWorkspace() {
         </div>
       </div>
 
-      {/* Three-panel layout */}
-      <div className="flex-1 flex min-h-0 overflow-hidden bg-ledger-white">
-        {/* Left Sidebar - Sources + Drafts */}
+      <div className="flex-1 flex min-h-0 overflow-hidden bg-kx-card">
         {leftPanelOpen && (
-          <div className="w-72 flex-shrink-0 flex flex-col border-r border-ledger-gray-200 overflow-hidden">
+          <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden">
             <LeftSidebar
               sources={sources}
               selectedSourceIds={selectedSourceIds}
@@ -400,7 +389,6 @@ export function CaseWorkspace() {
           </div>
         )}
 
-        {/* Center Panel - Chat + Draft Tabs */}
         <div className="flex-1 min-h-0 min-w-0">
           <CenterPanel
             tabs={tabs}
@@ -422,9 +410,8 @@ export function CaseWorkspace() {
           />
         </div>
 
-        {/* Right Sidebar - Tools */}
         {rightPanelOpen && (
-          <div className="w-80 flex-shrink-0 flex flex-col border-l border-ledger-gray-200 overflow-hidden">
+          <div className="w-80 flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden">
             <StudioPanel
               onDraftingClick={handleDraftingClick}
               onGenerateReport={handleGenerateReport}
@@ -436,7 +423,6 @@ export function CaseWorkspace() {
         )}
       </div>
 
-      {/* Template Form Modal */}
       <TemplateFormModal
         template={selectedTemplate}
         isOpen={formModalOpen}

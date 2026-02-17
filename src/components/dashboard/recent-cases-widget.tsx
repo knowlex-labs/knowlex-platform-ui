@@ -64,7 +64,7 @@ export function RecentCasesWidget({ cases, isLoading }: RecentCasesWidgetProps) 
               className="flex items-start justify-between gap-2"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-ledger-black truncate">
+                <p className="text-sm font-medium text-kx-primary-900 truncate">
                   {caseItem.caseTitle || 'Untitled Case'}
                 </p>
                 <p className="text-xs text-ledger-gray-500 truncate">

@@ -43,7 +43,7 @@ export function CaseTableRow({ caseItem, onClick }: CaseTableRowProps) {
     >
       {/* Case Title & Number */}
       <div className="col-span-4">
-        <p className="text-sm font-medium text-ledger-black truncate">
+        <p className="text-sm font-medium text-kx-primary-900 truncate">
           {caseItem.caseTitle || 'Untitled Case'}
         </p>
         <code className="text-xs font-mono text-ledger-gray-500 mt-0.5 block">

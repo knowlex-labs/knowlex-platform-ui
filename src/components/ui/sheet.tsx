@@ -17,7 +17,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     className={cn(
-      'fixed inset-0 z-50 bg-ledger-black/80',
+      'fixed inset-0 z-50 bg-kx-primary-950/80',
       'data-[state=open]:animate-in data-[state=closed]:animate-out',
       'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className
@@ -42,7 +42,7 @@ const SheetContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed z-50 gap-4 bg-ledger-white shadow-lg',
+        'fixed z-50 gap-4 bg-kx-card shadow-lg',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:duration-300 data-[state=open]:duration-300',
         side === 'left' && [
@@ -61,7 +61,7 @@ const SheetContent = React.forwardRef<
       <DialogPrimitive.Close
         className={cn(
           'absolute right-4 top-4 rounded-sm opacity-70 transition-opacity',
-          'hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ledger-black focus:ring-offset-2',
+          'hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-2',
           'disabled:pointer-events-none',
           'min-h-[44px] min-w-[44px] flex items-center justify-center'
         )}
@@ -91,7 +91,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-xl font-serif font-semibold text-ledger-black', className)}
+    className={cn('text-xl font-serif font-semibold text-kx-primary-900', className)}
     {...props}
   />
 ))

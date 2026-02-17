@@ -8,9 +8,9 @@ export function ProtectedLayout() {
 
   if (isRestoringSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-ledger-white">
+      <div className="min-h-screen flex items-center justify-center bg-kx-surface">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ledger-black mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kx-primary-600 mx-auto mb-4"></div>
           <p className="text-ledger-gray-600">Loading...</p>
         </div>
       </div>
@@ -18,7 +18,7 @@ export function ProtectedLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/" state={{ from: location }} replace />
+    return <Navigate to="/login" state={{ from: location }} replace />
   }
 
   return (

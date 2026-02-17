@@ -30,17 +30,17 @@ export function TemplateCard({ template, onClick }: TemplateCardProps) {
       onClick={onClick}
       className={cn(
         'group relative flex flex-col items-center justify-center gap-2.5 p-4',
-        'bg-ledger-white border border-ledger-gray-200 rounded-lg',
-        'hover:border-ledger-black hover:shadow-md',
+        'bg-kx-card border border-kx-card-border rounded-lg',
+        'hover:border-kx-primary-600 hover:shadow-md',
         'transition-all duration-200',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ledger-black',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-kx-primary-500',
         'aspect-square min-h-[120px]'
       )}
     >
-      <div className="w-12 h-12 rounded-xl bg-ledger-gray-50 flex items-center justify-center group-hover:bg-ledger-black transition-colors">
+      <div className="w-12 h-12 rounded-xl bg-ledger-gray-50 flex items-center justify-center group-hover:bg-kx-primary-600 transition-colors">
         <Icon className="h-6 w-6 text-ledger-gray-700 group-hover:text-ledger-white transition-colors" />
       </div>
-      <span className="text-sm font-medium text-ledger-black text-center leading-tight">
+      <span className="text-sm font-medium text-kx-primary-900 text-center leading-tight">
         {template.name}
       </span>
     </button>

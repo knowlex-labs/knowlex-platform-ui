@@ -65,10 +65,10 @@ export function StudioPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-ledger-white">
+    <div className="flex flex-col h-full bg-kx-card">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
-        <h3 className="text-base font-semibold text-ledger-black">Tools</h3>
+        <h3 className="text-base font-semibold text-kx-primary-900">Tools</h3>
         {selectedSourceCount > 0 && (
           <p className="text-xs text-ledger-gray-400 mt-1">
             {selectedSourceCount} source{selectedSourceCount !== 1 ? 's' : ''} selected

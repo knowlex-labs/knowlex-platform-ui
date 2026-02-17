@@ -66,12 +66,12 @@ function SessionItem({
     <div
       className={cn(
         'group rounded-lg px-2 py-2 cursor-pointer transition-colors flex items-center gap-2',
-        isActive ? 'bg-ledger-gray-100 border-l-2 border-ledger-black' : 'hover:bg-ledger-gray-50'
+        isActive ? 'bg-kx-primary-50 border-l-2 border-kx-primary-600' : 'hover:bg-ledger-gray-50'
       )}
       onClick={onSelect}
     >
       <MessageSquare className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
-      <p className="text-sm text-ledger-black truncate flex-1 min-w-0">{session.title}</p>
+      <p className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">{session.title}</p>
       <div ref={menuRef} className="relative flex-shrink-0">
         <button
           onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v) }}
@@ -83,10 +83,10 @@ function SessionItem({
           <MoreVertical className="h-3.5 w-3.5" />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-1 z-50 bg-white border border-ledger-gray-200 rounded-lg shadow-lg py-1 min-w-[120px]">
+          <div className="absolute right-0 top-full mt-1 z-50 bg-kx-card border border-kx-card-border rounded-lg shadow-lg py-1 min-w-[120px]">
             <button
               onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete() }}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
             >
               <Trash2 className="h-3 w-3" />
               Delete
@@ -139,7 +139,7 @@ function SessionList({ sessions, activeSessionId, onSessionSelect, onNewChat, on
 export function ResearchSessionSidebarDesktop(props: ResearchSessionSidebarProps & { visible: boolean }) {
   if (!props.visible) return null
   return (
-    <div className="hidden md:flex w-72 border-r border-ledger-gray-200 bg-white flex-col flex-shrink-0">
+    <div className="hidden md:flex w-72 border-r border-kx-card-border bg-kx-card flex-col flex-shrink-0">
       <SessionList {...props} />
     </div>
   )

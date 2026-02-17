@@ -42,10 +42,10 @@ function formatFileSize(bytes: number): string {
 
 function getStatusBadge(status: CaseSource['indexingStatus'] | undefined | null) {
   const config: Record<string, { color: string; text: string }> = {
-    INDEXING_PENDING: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200', text: 'Pending' },
-    INDEXING: { color: 'bg-blue-100 text-blue-800 border-blue-200', text: 'Indexing' },
-    INDEXED: { color: 'bg-green-100 text-green-800 border-green-200', text: 'Indexed' },
-    INDEXING_FAILED: { color: 'bg-red-100 text-red-800 border-red-200', text: 'Failed' },
+    INDEXING_PENDING: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800', text: 'Pending' },
+    INDEXING: { color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', text: 'Indexing' },
+    INDEXED: { color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800', text: 'Indexed' },
+    INDEXING_FAILED: { color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', text: 'Failed' },
   }
 
   const statusConfig = status && config[status]
@@ -117,14 +117,14 @@ export function SourceItem({
         type="checkbox"
         checked={isSelected}
         onChange={onToggleSelection}
-        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0"
+        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0"
       />
 
       {/* File Icon */}
       <Icon className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
 
       {/* Filename */}
-      <span className="text-sm text-ledger-black truncate flex-1 min-w-0">
+      <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">
         {source.filename}
       </span>
 
@@ -133,7 +133,7 @@ export function SourceItem({
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-ledger-black hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
           onClick={() => setShowMenu(!showMenu)}
         >
           <MoreVertical className="h-3.5 w-3.5" />
@@ -141,14 +141,14 @@ export function SourceItem({
 
         {/* Dropdown Menu */}
         {showMenu && (
-          <div className="absolute right-0 top-full mt-1 w-48 bg-ledger-white border border-ledger-gray-200 rounded-lg shadow-md z-10">
+          <div className="absolute right-0 top-full mt-1 w-48 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
             {/* File details */}
             <div className="px-3 py-2 border-b border-ledger-gray-100">
               <p className="text-xs text-ledger-gray-500">{formatFileSize(source.fileSize)}</p>
               <div className="mt-1">{getStatusBadge(source.indexingStatus)}</div>
             </div>
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-ledger-black hover:bg-ledger-gray-50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors disabled:opacity-50"
               onClick={handleView}
               disabled={isLoadingView}
             >
@@ -156,7 +156,7 @@ export function SourceItem({
               {isLoadingView ? 'Opening...' : 'View'}
             </button>
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors disabled:opacity-50"
               onClick={handleLinkContent}
               disabled={isLinking}
             >
@@ -164,7 +164,7 @@ export function SourceItem({
               {isLinking ? 'Re-indexing...' : 'Re-index'}
             </button>
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50 rounded-b-lg"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-50 rounded-b-lg"
               onClick={handleDelete}
               disabled={isDeleting}
             >

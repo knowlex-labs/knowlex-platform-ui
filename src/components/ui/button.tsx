@@ -20,17 +20,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       <Comp
         className={cn(
           'inline-flex items-center justify-center font-sans font-medium transition-colors',
-          'focus:outline-none focus:ring-2 focus:ring-ledger-black focus:ring-offset-2',
+          'focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-2',
           'disabled:pointer-events-none disabled:opacity-50',
           'touch-manipulation',
           {
-            'bg-ledger-black text-ledger-white hover:bg-ledger-gray-800':
+            'bg-kx-primary-600 text-white hover:bg-kx-primary-700':
               variant === 'primary',
-            'bg-ledger-gray-100 text-ledger-black hover:bg-ledger-gray-200 border border-ledger-gray-300':
+            'bg-ledger-gray-100 text-kx-primary-900 hover:bg-ledger-gray-200 border border-ledger-gray-300':
               variant === 'secondary',
-            'bg-transparent text-ledger-black hover:bg-ledger-gray-100':
+            'bg-transparent text-kx-primary-900 hover:bg-ledger-gray-100':
               variant === 'ghost',
-            'bg-transparent text-ledger-black border border-ledger-black hover:bg-ledger-black hover:text-ledger-white':
+            'bg-transparent text-kx-primary-700 border border-kx-primary-600 hover:bg-kx-primary-600 hover:text-white':
               variant === 'outline',
           },
           {

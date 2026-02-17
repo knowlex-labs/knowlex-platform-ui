@@ -26,7 +26,7 @@ export function ClientDetail() {
             variant="ghost"
             size="sm"
             onClick={goBack}
-            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
+            className="gap-2 text-ledger-gray-600 hover:text-kx-primary-700 -ml-2 min-h-[44px]"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Clients
@@ -45,7 +45,7 @@ export function ClientDetail() {
             variant="ghost"
             size="sm"
             onClick={goBack}
-            className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
+            className="gap-2 text-ledger-gray-600 hover:text-kx-primary-700 -ml-2 min-h-[44px]"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Clients
@@ -85,7 +85,7 @@ export function ClientDetail() {
           variant="ghost"
           size="sm"
           onClick={goBack}
-          className="gap-2 text-ledger-gray-600 hover:text-ledger-black -ml-2 min-h-[44px]"
+          className="gap-2 text-ledger-gray-600 hover:text-kx-primary-700 -ml-2 min-h-[44px]"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Clients

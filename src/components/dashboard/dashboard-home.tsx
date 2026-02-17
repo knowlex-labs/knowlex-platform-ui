@@ -39,7 +39,7 @@ export function DashboardHome() {
     <div className="space-y-6 md:space-y-8">
       {/* Greeting Header */}
       <div>
-        <h1 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+        <h1 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
           {greeting}, {displayName}
         </h1>
         <p className="text-sm text-ledger-gray-500 mt-1">
@@ -61,7 +61,7 @@ export function DashboardHome() {
 
       {/* Continue Where You Left Off - Active Cases */}
       <section>
-        <h2 className="text-base font-semibold text-ledger-black mb-4">Continue where you left off</h2>
+        <h2 className="text-base font-semibold text-kx-primary-900 mb-4">Continue where you left off</h2>
         <ActiveCaseCards
           cases={activeCases}
           isLoading={isLoading}
@@ -71,7 +71,7 @@ export function DashboardHome() {
 
       {/* Recent Research */}
       <section>
-        <h2 className="text-base font-semibold text-ledger-black mb-4">Recent research</h2>
+        <h2 className="text-base font-semibold text-kx-primary-900 mb-4">Recent research</h2>
         <LatestResearchWidget
           sessions={chatSessions}
           isLoading={isLoading}

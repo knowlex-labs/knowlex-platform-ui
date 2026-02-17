@@ -1,29 +1,15 @@
 import * as React from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { LandingPage } from '@/components/landing/landing-page'
-import { LoginModal } from '@/components/auth/login-modal'
-import { SignupModal } from '@/components/auth/signup-modal'
 import { useToast } from '@/hooks/use-toast'
 
 export function LandingRoute() {
   const { isAuthenticated, isRestoringSession, continueAsGuest } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const { toast } = useToast()
 
-  const [loginOpen, setLoginOpen] = React.useState(false)
-  const [signupOpen, setSignupOpen] = React.useState(false)
-  const [sessionExpired, setSessionExpired] = React.useState(false)
-
-  // If user arrived via redirect from protected route, auto-open login
-  React.useEffect(() => {
-    if (location.state?.from) {
-      setLoginOpen(true)
-    }
-  }, [location.state])
-
-  // Redirect authenticated users to home — always land on /home after login
+  // Redirect authenticated users to home
   React.useEffect(() => {
     if (isAuthenticated && !isRestoringSession) {
       navigate('/home', { replace: true })
@@ -41,26 +27,18 @@ export function LandingRoute() {
     return () => window.removeEventListener('toast:show', handleToastEvent)
   }, [toast])
 
-  // Handle session expiry
+  // Handle session expiry — redirect to login page
   React.useEffect(() => {
     const handleSessionExpired = () => {
-      setSessionExpired(true)
-      setLoginOpen(true)
+      navigate('/login', { state: { sessionExpired: true } })
     }
 
     window.addEventListener('auth:session-expired', handleSessionExpired)
     return () => window.removeEventListener('auth:session-expired', handleSessionExpired)
-  }, [])
+  }, [navigate])
 
-  // Reset session expired flag on successful login
-  React.useEffect(() => {
-    if (isAuthenticated && sessionExpired) {
-      setSessionExpired(false)
-    }
-  }, [isAuthenticated, sessionExpired])
-
-  const handleTryIt = () => {
-    setLoginOpen(true)
+  const handleSignIn = () => {
+    navigate('/login')
   }
 
   const handleContinueAsGuest = async () => {
@@ -71,42 +49,19 @@ export function LandingRoute() {
     }
   }
 
-  const handleSwitchToSignup = () => {
-    setLoginOpen(false)
-    setSignupOpen(true)
-  }
-
-  const handleSwitchToLogin = () => {
-    setSignupOpen(false)
-    setLoginOpen(true)
-  }
-
   // Show loading while restoring session
   if (isRestoringSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-ledger-white">
+      <div className="min-h-screen flex items-center justify-center bg-kx-surface">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ledger-black mx-auto mb-4"></div>
-          <p className="text-ledger-gray-600">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-kx-primary-600 mx-auto mb-4"></div>
+          <p className="text-kx-text-secondary">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <>
-      <LandingPage onSignIn={handleTryIt} onContinueAsGuest={handleContinueAsGuest} />
-      <LoginModal
-        open={loginOpen}
-        onOpenChange={setLoginOpen}
-        onSwitchToSignup={handleSwitchToSignup}
-        sessionExpired={sessionExpired}
-      />
-      <SignupModal
-        open={signupOpen}
-        onOpenChange={setSignupOpen}
-        onSwitchToLogin={handleSwitchToLogin}
-      />
-    </>
+    <LandingPage onSignIn={handleSignIn} onContinueAsGuest={handleContinueAsGuest} />
   )
 }

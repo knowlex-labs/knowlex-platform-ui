@@ -157,7 +157,7 @@ export function TimelinesBoard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
         <div>
-          <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
             Timelines
           </h2>
           <p className="text-sm text-ledger-gray-500 mt-1">

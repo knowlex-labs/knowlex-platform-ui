@@ -51,7 +51,7 @@ function UserBubble({ message }: { message: ResearchMessage }) {
           <span className="text-xs font-medium text-ledger-gray-500">You</span>
           <User className="h-3 w-3 text-ledger-gray-400" />
         </div>
-        <div className="rounded-2xl rounded-br-sm bg-ledger-black text-white px-4 py-2.5">
+        <div className="rounded-2xl rounded-br-sm bg-kx-primary-600 text-white px-4 py-2.5">
           <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
         </div>
       </div>
@@ -87,9 +87,9 @@ function AgentBubble({ message }: { message: ResearchMessage }) {
 
         {/* Answering phase — stream the content with a cursor */}
         {isAnswering && content && (
-          <div className="text-sm text-ledger-black">
+          <div className="text-sm text-kx-primary-900">
             <MarkdownRenderer content={content} />
-            <span className="inline-block w-0.5 h-4 bg-ledger-gray-400 animate-pulse ml-0.5 align-text-bottom" />
+            <span className="inline-block w-0.5 h-4 bg-kx-primary-400 animate-pulse ml-0.5 align-text-bottom" />
           </div>
         )}
 
@@ -97,7 +97,7 @@ function AgentBubble({ message }: { message: ResearchMessage }) {
         {isDone && (
           <>
             {toolCalls && toolCalls.length > 0 && <ToolCallsCollapsible toolCalls={toolCalls} />}
-            <div className="text-sm text-ledger-black">
+            <div className="text-sm text-kx-primary-900">
               <MarkdownRenderer content={content} />
             </div>
           </>

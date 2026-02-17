@@ -150,7 +150,7 @@ export function CaseFilters({
           variant="ghost"
           size="sm"
           onClick={onClearFilters}
-          className="gap-1 text-ledger-gray-600 hover:text-ledger-black"
+          className="gap-1 text-ledger-gray-600 hover:text-kx-primary-700"
         >
           <X className="h-3.5 w-3.5" />
           Clear
