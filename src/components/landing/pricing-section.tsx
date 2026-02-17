@@ -2,9 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Check } from 'lucide-react'
 import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
-interface PricingSectionProps {
-  onGetStarted: () => void
-}
+const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
 
 const plans = [
   {
@@ -17,7 +15,7 @@ const plans = [
       'Email support',
       'Mobile access',
     ],
-    cta: 'Get Started',
+    cta: 'Book a Demo',
     highlighted: false,
   },
   {
@@ -33,7 +31,7 @@ const plans = [
       'Priority support',
       'Team collaboration',
     ],
-    cta: 'Start Free Trial',
+    cta: 'Book a Demo',
     highlighted: true,
   },
   {
@@ -53,7 +51,7 @@ const plans = [
   },
 ]
 
-export function PricingSection({ onGetStarted }: PricingSectionProps) {
+export function PricingSection() {
   const { ref, isVisible } = useScrollReveal()
 
   const handleContactUs = () => {
@@ -119,7 +117,7 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
                     : 'border-kx-primary-600 text-kx-primary-600 hover:bg-kx-primary-50 bg-transparent'
                 }`}
                 variant={plan.highlighted ? 'primary' : 'outline'}
-                onClick={plan.name === 'Enterprise' ? handleContactUs : onGetStarted}
+                onClick={plan.name === 'Enterprise' ? handleContactUs : () => window.open(CALENDLY_URL, '_blank')}
               >
                 {plan.cta}
               </Button>

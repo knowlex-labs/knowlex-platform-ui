@@ -71,7 +71,7 @@ function GoogleIcon() {
 }
 
 export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpired }: LoginModalProps) {
-  const { login, googleLogin, continueAsGuest } = useAuth()
+  const { login, googleLogin } = useAuth()
   const { setView, setActiveTab } = useNavigation()
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -363,24 +363,6 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
             </div>
           )}
 
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={async () => {
-              try {
-                await continueAsGuest()
-                setActiveTab('dashboard')
-                setView('dashboard')
-                onOpenChange(false)
-              } catch (err) {
-                console.error('Failed to continue as guest:', err)
-                setError(err instanceof Error ? err.message : 'Failed to continue as guest. Please try again.')
-              }
-            }}
-          >
-            Continue as Guest
-          </Button>
         </form>
 
         <div className="mt-4 text-center text-sm">

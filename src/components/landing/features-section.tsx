@@ -20,11 +20,11 @@ export function FeaturesSection() {
         <div className="space-y-24 md:space-y-32">
           <FeatureShowcase
             title="Drafting Assistant"
-            description="Generate court-ready legal documents in minutes. Our AI understands Indian legal formats and automatically includes relevant provisions and case citations."
+            description="Generate court-ready legal documents from predefined templates. Citations and provisions auto-sourced — no manual lookup needed."
             bullets={[
-              'AI-powered drafting with relevant legal provisions',
+              'Choose from predefined legal document templates',
               'Adapts to different court formats automatically',
-              'Smart suggestions as you type',
+              'Edit yourself or refine sections with AI assistance',
             ]}
             icon={FileText}
             iconBg="bg-kx-primary-100"
@@ -34,11 +34,11 @@ export function FeaturesSection() {
 
           <FeatureShowcase
             title="Legal Research"
-            description="Find relevant case law and statutes instantly. Search in natural language and get jurisdiction-specific results with cited authorities."
+            description="Search across your uploaded documents and our curated judgements database in one query. Every answer cited to its source."
             bullets={[
-              'Case law search with cited authorities',
-              'Jurisdiction-specific results',
-              'Natural language queries',
+              'Natural language queries across all courts',
+              'Every answer cited to the source judgement',
+              'Search your own docs and the knowledge base together',
             ]}
             icon={Scale}
             iconBg="bg-violet-100"
@@ -48,12 +48,12 @@ export function FeaturesSection() {
           />
 
           <FeatureShowcase
-            title="Client Management"
-            description="Keep all your clients, cases, and deadlines organized in one place. Never miss a court date or filing deadline again."
+            title="Client & Case Management"
+            description="Organize clients, cases, and deadlines in one place. Link drafts and research to specific cases so nothing falls through the cracks."
             bullets={[
-              'All clients and cases in one place',
-              'Track case status and timelines',
-              'Never miss a court date',
+              'All clients, cases, and deadlines in one dashboard',
+              'Drafts and research linked to their case automatically',
+              'Never miss a court date or filing deadline',
             ]}
             icon={Users}
             iconBg="bg-amber-100"

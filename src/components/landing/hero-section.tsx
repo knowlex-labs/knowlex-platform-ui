@@ -1,21 +1,8 @@
-import { Button } from '@/components/ui/button'
 import { HeroSlideshow } from './hero-slideshow'
 
-interface HeroSectionProps {
-  onGetStarted: () => void
-  onContinueAsGuest: () => void
-}
-
-export function HeroSection({ onGetStarted, onContinueAsGuest }: HeroSectionProps) {
-  const scrollToFeatures = () => {
-    const element = document.getElementById('features')
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' })
-    }
-  }
-
+export function HeroSection() {
   return (
-    <section className="relative py-16 sm:py-20 md:py-28 lg:py-36 bg-[#16103a] overflow-hidden">
+    <section className="relative py-16 sm:py-20 md:py-24 lg:py-32 bg-[#16103a] overflow-hidden">
       {/* Subtle dot grid */}
       <div
         className="absolute inset-0 opacity-[0.03]"
@@ -29,54 +16,39 @@ export function HeroSection({ onGetStarted, onContinueAsGuest }: HeroSectionProp
       <div className="absolute top-10 left-1/4 w-96 h-96 bg-purple-600/15 rounded-full blur-[120px]" />
       <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px]" />
 
-      <div className="relative max-w-6xl mx-auto px-4 md:px-8">
-        {/* Text — centered */}
-        <div className="animate-fade-in-up text-center max-w-2xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-semibold text-white leading-[1.05] mb-4 sm:mb-6">
-            Your Smart{' '}
-            <span className="bg-gradient-to-r from-purple-300 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
-              Legal Assistant
-            </span>
-          </h1>
-          <p className="text-lg sm:text-xl text-white/70 mb-8 sm:mb-10 leading-relaxed">
-            AI-powered drafting, case law research, and practice management — built specifically for Indian legal professionals.
-          </p>
-          <div className="flex flex-col items-center gap-3 sm:gap-4">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-              <Button
-                size="lg"
-                onClick={onGetStarted}
-                className="w-full sm:w-auto bg-white text-[#16103a] hover:bg-gray-100 font-semibold"
-              >
-                Get Started
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={scrollToFeatures}
-                className="w-full sm:w-auto border-white/30 text-white hover:bg-white/10 hover:border-white/50"
-              >
-                Learn More
-              </Button>
+      <div className="relative max-w-7xl mx-auto px-4 md:px-8">
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          {/* Left — Text */}
+          <div className="animate-fade-in-up lg:w-[38%] lg:flex-shrink-0 text-center lg:text-left max-w-xl">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-serif font-semibold text-white leading-[1.05] mb-4 sm:mb-6">
+              Your Smart{' '}
+              <span className="bg-gradient-to-r from-purple-300 via-indigo-300 to-violet-400 bg-clip-text text-transparent">
+                Legal Assistant
+              </span>
+            </h1>
+            <p className="text-lg sm:text-xl text-white/70 leading-relaxed">
+              AI-powered drafting, research, and practice management — built for Indian lawyers.
+            </p>
+
+            {/* Social proof badges */}
+            <div className="mt-8 sm:mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-3">
+              <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
+                <span className="text-xs text-white/50 font-medium">Trusted by 500+ legal professionals</span>
+              </div>
+              <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="text-xs text-white/50 font-medium">50,000+ Indian judgements indexed</span>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onContinueAsGuest}
-              className="text-sm text-white/50 hover:text-white underline underline-offset-2 transition-colors"
-            >
-              Continue as Guest
-            </button>
           </div>
 
-          {/* Social proof badge */}
-          <div className="mt-8 sm:mt-10 inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2">
-            <span className="text-xs text-white/50 font-medium">Trusted by 500+ legal professionals</span>
+          {/* Right — Slideshow */}
+          <div className="animate-fade-in-up lg:w-[62%] lg:flex-shrink-0 w-full min-w-0" style={{ animationDelay: '0.3s' }}>
+            <HeroSlideshow />
           </div>
-        </div>
-
-        {/* Slideshow — full width below text */}
-        <div className="animate-fade-in-up mt-12 sm:mt-16" style={{ animationDelay: '0.3s' }}>
-          <HeroSlideshow />
         </div>
       </div>
     </section>

@@ -31,7 +31,7 @@ function GoogleIcon() {
 }
 
 export function LoginPage() {
-  const { login, googleLogin, continueAsGuest, isAuthenticated, isRestoringSession } = useAuth()
+  const { login, googleLogin, isAuthenticated, isRestoringSession } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [username, setUsername] = React.useState('')
@@ -249,22 +249,6 @@ export function LoginPage() {
             </div>
           )}
 
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={async () => {
-              try {
-                await continueAsGuest()
-                navigate('/home')
-              } catch (err) {
-                console.error('Failed to continue as guest:', err)
-                setError(err instanceof Error ? err.message : 'Failed to continue as guest. Please try again.')
-              }
-            }}
-          >
-            Continue as Guest
-          </Button>
         </form>
 
         <div className="mt-6 text-center text-sm">

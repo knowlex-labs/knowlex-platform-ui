@@ -1,12 +1,9 @@
 import { Button } from '@/components/ui/button'
 import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
-interface CTASectionProps {
-  onGetStarted: () => void
-  onContinueAsGuest: () => void
-}
+const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
 
-export function CTASection({ onGetStarted, onContinueAsGuest }: CTASectionProps) {
+export function CTASection() {
   const { ref, isVisible } = useScrollReveal()
 
   return (
@@ -24,18 +21,11 @@ export function CTASection({ onGetStarted, onContinueAsGuest }: CTASectionProps)
         <div className="flex flex-col items-center gap-3 sm:gap-4">
           <Button
             size="lg"
-            onClick={onGetStarted}
+            onClick={() => window.open(CALENDLY_URL, '_blank')}
             className="w-full sm:w-auto bg-white text-[#16103a] hover:bg-gray-100 font-semibold"
           >
-            Get Started Free
+            Book a Demo
           </Button>
-          <button
-            type="button"
-            onClick={onContinueAsGuest}
-            className="text-sm text-white/50 hover:text-white underline underline-offset-2 transition-colors"
-          >
-            Continue as Guest
-          </button>
         </div>
       </div>
     </section>

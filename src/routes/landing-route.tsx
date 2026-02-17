@@ -5,7 +5,7 @@ import { LandingPage } from '@/components/landing/landing-page'
 import { useToast } from '@/hooks/use-toast'
 
 export function LandingRoute() {
-  const { isAuthenticated, isRestoringSession, continueAsGuest } = useAuth()
+  const { isAuthenticated, isRestoringSession } = useAuth()
   const navigate = useNavigate()
   const { toast } = useToast()
 
@@ -41,14 +41,6 @@ export function LandingRoute() {
     navigate('/login')
   }
 
-  const handleContinueAsGuest = async () => {
-    try {
-      await continueAsGuest()
-    } catch (err) {
-      console.error('Failed to continue as guest:', err)
-    }
-  }
-
   // Show loading while restoring session
   if (isRestoringSession) {
     return (
@@ -62,6 +54,6 @@ export function LandingRoute() {
   }
 
   return (
-    <LandingPage onSignIn={handleSignIn} onContinueAsGuest={handleContinueAsGuest} />
+    <LandingPage onSignIn={handleSignIn} />
   )
 }
