@@ -31,7 +31,7 @@ const faqs = [
   {
     question: 'How do I get support?',
     answer:
-      'You can reach us at support@getknowlex.com or through the in-app chat. Pro and Enterprise customers receive priority support with faster response times.',
+      'You can reach us at nakul.jain@getknowlex.com or through the in-app chat. Pro and Enterprise customers receive priority support with faster response times.',
   },
 ]
 
