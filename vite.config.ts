@@ -8,4 +8,7 @@ export default defineConfig({
       '@': '/src',
     },
   },
+  server: {
+    allowedHosts: ['millie-venose-temerariously.ngrok-free.dev'],
+  },
 })

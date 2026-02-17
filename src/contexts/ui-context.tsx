@@ -14,9 +14,7 @@ interface UIStateProviderProps {
 }
 
 export function UIStateProvider({ children }: UIStateProviderProps) {
-  const [sidebarCollapsed, setSidebarCollapsedState] = React.useState(() => {
-    return localStorage.getItem('knowlex_sidebar_collapsed') === 'true'
-  })
+  const [sidebarCollapsed, setSidebarCollapsedState] = React.useState(false)
   const [showAddCaseModal, setShowAddCaseModal] = React.useState(false)
 
   const setSidebarCollapsed = React.useCallback((collapsed: boolean) => {
