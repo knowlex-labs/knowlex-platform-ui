@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { LandingRoute } from '@/routes/landing-route'
 import { ProtectedLayout } from '@/routes/protected-layout'
 import { DashboardHome } from '@/components/dashboard/dashboard-home'
@@ -12,10 +12,12 @@ import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
 import { SignupPage } from '@/components/auth/signup-page'
 
+const isDashboardSubdomain = window.location.hostname.startsWith('dashboard.')
+
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <LandingRoute />,
+    element: isDashboardSubdomain ? <Navigate to="/login" replace /> : <LandingRoute />,
   },
   {
     path: '/login',
