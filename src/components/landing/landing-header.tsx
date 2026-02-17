@@ -9,8 +9,7 @@ interface LandingHeaderProps {
 const navLinks = [
   { label: 'Features', sectionId: 'features' },
   { label: 'Pricing', sectionId: 'pricing' },
-  { label: 'Team', sectionId: 'team' },
-  { label: 'About', sectionId: 'about' },
+  { label: 'About Us', sectionId: 'about' },
 ]
 
 export function LandingHeader({ onSignIn }: LandingHeaderProps) {
@@ -30,9 +29,13 @@ export function LandingHeader({ onSignIn }: LandingHeaderProps) {
         <div className="flex items-center justify-center h-[60px] relative">
           {/* Logo — left */}
           <div className="absolute left-0 flex items-center">
-            <span className="text-2xl font-serif font-bold text-white tracking-tight">
+            <button
+              type="button"
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="text-2xl font-serif font-bold text-white tracking-tight hover:opacity-90 transition-opacity"
+            >
               {APP_NAME}
-            </span>
+            </button>
           </div>
 
           {/* Desktop Navigation — centered */}

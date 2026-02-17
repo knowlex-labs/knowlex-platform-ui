@@ -79,10 +79,10 @@ export function PricingSection({ onGetStarted }: PricingSectionProps) {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`scroll-reveal bg-ledger-white rounded-2xl p-5 sm:p-6 md:p-8 border flex flex-col ${isVisible ? 'is-visible' : ''} ${
+              className={`scroll-reveal bg-white rounded-2xl p-5 sm:p-6 md:p-8 border flex flex-col ${isVisible ? 'is-visible' : ''} ${
                 plan.highlighted
                   ? 'border-kx-primary-600 ring-2 ring-kx-primary-600'
-                  : 'border-ledger-gray-200'
+                  : 'border-gray-200'
               }`}
             >
               <h3 className="text-2xl sm:text-3xl font-serif font-semibold text-kx-text-primary mb-2">

@@ -3,7 +3,6 @@ import { HeroSection } from './hero-section'
 import { FeaturesSection } from './features-section'
 import { StatsSection } from './stats-section'
 import { PricingSection } from './pricing-section'
-import { TeamSection } from './team-section'
 import { AboutSection } from './about-section'
 import { FAQSection } from './faq-section'
 import { CTASection } from './cta-section'
@@ -22,7 +21,6 @@ export function LandingPage({ onSignIn, onContinueAsGuest }: LandingPageProps) {
       <FeaturesSection />
       <StatsSection />
       <PricingSection onGetStarted={onSignIn} />
-      <TeamSection />
       <AboutSection />
       <FAQSection />
       <CTASection onGetStarted={onSignIn} onContinueAsGuest={onContinueAsGuest} />

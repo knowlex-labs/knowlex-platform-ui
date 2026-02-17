@@ -59,7 +59,7 @@ export function FeatureShowcase({
         ref={mockupReveal.ref}
         className={`${slideClass} ${mockupReveal.isVisible ? 'is-visible' : ''} ${reversed ? 'lg:order-1' : ''}`}
       >
-        <div className="rounded-xl shadow-lg border border-ledger-gray-200/60 bg-ledger-white overflow-hidden h-[260px] sm:h-[300px]">
+        <div className="rounded-xl shadow-lg border border-gray-200/60 bg-white overflow-hidden h-[260px] sm:h-[300px]">
           {mockup}
         </div>
       </div>

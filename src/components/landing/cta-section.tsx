@@ -18,7 +18,7 @@ export function CTASection({ onGetStarted, onContinueAsGuest }: CTASectionProps)
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-white mb-3 sm:mb-4">
           Ready to streamline your practice?
         </h2>
-        <p className="text-base sm:text-lg text-gray-300 mb-6 sm:mb-8 max-w-2xl mx-auto">
+        <p className="text-base sm:text-lg text-white/70 mb-6 sm:mb-8 max-w-2xl mx-auto">
           Join lawyers across India who are already using Knowlex to manage their practice more efficiently.
         </p>
         <div className="flex flex-col items-center gap-3 sm:gap-4">
@@ -32,7 +32,7 @@ export function CTASection({ onGetStarted, onContinueAsGuest }: CTASectionProps)
           <button
             type="button"
             onClick={onContinueAsGuest}
-            className="text-sm text-gray-400 hover:text-white underline underline-offset-2 transition-colors"
+            className="text-sm text-white/50 hover:text-white underline underline-offset-2 transition-colors"
           >
             Continue as Guest
           </button>

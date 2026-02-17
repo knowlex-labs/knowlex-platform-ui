@@ -13,11 +13,11 @@ function StatItem({ icon: Icon, target, suffix, label }: typeof stats[number]) {
 
   return (
     <div ref={ref} className="flex flex-col items-center text-center py-6">
-      <Icon className="w-7 h-7 text-indigo-300 mb-3" />
+      <Icon className="w-7 h-7 text-white/60 mb-3" />
       <span className="text-3xl sm:text-4xl font-serif font-bold text-white mb-1">
         {display}
       </span>
-      <span className="text-sm text-indigo-200">{label}</span>
+      <span className="text-sm text-white/50">{label}</span>
     </div>
   )
 }
