@@ -1,7 +1,13 @@
 import * as React from 'react'
-import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
 import { Menu, X } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from '@/components/ui/dialog'
+
+const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
 
 interface LandingHeaderProps {
   onSignIn: () => void
@@ -10,12 +16,12 @@ interface LandingHeaderProps {
 const navLinks = [
   { label: 'Features', sectionId: 'features' },
   { label: 'Pricing', sectionId: 'pricing' },
-  { label: 'Team', sectionId: 'team' },
-  { label: 'About', sectionId: 'about' },
+  { label: 'About Us', sectionId: 'about' },
 ]
 
-export function LandingHeader({ onSignIn }: LandingHeaderProps) {
+export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
+  const [calendlyOpen, setCalendlyOpen] = React.useState(false)
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
@@ -26,65 +32,98 @@ export function LandingHeader({ onSignIn }: LandingHeaderProps) {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-ledger-white border-b border-ledger-gray-200">
-      <div className="max-w-6xl mx-auto px-4 md:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <span className="text-xl font-serif font-semibold text-ledger-black">
-              {APP_NAME}
-            </span>
-          </div>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
+    <>
+      <header className="sticky top-0 z-50 bg-[#2a3eb1] border-b-0 shadow-[0_8px_30px_rgba(22,16,58,0.6),inset_0_1px_0_rgba(255,255,255,0.1)]">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
+          <div className="flex items-center justify-center h-[60px] relative">
+            {/* Logo — left */}
+            <div className="absolute left-0 flex items-center">
               <button
-                key={link.sectionId}
                 type="button"
-                onClick={() => scrollToSection(link.sectionId)}
-                className="text-sm font-medium text-ledger-gray-600 hover:text-ledger-black transition-colors"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="text-2xl font-serif font-bold text-white tracking-tight hover:opacity-90 transition-opacity"
               >
-                {link.label}
+                {APP_NAME}
               </button>
-            ))}
-            <Button variant="outline" size="sm" onClick={onSignIn}>
-              Sign In
-            </Button>
-          </nav>
+            </div>
 
-          {/* Mobile Menu Button */}
-          <button
-            type="button"
-            className="md:hidden p-2 text-ledger-gray-600 hover:text-ledger-black"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
-          >
-            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-        </div>
-
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <nav className="md:hidden py-4 border-t border-ledger-gray-200">
-            <div className="flex flex-col gap-4">
+            {/* Desktop Navigation — centered */}
+            <nav className="hidden md:flex items-center gap-8">
               {navLinks.map((link) => (
                 <button
                   key={link.sectionId}
                   type="button"
                   onClick={() => scrollToSection(link.sectionId)}
-                  className="text-sm font-medium text-ledger-gray-600 hover:text-ledger-black transition-colors text-left py-2"
+                  className="text-base font-medium text-white/90 hover:text-white transition-colors"
                 >
                   {link.label}
                 </button>
               ))}
-              <Button variant="outline" size="sm" onClick={onSignIn} className="w-full">
-                Sign In
-              </Button>
+            </nav>
+
+            {/* Book a Demo — right */}
+            <div className="hidden md:block absolute right-0">
+              <button
+                onClick={() => setCalendlyOpen(true)}
+                className="text-base font-semibold text-white border-2 border-white rounded-full px-6 py-2 hover:bg-white hover:text-[#2a3eb1] transition-all"
+              >
+                Book a Demo
+              </button>
             </div>
-          </nav>
-        )}
-      </div>
-    </header>
+
+            {/* Mobile Menu Button */}
+            <button
+              type="button"
+              className="md:hidden p-2 text-white/90 hover:text-white"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+            >
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          {mobileMenuOpen && (
+            <nav className="md:hidden py-4 border-t border-white/10">
+              <div className="flex flex-col gap-4">
+                {navLinks.map((link) => (
+                  <button
+                    key={link.sectionId}
+                    type="button"
+                    onClick={() => scrollToSection(link.sectionId)}
+                    className="text-sm font-medium text-white/90 hover:text-white transition-colors text-left py-2"
+                  >
+                    {link.label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    setCalendlyOpen(true)
+                    setMobileMenuOpen(false)
+                  }}
+                  className="text-sm font-medium text-white border border-white/30 hover:border-white/60 hover:bg-white/10 rounded-full px-5 py-2.5 transition-all w-full"
+                >
+                  Book a Demo
+                </button>
+              </div>
+            </nav>
+          )}
+        </div>
+      </header>
+
+      {/* Calendly Dialog */}
+      <Dialog open={calendlyOpen} onOpenChange={setCalendlyOpen}>
+        <DialogContent className="max-w-2xl w-full p-0 gap-0 overflow-hidden h-[85vh] sm:h-[700px]">
+          <DialogTitle className="sr-only">Book a Demo</DialogTitle>
+          <iframe
+            src={CALENDLY_URL}
+            title="Book a Demo"
+            className="w-full h-full border-0"
+          />
+          {/* White circle behind the close button so it's visible on Calendly's white bg */}
+          <div className="absolute right-4 top-4 w-6 h-6 bg-white rounded-full -z-10" />
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

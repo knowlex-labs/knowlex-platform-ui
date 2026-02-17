@@ -3,25 +3,153 @@
 @tailwind utilities;
 
 :root {
-  --ledger-black: #000000;
+  /* Gray scale (slate) */
+  --ledger-black: #0f172a;
   --ledger-white: #ffffff;
-  --ledger-gray-50: #fafafa;
-  --ledger-gray-100: #f4f4f5;
-  --ledger-gray-200: #e4e4e7;
-  --ledger-gray-300: #d4d4d8;
-  --ledger-gray-400: #a1a1aa;
-  --ledger-gray-500: #71717a;
-  --ledger-gray-600: #52525b;
-  --ledger-gray-700: #3f3f46;
-  --ledger-gray-800: #27272a;
-  --ledger-gray-900: #18181b;
-  --ledger-gray-950: #09090b;
+  --ledger-gray-50: #f8fafc;
+  --ledger-gray-100: #f1f5f9;
+  --ledger-gray-200: #e2e8f0;
+  --ledger-gray-300: #cbd5e1;
+  --ledger-gray-400: #94a3b8;
+  --ledger-gray-500: #64748b;
+  --ledger-gray-600: #475569;
+  --ledger-gray-700: #334155;
+  --ledger-gray-800: #1e293b;
+  --ledger-gray-900: #0f172a;
+  --ledger-gray-950: #020617;
+
+  /* Primary (indigo) */
+  --kx-primary-50: #EEF2FF;
+  --kx-primary-100: #E0E7FF;
+  --kx-primary-200: #C7D2FE;
+  --kx-primary-300: #A5B4FC;
+  --kx-primary-400: #818CF8;
+  --kx-primary-500: #6366F1;
+  --kx-primary-600: #4F46E5;
+  --kx-primary-700: #4338CA;
+  --kx-primary-800: #3730A3;
+  --kx-primary-900: #312E81;
+  --kx-primary-950: #1E1B4B;
+
+  /* Accent (amber) */
+  --kx-accent-400: #FBBF24;
+  --kx-accent-500: #F59E0B;
+  --kx-accent-600: #D97706;
+
+  /* Semantic */
+  --kx-surface: #F8FAFC;
+  --kx-text-primary: #0F172A;
+  --kx-text-secondary: #64748B;
+
+  /* Card surface */
+  --kx-card-bg: #ffffff;
+  --kx-card-border: #e2e8f0;
+
+  /* Shadows */
+  --shadow-xs: rgba(0, 0, 0, 0.03);
+  --shadow-sm: rgba(0, 0, 0, 0.06);
+  --shadow-md: rgba(0, 0, 0, 0.08);
+  --shadow-lg: rgba(0, 0, 0, 0.10);
+  --shadow-xl: rgba(0, 0, 0, 0.12);
+  --shadow-glow: rgba(99, 102, 241, 0);
 
   /* Mobile-first safe area insets */
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+.dark {
+  /* Gray scale — deep navy-blue tones for premium dark feel */
+  --ledger-black: #E2E8F0;
+  --ledger-white: #0B1120;
+  --ledger-gray-50: #0E1528;
+  --ledger-gray-100: #131C33;
+  --ledger-gray-200: #1E2B4A;
+  --ledger-gray-300: #2F3E60;
+  --ledger-gray-400: #5B6B8A;
+  --ledger-gray-500: #8B9AB8;
+  --ledger-gray-600: #B8C5D9;
+  --ledger-gray-700: #D4DEE8;
+  --ledger-gray-800: #E8EDF4;
+  --ledger-gray-900: #F1F5F9;
+  --ledger-gray-950: #FFFFFF;
+
+  /* Primary — extremes swap, middle stays vibrant */
+  --kx-primary-50: #1a1a3e;
+  --kx-primary-100: #252550;
+  --kx-primary-200: #C7D2FE;
+  --kx-primary-300: #A5B4FC;
+  --kx-primary-400: #818CF8;
+  --kx-primary-500: #6366F1;
+  --kx-primary-600: #6366F1;
+  --kx-primary-700: #A5B4FC;
+  --kx-primary-800: #C7D2FE;
+  --kx-primary-900: #E0E7FF;
+  --kx-primary-950: #1E1B4B;
+
+  /* Accent (amber) */
+  --kx-accent-400: #FBBF24;
+  --kx-accent-500: #F59E0B;
+  --kx-accent-600: #D97706;
+
+  /* Semantic */
+  --kx-surface: #070C1A;
+  --kx-text-primary: #F1F5F9;
+  --kx-text-secondary: #94A3B8;
+
+  /* Card surface — distinct from body for depth */
+  --kx-card-bg: #111827;
+  --kx-card-border: rgba(99, 102, 241, 0.25);
+
+  /* Shadows — stronger + glow in dark */
+  --shadow-xs: rgba(0, 0, 0, 0.20);
+  --shadow-sm: rgba(0, 0, 0, 0.30);
+  --shadow-md: rgba(0, 0, 0, 0.35);
+  --shadow-lg: rgba(0, 0, 0, 0.40);
+  --shadow-xl: rgba(0, 0, 0, 0.50);
+  --shadow-glow: rgba(99, 102, 241, 0.15);
+}
+
+/* Force light theme on specific sections (e.g. landing page) even when dark mode is active */
+.dark .force-light {
+  --ledger-black: #0f172a;
+  --ledger-white: #ffffff;
+  --ledger-gray-50: #f8fafc;
+  --ledger-gray-100: #f1f5f9;
+  --ledger-gray-200: #e2e8f0;
+  --ledger-gray-300: #cbd5e1;
+  --ledger-gray-400: #94a3b8;
+  --ledger-gray-500: #64748b;
+  --ledger-gray-600: #475569;
+  --ledger-gray-700: #334155;
+  --ledger-gray-800: #1e293b;
+  --ledger-gray-900: #0f172a;
+  --ledger-gray-950: #020617;
+  --kx-primary-50: #EEF2FF;
+  --kx-primary-100: #E0E7FF;
+  --kx-primary-200: #C7D2FE;
+  --kx-primary-300: #A5B4FC;
+  --kx-primary-400: #818CF8;
+  --kx-primary-500: #6366F1;
+  --kx-primary-600: #4F46E5;
+  --kx-primary-700: #4338CA;
+  --kx-primary-800: #3730A3;
+  --kx-primary-900: #312E81;
+  --kx-primary-950: #1E1B4B;
+  --kx-card-bg: #ffffff;
+  --kx-card-border: #e2e8f0;
+  --kx-surface: #F8FAFC;
+  --kx-text-primary: #0F172A;
+  --kx-text-secondary: #64748B;
+  --shadow-xs: rgba(0, 0, 0, 0.03);
+  --shadow-sm: rgba(0, 0, 0, 0.06);
+  --shadow-md: rgba(0, 0, 0, 0.08);
+  --shadow-lg: rgba(0, 0, 0, 0.10);
+  --shadow-xl: rgba(0, 0, 0, 0.12);
+  --shadow-glow: rgba(99, 102, 241, 0);
+  color-scheme: light;
 }
 
 @layer base {
@@ -62,7 +190,7 @@
     input:focus,
     select:focus,
     textarea:focus {
-      outline: 2px solid var(--ledger-black);
+      outline: 2px solid #4F46E5;
       outline-offset: 2px;
     }
   }
@@ -91,11 +219,134 @@
   }
 
   .ledger-focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-ledger-black focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-2;
+  }
+
+  /* Dark mode ring-offset should match dark background */
+  .dark *:focus {
+    --tw-ring-offset-color: var(--ledger-white);
   }
 }
 
 @layer utilities {
+  /* Scroll reveal animations */
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .scroll-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .scroll-reveal-stagger > .scroll-reveal:nth-child(1) { transition-delay: 0ms; }
+  .scroll-reveal-stagger > .scroll-reveal:nth-child(2) { transition-delay: 120ms; }
+  .scroll-reveal-stagger > .scroll-reveal:nth-child(3) { transition-delay: 240ms; }
+  .scroll-reveal-stagger > .scroll-reveal:nth-child(4) { transition-delay: 360ms; }
+  .scroll-reveal-stagger > .scroll-reveal:nth-child(5) { transition-delay: 480ms; }
+  .scroll-reveal-stagger > .scroll-reveal:nth-child(6) { transition-delay: 600ms; }
+
+  /* Gradient text */
+  .text-gradient-indigo {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #4F46E5 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .dark .text-gradient-indigo:not(.force-light .text-gradient-indigo) {
+    background: linear-gradient(135deg, #818CF8 0%, #A78BFA 50%, #818CF8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Animated mesh gradient for login panel */
+  .mesh-gradient {
+    background: linear-gradient(-45deg, #1E1B4B, #312E81, #4338CA, #1E1B4B);
+    background-size: 400% 400%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  @keyframes gradient-shift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease-out,
+                border-color 0.3s ease-out;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 28px var(--shadow-lg), 0 4px 8px var(--shadow-sm);
+  }
+
+  .dark .card-hover:hover {
+    box-shadow: 0 12px 28px var(--shadow-lg), 0 0 24px var(--shadow-glow);
+    border-color: var(--ledger-gray-300);
+  }
+
+  /* Elevated card with resting shadow + hover lift + bouncy press */
+  .card-elevated {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 2px 8px var(--shadow-md);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 0.3s ease-out,
+                border-color 0.3s ease-out;
+  }
+
+  .card-elevated:hover {
+    transform: translateY(-4px) scale(1.01);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 12px 32px var(--shadow-lg),
+      0 4px 8px var(--shadow-sm);
+  }
+
+  .card-elevated:active {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 0.1s;
+  }
+
+  .dark .card-elevated {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 2px 12px var(--shadow-md),
+      0 0 0 1px rgba(99, 102, 241, 0.12);
+  }
+
+  .dark .card-elevated:hover {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 12px 32px var(--shadow-lg),
+      0 0 24px var(--shadow-glow),
+      0 0 0 1px rgba(99, 102, 241, 0.25);
+    border-color: rgba(99, 102, 241, 0.3);
+  }
+
+  .dark .card-elevated:active {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.02),
+      0 1px 4px var(--shadow-sm),
+      0 0 0 1px rgba(99, 102, 241, 0.2);
+  }
+
+  /* Accent glow for interactive elements (dark mode) */
+  .dark .glow-accent:hover {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2), 0 4px 12px var(--shadow-md);
+  }
+
+  .dark .glow-accent:focus-visible {
+    box-shadow: 0 0 0 2px var(--kx-primary-500), 0 0 20px rgba(99, 102, 241, 0.25);
+  }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: var(--ledger-gray-400) transparent;
@@ -130,6 +381,29 @@
     }
   }
 
+  /* Slide-in animations for feature showcases */
+  .slide-in-left {
+    opacity: 0;
+    transform: translateX(-48px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+
+  .slide-in-left.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .slide-in-right {
+    opacity: 0;
+    transform: translateX(48px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+
+  .slide-in-right.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
   /* Touch-friendly tap highlight */
   .tap-highlight-none {
     -webkit-tap-highlight-color: transparent;
@@ -142,6 +416,12 @@
 
   .safe-area-top {
     padding-top: var(--safe-area-inset-top);
+  }
+
+  /* Bouncy entrance animation */
+  .animate-bounce-in {
+    animation: bounce-in 0.5s ease-out forwards;
+    opacity: 0;
   }
 
   /* Typewriter bouncing dots for draft generation */
@@ -172,4 +452,11 @@
     transform: translateY(-8px);
     opacity: 1;
   }
+}
+
+@keyframes bounce-in {
+  0% { opacity: 0; transform: translateY(16px) scale(0.97); }
+  60% { opacity: 1; transform: translateY(-4px) scale(1.01); }
+  80% { transform: translateY(2px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
 }

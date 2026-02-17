@@ -25,9 +25,9 @@ export function StudioToolCard({
       className={cn(
         'group relative flex items-center gap-3 p-3',
         'bg-ledger-gray-50/60 rounded-lg border-l-2 border-l-transparent',
-        'hover:bg-ledger-gray-100 hover:shadow-sm hover:border-l-ledger-black',
+        'hover:bg-ledger-gray-100 hover:shadow-sm hover:border-l-kx-primary-600',
         'transition-all duration-150',
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-ledger-black',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-kx-primary-500',
         disabled && 'opacity-50 cursor-not-allowed hover:bg-ledger-gray-50/60 hover:shadow-none hover:border-l-transparent'
       )}
     >
@@ -36,7 +36,7 @@ export function StudioToolCard({
         className={cn(
           'w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0',
           'bg-ledger-gray-100 text-ledger-gray-600',
-          'group-hover:bg-ledger-black group-hover:text-white',
+          'group-hover:bg-kx-primary-600 group-hover:text-white',
           'transition-colors duration-150',
           disabled && 'group-hover:bg-ledger-gray-100 group-hover:text-ledger-gray-600'
         )}
@@ -45,7 +45,7 @@ export function StudioToolCard({
       </div>
 
       {/* Label */}
-      <span className="text-sm font-medium text-ledger-black leading-tight">
+      <span className="text-sm font-medium text-kx-primary-900 leading-tight">
         {name}
       </span>
 

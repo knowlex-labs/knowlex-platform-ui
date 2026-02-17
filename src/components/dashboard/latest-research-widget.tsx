@@ -19,7 +19,7 @@ export function LatestResearchWidget({
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="border border-ledger-gray-200 rounded-lg p-4 animate-pulse"
+            className="border border-kx-card-border rounded-lg p-4 animate-pulse"
           >
             <div className="h-4 bg-ledger-gray-200 rounded w-3/4 mb-2" />
             <div className="h-3 bg-ledger-gray-200 rounded w-1/2" />
@@ -41,7 +41,7 @@ export function LatestResearchWidget({
         </p>
         <button
           onClick={onSessionClick}
-          className="text-sm text-ledger-black font-medium hover:underline"
+          className="text-sm text-kx-primary-600 font-medium hover:underline"
         >
           Start Research
         </button>
@@ -55,7 +55,7 @@ export function LatestResearchWidget({
         <button
           key={session.id}
           onClick={onSessionClick}
-          className="w-full border border-ledger-gray-200 rounded-lg p-4 text-left transition-all hover:border-ledger-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ledger-gray-400 focus:ring-offset-2"
+          className="w-full border border-kx-card-border bg-kx-card rounded-lg p-4 text-left shadow-sm card-elevated focus:outline-none focus:ring-2 focus:ring-ledger-gray-400 focus:ring-offset-2"
         >
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">

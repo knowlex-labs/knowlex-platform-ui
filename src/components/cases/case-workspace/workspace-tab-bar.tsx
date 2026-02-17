@@ -31,8 +31,8 @@ export function WorkspaceTabBar({
             className={cn(
               'group flex items-center gap-1.5 px-3 py-2 text-sm cursor-pointer border-b-2 transition-colors',
               activeTabId === tab.id
-                ? 'border-ledger-black text-ledger-black bg-ledger-white font-medium'
-                : 'border-transparent text-ledger-gray-500 hover:text-ledger-black'
+                ? 'border-kx-primary-600 text-kx-primary-700 bg-ledger-white font-medium'
+                : 'border-transparent text-ledger-gray-500 hover:text-kx-primary-700'
             )}
             onClick={() => onTabClick(tab.id)}
           >
@@ -67,7 +67,7 @@ export function WorkspaceTabBar({
           size="sm"
           className={cn(
             'h-7 px-2 gap-1.5 mr-1',
-            splitMode && 'bg-ledger-gray-200 text-ledger-black'
+            splitMode && 'bg-kx-primary-100 text-kx-primary-700'
           )}
           onClick={onToggleSplit}
           title={splitMode ? 'Exit split view' : 'Split view'}

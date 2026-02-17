@@ -61,7 +61,7 @@ export function ResearchChatInput({
       <div className={cn(!isHero && 'max-w-2xl mx-auto')}>
         <div
           className={cn(
-            'flex items-end gap-2 border border-ledger-gray-200 bg-white transition-all',
+            'flex items-end gap-2 border border-kx-card-border bg-kx-card transition-all',
             isHero
               ? 'shadow-md focus-within:shadow-lg focus-within:border-ledger-gray-300'
               : 'shadow-sm focus-within:shadow-md focus-within:border-ledger-gray-300',
@@ -95,7 +95,7 @@ export function ResearchChatInput({
           {isStreaming ? (
             <button
               type="button"
-              className={cn(btnSize, 'flex items-center justify-center flex-shrink-0 text-ledger-gray-500 hover:text-ledger-black transition-colors rounded-full')}
+              className={cn(btnSize, 'flex items-center justify-center flex-shrink-0 text-ledger-gray-500 hover:text-kx-primary-700 transition-colors rounded-full')}
               onClick={onCancelStream}
               title="Stop generating"
             >
@@ -104,7 +104,7 @@ export function ResearchChatInput({
           ) : (
             <button
               type="button"
-              className={cn(btnSize, 'flex items-center justify-center flex-shrink-0 bg-ledger-black text-white rounded-full disabled:opacity-30 hover:bg-ledger-gray-800 transition-colors')}
+              className={cn(btnSize, 'flex items-center justify-center flex-shrink-0 bg-kx-primary-600 text-white rounded-full disabled:opacity-30 hover:bg-kx-primary-700 transition-colors')}
               onClick={handleSubmit}
               disabled={!input.trim() || disabled}
               title="Send message"

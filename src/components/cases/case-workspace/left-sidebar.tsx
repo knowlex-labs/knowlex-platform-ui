@@ -70,7 +70,7 @@ export function LeftSidebar({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-ledger-white">
+    <div className="flex flex-col h-full overflow-hidden bg-kx-card">
       <div className="flex-1 overflow-y-auto">
         {/* Sources Section */}
         <div className="pb-2">
@@ -84,7 +84,7 @@ export function LeftSidebar({
                 }}
                 onChange={handleSourcesSelectAll}
                 onClick={(e) => e.stopPropagation()}
-                className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0 mr-2"
+                className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0 mr-2"
               />
             )}
             <button
@@ -97,7 +97,7 @@ export function LeftSidebar({
                 ) : (
                   <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
                 )}
-                <span className="text-sm font-semibold text-ledger-black">Sources</span>
+                <span className="text-sm font-semibold text-kx-primary-900">Sources</span>
                 {sources.length > 0 && (
                   <span className="text-xs text-ledger-gray-400 px-1.5">
                     {sources.length}
@@ -119,7 +119,7 @@ export function LeftSidebar({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="w-full h-8 gap-2 bg-ledger-gray-100 hover:bg-ledger-gray-200 border-ledger-gray-200 text-ledger-black text-xs font-normal"
+                  className="w-full h-8 gap-2 bg-ledger-gray-100 hover:bg-ledger-gray-200 border-ledger-gray-200 text-kx-primary-700 text-xs font-normal"
                   onClick={() => setAddModalOpen(true)}
                   disabled={isUploading}
                 >
@@ -171,7 +171,7 @@ export function LeftSidebar({
                 }}
                 onChange={handleDraftsSelectAll}
                 onClick={(e) => e.stopPropagation()}
-                className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0 mr-2"
+                className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0 mr-2"
               />
             )}
             <button
@@ -184,7 +184,7 @@ export function LeftSidebar({
                 ) : (
                   <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
                 )}
-                <span className="text-sm font-semibold text-ledger-black">Drafts</span>
+                <span className="text-sm font-semibold text-kx-primary-900">Drafts</span>
                 {drafts.length > 0 && (
                   <span className="text-xs text-ledger-gray-400 px-1.5">
                     {drafts.length}
@@ -223,7 +223,7 @@ export function LeftSidebar({
                         type="checkbox"
                         checked={selectedDraftIds.has(draft.id)}
                         onChange={() => onToggleDraftSelection(draft.id)}
-                        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black flex-shrink-0"
+                        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0"
                       />
                       <button
                         className="flex items-center gap-2 flex-1 min-w-0 text-left"
@@ -236,7 +236,7 @@ export function LeftSidebar({
                         ) : (
                           <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
                         )}
-                        <span className="text-sm text-ledger-black truncate flex-1 min-w-0">
+                        <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">
                           {draft.title}
                           {draft.status === 'pending' && (
                             <span className="text-ledger-gray-400 ml-1">- Generating...</span>

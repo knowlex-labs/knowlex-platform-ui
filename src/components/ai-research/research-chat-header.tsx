@@ -17,12 +17,12 @@ export function ResearchChatHeader({
   onToggleSidebar,
 }: ResearchChatHeaderProps) {
   return (
-    <div className="flex items-center justify-between h-14 px-4 border-b border-ledger-gray-200 bg-white flex-shrink-0">
+    <div className="flex items-center justify-between h-14 px-4 border-b border-kx-card-border bg-kx-card flex-shrink-0">
       {/* Left: sidebar toggle */}
       <Button
         variant="ghost"
         size="sm"
-        className="h-10 w-10 text-ledger-gray-500 hover:text-ledger-black hidden md:flex p-0"
+        className="h-10 w-10 text-ledger-gray-500 hover:text-kx-primary-900 hidden md:flex p-0"
         onClick={onToggleSidebar}
         title={sidebarVisible ? 'Hide sessions' : 'Show sessions'}
       >
@@ -35,7 +35,7 @@ export function ResearchChatHeader({
       <div className="w-10 md:hidden" />
 
       {/* Center: title */}
-      <h2 className="text-sm font-medium text-ledger-black truncate max-w-[50%]">
+      <h2 className="text-sm font-medium text-kx-primary-900 truncate max-w-[50%]">
         {title}
       </h2>
 
@@ -43,7 +43,7 @@ export function ResearchChatHeader({
       <Button
         variant="ghost"
         size="sm"
-        className={`h-10 w-10 ${settingsOpen ? 'text-ledger-black' : 'text-ledger-gray-500'} hover:text-ledger-black p-0`}
+        className={`h-10 w-10 ${settingsOpen ? 'text-kx-primary-900' : 'text-ledger-gray-500'} hover:text-kx-primary-900 p-0`}
         onClick={onToggleSettings}
         title={settingsOpen ? 'Hide settings' : 'Show settings'}
       >

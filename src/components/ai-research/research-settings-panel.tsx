@@ -24,9 +24,9 @@ export function ResearchSettingsPanel({
   onUpdateSettings,
 }: ResearchSettingsPanelProps) {
   return (
-    <div className="w-72 border-l border-ledger-gray-200 bg-white flex-shrink-0 flex flex-col overflow-hidden">
+    <div className="w-72 border-l border-kx-card-border bg-kx-card flex-shrink-0 flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-ledger-gray-200">
-        <h3 className="text-sm font-medium text-ledger-black">Settings</h3>
+        <h3 className="text-sm font-medium text-kx-primary-900">Settings</h3>
       </div>
 
       <div className="p-4 space-y-5 overflow-y-auto flex-1">
@@ -43,7 +43,7 @@ export function ResearchSettingsPanel({
                 className={cn(
                   'flex-1 py-1.5 px-2 text-xs font-medium transition-colors',
                   settings.creativity === option.value
-                    ? 'bg-ledger-black text-white'
+                    ? 'bg-kx-primary-600 text-white'
                     : 'bg-ledger-gray-50 text-ledger-gray-600 hover:bg-ledger-gray-100'
                 )}
                 title={option.description}
@@ -86,10 +86,10 @@ export function ResearchSettingsPanel({
               type="checkbox"
               checked={settings.knowledgeBaseEnabled}
               onChange={(e) => onUpdateSettings({ knowledgeBaseEnabled: e.target.checked })}
-              className="h-4 w-4 rounded border-ledger-gray-300 text-ledger-black focus:ring-ledger-black"
+              className="h-4 w-4 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500"
             />
             <div>
-              <span className="text-sm font-medium text-ledger-black">Knowledge Base</span>
+              <span className="text-sm font-medium text-kx-primary-900">Knowledge Base</span>
               <p className="text-[10px] text-ledger-gray-400">
                 Search uploaded documents for context
               </p>

@@ -61,15 +61,15 @@ export function DraftsPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-ledger-white border border-ledger-gray-200 rounded-lg">
+    <div className="flex flex-col h-full bg-kx-card border border-kx-card-border rounded-lg">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-ledger-gray-200">
-        <h3 className="text-sm font-semibold text-ledger-black">Drafts</h3>
+        <h3 className="text-sm font-semibold text-kx-primary-900">Drafts</h3>
         <Button
           variant="ghost"
           size="sm"
           onClick={handleNewDraft}
-          className="h-8 gap-2 text-ledger-gray-500 hover:text-ledger-black"
+          className="h-8 gap-2 text-ledger-gray-500 hover:text-kx-primary-700"
         >
           <Plus className="h-3.5 w-3.5" />
           New

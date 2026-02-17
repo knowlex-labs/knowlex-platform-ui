@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth-context'
-import { useNavigate } from 'react-router-dom'
+import { useNavigation } from '@/contexts/navigation-context'
 import { AlertCircle } from 'lucide-react'
 
 interface LoginModalProps {
@@ -71,8 +71,8 @@ function GoogleIcon() {
 }
 
 export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpired }: LoginModalProps) {
-  const { login, googleLogin, continueAsGuest } = useAuth()
-  const navigate = useNavigate()
+  const { login, googleLogin } = useAuth()
+  const { setView, setActiveTab } = useNavigation()
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
@@ -87,13 +87,21 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
 
     try {
       await googleLogin(response.credential)
-      navigate('/home')
+      setActiveTab('dashboard')
+      // Actually, setView('dashboard') is correct for entering the app. 'landing' is public.
+      // Wait, the user said "land me to home page always". 
+      // And I found earlier that setView('landing') executes `return <LandingPage />` in App.tsx.
+      // If the user is LOGGED IN, they usually want to go to the Dashboard.
+      // So setView('dashboard') is correct. 
+      // The user's compliant "land me to home page always" likely meant "Dashboard Home".
+      // I will switch back to setView('dashboard') AND setActiveTab('dashboard').
+      setView('dashboard')
       onOpenChange(false)
     } catch (err) {
       console.error('Google login failed:', err)
       setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.')
     }
-  }, [googleLogin, navigate, onOpenChange])
+  }, [googleLogin, setView, onOpenChange, setActiveTab])
 
   // Load Google Sign-In script
   React.useEffect(() => {
@@ -258,7 +266,8 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
 
     try {
       await login({ username, password })
-      navigate('/home')
+      setActiveTab('dashboard')
+      setView('dashboard')
       onOpenChange(false)
     } catch (err) {
       console.error('Login failed:', err)
@@ -354,23 +363,6 @@ export function LoginModal({ open, onOpenChange, onSwitchToSignup, sessionExpire
             </div>
           )}
 
-          <Button
-            type="button"
-            variant="secondary"
-            className="w-full"
-            onClick={async () => {
-              try {
-                await continueAsGuest()
-                navigate('/home')
-                onOpenChange(false)
-              } catch (err) {
-                console.error('Failed to continue as guest:', err)
-                setError(err instanceof Error ? err.message : 'Failed to continue as guest. Please try again.')
-              }
-            }}
-          >
-            Continue as Guest
-          </Button>
         </form>
 
         <div className="mt-4 text-center text-sm">

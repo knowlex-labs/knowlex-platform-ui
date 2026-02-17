@@ -161,17 +161,17 @@ export function TemplateFormModal({
                       className={cn(
                         'flex flex-col items-start gap-2 p-4 rounded-lg border text-left transition-all',
                         isSelected
-                          ? 'border-ledger-black bg-ledger-gray-50 ring-2 ring-ledger-black'
-                          : 'border-ledger-gray-200 bg-white hover:border-ledger-gray-300 hover:bg-ledger-gray-50'
+                          ? 'border-kx-primary-600 bg-ledger-gray-50 ring-2 ring-kx-primary-500'
+                          : 'border-ledger-gray-200 bg-ledger-white hover:border-ledger-gray-300 hover:bg-ledger-gray-50'
                       )}
                     >
                       <div className={cn(
                         'w-10 h-10 rounded-lg flex items-center justify-center',
-                        isSelected ? 'bg-ledger-black text-white' : 'bg-ledger-gray-100 text-ledger-gray-600'
+                        isSelected ? 'bg-kx-primary-600 text-white' : 'bg-ledger-gray-100 text-ledger-gray-600'
                       )}>
                         <Icon className="h-5 w-5" />
                       </div>
-                      <p className="font-medium text-ledger-black">{t.name}</p>
+                      <p className="font-medium text-kx-primary-900">{t.name}</p>
                     </button>
                   )
                 })}
@@ -228,8 +228,8 @@ export function TemplateFormModal({
                               onClick={() => setSourceDropdownOpen((open) => !open)}
                               className={cn(
                                 'flex h-10 w-full items-center justify-between rounded border border-ledger-gray-300 bg-ledger-white px-3 py-2',
-                                'text-sm font-sans text-ledger-black',
-                                'focus:outline-none focus:ring-2 focus:ring-ledger-black focus:ring-offset-1',
+                                'text-sm font-sans text-kx-primary-900',
+                                'focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-1',
                                 'hover:border-ledger-gray-400 transition-colors'
                               )}
                             >
@@ -258,9 +258,9 @@ export function TemplateFormModal({
                                         onClick={() => handleSourceToggle(source.id)}
                                         className={cn(
                                           'h-4 w-4 shrink-0 rounded border flex items-center justify-center',
-                                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ledger-black focus-visible:ring-offset-2',
+                                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kx-primary-500 focus-visible:ring-offset-2',
                                           localSourceIds.has(source.id)
-                                            ? 'bg-ledger-black border-ledger-black text-ledger-white'
+                                            ? 'bg-kx-primary-600 border-kx-primary-600 text-ledger-white'
                                             : 'border-ledger-gray-300 bg-ledger-white'
                                         )}
                                       >
@@ -268,7 +268,7 @@ export function TemplateFormModal({
                                           <Check className="h-3 w-3" />
                                         )}
                                       </button>
-                                      <span className="text-sm text-ledger-black truncate">
+                                      <span className="text-sm text-kx-primary-900 truncate">
                                         {source.originalFilename}
                                       </span>
                                     </label>

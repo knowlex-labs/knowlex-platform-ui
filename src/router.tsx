@@ -9,11 +9,21 @@ import { ClientDetail } from '@/components/clients/client-detail'
 import { AIResearch } from '@/components/ai-research/ai-research'
 import { AccountSettings } from '@/components/settings/account-settings'
 import { NotFound } from '@/components/not-found'
+import { LoginPage } from '@/components/auth/login-page'
+import { SignupPage } from '@/components/auth/signup-page'
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <LandingRoute />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
+  },
+  {
+    path: '/signup',
+    element: <SignupPage />,
   },
   {
     element: <ProtectedLayout />,

@@ -8,43 +8,40 @@ interface ActiveCaseCardsProps {
   onCaseClick: (caseId: string) => void
 }
 
-function getCaseStatusBadgeColor(status: Case['status']): string {
-  switch (status) {
-    case 'active':
-      return 'bg-green-100 text-green-800 border-green-200'
-    case 'pending':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200'
-    case 'on-hold':
-      return 'bg-orange-100 text-orange-800 border-orange-200'
-    case 'closed':
-      return 'bg-gray-100 text-gray-800 border-gray-200'
-    case 'appealed':
-      return 'bg-blue-100 text-blue-800 border-blue-200'
-    case 'blocked':
-      return 'bg-red-100 text-red-800 border-red-200'
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200'
-  }
+const STATUS_CONFIG: Record<Case['status'], { label: string; badge: string; leftBorder: string }> = {
+  active: {
+    label: 'Active',
+    badge: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800',
+    leftBorder: 'border-l-green-500',
+  },
+  pending: {
+    label: 'Pending',
+    badge: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800',
+    leftBorder: 'border-l-yellow-500',
+  },
+  'on-hold': {
+    label: 'On Hold',
+    badge: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+    leftBorder: 'border-l-orange-500',
+  },
+  closed: {
+    label: 'Closed',
+    badge: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-900/30 dark:text-gray-400 dark:border-gray-800',
+    leftBorder: 'border-l-gray-500',
+  },
+  appealed: {
+    label: 'Appealed',
+    badge: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
+    leftBorder: 'border-l-blue-500',
+  },
+  blocked: {
+    label: 'Blocked',
+    badge: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+    leftBorder: 'border-l-red-500',
+  },
 }
 
-function formatCaseStatus(status: Case['status']): string {
-  switch (status) {
-    case 'on-hold':
-      return 'On Hold'
-    case 'active':
-      return 'Active'
-    case 'pending':
-      return 'Pending'
-    case 'closed':
-      return 'Closed'
-    case 'appealed':
-      return 'Appealed'
-    case 'blocked':
-      return 'Blocked'
-    default:
-      return status
-  }
-}
+const DEFAULT_STATUS_CONFIG = STATUS_CONFIG.closed
 
 export function ActiveCaseCards({ cases, isLoading, onCaseClick }: ActiveCaseCardsProps) {
   if (isLoading) {
@@ -81,22 +78,21 @@ export function ActiveCaseCards({ cases, isLoading, onCaseClick }: ActiveCaseCar
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {cases.map((caseItem) => (
+      {cases.map((caseItem, index) => (
         <button
           key={caseItem.id}
           onClick={() => onCaseClick(caseItem.id)}
-          className="group border border-ledger-gray-200 rounded-lg p-4 text-left transition-all hover:border-ledger-gray-400 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ledger-gray-400 focus:ring-offset-2"
+          className={`group bg-kx-card border border-kx-card-border border-l-[3px] ${(STATUS_CONFIG[caseItem.status] ?? DEFAULT_STATUS_CONFIG).leftBorder} rounded-lg p-4 text-left shadow-sm card-elevated focus:outline-none focus:ring-2 focus:ring-kx-primary-400 focus:ring-offset-2 animate-bounce-in`}
+          style={{ animationDelay: `${index * 80}ms` }}
         >
           <div className="flex items-start justify-between mb-2">
-            <h3 className="font-semibold text-ledger-gray-900 group-hover:text-ledger-black transition-colors line-clamp-1">
+            <h3 className="font-semibold text-ledger-gray-900 group-hover:text-kx-primary-700 transition-colors line-clamp-1">
               {caseItem.caseTitle || 'Untitled Case'}
             </h3>
             <span
-              className={`text-xs px-2 py-0.5 rounded-full border font-medium whitespace-nowrap ml-2 flex-shrink-0 ${getCaseStatusBadgeColor(
-                caseItem.status
-              )}`}
+              className={`text-xs px-2 py-0.5 rounded-full border font-medium whitespace-nowrap ml-2 flex-shrink-0 ${(STATUS_CONFIG[caseItem.status] ?? DEFAULT_STATUS_CONFIG).badge}`}
             >
-              {formatCaseStatus(caseItem.status)}
+              {(STATUS_CONFIG[caseItem.status] ?? DEFAULT_STATUS_CONFIG).label}
             </span>
           </div>
 

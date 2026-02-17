@@ -16,14 +16,14 @@ export function ComingSoon({ title, description }: ComingSoonProps) {
       </div>
 
       {/* Badge */}
-      <div className="inline-flex items-center px-4 py-2 border border-ledger-black rounded-sm mb-4">
-        <span className="text-sm font-medium text-ledger-black uppercase tracking-wide">
+      <div className="inline-flex items-center px-4 py-2 border border-kx-primary-600 rounded-sm mb-4">
+        <span className="text-sm font-medium text-kx-primary-900 uppercase tracking-wide">
           Coming Soon
         </span>
       </div>
 
       {/* Title */}
-      <h2 className="text-2xl font-serif font-semibold text-ledger-black mb-2">
+      <h2 className="text-2xl font-serif font-semibold text-kx-primary-900 mb-2">
         {title}
       </h2>
 

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth-context'
-import { useNavigate } from 'react-router-dom'
+import { useNavigation } from '@/contexts/navigation-context'
 
 interface SignupModalProps {
   open: boolean
@@ -71,7 +71,7 @@ function GoogleIcon() {
 
 export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModalProps) {
   const { signup, googleLogin } = useAuth()
-  const navigate = useNavigate()
+  const { setView } = useNavigation()
   const [formData, setFormData] = React.useState({
     username: '',
     email: '',
@@ -98,13 +98,13 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
 
     try {
       await googleLogin(response.credential)
-      navigate('/home')
+      setView('dashboard')
       onOpenChange(false)
     } catch (err) {
       console.error('Google signup failed:', err)
       setError(err instanceof Error ? err.message : 'Google sign-up failed. Please try again.')
     }
-  }, [googleLogin, navigate, onOpenChange])
+  }, [googleLogin, setView, onOpenChange])
 
   // Load Google Sign-In script
   React.useEffect(() => {
@@ -285,7 +285,7 @@ export function SignupModal({ open, onOpenChange, onSwitchToLogin }: SignupModal
 
     try {
       await signup(formData)
-      navigate('/home')
+      setView('dashboard')
       onOpenChange(false)
     } catch (err) {
       console.error('Signup failed:', err)

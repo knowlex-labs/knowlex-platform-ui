@@ -45,7 +45,7 @@ export function CaseCard({ caseItem, onClick }: CaseCardProps) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-ledger-black truncate">
+          <p className="text-sm font-medium text-kx-primary-900 truncate">
             {caseItem.caseTitle || 'Untitled Case'}
           </p>
           {caseItem.caseNumber && (

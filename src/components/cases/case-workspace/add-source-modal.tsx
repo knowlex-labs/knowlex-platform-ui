@@ -125,7 +125,7 @@ export function AddSourceModal({
           className={cn(
             'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
             isDragging
-              ? 'border-ledger-black bg-ledger-gray-50'
+              ? 'border-kx-primary-600 bg-ledger-gray-50'
               : 'border-ledger-gray-300 hover:border-ledger-gray-400'
           )}
           onDragOver={handleDragOver}
@@ -134,7 +134,7 @@ export function AddSourceModal({
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="h-8 w-8 mx-auto text-ledger-gray-400 mb-3" />
-          <p className="text-sm text-ledger-black mb-1">
+          <p className="text-sm text-kx-primary-900 mb-1">
             Drop files here or click to browse
           </p>
           <p className="text-xs text-ledger-gray-400">
@@ -162,7 +162,7 @@ export function AddSourceModal({
                 >
                   <File className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-ledger-black truncate">
+                    <p className="text-sm text-kx-primary-900 truncate">
                       {file.name}
                     </p>
                     <p className="text-xs text-ledger-gray-400">
@@ -173,10 +173,10 @@ export function AddSourceModal({
                     <Loader2 className="h-4 w-4 animate-spin text-ledger-gray-400" />
                   )}
                   {status === 'done' && (
-                    <span className="text-xs text-green-600">Done</span>
+                    <span className="text-xs text-green-600 dark:text-green-400">Done</span>
                   )}
                   {status === 'error' && (
-                    <span className="text-xs text-red-600">Error</span>
+                    <span className="text-xs text-red-600 dark:text-red-400">Error</span>
                   )}
                   {!status && (
                     <button

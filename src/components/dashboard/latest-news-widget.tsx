@@ -36,7 +36,7 @@ export function LatestNewsWidget() {
       <div className="space-y-3">
         {PLACEHOLDER_NEWS.map((news) => (
           <div key={news.id} className="group cursor-pointer">
-            <p className="text-sm font-medium text-ledger-black group-hover:underline line-clamp-2">
+            <p className="text-sm font-medium text-kx-primary-900 group-hover:underline line-clamp-2">
               {news.title}
             </p>
             <p className="text-xs text-ledger-gray-500 mt-0.5">

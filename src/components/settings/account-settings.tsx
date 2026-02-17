@@ -66,7 +66,7 @@ export function AccountSettings() {
     return (
         <div className="p-8 max-w-2xl">
             <div className="mb-8">
-                <h1 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+                <h1 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
                     Account Settings
                 </h1>
                 <p className="text-sm text-ledger-gray-500 mt-1">
@@ -74,7 +74,7 @@ export function AccountSettings() {
                 </p>
             </div>
 
-            <div className="space-y-6 bg-ledger-white border border-ledger-gray-200 rounded-lg p-6">
+            <div className="space-y-6 bg-kx-card border border-kx-card-border rounded-lg p-6">
                 {/* Username */}
                 <div className="space-y-2">
                     <Label htmlFor="username">Username</Label>

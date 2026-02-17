@@ -40,7 +40,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
       {/* Top Section */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="min-w-0">
-          <h2 className="text-lg md:text-xl font-serif font-semibold text-ledger-black">
+          <h2 className="text-lg md:text-xl font-serif font-semibold text-kx-primary-900">
             {client.name}
           </h2>
           <p className="text-sm text-ledger-gray-500 mt-1 truncate">
@@ -67,7 +67,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
           <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
             Case ID
           </p>
-          <code className="text-sm font-mono text-ledger-black break-all">
+          <code className="text-sm font-mono text-kx-primary-900 break-all">
             {caseData?.caseNumber ?? '-'}
           </code>
         </div>
@@ -77,7 +77,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
           <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
             Case Type
           </p>
-          <p className="text-sm text-ledger-black capitalize">
+          <p className="text-sm text-kx-primary-900 capitalize">
             {caseData?.caseType ?? '-'}
           </p>
         </div>
@@ -90,7 +90,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
             </p>
             <div className="flex items-start gap-1.5">
               <Building className="h-3.5 w-3.5 text-ledger-gray-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-ledger-black">
+              <p className="text-sm text-kx-primary-900">
                 {caseData.courtName}
               </p>
             </div>
@@ -105,7 +105,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
             </p>
             <div className="flex items-start gap-1.5">
               <Calendar className="h-3.5 w-3.5 text-ledger-gray-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-ledger-black">
+              <p className="text-sm text-kx-primary-900">
                 {formatDate(caseData.nextHearingDate)}
               </p>
             </div>
@@ -123,7 +123,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
             className="flex items-center gap-2 p-2 -m-2 rounded-lg hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors min-h-[44px]"
           >
             <Mail className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
-            <span className="text-sm text-ledger-black hover:underline truncate">
+            <span className="text-sm text-kx-primary-900 hover:underline truncate">
               {client.email}
             </span>
           </a>
@@ -134,7 +134,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
             className="flex items-center gap-2 p-2 -m-2 rounded-lg hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors min-h-[44px]"
           >
             <Phone className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
-            <span className="text-sm text-ledger-black hover:underline">
+            <span className="text-sm text-kx-primary-900 hover:underline">
               {client.phone}
             </span>
           </a>
@@ -142,7 +142,7 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
         {client.address && (
           <div className="flex items-center gap-2 min-h-[44px]">
             <MapPin className="h-4 w-4 text-ledger-gray-400 flex-shrink-0" />
-            <span className="text-sm text-ledger-black">{client.address}</span>
+            <span className="text-sm text-kx-primary-900">{client.address}</span>
           </div>
         )}
         <div className="flex items-center text-sm text-ledger-gray-500 min-h-[44px]">

@@ -53,8 +53,8 @@ export function ChatInterface({
       {/* Messages */}
       {messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="h-10 w-10 rounded-xl bg-ledger-gray-100 flex items-center justify-center mb-4">
-            <MessageSquare className="h-5 w-5 text-ledger-gray-400" />
+          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 flex items-center justify-center mb-4 shadow-lg">
+            <MessageSquare className="h-6 w-6 text-white" />
           </div>
           <p className="text-base text-ledger-gray-700 font-semibold mb-2">
             Start a conversation
@@ -82,7 +82,7 @@ export function ChatInterface({
       {/* Input */}
       <div className="px-5 pb-4 pt-2">
         <form onSubmit={handleSubmit}>
-          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-ledger-gray-200 bg-white shadow-md focus-within:shadow-lg focus-within:border-ledger-gray-300 transition-all">
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-kx-card-border bg-kx-card shadow-md backdrop-blur-sm focus-within:shadow-lg focus-within:border-kx-primary-400/30 transition-all">
             {/* File upload button */}
             <input
               ref={fileInputRef}
@@ -102,7 +102,7 @@ export function ChatInterface({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-ledger-black flex-shrink-0"
+              className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-kx-primary-700 flex-shrink-0"
               onClick={() => fileInputRef.current?.click()}
             >
               <Paperclip className="h-4 w-4" />
@@ -114,7 +114,7 @@ export function ChatInterface({
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-ledger-black flex-shrink-0"
+                className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-kx-primary-700 flex-shrink-0"
                 onClick={onClearChat}
                 title="Clear chat"
               >
@@ -144,7 +144,7 @@ export function ChatInterface({
             <Button
               type="submit"
               size="sm"
-              className="h-8 w-8 p-0 rounded-full flex-shrink-0 bg-ledger-gray-900 text-white hover:bg-ledger-black shadow-sm"
+              className="h-8 w-8 p-0 rounded-full flex-shrink-0 bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 text-white hover:from-kx-primary-400 hover:to-kx-primary-600 shadow-md"
               disabled={!input.trim() || isLoading}
             >
               {isLoading ? (

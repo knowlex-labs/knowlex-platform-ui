@@ -19,14 +19,14 @@ export function TaskColumn({
   onDeleteTask,
 }: TaskColumnProps) {
   return (
-    <div className="border border-ledger-gray-200 rounded-lg bg-ledger-white overflow-hidden flex flex-col h-[calc(100vh-250px)]">
+    <div className="border border-kx-card-border rounded-lg bg-kx-card overflow-hidden flex flex-col h-[calc(100vh-250px)]">
       {/* Column Header */}
       <div className="px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-ledger-black uppercase tracking-wide">
+          <h3 className="text-sm font-semibold text-kx-primary-900 uppercase tracking-wide">
             {title}
           </h3>
-          <span className="text-xs font-medium text-ledger-gray-500 bg-ledger-white px-2 py-1 rounded">
+          <span className="text-xs font-medium text-ledger-gray-500 bg-kx-card px-2 py-1 rounded">
             {tasks.length}
           </span>
         </div>

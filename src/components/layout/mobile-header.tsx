@@ -9,7 +9,7 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ onMenuClick, onUserClick }: MobileHeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-ledger-white border-b border-ledger-gray-200 md:hidden safe-area-top">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-kx-card border-b border-kx-card-border md:hidden safe-area-top">
       <div className="flex items-center justify-between h-14 px-4">
         {/* Hamburger Menu Button */}
         <Button
@@ -23,7 +23,7 @@ export function MobileHeader({ onMenuClick, onUserClick }: MobileHeaderProps) {
         </Button>
 
         {/* App Name */}
-        <h1 className="text-lg font-serif font-semibold text-ledger-black">
+        <h1 className="text-lg font-serif font-semibold text-kx-primary-900">
           {APP_NAME}
         </h1>
 
@@ -35,8 +35,8 @@ export function MobileHeader({ onMenuClick, onUserClick }: MobileHeaderProps) {
           className="p-0 h-11 w-11 flex items-center justify-center"
           aria-label="User menu"
         >
-          <div className="h-8 w-8 rounded-full bg-ledger-gray-200 flex items-center justify-center">
-            <UserIcon className="h-4 w-4 text-ledger-gray-600" />
+          <div className="h-8 w-8 rounded-full bg-kx-primary-100 flex items-center justify-center">
+            <UserIcon className="h-4 w-4 text-kx-primary-500" />
           </div>
         </Button>
       </div>

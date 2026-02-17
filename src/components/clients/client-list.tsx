@@ -87,13 +87,13 @@ function ClientCard({ client, onClick }: { client: ClientWithCase; onClick: () =
       onClick={handleCardClick}
       className={cn(
         'w-full p-4 text-left cursor-pointer',
-        'border-b border-ledger-gray-100 last:border-b-0',
-        'hover:bg-ledger-gray-50 active:bg-ledger-gray-100 transition-colors'
+        'border-b border-kx-card-border/50 last:border-b-0',
+        'hover:bg-kx-primary-50/50 dark:hover:bg-white/[0.03] active:bg-ledger-gray-100 dark:active:bg-white/[0.05] transition-colors'
       )}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-ledger-black truncate">
+          <p className="text-sm font-medium text-kx-primary-900 truncate">
             {client.name}
           </p>
           <div className="flex items-center gap-3 mt-1">
@@ -123,31 +123,44 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
     onClick()
   }
 
+  // Get initials for avatar
+  const initials = client.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+
   return (
     <div
       onClick={handleRowClick}
       className={cn(
-        'w-full grid grid-cols-12 gap-4 px-4 py-4 text-left cursor-pointer',
-        'border-b border-ledger-gray-100 last:border-b-0',
-        'hover:bg-ledger-gray-50 transition-colors'
+        'w-full grid grid-cols-12 gap-4 px-5 py-3.5 text-left cursor-pointer items-center',
+        'border-b border-kx-card-border/50 last:border-b-0',
+        'hover:bg-kx-primary-50/50 dark:hover:bg-white/[0.03] transition-colors'
       )}
     >
-      <div className="col-span-4">
-        <p className="text-sm font-medium text-ledger-black truncate">
-          {client.name}
-        </p>
-        <p className="text-xs text-ledger-gray-400 mt-0.5 capitalize">
-          {client.clientType}
-        </p>
+      <div className="col-span-4 flex items-center gap-3">
+        <div className="h-8 w-8 rounded-full bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center flex-shrink-0">
+          <span className="text-xs font-semibold text-kx-primary-600 dark:text-kx-primary-400">{initials}</span>
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-kx-primary-900 truncate">
+            {client.name}
+          </p>
+          <p className="text-xs text-ledger-gray-400 mt-0.5 capitalize">
+            {client.clientType}
+          </p>
+        </div>
       </div>
-      <div className="col-span-3">
+      <div className="col-span-3 flex items-center">
         {client.phone ? (
           <p className="text-sm text-ledger-gray-600">{client.phone}</p>
         ) : (
           <span className="text-xs text-ledger-gray-400">-</span>
         )}
       </div>
-      <div className="col-span-3">
+      <div className="col-span-3 flex items-center">
         {client.email ? (
           <p className="text-sm text-ledger-gray-600 truncate">{client.email}</p>
         ) : (
@@ -177,7 +190,7 @@ export function ClientList() {
   const header = (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
       <div>
-        <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+        <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
           Clients
         </h2>
         <p className="text-sm text-ledger-gray-500 mt-1">
@@ -195,18 +208,18 @@ export function ClientList() {
     return (
       <div>
         {header}
-        <div className="bg-ledger-white">
-          <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-y border-ledger-gray-200 bg-ledger-gray-50">
-            <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+        <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
+          <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
+            <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
               Name
             </div>
-            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
               Phone
             </div>
-            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
               Email
             </div>
-            <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide text-right">
+            <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider text-right">
               Actions
             </div>
           </div>
@@ -225,7 +238,7 @@ export function ClientList() {
     return (
       <div>
         {header}
-        <div className="bg-ledger-white border-y border-ledger-gray-200">
+        <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
           <ErrorDisplay
             title="Failed to load clients"
             message={error}
@@ -245,19 +258,19 @@ export function ClientList() {
     <div>
       {header}
 
-      <div className="bg-ledger-white">
+      <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
         {/* Desktop Table Header */}
-        <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 border-y border-ledger-gray-200 bg-ledger-gray-50">
-          <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+        <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
+          <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
             Name
           </div>
-          <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+          <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
             Phone
           </div>
-          <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">
+          <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
             Email
           </div>
-          <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wide text-right">
+          <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider text-right">
             Actions
           </div>
         </div>
@@ -295,7 +308,7 @@ export function ClientList() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-y border-ledger-gray-200 bg-ledger-gray-50">
+          <div className="flex items-center justify-between px-5 py-3 border-t border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
             <p className="text-xs text-ledger-gray-500">
               Page {currentPage + 1} of {totalPages}
             </p>

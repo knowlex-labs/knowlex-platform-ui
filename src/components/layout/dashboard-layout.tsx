@@ -37,7 +37,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-ledger-white">
+    <div className="min-h-screen bg-kx-surface">
       {/* Desktop Sidebar */}
       <Sidebar />
 

@@ -84,7 +84,7 @@ export function CaseList() {
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
           <div>
-            <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
               Cases
             </h2>
             <p className="text-sm text-ledger-gray-500 mt-1">
@@ -96,7 +96,7 @@ export function CaseList() {
             Add Case
           </Button>
         </div>
-        <div className="bg-ledger-white p-8 text-center">
+        <div className="bg-kx-card p-8 text-center">
           <p className="text-sm text-ledger-gray-500 mb-4">{error}</p>
           <Button variant="outline" onClick={refresh}>
             Try Again
@@ -115,7 +115,7 @@ export function CaseList() {
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
         <div>
-          <h2 className="text-xl md:text-2xl font-serif font-semibold text-ledger-black">
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
             Cases
           </h2>
           <p className="text-sm text-ledger-gray-500 mt-1">
@@ -143,7 +143,7 @@ export function CaseList() {
       </div>
 
       {/* Case Grid */}
-      <div className="bg-ledger-white p-4 rounded-lg border border-ledger-gray-200">
+      <div className="p-4 rounded-lg border border-kx-card-border">
         {isLoading ? (
           <CaseFolderGridSkeleton />
         ) : (

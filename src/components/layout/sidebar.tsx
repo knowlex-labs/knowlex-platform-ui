@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { useAuth } from '@/contexts/auth-context'
+import { useTheme } from '@/contexts/theme-context'
 import { SIDEBAR_TABS, APP_NAME, DEMO_USER_USERNAME } from '@/lib/constants'
 import * as React from 'react'
 
@@ -43,6 +44,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const location = useLocation()
   const { setSidebarCollapsed } = useUIState()
   const { user, logout } = useAuth()
+  const { resolvedTheme, setTheme } = useTheme()
   const [showHelpDialog, setShowHelpDialog] = React.useState(false)
   const [showUserMenu, setShowUserMenu] = React.useState(false)
 
@@ -109,7 +111,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
             <Button
               variant="ghost"
               className={cn(
-                "w-full text-ledger-gray-600 hover:text-ledger-black hover:bg-ledger-gray-50 h-10 mb-1",
+                "w-full text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 h-10 mb-1",
                 collapsed ? "justify-center px-0" : "justify-start px-4"
               )}
               onClick={() => setSidebarCollapsed(!collapsed)}
@@ -132,7 +134,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
         <Button
           variant="ghost"
           className={cn(
-            "w-full text-ledger-gray-600 hover:text-ledger-black hover:bg-ledger-gray-50 h-10",
+            "w-full text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 h-10",
             collapsed ? "justify-center px-0" : "justify-start px-4"
           )}
           onClick={() => setShowHelpDialog(true)}
@@ -140,6 +142,20 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
         >
           <HelpCircle className="h-5 w-5" />
           {!collapsed && <span className="ml-3">Help & Support</span>}
+        </Button>
+
+        {/* Dark/Light Mode Toggle */}
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 h-10",
+            collapsed ? "justify-center px-0" : "justify-start px-4"
+          )}
+          onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+          title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {resolvedTheme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          {!collapsed && <span className="ml-3">{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </Button>
 
         <Separator />
@@ -152,12 +168,12 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
               className="w-full flex items-center gap-2 p-2 rounded-lg hover:bg-ledger-gray-100 transition-colors text-left min-h-[48px]"
               title={collapsed ? getUserDisplayName() : undefined}
             >
-              <div className="h-8 w-8 rounded-full bg-ledger-gray-200 flex items-center justify-center flex-shrink-0">
-                <UserIcon className="h-4 w-4 text-ledger-gray-600" />
+              <div className="h-8 w-8 rounded-full bg-kx-primary-100 flex items-center justify-center flex-shrink-0">
+                <UserIcon className="h-4 w-4 text-kx-primary-500" />
               </div>
               {!collapsed && (
                 <>
-                  <p className="text-sm font-medium text-ledger-black truncate flex-1">
+                  <p className="text-sm font-medium text-kx-primary-900 truncate flex-1">
                     {getUserDisplayName()}
                   </p>
                   <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
@@ -167,14 +183,14 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
 
             {/* Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-ledger-white border border-ledger-gray-200 rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute bottom-full left-0 right-0 mb-2 bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden z-50">
                 <button
                   onClick={() => {
                     navigate('/settings')
                     setShowUserMenu(false)
                     onItemClick?.()
                   }}
-                  className="w-full px-4 py-3 text-left text-sm font-medium text-ledger-black hover:bg-ledger-gray-50 transition-colors flex items-center gap-2 min-h-[48px]"
+                  className="w-full px-4 py-3 text-left text-sm font-medium text-kx-primary-900 hover:bg-kx-primary-50 transition-colors flex items-center gap-2 min-h-[48px]"
                 >
                   <UserIcon className="h-4 w-4" />
                   Account Settings
@@ -182,7 +198,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
                 <Separator />
                 <button
                   onClick={handleLogout}
-                  className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2 min-h-[48px]"
+                  className="w-full px-4 py-3 text-left text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors flex items-center gap-2 min-h-[48px]"
                 >
                   <LogOut className="h-4 w-4" />
                   {isDemoUser ? 'Exit Demo' : 'Sign Out'}
@@ -206,10 +222,10 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
             <div className="flex items-center gap-3 p-4 bg-ledger-gray-50 rounded-lg border border-ledger-gray-200">
               <Mail className="h-5 w-5 text-ledger-gray-600 flex-shrink-0" />
               <div>
-                <p className="text-sm font-medium text-ledger-black">Email us</p>
+                <p className="text-sm font-medium text-kx-primary-900">Email us</p>
                 <a
                   href="mailto:nakul.jain@getknowlex.com"
-                  className="text-sm text-ledger-gray-600 hover:text-ledger-black underline"
+                  className="text-sm text-ledger-gray-600 hover:text-kx-primary-700 underline"
                 >
                   nakul.jain@getknowlex.com
                 </a>
@@ -229,15 +245,15 @@ export function Sidebar() {
   const { sidebarCollapsed: collapsed } = useUIState()
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen bg-ledger-white border-r border-ledger-gray-200 flex-col hidden md:flex transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
+    <aside className={`fixed left-0 top-0 h-screen bg-kx-card border-r border-kx-card-border shadow-lg flex-col hidden md:flex transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-ledger-gray-200">
-        <h1 className={`text-xl font-serif font-semibold text-ledger-black transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+        <h1 className={`text-xl font-serif font-semibold text-kx-primary-900 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
           {APP_NAME}
         </h1>
         {collapsed && (
           <div className="flex items-center justify-center -ml-4">
-            <span className="text-xl font-serif font-semibold text-ledger-black">K</span>
+            <span className="text-xl font-serif font-semibold text-kx-primary-900">K</span>
           </div>
         )}
       </div>

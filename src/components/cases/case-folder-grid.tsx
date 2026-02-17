@@ -13,7 +13,7 @@ export function CaseFolderGridSkeleton() {
       {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
         <div
           key={i}
-          className="animate-pulse p-4 rounded-lg border border-ledger-gray-200 bg-ledger-white"
+          className="animate-pulse p-4 rounded-lg border border-kx-card-border bg-kx-card"
         >
           <div className="flex items-start justify-between mb-3">
             <div className="h-10 w-10 bg-ledger-gray-100 rounded-lg" />

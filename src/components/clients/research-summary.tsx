@@ -8,7 +8,7 @@ interface ResearchSummaryProps {
 }
 
 const relevanceColors = {
-  high: 'bg-ledger-black text-ledger-white',
+  high: 'bg-kx-primary-600 text-ledger-white',
   medium: 'bg-ledger-gray-500 text-ledger-white',
   low: 'bg-ledger-gray-200 text-ledger-gray-700',
 }
@@ -26,7 +26,7 @@ export function ResearchSummary({ items }: ResearchSummaryProps) {
       <div className="px-4 py-3 border-b border-ledger-gray-200 bg-ledger-gray-50">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-ledger-gray-500" />
-          <h3 className="text-sm font-medium text-ledger-black">
+          <h3 className="text-sm font-medium text-kx-primary-900">
             AI Research
           </h3>
         </div>
@@ -60,7 +60,7 @@ export function ResearchSummary({ items }: ResearchSummaryProps) {
                 </div>
 
                 {/* Title */}
-                <h4 className="text-sm font-medium text-ledger-black mb-2">
+                <h4 className="text-sm font-medium text-kx-primary-900 mb-2">
                   {item.title}
                 </h4>
 

@@ -17,10 +17,10 @@ function formatDate(date: Date): string {
 
 export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
   return (
-    <div className="group p-3 rounded-lg border border-ledger-gray-200 bg-ledger-gray-50 hover:border-ledger-gray-300 hover:shadow-sm transition-all">
+    <div className="group p-3 rounded-lg border border-kx-card-border bg-kx-card hover:border-ledger-gray-300 hover:shadow-sm transition-all">
       <div className="flex flex-col h-full">
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h4 className="text-sm font-medium text-ledger-black line-clamp-1 flex-1">
+          <h4 className="text-sm font-medium text-kx-primary-900 line-clamp-1 flex-1">
             {note.title || 'Untitled Note'}
           </h4>
           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -36,7 +36,7 @@ export function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+              className="h-6 w-6 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:hover:text-red-300"
               onClick={() => onDelete(note.id)}
               title="Delete"
             >

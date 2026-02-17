@@ -24,7 +24,7 @@ export function ResearchChatArea({
   if (showEmptyState) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center px-4">
-        <h2 className="text-2xl md:text-3xl font-semibold text-ledger-black mb-8">
+        <h2 className="text-2xl md:text-3xl font-semibold text-kx-primary-900 mb-8">
           What can I help you research?
         </h2>
         <div className="w-full max-w-2xl">
@@ -43,7 +43,7 @@ export function ResearchChatArea({
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-ledger-black mx-auto mb-3" />
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-kx-primary-600 mx-auto mb-3" />
           <p className="text-sm text-ledger-gray-500">Loading messages...</p>
         </div>
       </div>

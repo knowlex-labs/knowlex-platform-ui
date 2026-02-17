@@ -69,13 +69,13 @@ export function ChatMessage({ message }: ChatMessageProps) {
       <div
         className={cn(
           'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center',
-          isUser ? 'bg-ledger-black' : 'bg-ledger-gray-100'
+          isUser ? 'bg-kx-primary-600' : 'bg-gradient-to-br from-kx-primary-500 to-kx-primary-700'
         )}
       >
         {isUser ? (
           <User className="h-4 w-4 text-ledger-white" />
         ) : (
-          <Bot className="h-4 w-4 text-ledger-gray-600" />
+          <Bot className="h-4 w-4 text-white" />
         )}
       </div>
 
@@ -90,8 +90,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
           className={cn(
             'px-4 py-3 rounded-lg',
             isUser
-              ? 'bg-ledger-black text-ledger-white'
-              : 'bg-ledger-gray-100 text-ledger-black',
+              ? 'bg-gradient-to-br from-kx-primary-600 to-kx-primary-700 text-ledger-white'
+              : 'bg-kx-card border border-kx-card-border text-kx-primary-900',
             isToolExecution && 'bg-ledger-gray-50 border border-ledger-gray-200 italic text-sm'
           )}
         >
@@ -126,7 +126,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               variant="ghost"
               size="sm"
               onClick={() => setSourcesExpanded(!sourcesExpanded)}
-              className="h-7 px-2 gap-1.5 text-xs text-ledger-gray-600 hover:text-ledger-black"
+              className="h-7 px-2 gap-1.5 text-xs text-ledger-gray-600 hover:text-kx-primary-700"
             >
               <FileText className="h-3.5 w-3.5" />
               {sources.length} source{sources.length !== 1 ? 's' : ''}
@@ -142,11 +142,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
                 {sources.map((source, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-lg border border-ledger-gray-200 bg-ledger-white"
+                    className="p-3 rounded-lg border border-kx-card-border bg-kx-card"
                   >
                     <div className="flex items-center gap-2 mb-1.5">
                       <FileText className="h-3.5 w-3.5 text-ledger-gray-500" />
-                      <span className="text-xs font-medium text-ledger-black truncate">
+                      <span className="text-xs font-medium text-kx-primary-900 truncate">
                         {source.fileName}
                       </span>
                       <span className="text-xs text-ledger-gray-500 flex-shrink-0">
