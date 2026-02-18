@@ -124,7 +124,7 @@ export interface WorkspaceTabItem {
 export interface TemplateField {
   id: string
   label: string
-  type: 'text' | 'textarea' | 'sources'
+  type: 'text' | 'textarea' | 'sources' | 'client-select'
   required: boolean
   placeholder?: string
 }
@@ -132,6 +132,7 @@ export interface TemplateField {
 export interface DraftTemplate {
   id: string
   name: string
+  description: string
   icon: string
   fields: TemplateField[]
 }
@@ -156,10 +157,11 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
   {
     id: 'notice',
     name: 'Notice',
+    description: 'Draft legal notices, demand letters, and statutory communications',
     icon: 'FileWarning',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter notice title' },
-      { id: 'sender', label: 'Sender Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'sender', label: 'Sender Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'recipient', label: 'Recipient Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'body', label: 'Notice Content', type: 'textarea', required: false, placeholder: 'Enter initial content (optional)' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
@@ -168,6 +170,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
   {
     id: 'patent',
     name: 'Patent',
+    description: 'Prepare patent applications with claims and technical descriptions',
     icon: 'Lightbulb',
     fields: [
       { id: 'title', label: 'Patent Title', type: 'text', required: true, placeholder: 'Enter patent title' },
@@ -179,10 +182,11 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
   {
     id: 'application-draft',
     name: 'Application Draft',
+    description: 'Create formal applications and submissions',
     icon: 'FileText',
     fields: [
       { id: 'title', label: 'Application Title', type: 'text', required: true, placeholder: 'Enter application title' },
-      { id: 'applicant', label: 'Applicant Name', type: 'text', required: true, placeholder: 'Enter applicant name' },
+      { id: 'applicant', label: 'Applicant Name', type: 'client-select', required: true, placeholder: 'Enter applicant name' },
       { id: 'body', label: 'Application Body', type: 'textarea', required: false, placeholder: 'Enter initial content (optional)' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],
@@ -190,10 +194,11 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
   {
     id: 'interim-application',
     name: 'Interim Application',
+    description: 'File interim or urgent court applications',
     icon: 'FileClock',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter application title' },
-      { id: 'plaintiff', label: 'Plaintiff Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'plaintiff', label: 'Plaintiff Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'defendant', label: 'Defendant Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'grounds', label: 'Grounds', type: 'textarea', required: true, placeholder: 'Enter grounds for application' },
       { id: 'sources', label: 'Supporting Documents', type: 'sources', required: false },
@@ -202,10 +207,11 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
   {
     id: 'affidavit',
     name: 'Affidavit',
+    description: 'Prepare sworn statements and affidavits',
     icon: 'Scale',
     fields: [
       { id: 'title', label: 'Affidavit Title', type: 'text', required: true, placeholder: 'Enter affidavit title' },
-      { id: 'deponent', label: 'Deponent Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'deponent', label: 'Deponent Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'statements', label: 'Statements', type: 'textarea', required: true, placeholder: 'Enter affidavit statements' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],

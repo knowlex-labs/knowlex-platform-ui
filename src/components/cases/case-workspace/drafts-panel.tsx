@@ -94,9 +94,8 @@ export function DraftsPanel({
               <DraftItem
                 key={draft.id}
                 draft={draft}
-                onEdit={handleEditDraft}
+                onClick={() => handleEditDraft(draft)}
                 onDelete={onDeleteDraft}
-                onDownload={handleDownloadDraft}
               />
             ))}
           </div>

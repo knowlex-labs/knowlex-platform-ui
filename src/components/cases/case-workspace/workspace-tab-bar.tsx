@@ -70,7 +70,7 @@ export function WorkspaceTabBar({
             splitMode && 'bg-kx-primary-100 text-kx-primary-700'
           )}
           onClick={onToggleSplit}
-          title={splitMode ? 'Exit split view' : 'Split view'}
+          title={splitMode ? 'Exit split view' : 'Toggle split view (Chat + Draft)'}
         >
           <Columns2 className="h-3.5 w-3.5" />
           <span className="text-xs">Split</span>

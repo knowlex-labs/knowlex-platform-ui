@@ -20,6 +20,7 @@ interface CenterPanelProps {
   onSaveDraftLocal: (id: string, title: string, content: string) => void
   onSaveDraftToBackend: (id: string, title: string, content: string) => void | Promise<void>
   onDeleteDraft: (id: string) => void | Promise<void>
+  onRetryDraft?: (draftId: string) => void
   onTabDirtyChange: (tabId: string, isDirty: boolean) => void
 }
 
@@ -39,6 +40,7 @@ export function CenterPanel({
   onSaveDraftLocal,
   onSaveDraftToBackend,
   onDeleteDraft,
+  onRetryDraft,
   onTabDirtyChange,
 }: CenterPanelProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId)
@@ -56,11 +58,11 @@ export function CenterPanel({
     : null
 
   const handleSendToChat = (text: string) => {
-    onSendMessage(text)
-    // Switch to chat tab if in split mode, focus stays on chat
-    if (!splitMode) {
-      onTabClick('chat')
+    // Auto-enable split mode so chat + draft are side by side
+    if (!splitMode && hasDraftTabs) {
+      onToggleSplit()
     }
+    onSendMessage(text)
   }
 
   // Memoize the dirty handlers to prevent infinite loops in DraftPreviewTab
@@ -116,6 +118,7 @@ export function CenterPanel({
                   onDelete={onDeleteDraft}
                   onSendToChat={handleSendToChat}
                   onDirtyChange={handleSplitDirtyChange}
+                  onRetry={onRetryDraft}
                 />
               ) : (
                 <div className="flex items-center justify-center h-full text-sm text-ledger-gray-500">
@@ -143,6 +146,7 @@ export function CenterPanel({
                 onDelete={onDeleteDraft}
                 onSendToChat={handleSendToChat}
                 onDirtyChange={handleActiveDirtyChange}
+                onRetry={onRetryDraft}
               />
             ) : (
               <div className="flex items-center justify-center h-full text-sm text-ledger-gray-500">

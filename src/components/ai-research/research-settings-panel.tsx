@@ -33,7 +33,7 @@ export function ResearchSettingsPanel({
         {/* Creativity */}
         <div>
           <label className="text-xs font-medium text-ledger-gray-600 mb-2 block">
-            Creativity
+            Answer Mode
           </label>
           <div className="flex rounded-lg border border-ledger-gray-200 overflow-hidden">
             {CREATIVITY_OPTIONS.map((option) => (

@@ -108,24 +108,20 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
         {/* Toggle Collapse Button */}
         {!onItemClick && (
           <>
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 h-10 mb-1",
-                collapsed ? "justify-center px-0" : "justify-start px-4"
-              )}
-              onClick={() => setSidebarCollapsed(!collapsed)}
-              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            >
-              {collapsed ? (
-                <ChevronRight className="h-5 w-5" />
-              ) : (
-                <>
-                  <ChevronLeft className="h-5 w-5 mr-3" />
-                  <span>Collapse Sidebar</span>
-                </>
-              )}
-            </Button>
+            <div className={cn("flex mb-1", collapsed ? "justify-center" : "justify-end")}>
+              <Button
+                variant="ghost"
+                className="w-8 h-8 p-0 justify-center text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50"
+                onClick={() => setSidebarCollapsed(!collapsed)}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              >
+                {collapsed ? (
+                  <ChevronRight className="h-5 w-5" />
+                ) : (
+                  <ChevronLeft className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
             <Separator className="my-2" />
           </>
         )}
@@ -183,7 +179,12 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
 
             {/* Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute bottom-full left-0 right-0 mb-2 bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden z-50">
+              <div className={cn(
+                "absolute bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden z-50",
+                collapsed
+                  ? "left-full bottom-0 ml-2 w-56"
+                  : "bottom-full left-0 right-0 mb-2"
+              )}>
                 <button
                   onClick={() => {
                     navigate('/settings')

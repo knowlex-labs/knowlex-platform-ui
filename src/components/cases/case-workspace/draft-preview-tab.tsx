@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Wand2, Trash2, AlertCircle } from 'lucide-react'
+import { Wand2, Trash2, AlertCircle, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTextSelection } from '@/hooks/use-text-selection'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
@@ -16,6 +16,7 @@ interface DraftPreviewTabProps {
   onDelete: (id: string) => void | Promise<void>
   onSendToChat: (text: string) => void
   onDirtyChange?: (isDirty: boolean) => void
+  onRetry?: (draftId: string) => void
 }
 
 export function DraftPreviewTab({
@@ -25,21 +26,22 @@ export function DraftPreviewTab({
   onDelete,
   onSendToChat,
   onDirtyChange,
+  onRetry,
 }: DraftPreviewTabProps) {
   // --- Pending state ---
   if (draft.status === 'pending') {
     return (
-      <div className="flex flex-col h-full items-center justify-center bg-ledger-white">
+      <div className="flex flex-col h-full items-center justify-center bg-ledger-white dark:bg-ledger-gray-900">
         <div className="flex flex-col items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="typewriter-dot" />
             <span className="typewriter-dot" />
             <span className="typewriter-dot" />
           </div>
-          <p className="text-sm text-ledger-gray-500 font-medium">
+          <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-300 font-medium">
             Generating your draft...
           </p>
-          <p className="text-xs text-ledger-gray-400">
+          <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500">
             This may take a minute or two. You can continue working.
           </p>
         </div>
@@ -50,24 +52,37 @@ export function DraftPreviewTab({
   // --- Failed state ---
   if (draft.status === 'failed') {
     return (
-      <div className="flex flex-col h-full items-center justify-center bg-ledger-white">
+      <div className="flex flex-col h-full items-center justify-center bg-ledger-white dark:bg-ledger-gray-900">
         <div className="flex flex-col items-center gap-4">
           <AlertCircle className="h-10 w-10 text-red-400" />
-          <p className="text-sm text-ledger-gray-700 font-medium">
+          <p className="text-sm text-ledger-gray-700 dark:text-ledger-gray-200 font-medium">
             Draft generation failed
           </p>
-          <p className="text-xs text-ledger-gray-400 text-center max-w-xs">
-            Something went wrong while generating this draft. You can delete it and try again.
+          <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500 text-center max-w-xs">
+            Something went wrong while generating this draft. You can retry or delete it.
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDelete(draft.id)}
-            className="gap-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete Draft
-          </Button>
+          <div className="flex items-center gap-2">
+            {onRetry && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onRetry(draft.id)}
+                className="gap-2"
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+                Retry
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDelete(draft.id)}
+              className="gap-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete Draft
+            </Button>
+          </div>
         </div>
       </div>
     )
@@ -220,19 +235,19 @@ function CompletedDraftEditor({
         onBulletList={formatting.handleBulletList}
         onNumberedList={formatting.handleNumberedList}
         onFontSize={formatting.handleFontSize}
-        className="bg-ledger-white"
+        className="bg-ledger-white dark:bg-ledger-gray-900"
       />
 
       {/* Editable Content Area */}
-      <div className="flex-1 p-4 overflow-auto">
+      <div className="flex-1 p-4 overflow-auto dark:bg-ledger-gray-900">
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
           onInput={handleEditorInput}
           onBlur={flushToLocalState}
-          className="h-full border border-ledger-gray-200 rounded-lg overflow-auto focus:outline-none focus:ring-2 focus:ring-ledger-gray-300 bg-ledger-white"
-          style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.8', fontSize: '12pt', minHeight: '400px', padding: '40px 60px' }}
+          className="h-full border border-ledger-gray-200 dark:border-ledger-gray-600 rounded-lg overflow-auto focus:outline-none focus:ring-2 focus:ring-ledger-gray-300 bg-white"
+          style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.8', fontSize: '12pt', minHeight: '400px', padding: '40px 60px', color: '#000' }}
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
 
@@ -259,7 +274,7 @@ function CompletedDraftEditor({
       </div>
 
       {/* Footer */}
-      <div className="px-4 py-2 border-t border-ledger-gray-200 bg-ledger-gray-50 flex items-center justify-between">
+      <div className="px-4 py-2 border-t border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50 dark:bg-ledger-gray-900 flex items-center justify-between">
         <p className="text-xs text-ledger-gray-500">
           {hasChanges ? (
             <span className="text-amber-600 dark:text-amber-400 font-medium">Unsaved changes</span>
@@ -267,7 +282,7 @@ function CompletedDraftEditor({
             `Last saved: ${draft.updatedAt.toLocaleString()}`
           )}
         </p>
-        <p className="text-xs text-ledger-gray-400">
+        <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500">
           <span className="font-medium">Ctrl+S</span> to save • <span className="font-medium">Ctrl+Z</span> to undo
         </p>
       </div>
