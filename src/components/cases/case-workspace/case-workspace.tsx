@@ -130,6 +130,7 @@ export function CaseWorkspace() {
   }
 
   const handleSendMessage = async (query: string) => {
+    setLeftPanelOpen(false)
     await sendMessage(query, Array.from(selectedSourceIds))
   }
 
