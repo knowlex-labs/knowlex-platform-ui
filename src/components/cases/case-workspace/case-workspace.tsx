@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, Trash2, Download, FileDown, FileText, ChevronDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
+import { mapBackendClient } from '@/services/mappers'
 import { useCaseSources } from '@/hooks/use-case-sources'
 import { useWorkspaceChat } from '@/hooks/use-workspace-chat'
 import { useDrafts } from '@/hooks/use-drafts'
@@ -13,9 +13,8 @@ import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
 import { StudioPanel } from './studio-panel'
 import { TemplateFormModal } from './template-form-modal'
-import { downloadAsTxt, downloadAsDoc, downloadAsPdf } from '@/lib/draft-renderer'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
-import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
+import type { Draft, DraftTemplate, TemplateFormData, Client } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
 
 // Maps each template to its API document_type and optional subtype
@@ -52,14 +51,12 @@ export function CaseWorkspace() {
   const navigate = useNavigate()
   const { setSidebarCollapsed } = useUIState()
   const [caseName, setCaseName] = useState('Case Workspace')
+  const [caseClient, setCaseClient] = useState<Client | null>(null)
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formModalOpen, setFormModalOpen] = useState(false)
-  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
-  const downloadMenuRef = useRef<HTMLDivElement>(null)
-
-  const [selectedDraftIds, setSelectedDraftIds] = useState<Set<string>>(new Set())
+  const [isSaving, setIsSaving] = useState(false)
 
   const {
     sources,
@@ -72,8 +69,6 @@ export function CaseWorkspace() {
     uploadFile,
     deleteSource,
     linkContent,
-    batchDelete: batchDeleteSources,
-    batchLinkContent,
   } = useCaseSources(caseId)
 
   const {
@@ -116,49 +111,21 @@ export function CaseWorkspace() {
     })
   }, [caseId])
 
-  // Close download dropdown when clicking outside
+  // Fetch the client linked to this case
   useEffect(() => {
-    if (!downloadMenuOpen) return
-    function handleClickOutside(event: MouseEvent) {
-      if (downloadMenuRef.current && !downloadMenuRef.current.contains(event.target as Node)) {
-        setDownloadMenuOpen(false)
+    caseApi.getClients(caseId).then((response) => {
+      const clients = response.data
+      if (clients && clients.length > 0) {
+        setCaseClient(mapBackendClient(clients[0]))
       }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [downloadMenuOpen])
-
-  // Clean up draft selections when drafts change (remove stale IDs)
-  useEffect(() => {
-    setSelectedDraftIds((prev) => {
-      const draftIdSet = new Set(drafts.map((d) => d.id))
-      const cleaned = new Set([...prev].filter((id) => draftIdSet.has(id)))
-      return cleaned.size === prev.size ? prev : cleaned
+    }).catch(() => {
+      // No client linked or API error — leave null
     })
-  }, [drafts])
+  }, [caseId])
 
-  const toggleDraftSelection = useCallback((draftId: string) => {
-    setSelectedDraftIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(draftId)) {
-        next.delete(draftId)
-      } else {
-        next.add(draftId)
-      }
-      return next
-    })
-  }, [])
-
-  const selectAllDrafts = useCallback(() => {
-    setSelectedDraftIds(new Set(drafts.map((d) => d.id)))
-  }, [drafts])
-
-  const deselectAllDrafts = useCallback(() => {
-    setSelectedDraftIds(new Set())
-  }, [])
-
-  const hasSelection = selectedSourceIds.size > 0 || selectedDraftIds.size > 0
-  const totalSelected = selectedSourceIds.size + selectedDraftIds.size
+  // Determine if we have an active draft tab with unsaved changes
+  const activeTab = tabs.find((t) => t.id === activeTabId)
+  const hasUnsavedDraft = activeTab?.type === 'draft' && activeTab.isUnsaved
 
   const handleBack = () => {
     setSidebarCollapsed(false)
@@ -166,6 +133,7 @@ export function CaseWorkspace() {
   }
 
   const handleSendMessage = async (query: string) => {
+    setLeftPanelOpen(false)
     await sendMessage(query, Array.from(selectedSourceIds))
   }
 
@@ -188,31 +156,41 @@ export function CaseWorkspace() {
     await deleteDraft(id)
   }
 
-  const handleReindex = () => {
-    if (selectedSourceIds.size > 0) {
-      batchLinkContent(Array.from(selectedSourceIds))
+  const handleRetryDraft = (draftId: string) => {
+    const failedDraft = drafts.find((d) => d.id === draftId)
+    if (!failedDraft) return
+
+    // Determine document type from the failed draft's templateType
+    const config = failedDraft.templateType
+      ? TEMPLATE_TO_DOC_CONFIG[failedDraft.templateType] || { documentType: 'legal_notice' as DocumentType }
+      : { documentType: 'legal_notice' as DocumentType }
+
+    const request: CreateDraftRequest = {
+      title: failedDraft.title,
+      document_type: config.documentType,
+      input_mode: 'freetext',
+      subtype: config.subtype,
+      freetext_body: `Re-generate: ${failedDraft.title}`,
     }
+
+    // Delete the failed draft and create a new one
+    handleDeleteDraft(draftId).then(() => {
+      const pendingDraft = createDraft(request)
+      openTab(pendingDraft)
+    })
   }
 
-  const handleDownload = (format: 'pdf' | 'doc' | 'txt') => {
-    const selectedDrafts = drafts.filter((d) => selectedDraftIds.has(d.id) && d.status === 'completed')
-    for (const draft of selectedDrafts) {
-      const sections = draft.sections?.length ? draft.sections : undefined
-      if (format === 'pdf') downloadAsPdf(draft.title, draft.content, sections)
-      else if (format === 'doc') downloadAsDoc(draft.title, draft.content, sections)
-      else downloadAsTxt(draft.title, draft.content, sections)
+  const handleSaveActiveDraft = async () => {
+    if (!activeTab?.draftId) return
+    const draft = drafts.find((d) => d.id === activeTab.draftId)
+    if (!draft) return
+    setIsSaving(true)
+    try {
+      await saveDraftToBackend(draft.id, draft.title, draft.content)
+      setTabDirty(activeTab.id, false)
+    } finally {
+      setIsSaving(false)
     }
-    setDownloadMenuOpen(false)
-  }
-
-  const handleDeleteSelected = async () => {
-      if (selectedSourceIds.size > 0) {
-      await batchDeleteSources(Array.from(selectedSourceIds))
-    }
-    for (const id of selectedDraftIds) {
-      await handleDeleteDraft(id)
-    }
-    setSelectedDraftIds(new Set())
   }
 
   const handleDraftingClick = () => {
@@ -277,69 +255,18 @@ export function CaseWorkspace() {
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {hasSelection && (
+          {/* Save button — only when a draft is open with unsaved changes */}
+          {hasUnsavedDraft && (
             <>
-              <span className="text-xs text-ledger-gray-500 mr-1">
-                {totalSelected} selected
-              </span>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleReindex}
-                disabled={sourcesLoading || isUploading}
+                onClick={handleSaveActiveDraft}
+                disabled={isSaving}
                 className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
-                title="Re-index selected"
               >
-                <RefreshCw className={cn("h-3.5 w-3.5", sourcesLoading ? "animate-spin" : "")} />
-                <span className="hidden sm:inline">Re-index</span>
-              </Button>
-              <div className="relative" ref={downloadMenuRef}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5 text-ledger-gray-600 border-ledger-gray-300"
-                  onClick={() => setDownloadMenuOpen(!downloadMenuOpen)}
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Download</span>
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-                {downloadMenuOpen && (
-                  <div className="absolute right-0 mt-1 w-44 rounded border border-kx-card-border bg-kx-card shadow-md z-50">
-                    <button
-                      onClick={() => handleDownload('pdf')}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
-                    >
-                      <FileDown className="h-4 w-4" />
-                      PDF
-                    </button>
-                    <button
-                      onClick={() => handleDownload('doc')}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
-                    >
-                      <FileText className="h-4 w-4" />
-                      DOC
-                    </button>
-                    <button
-                      onClick={() => handleDownload('txt')}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-ledger-gray-100"
-                    >
-                      <FileText className="h-4 w-4" />
-                      TXT
-                    </button>
-                  </div>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDeleteSelected}
-                disabled={sourcesLoading || isUploading}
-                className="h-8 gap-2 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950 hover:text-red-700 dark:hover:text-red-300 hover:border-red-300 dark:hover:border-red-700"
-                title="Delete selected"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Delete</span>
+                <Save className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
               </Button>
               <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
             </>
@@ -374,17 +301,14 @@ export function CaseWorkspace() {
               isSourcesLoading={sourcesLoading}
               isUploading={isUploading}
               drafts={drafts}
-              selectedDraftIds={selectedDraftIds}
               onToggleSourceSelection={toggleSourceSelection}
               onSelectAllSources={selectAllSources}
               onDeselectAllSources={deselectAllSources}
-              onToggleDraftSelection={toggleDraftSelection}
-              onSelectAllDrafts={selectAllDrafts}
-              onDeselectAllDrafts={deselectAllDrafts}
               onUploadFile={uploadFile}
               onDeleteSource={deleteSource}
               onLinkContent={linkContent}
               onDraftClick={handleDraftClick}
+              onDeleteDraft={handleDeleteDraft}
             />
           </div>
         )}
@@ -406,6 +330,7 @@ export function CaseWorkspace() {
             onSaveDraftLocal={handleSaveDraftLocal}
             onSaveDraftToBackend={handleSaveDraftToBackend}
             onDeleteDraft={handleDeleteDraft}
+            onRetryDraft={handleRetryDraft}
             onTabDirtyChange={setTabDirty}
           />
         </div>
@@ -428,6 +353,7 @@ export function CaseWorkspace() {
         isOpen={formModalOpen}
         sources={sources}
         isGenerating={false}
+        client={caseClient}
         onClose={() => setFormModalOpen(false)}
         onGenerate={handleGenerate}
         onTemplateChange={handleTemplateClick}

@@ -7,14 +7,16 @@ import { ErrorDisplay } from '@/components/ui/error-display'
 import { ClientHeader } from './client-header'
 import { ActivityFeed } from './activity-feed'
 import { ResearchSummary } from './research-summary'
-import { AddCaseModal } from './add-case-modal'
+import { EditClientModal } from './edit-client-modal'
+import { DeleteClientDialog } from './delete-client-dialog'
 import { useClientDetail } from '@/hooks/use-client-detail'
 
 export function ClientDetail() {
   const { clientId } = useParams<{ clientId: string }>()
   const navigate = useNavigate()
   const { client, isLoading, error, refresh } = useClientDetail(clientId ?? null)
-  const [showAddCaseModal, setShowAddCaseModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const goBack = () => navigate('/clients')
 
@@ -94,7 +96,7 @@ export function ClientDetail() {
 
       {/* Client Header */}
       <div className="mb-4 md:mb-6">
-        <ClientHeader client={client} onAddCase={() => setShowAddCaseModal(true)} />
+        <ClientHeader client={client} onEdit={() => setShowEditModal(true)} onDelete={() => setShowDeleteDialog(true)} />
       </div>
 
       {/* Two Column Layout */}
@@ -110,12 +112,19 @@ export function ClientDetail() {
         </div>
       </div>
 
-      <AddCaseModal
-        open={showAddCaseModal}
-        onOpenChange={setShowAddCaseModal}
+      <EditClientModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        client={client}
+        onSuccess={refresh}
+      />
+
+      <DeleteClientDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
         clientId={client.id}
         clientName={client.name}
-        onSuccess={refresh}
+        onSuccess={() => navigate('/clients')}
       />
     </div>
   )

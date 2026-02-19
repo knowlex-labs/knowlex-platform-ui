@@ -12,8 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { caseApi, clientApi } from '@/services/api'
-import { mapBackendClient } from '@/services/mappers'
+import { caseApi } from '@/services/api'
 import type { BackendCaseType, BackendCaseStatus } from '@/types'
 
 interface EditCaseModalProps {
@@ -21,11 +20,6 @@ interface EditCaseModalProps {
   onOpenChange: (open: boolean) => void
   caseId: string
   onSuccess: () => void
-}
-
-interface ClientOption {
-  id: string
-  name: string
 }
 
 interface FormData {
@@ -37,7 +31,6 @@ interface FormData {
   courtLocation: string
   judgeName: string
   nextHearingDate: string
-  clientId: string
 }
 
 const initialFormData: FormData = {
@@ -49,7 +42,6 @@ const initialFormData: FormData = {
   courtLocation: '',
   judgeName: '',
   nextHearingDate: '',
-  clientId: '',
 }
 
 export function EditCaseModal({
@@ -59,13 +51,11 @@ export function EditCaseModal({
   onSuccess,
 }: EditCaseModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
-  const [originalClientId, setOriginalClientId] = useState<string>('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingCase, setIsLoadingCase] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [clients, setClients] = useState<ClientOption[]>([])
 
-  // Fetch case data and clients when modal opens
+  // Fetch case data when modal opens
   useEffect(() => {
     if (!open || !caseId) return
 
@@ -74,11 +64,7 @@ export function EditCaseModal({
       setError(null)
 
       try {
-        const [caseResponse, clientsResponse, caseClientsResponse] = await Promise.all([
-          caseApi.getById(caseId),
-          clientApi.getAll({ page: 0, size: 100 }),
-          caseApi.getClients(caseId),
-        ])
+        const caseResponse = await caseApi.getById(caseId)
 
         if (caseResponse.status === 'success') {
           const c = caseResponse.data
@@ -91,22 +77,7 @@ export function EditCaseModal({
             courtLocation: c.courtLocation || '',
             judgeName: c.judgeName || '',
             nextHearingDate: c.nextHearingDate || '',
-            clientId: '',
           })
-        }
-
-        if (clientsResponse.status === 'success') {
-          const mapped = clientsResponse.data.content.map((c) => {
-            const client = mapBackendClient(c)
-            return { id: client.id, name: client.name }
-          })
-          setClients(mapped)
-        }
-
-        if (caseClientsResponse.status === 'success' && caseClientsResponse.data.length > 0) {
-          const linkedClientId = caseClientsResponse.data[0].id
-          setOriginalClientId(linkedClientId)
-          setFormData((prev) => ({ ...prev, clientId: linkedClientId }))
         }
       } catch {
         setError('Failed to load case data')
@@ -129,11 +100,6 @@ export function EditCaseModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.clientId) {
-      setError('Please select a client')
-      return
-    }
-
     setIsSubmitting(true)
     setError(null)
 
@@ -153,18 +119,6 @@ export function EditCaseModal({
         throw new Error(updateResponse.message || 'Failed to update case')
       }
 
-      // Handle client link change
-      if (formData.clientId !== originalClientId) {
-        // Unlink old client if there was one
-        if (originalClientId && originalClientId !== 'other') {
-          await clientApi.unlinkCase(originalClientId, caseId)
-        }
-        // Link new client (skip if "other")
-        if (formData.clientId !== 'other') {
-          await clientApi.linkCase(formData.clientId, caseId)
-        }
-      }
-
       onSuccess()
       onOpenChange(false)
     } catch (err) {
@@ -179,7 +133,6 @@ export function EditCaseModal({
     if (!isSubmitting) {
       if (!isOpen) {
         setFormData(initialFormData)
-        setOriginalClientId('')
         setError(null)
       }
       onOpenChange(isOpen)
@@ -318,27 +271,6 @@ export function EditCaseModal({
                   disabled={isSubmitting}
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-clientId">Assign to Client *</Label>
-              <Select
-                id="edit-clientId"
-                name="clientId"
-                value={formData.clientId}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                searchable
-                searchPlaceholder="Search clients..."
-              >
-                <option value="">Select a client</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
-                  </option>
-                ))}
-                <option value="other">Other (no client)</option>
-              </Select>
             </div>
 
             <DialogFooter className="pt-4">

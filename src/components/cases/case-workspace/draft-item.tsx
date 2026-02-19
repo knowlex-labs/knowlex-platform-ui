@@ -1,75 +1,117 @@
-import { FileText, Pencil, Trash2, Download } from 'lucide-react'
+import { useState } from 'react'
+import { FileText, Loader2, AlertCircle, MoreVertical, Trash2, FileDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { downloadAsPdf, downloadAsDoc, downloadAsTxt } from '@/lib/draft-renderer'
 import type { Draft } from '@/types'
 
 interface DraftItemProps {
   draft: Draft
-  onEdit: (draft: Draft) => void
+  onClick: () => void
   onDelete: (id: string) => void
-  onDownload: (draft: Draft) => void
 }
 
-function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-}
+export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
+  const [showMenu, setShowMenu] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
-function truncateContent(content: string, maxLength = 100): string {
-  if (content.length <= maxLength) return content
-  return content.slice(0, maxLength).trim() + '...'
-}
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await onDelete(draft.id)
+    } finally {
+      setIsDeleting(false)
+      setShowMenu(false)
+    }
+  }
 
-export function DraftItem({ draft, onEdit, onDelete, onDownload }: DraftItemProps) {
+  const handleDownload = (format: 'pdf' | 'doc' | 'txt') => {
+    const sections = draft.sections?.length ? draft.sections : undefined
+    if (format === 'pdf') downloadAsPdf(draft.title, draft.content, sections)
+    else if (format === 'doc') downloadAsDoc(draft.title, draft.content, sections)
+    else downloadAsTxt(draft.title, draft.content, sections)
+    setShowMenu(false)
+  }
+
   return (
-    <div className="group p-3 rounded-lg border border-kx-card-border bg-kx-card hover:border-ledger-gray-300 card-elevated">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded bg-ledger-gray-100 flex items-center justify-center">
-          <FileText className="h-4 w-4 text-ledger-gray-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-medium text-kx-primary-900 truncate">
-            {draft.title}
-          </h4>
-          <p className="text-xs text-ledger-gray-500 mt-0.5 line-clamp-2">
-            {truncateContent(draft.content)}
-          </p>
-          <p className="text-xs text-ledger-gray-400 mt-1">
-            {formatDate(draft.updatedAt)}
-          </p>
-        </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => onEdit(draft)}
-            title="Edit"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => onDownload(draft)}
-            title="Download"
-          >
-            <Download className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 dark:text-red-400 dark:hover:text-red-300"
-            onClick={() => onDelete(draft.id)}
-            title="Delete"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+    <div
+      className={cn(
+        'group relative flex items-center gap-2 px-4 py-2.5',
+        'hover:bg-ledger-gray-50 transition-colors',
+        draft.status === 'failed' && 'opacity-60'
+      )}
+      onMouseLeave={() => setShowMenu(false)}
+    >
+      <button
+        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        onClick={onClick}
+      >
+        {draft.status === 'pending' ? (
+          <Loader2 className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0 animate-spin" />
+        ) : draft.status === 'failed' ? (
+          <AlertCircle className="h-3.5 w-3.5 text-red-400 flex-shrink-0" />
+        ) : (
+          <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
+        )}
+        <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">
+          {draft.title}
+          {draft.status === 'pending' && (
+            <span className="text-ledger-gray-400 ml-1">- Generating...</span>
+          )}
+          {draft.status === 'failed' && (
+            <span className="text-red-400 ml-1">- Failed</span>
+          )}
+        </span>
+      </button>
+
+      {/* Three-dot Menu */}
+      <div className="relative flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+          onClick={() => setShowMenu(!showMenu)}
+        >
+          <MoreVertical className="h-3.5 w-3.5" />
+        </Button>
+
+        {showMenu && (
+          <div className="absolute right-0 top-full mt-1 w-44 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
+            {draft.status === 'completed' && (
+              <>
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors rounded-t-lg"
+                  onClick={() => handleDownload('pdf')}
+                >
+                  <FileDown className="h-4 w-4" />
+                  Download PDF
+                </button>
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
+                  onClick={() => handleDownload('doc')}
+                >
+                  <FileDown className="h-4 w-4" />
+                  Download DOC
+                </button>
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
+                  onClick={() => handleDownload('txt')}
+                >
+                  <FileDown className="h-4 w-4" />
+                  Download TXT
+                </button>
+              </>
+            )}
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-b-lg disabled:opacity-50"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4" />
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

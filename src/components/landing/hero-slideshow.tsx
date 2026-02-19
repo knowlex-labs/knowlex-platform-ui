@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 const slides = [
   { src: '/screenshots/dashboard.png', label: 'Dashboard' },
+  { src: '/screenshots/cases.png', label: 'Cases' },
   { src: '/screenshots/workspace-draft.png', label: 'AI Drafting' },
   { src: '/screenshots/workspace-chat.png', label: 'AI Assistant' },
   { src: '/screenshots/clients.png', label: 'Clients' },

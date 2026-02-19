@@ -1,4 +1,4 @@
-import { Mail, Phone, Calendar, Building, MapPin, Plus } from 'lucide-react'
+import { Mail, Phone, Calendar, Building, MapPin, Pencil, Trash2 } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { STATUS_COLORS } from '@/lib/constants'
@@ -7,7 +7,8 @@ import type { ClientDetailView, CaseStatus } from '@/types'
 
 interface ClientHeaderProps {
   client: ClientDetailView
-  onAddCase?: () => void
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
 function StatusBadge({ status }: { status: CaseStatus }) {
@@ -32,7 +33,7 @@ function formatDate(date: Date): string {
   }).format(date)
 }
 
-export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
+export function ClientHeader({ client, onEdit, onDelete }: ClientHeaderProps) {
   const caseData = client.cases[0] ?? null
 
   return (
@@ -49,10 +50,16 @@ export function ClientHeader({ client, onAddCase }: ClientHeaderProps) {
         </div>
         <div className="flex items-center gap-2">
           {caseData?.status && <StatusBadge status={caseData.status} />}
-          {client.cases.length === 0 && onAddCase && (
-            <Button onClick={onAddCase} size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Case
+          {onEdit && (
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          )}
+          {onDelete && (
+            <Button variant="outline" size="sm" onClick={onDelete} className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
             </Button>
           )}
         </div>

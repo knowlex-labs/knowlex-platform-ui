@@ -1,3 +1,4 @@
+import html2pdf from 'html2pdf.js'
 import type { DraftSection } from '@/types'
 import {
   documentToHtml,
@@ -146,10 +147,10 @@ export function buildExportHtml(title: string, content: string, sections?: Draft
   if (sections && sections.length > 0) {
     const sorted = [...sections].sort((a, b) => a.order - b.order)
     bodyHtml = sorted
-      .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${s.content.split('\n').map((p) => `<p>${escapeHtml(p)}</p>`).join('\n')}`)
+      .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${s.content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')}`)
       .join('\n')
   } else {
-    bodyHtml = content.split('\n').map((p) => `<p>${escapeHtml(p)}</p>`).join('\n')
+    bodyHtml = content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')
   }
 
   return `<!DOCTYPE html>
@@ -163,6 +164,8 @@ export function buildExportHtml(title: string, content: string, sections?: Draft
         font-size: 12pt;
         line-height: 1.5;
         margin: 1in;
+        color: #000;
+        background: #fff;
       }
       h1 {
         font-size: 14pt;
@@ -278,15 +281,30 @@ export function downloadAsDoc(title: string, content: string, sections?: DraftSe
 }
 
 /**
- * Download draft as PDF via print dialog.
+ * Download draft as a real PDF file using html2pdf.js.
  */
 export function downloadAsPdf(title: string, content: string, sections?: DraftSection[]): void {
   const html = buildExportHtml(title, content, sections)
-  const printWindow = window.open('', '_blank')
-  if (printWindow) {
-    printWindow.document.write(html)
-    printWindow.document.close()
-    printWindow.focus()
-    printWindow.print()
-  }
+
+  // Create a temporary container to render the HTML for pdf generation
+  const container = document.createElement('div')
+  container.innerHTML = html
+  // Apply body styles directly since html2pdf renders the element, not a full document
+  container.style.fontFamily = "'Times New Roman', Times, serif"
+  container.style.fontSize = '12pt'
+  container.style.lineHeight = '1.5'
+  container.style.color = '#000'
+  container.style.background = '#fff'
+  container.style.padding = '0'
+
+  html2pdf()
+    .set({
+      margin: [0.75, 1, 0.75, 1],
+      filename: `${sanitizeFilename(title)}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+    })
+    .from(container)
+    .save()
 }
