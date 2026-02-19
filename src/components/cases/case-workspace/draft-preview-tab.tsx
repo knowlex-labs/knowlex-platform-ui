@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Wand2, Trash2, AlertCircle, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useTextSelection } from '@/hooks/use-text-selection'
@@ -111,6 +111,7 @@ function CompletedDraftEditor({
 }: DraftPreviewTabProps) {
   const [title, setTitle] = useState(draft.title)
   const [hasChanges, setHasChanges] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Track whether we caused the draft.content change (to avoid re-rendering the editor)
@@ -186,14 +187,18 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [flushToLocalState])
 
-  // Explicit save to backend (Ctrl+S)
-  const handleSaveToBackend = useCallback(() => {
-    if (editorRef.current) {
+  // Explicit save to backend (Ctrl+S or Save button)
+  const handleSaveToBackend = useCallback(async () => {
+    if (!editorRef.current) return
+    setIsSaving(true)
+    try {
       isLocalEditRef.current = true
-      onSaveToBackend(draft.id, title, editorRef.current.innerHTML)
+      await onSaveToBackend(draft.id, title, editorRef.current.innerHTML)
+      setHasChanges(false)
+      onDirtyChange?.(false)
+    } finally {
+      setIsSaving(false)
     }
-    setHasChanges(false)
-    onDirtyChange?.(false)
   }, [draft.id, title, onSaveToBackend, onDirtyChange])
 
   // Keyboard shortcuts (Ctrl/Cmd + S to save to backend)
@@ -215,12 +220,15 @@ function CompletedDraftEditor({
     }
   }
 
-  const hasSections = draft.sections && draft.sections.length > 0
-  const initialHtml = renderDraftToHtml(
-    draft.content,
-    hasSections ? draft.sections : undefined,
-    draft.templateType
-  )
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initialHtml = useMemo(() => {
+    const hasSections = draft.sections && draft.sections.length > 0
+    return renderDraftToHtml(
+      draft.content,
+      hasSections ? draft.sections : undefined,
+      draft.templateType
+    )
+  }, [draft.id])
 
   return (
     <div className="flex flex-col h-full">
@@ -235,6 +243,9 @@ function CompletedDraftEditor({
         onBulletList={formatting.handleBulletList}
         onNumberedList={formatting.handleNumberedList}
         onFontSize={formatting.handleFontSize}
+        onSave={handleSaveToBackend}
+        isSaving={isSaving}
+        hasChanges={hasChanges}
         className="bg-ledger-white dark:bg-ledger-gray-900"
       />
 

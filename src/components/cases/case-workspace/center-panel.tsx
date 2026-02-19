@@ -1,77 +1,54 @@
-import { useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { WorkspaceTabBar } from './workspace-tab-bar'
-import { ChatInterface } from './chat-interface'
+import { WorkspaceLanding } from './workspace-landing'
 import { DraftPreviewTab } from './draft-preview-tab'
-import type { WorkspaceTabItem, WorkspaceMessage, Draft } from '@/types'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import type { WorkspaceTabItem, Draft } from '@/types'
 
 interface CenterPanelProps {
   tabs: WorkspaceTabItem[]
   activeTabId: string
-  splitMode: boolean
-  messages: WorkspaceMessage[]
-  isLoading: boolean
-  selectedSourceCount: number
   drafts: Draft[]
   onTabClick: (tabId: string) => void
   onTabClose: (tabId: string) => void
-  onToggleSplit: () => void
-  onSendMessage: (query: string) => Promise<void>
-  onClearChat: () => void
   onSaveDraftLocal: (id: string, title: string, content: string) => void
   onSaveDraftToBackend: (id: string, title: string, content: string) => void | Promise<void>
   onDeleteDraft: (id: string) => void | Promise<void>
   onRetryDraft?: (draftId: string) => void
   onTabDirtyChange: (tabId: string, isDirty: boolean) => void
+  onDraftingClick: () => void
+  onSendToChat: (text: string) => void
 }
 
 export function CenterPanel({
   tabs,
   activeTabId,
-  splitMode,
-  messages,
-  isLoading,
-  selectedSourceCount,
   drafts,
   onTabClick,
   onTabClose,
-  onToggleSplit,
-  onSendMessage,
-  onClearChat,
   onSaveDraftLocal,
   onSaveDraftToBackend,
   onDeleteDraft,
   onRetryDraft,
   onTabDirtyChange,
+  onDraftingClick,
+  onSendToChat,
 }: CenterPanelProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId)
-  const hasDraftTabs = tabs.some((t) => t.type === 'draft')
+  const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null)
 
   // Find the active draft for preview
   const activeDraft = activeTab?.draftId
     ? drafts.find((d) => d.id === activeTab.draftId)
     : null
-
-  // For split mode, find the first draft tab
-  const firstDraftTab = tabs.find((t) => t.type === 'draft')
-  const splitDraft = firstDraftTab?.draftId
-    ? drafts.find((d) => d.id === firstDraftTab.draftId)
-    : null
-
-  const handleSendToChat = (text: string) => {
-    // Auto-enable split mode so chat + draft are side by side
-    if (!splitMode && hasDraftTabs) {
-      onToggleSplit()
-    }
-    onSendMessage(text)
-  }
-
-  // Memoize the dirty handlers to prevent infinite loops in DraftPreviewTab
-  // These dependencies are critical - we only want to recreate if IDs change
-  const handleSplitDirtyChange = useCallback((isDirty: boolean) => {
-    if (splitDraft && firstDraftTab) {
-      onTabDirtyChange(firstDraftTab.id, isDirty)
-    }
-  }, [splitDraft?.id, firstDraftTab?.id, onTabDirtyChange])
 
   const handleActiveDirtyChange = useCallback((isDirty: boolean) => {
     if (activeTab) {
@@ -79,83 +56,97 @@ export function CenterPanel({
     }
   }, [activeTab?.id, onTabDirtyChange])
 
+  // Intercept tab close — check for unsaved changes
+  const handleTabClose = useCallback((tabId: string) => {
+    const tab = tabs.find((t) => t.id === tabId)
+    if (tab?.isUnsaved) {
+      setPendingCloseTabId(tabId)
+    } else {
+      onTabClose(tabId)
+    }
+  }, [tabs, onTabClose])
+
+  // Save & Close the pending tab
+  const handleSaveAndClose = useCallback(async () => {
+    if (!pendingCloseTabId) return
+    const tab = tabs.find((t) => t.id === pendingCloseTabId)
+    if (tab?.draftId) {
+      const draft = drafts.find((d) => d.id === tab.draftId)
+      if (draft) {
+        await onSaveDraftToBackend(draft.id, draft.title, draft.content)
+      }
+    }
+    onTabClose(pendingCloseTabId)
+    setPendingCloseTabId(null)
+  }, [pendingCloseTabId, tabs, drafts, onSaveDraftToBackend, onTabClose])
+
+  // Discard changes and close
+  const handleDiscardAndClose = useCallback(() => {
+    if (!pendingCloseTabId) return
+    onTabClose(pendingCloseTabId)
+    setPendingCloseTabId(null)
+  }, [pendingCloseTabId, onTabClose])
+
+  // Empty state — show landing with tool cards
+  if (tabs.length === 0) {
+    return (
+      <div className="flex flex-col h-full bg-kx-card overflow-hidden">
+        <WorkspaceLanding onDraftingClick={onDraftingClick} />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-full bg-kx-card overflow-hidden">
       {/* Tab Bar */}
       <WorkspaceTabBar
         tabs={tabs}
         activeTabId={activeTabId}
-        splitMode={splitMode}
-        hasDraftTabs={hasDraftTabs}
         onTabClick={onTabClick}
-        onTabClose={onTabClose}
-        onToggleSplit={onToggleSplit}
+        onTabClose={handleTabClose}
       />
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
-        {splitMode && hasDraftTabs ? (
-          // Split View: Chat + Draft side by side
-          <div className="flex h-full">
-            {/* Chat Side */}
-            <div className="flex-1 border-r border-ledger-gray-200 overflow-hidden">
-              <ChatInterface
-                messages={messages}
-                isLoading={isLoading}
-                selectedSourceCount={selectedSourceCount}
-                onSendMessage={onSendMessage}
-                onClearChat={onClearChat}
-              />
-            </div>
-
-            {/* Draft Side */}
-            <div className="flex-1 overflow-hidden">
-              {splitDraft ? (
-                <DraftPreviewTab
-                  draft={splitDraft}
-                  onSaveLocal={onSaveDraftLocal}
-                  onSaveToBackend={onSaveDraftToBackend}
-                  onDelete={onDeleteDraft}
-                  onSendToChat={handleSendToChat}
-                  onDirtyChange={handleSplitDirtyChange}
-                  onRetry={onRetryDraft}
-                />
-              ) : (
-                <div className="flex items-center justify-center h-full text-sm text-ledger-gray-500">
-                  Select a draft to preview
-                </div>
-              )}
-            </div>
-          </div>
+        {activeDraft ? (
+          <DraftPreviewTab
+            draft={activeDraft}
+            onSaveLocal={onSaveDraftLocal}
+            onSaveToBackend={onSaveDraftToBackend}
+            onDelete={onDeleteDraft}
+            onSendToChat={onSendToChat}
+            onDirtyChange={handleActiveDirtyChange}
+            onRetry={onRetryDraft}
+          />
         ) : (
-          // Single View: Show active tab content
-          <div className="h-full overflow-hidden">
-            {activeTab?.type === 'chat' ? (
-              <ChatInterface
-                messages={messages}
-                isLoading={isLoading}
-                selectedSourceCount={selectedSourceCount}
-                onSendMessage={onSendMessage}
-                onClearChat={onClearChat}
-              />
-            ) : activeDraft ? (
-              <DraftPreviewTab
-                draft={activeDraft}
-                onSaveLocal={onSaveDraftLocal}
-                onSaveToBackend={onSaveDraftToBackend}
-                onDelete={onDeleteDraft}
-                onSendToChat={handleSendToChat}
-                onDirtyChange={handleActiveDirtyChange}
-                onRetry={onRetryDraft}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-sm text-ledger-gray-500">
-                Select a tab
-              </div>
-            )}
+          <div className="flex items-center justify-center h-full text-sm text-ledger-gray-500">
+            Select a tab
           </div>
         )}
       </div>
+
+      {/* Unsaved changes confirmation dialog */}
+      <Dialog open={!!pendingCloseTabId} onOpenChange={(open) => { if (!open) setPendingCloseTabId(null) }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Unsaved Changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes. Would you like to save before closing?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" size="sm" onClick={() => setPendingCloseTabId(null)}>
+              Cancel
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleDiscardAndClose} className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50">
+              Discard
+            </Button>
+            <Button size="sm" onClick={handleSaveAndClose} className="bg-kx-primary-600 hover:bg-kx-primary-700">
+              Save & Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

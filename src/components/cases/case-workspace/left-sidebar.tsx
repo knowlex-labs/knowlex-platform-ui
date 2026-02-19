@@ -170,7 +170,7 @@ export function LeftSidebar({
                 <div className="px-4 py-4 text-center">
                   <p className="text-xs text-ledger-gray-500">No drafts yet</p>
                   <p className="text-xs text-ledger-gray-400 mt-1">
-                    Use the tools panel to generate one.
+                    Use the Drafts button to create one.
                   </p>
                 </div>
               ) : (

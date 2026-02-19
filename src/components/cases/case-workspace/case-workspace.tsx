@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Save } from 'lucide-react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
@@ -11,7 +11,8 @@ import { useDrafts } from '@/hooks/use-drafts'
 import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
-import { StudioPanel } from './studio-panel'
+import { ChatPanel } from './chat-panel'
+import { HeaderToolButtons } from './header-tool-buttons'
 import { TemplateFormModal } from './template-form-modal'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
 import type { Draft, DraftTemplate, TemplateFormData, Client } from '@/types'
@@ -56,7 +57,6 @@ export function CaseWorkspace() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formModalOpen, setFormModalOpen] = useState(false)
-  const [isSaving, setIsSaving] = useState(false)
 
   const {
     sources,
@@ -89,11 +89,9 @@ export function CaseWorkspace() {
   const {
     tabs,
     activeTabId,
-    splitMode,
     openTab,
     closeTab,
     setActiveTab,
-    toggleSplitMode,
     setTabDirty,
   } = useWorkspaceTabs(drafts)
 
@@ -123,9 +121,8 @@ export function CaseWorkspace() {
     })
   }, [caseId])
 
-  // Determine if we have an active draft tab with unsaved changes
-  const activeTab = tabs.find((t) => t.id === activeTabId)
-  const hasUnsavedDraft = activeTab?.type === 'draft' && activeTab.isUnsaved
+  // Whether any tabs are open (to show header tool buttons vs landing)
+  const hasTabs = tabs.length > 0
 
   const handleBack = () => {
     setSidebarCollapsed(false)
@@ -133,8 +130,12 @@ export function CaseWorkspace() {
   }
 
   const handleSendMessage = async (query: string) => {
-    setLeftPanelOpen(false)
     await sendMessage(query, Array.from(selectedSourceIds))
+  }
+
+  const handleSendToChat = (text: string) => {
+    setRightPanelOpen(true)
+    handleSendMessage(text)
   }
 
   const handleDraftClick = (draft: Draft) => {
@@ -180,34 +181,9 @@ export function CaseWorkspace() {
     })
   }
 
-  const handleSaveActiveDraft = async () => {
-    if (!activeTab?.draftId) return
-    const draft = drafts.find((d) => d.id === activeTab.draftId)
-    if (!draft) return
-    setIsSaving(true)
-    try {
-      await saveDraftToBackend(draft.id, draft.title, draft.content)
-      setTabDirty(activeTab.id, false)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
   const handleDraftingClick = () => {
     setSelectedTemplate(DRAFT_TEMPLATES[0])
     setFormModalOpen(true)
-  }
-
-  const handleGenerateReport = () => {
-    handleSendMessage('Generate a detailed legal analysis report from the selected documents.')
-  }
-
-  const handleGenerateSummary = () => {
-    handleSendMessage('Summarize the key points and important information from the selected documents.')
-  }
-
-  const handleGenerateFacts = () => {
-    handleSendMessage('Extract and list the key facts from the selected documents.')
   }
 
   const handleTemplateClick = (template: DraftTemplate) => {
@@ -250,24 +226,14 @@ export function CaseWorkspace() {
             Back
           </Button>
           <div className="h-4 w-px bg-ledger-gray-300" />
-          <h2 className="text-base font-semibold text-kx-primary-900 truncate">
+          <h2 className="text-lg font-bold text-kx-primary-900 truncate">
             {caseName}
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {/* Save button — only when a draft is open with unsaved changes */}
-          {hasUnsavedDraft && (
+          {hasTabs && (
             <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSaveActiveDraft}
-                disabled={isSaving}
-                className="h-8 gap-2 text-ledger-gray-600 border-ledger-gray-300"
-              >
-                <Save className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
-              </Button>
+              <HeaderToolButtons onDraftingClick={handleDraftingClick} />
               <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
             </>
           )}
@@ -285,7 +251,7 @@ export function CaseWorkspace() {
             size="sm"
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
             className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700"
-            title={rightPanelOpen ? 'Hide tools' : 'Show tools'}
+            title={rightPanelOpen ? 'Hide chat' : 'Show chat'}
           >
             {rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
           </Button>
@@ -317,32 +283,27 @@ export function CaseWorkspace() {
           <CenterPanel
             tabs={tabs}
             activeTabId={activeTabId}
-            splitMode={splitMode}
-            messages={messages}
-            isLoading={chatLoading}
-            selectedSourceCount={selectedSourceIds.size}
             drafts={drafts}
             onTabClick={setActiveTab}
             onTabClose={closeTab}
-            onToggleSplit={toggleSplitMode}
-            onSendMessage={handleSendMessage}
-            onClearChat={clearChat}
             onSaveDraftLocal={handleSaveDraftLocal}
             onSaveDraftToBackend={handleSaveDraftToBackend}
             onDeleteDraft={handleDeleteDraft}
             onRetryDraft={handleRetryDraft}
             onTabDirtyChange={setTabDirty}
+            onDraftingClick={handleDraftingClick}
+            onSendToChat={handleSendToChat}
           />
         </div>
 
         {rightPanelOpen && (
-          <div className="w-80 flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden">
-            <StudioPanel
-              onDraftingClick={handleDraftingClick}
-              onGenerateReport={handleGenerateReport}
-              onGenerateSummary={handleGenerateSummary}
-              onGenerateFacts={handleGenerateFacts}
+          <div className="w-96 flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden">
+            <ChatPanel
+              messages={messages}
+              isLoading={chatLoading}
               selectedSourceCount={selectedSourceIds.size}
+              onSendMessage={handleSendMessage}
+              onClearChat={clearChat}
             />
           </div>
         )}
@@ -354,6 +315,8 @@ export function CaseWorkspace() {
         sources={sources}
         isGenerating={false}
         client={caseClient}
+        leftPanelOpen={leftPanelOpen}
+        rightPanelOpen={rightPanelOpen}
         onClose={() => setFormModalOpen(false)}
         onGenerate={handleGenerate}
         onTemplateChange={handleTemplateClick}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { ArrowUp, Trash2, Loader2, FileCheck, Paperclip, MessageSquare } from 'lucide-react'
+import { ArrowUp, Trash2, Loader2, FileCheck, MessageSquare } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { WorkspaceMessage } from '@/types'
@@ -23,8 +23,6 @@ export function ChatInterface({
   const [input, setInput] = useState('')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollRef.current) {
@@ -60,7 +58,7 @@ export function ChatInterface({
             Start a conversation
           </p>
           <p className="text-sm text-ledger-gray-400 dark:text-ledger-gray-500 max-w-[320px] leading-relaxed">
-            Ask questions about your documents or use the tools on the right to analyze them
+            Ask questions about your documents or send text from your drafts
           </p>
         </div>
       ) : (
@@ -82,32 +80,7 @@ export function ChatInterface({
       {/* Input */}
       <div className="px-5 pb-4 pt-2">
         <form onSubmit={handleSubmit}>
-          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-kx-card-border bg-kx-card shadow-md backdrop-blur-sm focus-within:shadow-lg focus-within:border-kx-primary-400/30 transition-all">
-            {/* File upload button */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-              onChange={(e) => {
-                // Handle file upload here
-                const file = e.target.files?.[0]
-                if (file) {
-                  console.log('File selected:', file.name)
-                  // TODO: Integrate with upload handler
-                }
-              }}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-kx-primary-700 flex-shrink-0"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-
+          <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border border-kx-card-border bg-kx-card shadow-md backdrop-blur-sm focus-within:shadow-lg focus-within:border-kx-primary-400/30 transition-all min-w-0">
             {/* Clear chat button */}
             {messages.length > 0 && (
               <Button

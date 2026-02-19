@@ -7,6 +7,7 @@ import {
   AlignRight,
   List,
   ListOrdered,
+  Save,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +21,9 @@ interface FormattingToolbarProps {
   onBulletList: () => void
   onNumberedList: () => void
   onFontSize: (size: string) => void
+  onSave?: () => void
+  isSaving?: boolean
+  hasChanges?: boolean
   className?: string
 }
 
@@ -35,6 +39,9 @@ export function FormattingToolbar({
   onBulletList,
   onNumberedList,
   onFontSize,
+  onSave,
+  isSaving,
+  hasChanges,
   className,
 }: FormattingToolbarProps) {
   return (
@@ -121,6 +128,28 @@ export function FormattingToolbar({
       >
         <ListOrdered className="h-4 w-4" />
       </button>
+
+      {/* Spacer pushes Save to the right */}
+      <div className="flex-1" />
+
+      {onSave && (
+        <button
+          onClick={onSave}
+          disabled={isSaving}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+            isSaving
+              ? 'text-ledger-gray-400 dark:text-ledger-gray-500 cursor-not-allowed'
+              : hasChanges
+                ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950'
+                : 'text-ledger-gray-500 dark:text-ledger-gray-400 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700'
+          )}
+          title="Save (Ctrl+S)"
+        >
+          <Save className="h-4 w-4" />
+          {isSaving ? 'Saving...' : 'Save'}
+        </button>
+      )}
     </div>
   )
 }
