@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Wand2, Trash2, AlertCircle, RotateCw } from 'lucide-react'
+import { Trash2, AlertCircle, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useTextSelection } from '@/hooks/use-text-selection'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
 import { FormattingToolbar } from './formatting-toolbar'
 import {
   renderDraftToHtml,
+  downloadAsPdf,
+  downloadAsDoc,
 } from '@/lib/draft-renderer'
 import type { Draft } from '@/types'
 
@@ -106,7 +107,6 @@ function CompletedDraftEditor({
   draft,
   onSaveLocal,
   onSaveToBackend,
-  onSendToChat,
   onDirtyChange,
 }: DraftPreviewTabProps) {
   const [title, setTitle] = useState(draft.title)
@@ -116,8 +116,6 @@ function CompletedDraftEditor({
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Track whether we caused the draft.content change (to avoid re-rendering the editor)
   const isLocalEditRef = useRef(false)
-
-  const { selection, clearSelection } = useTextSelection(editorRef)
 
   const markDirty = useCallback(() => {
     setHasChanges(true)
@@ -187,6 +185,12 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [flushToLocalState])
 
+  const handleDownload = useCallback((format: 'pdf' | 'doc') => {
+    const sections = draft.sections?.length ? draft.sections : undefined
+    if (format === 'pdf') downloadAsPdf(draft.title, draft.content, sections)
+    else downloadAsDoc(draft.title, draft.content, sections)
+  }, [draft.title, draft.content, draft.sections])
+
   // Explicit save to backend (Ctrl+S or Save button)
   const handleSaveToBackend = useCallback(async () => {
     if (!editorRef.current) return
@@ -213,13 +217,6 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleSaveToBackend])
 
-  const handleFixWithAI = () => {
-    if (selection?.text) {
-      onSendToChat(`Please fix or improve the following text:\n\n"${selection.text}"`)
-      clearSelection()
-    }
-  }
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialHtml = useMemo(() => {
     const hasSections = draft.sections && draft.sections.length > 0
@@ -244,6 +241,7 @@ function CompletedDraftEditor({
         onNumberedList={formatting.handleNumberedList}
         onFontSize={formatting.handleFontSize}
         onSave={handleSaveToBackend}
+        onDownload={handleDownload}
         isSaving={isSaving}
         hasChanges={hasChanges}
         className="bg-ledger-white dark:bg-ledger-gray-900"
@@ -261,27 +259,6 @@ function CompletedDraftEditor({
           style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.8', fontSize: '12pt', minHeight: '400px', padding: '40px 60px', color: '#000' }}
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
-
-        {/* Floating AI Fix Button */}
-        {selection && selection.text.length > 0 && (
-          <div
-            className="fixed z-50"
-            style={{
-              top: (selection.rect?.y || 0) - 40,
-              left: (selection.rect?.x || 0) + ((selection.rect?.width || 0) / 2),
-              transform: 'translateX(-50%)',
-            }}
-          >
-            <Button
-              size="sm"
-              onClick={handleFixWithAI}
-              className="gap-1.5 shadow-lg bg-kx-primary-600 hover:bg-kx-primary-700"
-            >
-              <Wand2 className="h-3.5 w-3.5" />
-              Fix with AI
-            </Button>
-          </div>
-        )}
       </div>
 
       {/* Footer */}
@@ -293,9 +270,7 @@ function CompletedDraftEditor({
             `Last saved: ${draft.updatedAt.toLocaleString()}`
           )}
         </p>
-        <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500">
-          <span className="font-medium">Ctrl+S</span> to save • <span className="font-medium">Ctrl+Z</span> to undo
-        </p>
+        <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500" />
       </div>
     </div>
   )

@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { FileText, Loader2, AlertCircle, MoreVertical, Trash2, FileDown } from 'lucide-react'
+import { FileText, Loader2, AlertCircle, MoreVertical, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { downloadAsPdf, downloadAsDoc, downloadAsTxt } from '@/lib/draft-renderer'
 import type { Draft } from '@/types'
 
 interface DraftItemProps {
@@ -23,14 +22,6 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
       setIsDeleting(false)
       setShowMenu(false)
     }
-  }
-
-  const handleDownload = (format: 'pdf' | 'doc' | 'txt') => {
-    const sections = draft.sections?.length ? draft.sections : undefined
-    if (format === 'pdf') downloadAsPdf(draft.title, draft.content, sections)
-    else if (format === 'doc') downloadAsDoc(draft.title, draft.content, sections)
-    else downloadAsTxt(draft.title, draft.content, sections)
-    setShowMenu(false)
   }
 
   return (
@@ -77,33 +68,8 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
 
         {showMenu && (
           <div className="absolute right-0 top-full mt-1 w-44 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
-            {draft.status === 'completed' && (
-              <>
-                <button
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors rounded-t-lg"
-                  onClick={() => handleDownload('pdf')}
-                >
-                  <FileDown className="h-4 w-4" />
-                  Download PDF
-                </button>
-                <button
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
-                  onClick={() => handleDownload('doc')}
-                >
-                  <FileDown className="h-4 w-4" />
-                  Download DOC
-                </button>
-                <button
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
-                  onClick={() => handleDownload('txt')}
-                >
-                  <FileDown className="h-4 w-4" />
-                  Download TXT
-                </button>
-              </>
-            )}
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-b-lg disabled:opacity-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-lg disabled:opacity-50"
               onClick={handleDelete}
               disabled={isDeleting}
             >
