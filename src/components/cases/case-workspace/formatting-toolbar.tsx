@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   Bold,
   Italic,
@@ -7,6 +8,9 @@ import {
   AlignRight,
   List,
   ListOrdered,
+  Save,
+  Download,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +24,10 @@ interface FormattingToolbarProps {
   onBulletList: () => void
   onNumberedList: () => void
   onFontSize: (size: string) => void
+  onSave?: () => void
+  onDownload?: (format: 'pdf' | 'doc') => void
+  isSaving?: boolean
+  hasChanges?: boolean
   className?: string
 }
 
@@ -35,8 +43,14 @@ export function FormattingToolbar({
   onBulletList,
   onNumberedList,
   onFontSize,
+  onSave,
+  onDownload,
+  isSaving,
+  hasChanges,
   className,
 }: FormattingToolbarProps) {
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false)
+
   return (
     <div
       className={cn(
@@ -121,6 +135,55 @@ export function FormattingToolbar({
       >
         <ListOrdered className="h-4 w-4" />
       </button>
+
+      {/* Spacer pushes Save to the right */}
+      <div className="flex-1" />
+
+      {onDownload && (
+        <div className="relative" onMouseLeave={() => setShowDownloadMenu(false)}>
+          <button
+            onClick={() => setShowDownloadMenu((v) => !v)}
+            className="flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium text-ledger-gray-500 dark:text-ledger-gray-400 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors"
+            title="Download"
+          >
+            <Download className="h-4 w-4" />
+            Download
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showDownloadMenu && (
+            <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-ledger-gray-800 border border-ledger-gray-200 dark:border-ledger-gray-600 rounded-lg shadow-md z-10">
+              {(['pdf', 'doc'] as const).map((fmt) => (
+                <button
+                  key={fmt}
+                  className="flex w-full px-3 py-2 text-sm text-ledger-gray-700 dark:text-ledger-gray-300 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                  onClick={() => { onDownload(fmt); setShowDownloadMenu(false) }}
+                >
+                  {fmt.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {onSave && (
+        <button
+          onClick={onSave}
+          disabled={isSaving}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+            isSaving
+              ? 'text-ledger-gray-400 dark:text-ledger-gray-500 cursor-not-allowed'
+              : hasChanges
+                ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950'
+                : 'text-ledger-gray-500 dark:text-ledger-gray-400 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700'
+          )}
+          title="Save (Ctrl+S)"
+        >
+          <Save className="h-4 w-4" />
+          {isSaving ? 'Saving...' : 'Save'}
+        </button>
+      )}
     </div>
   )
 }

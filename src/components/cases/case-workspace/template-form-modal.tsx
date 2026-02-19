@@ -21,6 +21,8 @@ interface TemplateFormModalProps {
   sources: CaseSource[]
   isGenerating: boolean
   client?: Client | null
+  leftPanelOpen?: boolean
+  rightPanelOpen?: boolean
   onClose: () => void
   onGenerate: (templateId: string, formData: TemplateFormData, sourceIds: string[]) => Promise<void>
   onTemplateChange?: (template: DraftTemplate) => void
@@ -41,6 +43,8 @@ export function TemplateFormModal({
   sources,
   isGenerating,
   client,
+  leftPanelOpen = true,
+  rightPanelOpen = true,
   onClose,
   onGenerate,
   onTemplateChange,
@@ -154,9 +158,18 @@ export function TemplateFormModal({
       })
   }, [template, formData, useClientFor, client])
 
+  // Center modal on the workspace content area (between side panels)
+  const navWidth = 64 // collapsed sidebar w-16
+  const leftOffset = leftPanelOpen ? 288 : 0 // w-72
+  const rightOffset = rightPanelOpen ? 384 : 0 // w-96
+  const centerLeft = `calc(${navWidth + leftOffset}px + (100vw - ${navWidth + leftOffset + rightOffset}px) / 2)`
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
+      <DialogContent
+        className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+        style={{ left: centerLeft }}
+      >
         {step === 'select' ? (
           <>
             {/* Step 1: Template Selection */}

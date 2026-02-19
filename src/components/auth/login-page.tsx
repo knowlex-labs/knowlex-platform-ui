@@ -185,7 +185,7 @@ export function LoginPage() {
             <Input
               id="username"
               type="text"
-              placeholder="advocate.sharma"
+              placeholder=""
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -198,7 +198,7 @@ export function LoginPage() {
             <Input
               id="password"
               type="password"
-              placeholder="Enter your password"
+              placeholder=""
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

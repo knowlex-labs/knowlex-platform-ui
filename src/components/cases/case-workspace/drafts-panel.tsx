@@ -52,10 +52,6 @@ export function DraftsPanel({
     }
   }
 
-  const handleDownloadDraft = (draft: Draft) => {
-    downloadDraft(draft.title, draft.content)
-  }
-
   const handleDownloadFromModal = (title: string, content: string) => {
     downloadDraft(title, content)
   }
