@@ -249,12 +249,14 @@ export function Sidebar() {
     <aside className={`fixed left-0 top-0 h-screen bg-kx-card border-r border-kx-card-border shadow-lg flex-col hidden md:flex transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-ledger-gray-200">
-        <h1 className={`text-xl font-serif font-semibold text-kx-primary-900 transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-          {APP_NAME}
-        </h1>
-        {collapsed && (
+        {collapsed ? (
           <div className="flex items-center justify-center -ml-4">
-            <span className="text-xl font-serif font-semibold text-kx-primary-900">K</span>
+            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
+            <span className="text-xl font-serif font-semibold text-kx-primary-900">{APP_NAME}</span>
           </div>
         )}
       </div>
