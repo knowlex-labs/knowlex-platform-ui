@@ -251,11 +251,11 @@ export function Sidebar() {
       <div className="px-6 py-5 border-b border-ledger-gray-200">
         {collapsed ? (
           <div className="flex items-center justify-center -ml-4">
-            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto" />
+            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto" />
+            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
             <span className="text-xl font-serif font-semibold text-kx-primary-900">{APP_NAME}</span>
           </div>
         )}

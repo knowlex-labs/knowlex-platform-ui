@@ -24,7 +24,7 @@ export function MobileHeader({ onMenuClick, onUserClick }: MobileHeaderProps) {
 
         {/* App Name */}
         <div className="flex items-center gap-2">
-          <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-6 w-auto" />
+          <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-6 w-auto dark:invert" />
           <h1 className="text-lg font-serif font-semibold text-kx-primary-900">{APP_NAME}</h1>
         </div>
 
