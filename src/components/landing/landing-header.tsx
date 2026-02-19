@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { APP_NAME } from '@/lib/constants'
 import { Menu, X } from 'lucide-react'
 import {
   Dialog,
@@ -41,9 +40,9 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
               <button
                 type="button"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="text-2xl font-serif font-bold text-white tracking-tight hover:opacity-90 transition-opacity"
+                className="hover:opacity-90 transition-opacity"
               >
-                {APP_NAME}
+                <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-9 w-auto invert" />
               </button>
             </div>
 

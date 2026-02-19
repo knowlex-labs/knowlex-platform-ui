@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { APP_NAME } from '@/lib/constants'
 import { ArrowLeft } from 'lucide-react'
 
 interface AuthLayoutProps {
@@ -11,7 +10,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Mobile: gradient header strip */}
       <div className="lg:hidden mesh-gradient px-6 py-8 text-center">
-        <h1 className="text-2xl font-serif font-semibold text-white">{APP_NAME}</h1>
+        <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-14 w-auto invert mx-auto mb-2" />
         <p className="text-sm text-kx-primary-200 mt-1">India's Smart Legal Workflow</p>
       </div>
 
@@ -28,7 +27,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full bg-white/5" />
 
         <div className="relative z-10 text-center px-12">
-          <h1 className="text-5xl font-serif font-semibold text-white mb-4">{APP_NAME}</h1>
+          <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-24 w-auto invert mx-auto mb-4" />
           <p className="text-xl text-red-200 font-light">
             India's Smart Legal Workflow
           </p>
