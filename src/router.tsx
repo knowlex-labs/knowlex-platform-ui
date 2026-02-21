@@ -10,7 +10,6 @@ import { AIResearch } from '@/components/ai-research/ai-research'
 import { AccountSettings } from '@/components/settings/account-settings'
 import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
-import { SignupPage } from '@/components/auth/signup-page'
 
 const isDashboardSubdomain = window.location.hostname.startsWith('dashboard.')
 
@@ -22,10 +21,6 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
-  },
-  {
-    path: '/signup',
-    element: <SignupPage />,
   },
   {
     element: <ProtectedLayout />,

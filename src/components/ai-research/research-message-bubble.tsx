@@ -61,11 +61,15 @@ function UserBubble({ message }: { message: ResearchMessage }) {
 
 function AgentBubble({ message }: { message: ResearchMessage }) {
   const { isStreaming, streamingPhase, content, toolCalls } = message
-  const isWaiting = isStreaming && (streamingPhase === 'waiting' || !streamingPhase)
-  const isThinking = isStreaming && streamingPhase === 'thinking'
-  const isUsingTools = isStreaming && streamingPhase === 'tools'
-  const isAnswering = isStreaming && streamingPhase === 'answering'
   const isDone = !isStreaming
+  const hasContent = !!content
+
+  // Show thinking dots only when streaming with no content yet
+  const showThinkingDots = isStreaming && !hasContent &&
+    (streamingPhase === 'waiting' || streamingPhase === 'thinking' || !streamingPhase)
+
+  // Show tools indicator during tools phase
+  const showToolsIndicator = isStreaming && streamingPhase === 'tools'
 
   return (
     <div>
@@ -74,33 +78,30 @@ function AgentBubble({ message }: { message: ResearchMessage }) {
         <span className="text-xs font-medium text-ledger-gray-500">Knowlex</span>
       </div>
       <div className="pl-0.5">
-        {/* Waiting / Thinking phase — show animated indicator */}
-        {(isWaiting || isThinking) && <StreamingIndicator />}
+        {/* Thinking indicator — only when no content has arrived yet */}
+        {showThinkingDots && <StreamingIndicator />}
 
-        {/* Tools phase — show which tool is being used */}
-        {isUsingTools && (
-          <div className="space-y-2">
+        {/* Tools indicator */}
+        {showToolsIndicator && (
+          <div className="space-y-2 mb-2">
             <ToolsIndicator toolCalls={toolCalls} />
             {toolCalls && toolCalls.length > 0 && <ToolCallsCollapsible toolCalls={toolCalls} />}
           </div>
         )}
 
-        {/* Answering phase — stream the content with a cursor */}
-        {isAnswering && content && (
-          <div className="text-sm text-kx-primary-900">
-            <MarkdownRenderer content={content} />
-            <span className="inline-block w-0.5 h-4 bg-kx-primary-400 animate-pulse ml-0.5 align-text-bottom" />
-          </div>
+        {/* Done — show tool calls summary */}
+        {isDone && toolCalls && toolCalls.length > 0 && (
+          <ToolCallsCollapsible toolCalls={toolCalls} />
         )}
 
-        {/* Done — show final content with optional tool calls */}
-        {isDone && (
-          <>
-            {toolCalls && toolCalls.length > 0 && <ToolCallsCollapsible toolCalls={toolCalls} />}
-            <div className="text-sm text-kx-primary-900">
-              <MarkdownRenderer content={content} />
-            </div>
-          </>
+        {/* Content — render formatted markdown whenever content exists */}
+        {hasContent && (
+          <div className="text-sm text-kx-primary-900">
+            <MarkdownRenderer content={content} />
+            {isStreaming && (
+              <span className="inline-block w-0.5 h-4 bg-kx-primary-400 animate-pulse ml-0.5 align-text-bottom" />
+            )}
+          </div>
         )}
       </div>
     </div>
