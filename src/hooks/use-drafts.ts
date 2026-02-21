@@ -40,6 +40,7 @@ interface UseDraftsResult {
   saveDraftToBackend: (id: string, title?: string, content?: string) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
   getDraft: (id: string) => Draft | undefined
+  addDraftLocally: (draft: Draft) => void
   refresh: () => Promise<void>
 }
 
@@ -296,6 +297,14 @@ export function useDrafts(caseId: string): UseDraftsResult {
     [drafts]
   )
 
+  // Insert an externally-created draft (e.g. from the agent) into local state
+  const addDraftLocally = useCallback((draft: Draft) => {
+    setDrafts((prev) => {
+      if (prev.some((d) => d.id === draft.id)) return prev
+      return [draft, ...prev]
+    })
+  }, [])
+
   return {
     drafts,
     isLoading,
@@ -305,6 +314,7 @@ export function useDrafts(caseId: string): UseDraftsResult {
     saveDraftToBackend,
     deleteDraft,
     getDraft,
+    addDraftLocally,
     refresh: fetchDrafts,
   }
 }

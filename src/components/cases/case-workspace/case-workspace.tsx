@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -6,7 +6,7 @@ import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
 import { mapBackendClient } from '@/services/mappers'
 import { useCaseSources } from '@/hooks/use-case-sources'
-import { useWorkspaceChat } from '@/hooks/use-workspace-chat'
+import { useWorkspaceAgent } from '@/hooks/use-workspace-agent'
 import { useDrafts } from '@/hooks/use-drafts'
 import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
@@ -72,13 +72,6 @@ export function CaseWorkspace() {
   } = useCaseSources(caseId)
 
   const {
-    messages,
-    isLoading: chatLoading,
-    sendMessage,
-    clearChat,
-  } = useWorkspaceChat(caseId)
-
-  const {
     drafts,
     createDraft,
     updateDraftLocal,
@@ -94,6 +87,38 @@ export function CaseWorkspace() {
     setActiveTab,
     setTabDirty,
   } = useWorkspaceTabs(drafts)
+
+  // Helpers for agent to read current workspace state
+  const getSourceIds = useCallback(() => sources.map((s) => s.id), [sources])
+  const getActiveDraftContent = useCallback(() => {
+    const activeTab = tabs.find((t) => t.id === activeTabId)
+    if (!activeTab?.draftId) return null
+    const draft = drafts.find((d) => d.id === activeTab.draftId)
+    return draft?.content ?? null
+  }, [tabs, activeTabId, drafts])
+
+  const handleDraftUpdated = useCallback((html: string) => {
+    const activeTab = tabs.find((t) => t.id === activeTabId)
+    if (activeTab?.draftId) {
+      updateDraftLocal(activeTab.draftId, { content: html })
+    }
+  }, [tabs, activeTabId, updateDraftLocal])
+
+  const {
+    messages: agentMessages,
+    isStreaming,
+    error: agentError,
+    mode: agentMode,
+    setMode: setAgentMode,
+    sendMessage: sendAgentMessage,
+    cancelStream,
+    clearChat: clearAgentChat,
+  } = useWorkspaceAgent({
+    caseId,
+    getSourceIds,
+    getActiveDraftContent,
+    onDraftUpdated: handleDraftUpdated,
+  })
 
   // Auto-hide sidebar when workspace opens
   useEffect(() => {
@@ -129,14 +154,14 @@ export function CaseWorkspace() {
     navigate('/cases')
   }
 
-  const handleSendMessage = async (query: string) => {
+  const handleSendAgentMessage = useCallback((query: string) => {
     setLeftPanelOpen(false)
-    await sendMessage(query, Array.from(selectedSourceIds))
-  }
+    sendAgentMessage(query)
+  }, [sendAgentMessage])
 
   const handleSendToChat = (text: string) => {
     setRightPanelOpen(true)
-    handleSendMessage(text)
+    handleSendAgentMessage(text)
   }
 
   const handleDraftClick = (draft: Draft) => {
@@ -300,11 +325,16 @@ export function CaseWorkspace() {
         {rightPanelOpen && (
           <div className="w-96 flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden">
             <ChatPanel
-              messages={messages}
-              isLoading={chatLoading}
+              messages={agentMessages}
+              isStreaming={isStreaming}
+              error={agentError}
+              mode={agentMode}
               selectedSourceCount={selectedSourceIds.size}
-              onSendMessage={handleSendMessage}
-              onClearChat={clearChat}
+              hasActiveDraft={!!getActiveDraftContent()}
+              onSetMode={setAgentMode}
+              onSendMessage={handleSendAgentMessage}
+              onCancelStream={cancelStream}
+              onClearChat={clearAgentChat}
             />
           </div>
         )}
