@@ -173,7 +173,13 @@ export const researchApi = {
             } else if (line.startsWith('data:')) {
               // Keep leading space — backend sends LLM tokens where the space is
               // part of the data (e.g. " The" becomes "data: The")
-              currentData = line.substring(5)
+              const value = line.substring(5)
+              // SSE spec: multiple data lines in one event are joined with newlines
+              if (currentData === null) {
+                currentData = value
+              } else {
+                currentData += '\n' + value
+              }
             }
           }
         }

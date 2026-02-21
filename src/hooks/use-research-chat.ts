@@ -255,10 +255,14 @@ export function useResearchChat() {
       }
     }
 
+    // SSE data lines cannot contain real newlines, so the backend must
+    // escape them as literal "\n". We unescape here to restore formatting.
+    const unescapeToken = (t: string) => t.replace(/\\n/g, '\n').replace(/\\t/g, '\t')
+
     const controller = researchApi.sendMessage(sessionId, trimmed, {
       onThinking: (token) => {
         phaseRef.current = 'thinking'
-        thinkingContentRef.current += token
+        thinkingContentRef.current += unescapeToken(token)
         scheduleFlush()
       },
       onToolCall: (data) => {
@@ -279,7 +283,7 @@ export function useResearchChat() {
       },
       onAnswer: (token) => {
         phaseRef.current = 'answering'
-        answerContentRef.current += token
+        answerContentRef.current += unescapeToken(token)
         scheduleFlush()
       },
       onEnd: () => {
