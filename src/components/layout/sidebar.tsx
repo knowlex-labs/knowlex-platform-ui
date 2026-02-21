@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ const iconMap = {
   home: Home,
   briefcase: Briefcase,
   users: Users,
+  scale: Scale,
   brain: Brain,
 }
 
@@ -86,6 +87,31 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
           <TabsList>
             {SIDEBAR_TABS.map((tab) => {
               const Icon = iconMap[tab.icon as keyof typeof iconMap]
+
+              if (tab.locked) {
+                return (
+                  <div
+                    key={tab.id}
+                    className={cn(
+                      'flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-sans font-medium',
+                      'text-ledger-gray-400 cursor-not-allowed opacity-60 select-none',
+                      'min-h-[48px]'
+                    )}
+                    title={collapsed ? `${tab.label} — Coming Soon` : undefined}
+                  >
+                    {Icon && <Icon className="h-4 w-4" />}
+                    {!collapsed && (
+                      <>
+                        <span>{tab.label}</span>
+                        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider bg-ledger-gray-200 dark:bg-ledger-gray-300 text-ledger-gray-500 dark:text-ledger-gray-600 px-1.5 py-0.5 rounded-full leading-none">
+                          Soon
+                        </span>
+                      </>
+                    )}
+                  </div>
+                )
+              }
+
               return (
                 <TabsTrigger
                   key={tab.id}
