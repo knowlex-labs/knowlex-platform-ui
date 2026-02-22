@@ -15,7 +15,6 @@ export function Judgments() {
         isLoading,
         error,
         sort,
-        setSort,
         toggleSort,
         refresh,
     } = useJudgments()
@@ -30,9 +29,7 @@ export function Judgments() {
                             Judgments
                         </h2>
                         <p className="text-sm text-ledger-gray-500 mt-1">
-                            {pagination.totalElements > 0
-                                ? `${pagination.totalElements.toLocaleString()} judgments indexed`
-                                : 'Browse Supreme Court judgments'}
+                            Browse Supreme Court judgments
                         </p>
                     </div>
                     <Button

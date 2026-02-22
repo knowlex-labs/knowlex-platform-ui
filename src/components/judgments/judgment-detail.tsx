@@ -1,9 +1,211 @@
-import { ArrowLeft, Calendar, Users, Building2, Gavel, FileText } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { ArrowLeft, Calendar, Users, Building2, Gavel, FileText, FolderPlus, Check, Loader2 } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useJudgmentDetail } from '@/hooks/use-judgment-detail'
+import { caseApi } from '@/services/api/case-api'
 import { cn } from '@/lib/utils'
+import type { BackendCase } from '@/types'
+
+// --- AddToWorkspace ---
+
+function AddToWorkspace({ judgmentId }: { judgmentId: string }) {
+    const [open, setOpen] = useState(false)
+    const [cases, setCases] = useState<BackendCase[]>([])
+    const [isLoadingCases, setIsLoadingCases] = useState(false)
+    const [selectedCase, setSelectedCase] = useState<BackendCase | null>(null)
+    const [confirmOpen, setConfirmOpen] = useState(false)
+    const [isAdding, setIsAdding] = useState(false)
+    const [result, setResult] = useState<{ success: boolean; message: string } | null>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    const fetchCases = useCallback(async () => {
+        setIsLoadingCases(true)
+        try {
+            const response = await caseApi.getAll({ size: 100 })
+            setCases(response.data.content)
+        } catch {
+            setCases([])
+        } finally {
+            setIsLoadingCases(false)
+        }
+    }, [])
+
+    // Reset state and fetch cases when dropdown opens
+    useEffect(() => {
+        if (open) {
+            setSelectedCase(null)
+            setConfirmOpen(false)
+            setResult(null)
+            fetchCases()
+        }
+    }, [open, fetchCases])
+
+    // Close on outside click
+    useEffect(() => {
+        if (!open) return
+        const handleClick = (e: MouseEvent) => {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+                setOpen(false)
+                setSelectedCase(null)
+            }
+        }
+        document.addEventListener('mousedown', handleClick)
+        return () => document.removeEventListener('mousedown', handleClick)
+    }, [open])
+
+    // Close on Escape
+    useEffect(() => {
+        if (!open) return
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                if (confirmOpen) {
+                    setConfirmOpen(false)
+                } else {
+                    setOpen(false)
+                    setSelectedCase(null)
+                }
+            }
+        }
+        document.addEventListener('keydown', handleKey)
+        return () => document.removeEventListener('keydown', handleKey)
+    }, [open, confirmOpen])
+
+    const handleSelectCase = (c: BackendCase) => {
+        setSelectedCase(c)
+        setConfirmOpen(true)
+    }
+
+    const handleConfirm = async () => {
+        if (!selectedCase) return
+        setIsAdding(true)
+        try {
+            await caseApi.addJudgment(selectedCase.id, judgmentId)
+            setResult({ success: true, message: `Added to "${selectedCase.caseTitle || selectedCase.caseNumber}"` })
+            setConfirmOpen(false)
+            setSelectedCase(null)
+            // Auto-close after success
+            setTimeout(() => setOpen(false), 1500)
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to add judgment'
+            setResult({ success: false, message })
+            setConfirmOpen(false)
+        } finally {
+            setIsAdding(false)
+        }
+    }
+
+    const handleCancel = () => {
+        setConfirmOpen(false)
+        setSelectedCase(null)
+    }
+
+    const caseLabel = (c: BackendCase) =>
+        c.caseTitle || c.caseNumber || c.id.slice(0, 8)
+
+    return (
+        <div ref={containerRef} className="relative">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setOpen(!open)}
+                className="gap-2"
+            >
+                <FolderPlus className="h-3.5 w-3.5" />
+                Add to Workspace
+            </Button>
+
+            {open && (
+                <div className="absolute right-0 z-50 mt-2 w-[320px] rounded-lg border border-ledger-gray-200 bg-ledger-white shadow-lg animate-in fade-in-0 zoom-in-95 duration-100">
+                    {/* Result message */}
+                    {result && (
+                        <div className={cn(
+                            'px-4 py-3 text-sm flex items-center gap-2',
+                            result.success
+                                ? 'bg-green-50 text-green-700 border-b border-green-100'
+                                : 'bg-red-50 text-red-700 border-b border-red-100'
+                        )}>
+                            {result.success && <Check className="h-4 w-4" />}
+                            {result.message}
+                        </div>
+                    )}
+
+                    {/* Confirmation dialog */}
+                    {confirmOpen && selectedCase ? (
+                        <div className="p-4 space-y-3">
+                            <p className="text-sm text-kx-text-primary">
+                                Add this judgment to <span className="font-semibold">{caseLabel(selectedCase)}</span>?
+                            </p>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onClick={handleConfirm}
+                                    disabled={isAdding}
+                                    className="flex-1 gap-1.5"
+                                >
+                                    {isAdding && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                                    Confirm
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleCancel}
+                                    disabled={isAdding}
+                                    className="flex-1"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Header */}
+                            <div className="px-4 py-3 border-b border-ledger-gray-100">
+                                <p className="text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">Select a workspace</p>
+                            </div>
+
+                            {/* Case list */}
+                            <div className="max-h-60 overflow-y-auto py-1">
+                                {isLoadingCases ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <Loader2 className="h-5 w-5 animate-spin text-ledger-gray-400" />
+                                    </div>
+                                ) : cases.length === 0 ? (
+                                    <div className="px-4 py-6 text-center text-sm text-ledger-gray-400">
+                                        No workspaces found
+                                    </div>
+                                ) : (
+                                    cases.map((c) => (
+                                        <button
+                                            key={c.id}
+                                            type="button"
+                                            onClick={() => handleSelectCase(c)}
+                                            className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-ledger-gray-50"
+                                        >
+                                            <FolderPlus className="h-4 w-4 text-ledger-gray-400 flex-shrink-0 mt-0.5" />
+                                            <div className="min-w-0">
+                                                <p className="text-sm font-medium text-kx-text-primary truncate">
+                                                    {caseLabel(c)}
+                                                </p>
+                                                {c.courtName && (
+                                                    <p className="text-xs text-ledger-gray-500 truncate">{c.courtName}</p>
+                                                )}
+                                            </div>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
+// --- JudgmentDetail ---
 
 export function JudgmentDetail() {
     const { judgmentId } = useParams<{ judgmentId: string }>()
@@ -81,6 +283,7 @@ export function JudgmentDetail() {
                         Back to Judgments
                     </Button>
 
+                    <AddToWorkspace judgmentId={judgmentId!} />
                 </div>
             </div>
 

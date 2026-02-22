@@ -1,58 +1,74 @@
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Check } from 'lucide-react'
+import { Check, Sparkles } from 'lucide-react'
 import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
 const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
 
-const plans = [
+type BillingPeriod = 'monthly' | 'annual'
+
+interface Plan {
+  name: string
+  monthly?: { price: string; period: string }
+  annual?: { price: string; period: string; savings: string }
+  isCustom?: boolean
+  description: string
+  features: string[]
+  cta: string
+  highlighted: boolean
+}
+
+const plans: Plan[] = [
   {
-    name: 'Basic',
-    price: 'Free',
-    description: 'Perfect for solo practitioners getting started.',
+    name: 'Starter',
+    monthly: { price: '999', period: '/month' },
+    annual: { price: '9,999', period: '/year', savings: 'Save ₹1,998 — 2 months free' },
+    description: 'For solo practitioners getting started.',
     features: [
       'Up to 10 clients',
-      'Basic case management',
+      'Up to 20 cases',
+      '1 GB document storage',
+      '8 drafts/month',
+      '₹50 per additional draft',
       'Email support',
-      'Mobile access',
     ],
-    cta: 'Book a Demo',
+    cta: 'Start 7-Day Free Trial',
     highlighted: false,
   },
   {
     name: 'Pro',
-    price: '1,499',
-    period: '/mo',
+    monthly: { price: '2,999', period: '/month' },
+    annual: { price: '29,999', period: '/year', savings: 'Save ₹5,989 — 2 months free' },
     description: 'For growing practices that need more power.',
     features: [
       'Unlimited clients',
-      'Advanced case timelines',
-      'AI-assisted drafting',
-      'Billing & invoicing',
+      'Unlimited cases',
+      '5 GB document storage',
+      '25 drafts/month',
+      '₹50 per additional draft',
       'Priority support',
-      'Team collaboration',
     ],
-    cta: 'Book a Demo',
+    cta: 'Start 7-Day Free Trial',
     highlighted: true,
   },
   {
     name: 'Enterprise',
-    price: 'Custom',
+    isCustom: true,
     description: 'For law firms with specific requirements.',
     features: [
-      'Everything in Pro',
-      'Dedicated account manager',
-      'Custom integrations',
-      'On-premise deployment',
-      'SLA guarantees',
-      'Training & onboarding',
+      'Custom annual contracts',
+      'Volume draft bundles',
+      'Negotiated per-draft pricing',
+      'Dedicated support',
     ],
-    cta: 'Contact Us',
+    cta: 'Talk to Sales',
     highlighted: false,
   },
 ]
 
 export function PricingSection() {
   const { ref, isVisible } = useScrollReveal()
+  const [billing, setBilling] = useState<BillingPeriod>('monthly')
 
   const handleContactUs = () => {
     window.location.href = 'mailto:nakul.jain@getknowlex.com?subject=Enterprise Plan Inquiry'
@@ -65,9 +81,40 @@ export function PricingSection() {
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-kx-text-primary mb-3 sm:mb-4">
             Pricing
           </h2>
-          <p className="text-base sm:text-lg text-kx-text-secondary max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg text-kx-text-secondary max-w-2xl mx-auto mb-6 sm:mb-8">
             Choose the plan that fits your practice.
           </p>
+
+          {/* Billing Toggle */}
+          <div className="inline-flex items-center rounded-full border border-gray-200 p-1 bg-gray-50">
+            <button
+              onClick={() => setBilling('monthly')}
+              className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium transition-colors ${
+                billing === 'monthly'
+                  ? 'bg-[#7a2e2e] text-white shadow-sm'
+                  : 'text-kx-text-secondary hover:text-kx-text-primary'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBilling('annual')}
+              className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                billing === 'annual'
+                  ? 'bg-[#7a2e2e] text-white shadow-sm'
+                  : 'text-kx-text-secondary hover:text-kx-text-primary'
+              }`}
+            >
+              Annual
+              <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                billing === 'annual'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-emerald-100 text-emerald-700'
+              }`}>
+                2 months free
+              </span>
+            </button>
+          </div>
         </div>
 
         <div
@@ -77,12 +124,25 @@ export function PricingSection() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`scroll-reveal bg-white rounded-2xl p-5 sm:p-6 md:p-8 border flex flex-col ${isVisible ? 'is-visible' : ''} ${
+              className={`scroll-reveal bg-white rounded-2xl p-5 sm:p-6 md:p-8 border flex flex-col relative ${isVisible ? 'is-visible' : ''} ${
                 plan.highlighted
                   ? 'border-[#7a2e2e] ring-2 ring-[#7a2e2e]'
                   : 'border-gray-200'
               }`}
             >
+              {plan.highlighted && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#7a2e2e] text-white text-xs font-medium px-3 py-1 rounded-full">
+                  Most Popular
+                </span>
+              )}
+
+              {billing === 'annual' && plan.annual?.savings && (
+                <div className="flex items-center gap-1.5 mb-3 bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full w-fit">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  {plan.annual.savings}
+                </div>
+              )}
+
               <h3 className="text-2xl sm:text-3xl font-serif font-semibold text-kx-text-primary mb-2">
                 {plan.name}
               </h3>
@@ -92,21 +152,21 @@ export function PricingSection() {
               </p>
 
               <div className="mb-4 sm:mb-6">
-                {plan.price === 'Custom' ? (
+                {plan.isCustom ? (
                   <span className="text-2xl sm:text-3xl font-serif font-semibold text-kx-text-primary">
                     Custom
                   </span>
-                ) : plan.price === 'Free' ? (
-                  <span className="text-2xl sm:text-3xl font-serif font-semibold text-kx-text-primary">
-                    Free
-                  </span>
                 ) : (
-                  <>
-                    <span className="text-2xl sm:text-3xl font-sans font-semibold text-kx-text-primary">₹{plan.price}</span>
-                    {plan.period && (
-                      <span className="text-sm sm:text-base text-kx-text-secondary">{plan.period}</span>
-                    )}
-                  </>
+                  <div>
+                    <div>
+                      <span className="text-2xl sm:text-3xl font-sans font-semibold text-kx-text-primary">
+                        ₹{billing === 'monthly' ? plan.monthly!.price : plan.annual!.price}
+                      </span>
+                      <span className="text-sm sm:text-base text-kx-text-secondary">
+                        {billing === 'monthly' ? plan.monthly!.period : plan.annual!.period} + GST
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
 

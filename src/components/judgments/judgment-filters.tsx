@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, SlidersHorizontal, RotateCcw } from 'lucide-react'
+import { Search, X, SlidersHorizontal } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,6 @@ const YEARS = Array.from({ length: CURRENT_YEAR - 1949 }, (_, i) => CURRENT_YEAR
 // --- AdvancedFiltersDropdown ---
 
 interface AdvancedFields {
-    court?: string
     disposalNature?: string[]
     dateFrom?: string
     dateTo?: string
@@ -20,7 +19,6 @@ interface AdvancedFields {
 
 function pickAdvanced(filters: JudgmentFilters): AdvancedFields {
     return {
-        court: filters.court,
         disposalNature: filters.disposalNature,
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
@@ -29,7 +27,6 @@ function pickAdvanced(filters: JudgmentFilters): AdvancedFields {
 
 function countAdvanced(fields: AdvancedFields): number {
     return [
-        fields.court,
         fields.disposalNature?.length ? fields.disposalNature : undefined,
         fields.dateFrom,
         fields.dateTo,
@@ -39,13 +36,11 @@ function countAdvanced(fields: AdvancedFields): number {
 function AdvancedFiltersDropdown({
     filters,
     onFiltersChange,
-    courts,
     disposalNatures,
     badgeCount,
 }: {
     filters: JudgmentFilters
     onFiltersChange: (filters: JudgmentFilters) => void
-    courts: string[]
     disposalNatures: string[]
     badgeCount: number
 }) {
@@ -85,7 +80,6 @@ function AdvancedFiltersDropdown({
     const handleApply = () => {
         onFiltersChange({
             ...filters,
-            court: draft.court,
             disposalNature: draft.disposalNature,
             dateFrom: draft.dateFrom,
             dateTo: draft.dateTo,
@@ -95,7 +89,6 @@ function AdvancedFiltersDropdown({
 
     const handleClear = () => {
         const cleared: AdvancedFields = {
-            court: undefined,
             disposalNature: undefined,
             dateFrom: undefined,
             dateTo: undefined,
@@ -128,23 +121,6 @@ function AdvancedFiltersDropdown({
             {open && (
                 <div className="absolute right-0 z-50 mt-1 w-[320px] rounded-lg border border-ledger-gray-200 bg-ledger-white shadow-lg animate-in fade-in-0 zoom-in-95 duration-100">
                     <div className="p-4 space-y-3">
-                        {/* Court */}
-                        <div className="space-y-1.5">
-                            <label className="text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">Court</label>
-                            <Select
-                                value={draft.court ?? ''}
-                                onChange={(e) => setDraft({ ...draft, court: e.target.value || undefined })}
-                                searchable
-                                searchPlaceholder="Search court..."
-                                className="w-full"
-                            >
-                                <option value="">All Courts</option>
-                                {courts.map((court) => (
-                                    <option key={court} value={court}>{court}</option>
-                                ))}
-                            </Select>
-                        </div>
-
                         {/* Verdict */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">Verdict</label>
@@ -246,6 +222,7 @@ export function JudgmentFiltersBar({ filters, onFiltersChange }: JudgmentFilters
     const [courts, setCourts] = useState<string[]>([])
     const [judges, setJudges] = useState<string[]>([])
 
+    // Fetch courts & verdicts once
     useEffect(() => {
         judgmentsApi.getDisposalNatures()
             .then(setDisposalNatures)
@@ -253,31 +230,63 @@ export function JudgmentFiltersBar({ filters, onFiltersChange }: JudgmentFilters
         judgmentsApi.getCourts()
             .then(setCourts)
             .catch(() => {/* non-fatal */})
-        judgmentsApi.getJudges()
-            .then(setJudges)
-            .catch(() => {/* non-fatal */})
     }, [])
+
+    // Re-fetch judges when court filter changes (cascading)
+    useEffect(() => {
+        judgmentsApi.getJudges(filters.court)
+            .then((list) => {
+                // Filter out null/empty values from backend
+                const filtered = list.filter((j): j is string => !!j && j.trim() !== '')
+                setJudges(filtered)
+                // Clear selected judge if no longer in the filtered list
+                if (filters.judge && !filtered.includes(filters.judge)) {
+                    onFiltersChange({ ...filters, judge: undefined })
+                }
+            })
+            .catch(() => {/* non-fatal */})
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filters.court])
 
     const advancedBadgeCount = countAdvanced(pickAdvanced(filters))
 
-    const handleReset = () => {
-        onFiltersChange({})
-    }
-
     return (
         <div className="flex items-center gap-2 p-3 bg-ledger-gray-50 rounded-lg border border-ledger-gray-200">
-            {/* Search */}
+            {/* Search with clear X */}
             <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400" />
                 <Input
                     placeholder="Search by title, petitioner, respondent..."
                     value={filters.search || ''}
                     onChange={(e) => onFiltersChange({ ...filters, search: e.target.value || undefined })}
-                    className="h-9 pl-9 text-sm"
+                    className="h-9 pl-9 pr-8 text-sm"
                 />
+                {filters.search && (
+                    <button
+                        type="button"
+                        onClick={() => onFiltersChange({ ...filters, search: undefined })}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ledger-gray-400 hover:text-ledger-gray-600 transition-colors"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                )}
             </div>
 
-            {/* Judge (top-level) */}
+            {/* Court */}
+            <Select
+                value={filters.court ?? ''}
+                onChange={(e) => onFiltersChange({ ...filters, court: e.target.value || undefined })}
+                searchable
+                searchPlaceholder="Search court..."
+                className="w-[170px]"
+            >
+                <option value="">All Courts</option>
+                {courts.map((court) => (
+                    <option key={court} value={court}>{court}</option>
+                ))}
+            </Select>
+
+            {/* Judge (cascades from court) */}
             <Select
                 value={filters.judge ?? ''}
                 onChange={(e) => onFiltersChange({ ...filters, judge: e.target.value || undefined })}
@@ -312,21 +321,9 @@ export function JudgmentFiltersBar({ filters, onFiltersChange }: JudgmentFilters
             <AdvancedFiltersDropdown
                 filters={filters}
                 onFiltersChange={onFiltersChange}
-                courts={courts}
                 disposalNatures={disposalNatures}
                 badgeCount={advancedBadgeCount}
             />
-
-            {/* Reset */}
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="gap-1 text-ledger-gray-600 hover:text-kx-primary-700"
-            >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reset
-            </Button>
         </div>
     )
 }

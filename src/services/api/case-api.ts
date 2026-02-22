@@ -53,4 +53,8 @@ export const caseApi = {
   getClients: (caseId: string): Promise<ApiResponse<BackendClient[]>> => {
     return apiClient.get<ApiResponse<BackendClient[]>>(`${CASES_ENDPOINT}/${caseId}/clients`)
   },
+
+  addJudgment: (caseId: string, judgmentId: string): Promise<ApiResponse<unknown>> => {
+    return apiClient.post<ApiResponse<unknown>>(`${CASES_ENDPOINT}/${caseId}/judgments`, { judgmentId })
+  },
 }

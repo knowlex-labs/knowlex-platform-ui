@@ -52,9 +52,10 @@ export const judgmentsApi = {
         return response.data
     },
 
-    getJudges: async (): Promise<string[]> => {
+    getJudges: async (court?: string): Promise<string[]> => {
+        const params = court ? `?court=${encodeURIComponent(court)}` : ''
         const response = await apiClient.get<ApiResponse<string[]>>(
-            `/api/v1/judgments/judges`
+            `/api/v1/judgments/judges${params}`
         )
         return response.data
     },
