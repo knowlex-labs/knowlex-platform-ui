@@ -34,8 +34,7 @@ export function useJudgmentDetail(judgmentId: string | null): UseJudgmentDetailR
                     const url = await judgmentsApi.getPdfUrl(id)
                     setPdfUrl(url)
                 } catch {
-                    // PDF fetch is non-fatal
-                    console.warn('Failed to fetch PDF URL for judgment:', id)
+                    // PDF fetch is non-fatal — UI shows fallback
                 } finally {
                     setIsPdfLoading(false)
                 }

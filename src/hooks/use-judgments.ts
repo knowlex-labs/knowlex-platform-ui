@@ -75,7 +75,6 @@ export function useJudgments(): UseJudgmentsResult {
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to fetch judgments'
             setError(message)
-            console.error('Failed to fetch judgments:', err)
         } finally {
             setIsLoading(false)
         }
