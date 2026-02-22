@@ -5,13 +5,15 @@ export interface SidebarTabConfig {
   label: string
   icon: string
   path: string
+  locked?: boolean
 }
 
 export const SIDEBAR_TABS: SidebarTabConfig[] = [
   { id: 'dashboard', label: 'Home', icon: 'home', path: '/home' },
   { id: 'cases', label: 'Cases', icon: 'briefcase', path: '/cases' },
   { id: 'clients', label: 'Clients', icon: 'users', path: '/clients' },
-  { id: 'ai-research', label: 'AI Research', icon: 'brain', path: '/ai-research' },
+  { id: 'judgments', label: 'Judgments', icon: 'scale', path: '/judgments' },
+  { id: 'ai-research', label: 'AI Research', icon: 'brain', path: '/ai-research', locked: true },
 ]
 
 export const STATUS_COLORS = {

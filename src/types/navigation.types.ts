@@ -2,6 +2,7 @@ export type DashboardTab =
   | 'dashboard'
   | 'cases'
   | 'clients'
+  | 'judgments'
   | 'ai-research'
   | 'account-settings'
 

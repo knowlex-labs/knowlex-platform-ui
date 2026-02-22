@@ -8,4 +8,5 @@ export type { GetClientsParams } from './client-api'
 export { userApi } from './user-api'
 export type { BackendUser } from './user-api'
 export { workspaceApi } from './workspace-api'
-/* PresignedUrlResponse, CreateSourceRequest, ChatQueryRequest, ChatQueryResponse, ToolExecutionRequest, ToolExecutionResponse removed as they are not exported from workspace-api */
+export { judgmentsApi } from './judgments-api'
+export type { JudgmentListParams } from './judgments-api'
