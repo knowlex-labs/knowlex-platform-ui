@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
-import { Loader2, Sparkles, Check, FileWarning, Lightbulb, FileText, FileClock, Scale, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react'
+import { Loader2, Sparkles, Check, FileWarning, Lightbulb, FileText, FileClock, Scale, Gavel, ShieldAlert, ArrowLeft, ArrowRight, ChevronDown } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileText,
   FileClock,
   Scale,
+  Gavel,
+  ShieldAlert,
 }
 
 export function TemplateFormModal({
@@ -84,6 +86,8 @@ export function TemplateFormModal({
         } else if (field.type === 'client-select' && client) {
           initial[field.id] = formatClientDetails(client)
           clientDefaults[field.id] = true
+        } else if (field.type === 'select' && field.options?.length) {
+          initial[field.id] = field.options[0].value
         } else {
           initial[field.id] = ''
         }
@@ -383,6 +387,31 @@ export function TemplateFormModal({
                             className="min-h-[100px] resize-none"
                           />
                         )}
+                      </div>
+                    )
+                  }
+
+                  if (field.type === 'select') {
+                    return (
+                      <div key={field.id} className="space-y-2">
+                        <Label htmlFor={field.id}>
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        <select
+                          id={field.id}
+                          value={(formData[field.id] as string) || ''}
+                          onChange={(e) => handleFieldChange(field.id, e.target.value)}
+                          className={cn(
+                            'flex h-10 w-full rounded border border-ledger-gray-300 dark:border-ledger-gray-600 bg-ledger-white dark:bg-ledger-gray-800 px-3 py-2',
+                            'text-sm font-sans text-kx-primary-900 dark:text-ledger-gray-200',
+                            'focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-1',
+                          )}
+                        >
+                          {field.options?.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
                       </div>
                     )
                   }

@@ -1,14 +1,19 @@
-// Hook for fetching aggregated dashboard data
-
 import { useState, useEffect, useCallback } from 'react'
 import { caseApi, clientApi, ApiError } from '@/services/api'
 import { mapBackendCases, mapBackendClient } from '@/services/mappers'
-import type { Case, Client, ChatSession } from '@/types'
+import type { Case, Client } from '@/types'
+
+interface DashboardStats {
+  totalCases: number
+  activeCases: number
+  totalClients: number
+  upcomingHearings: number
+}
 
 interface UseDashboardDataResult {
   cases: Case[]
   clients: Client[]
-  chatSessions: ChatSession[]
+  stats: DashboardStats
   isLoading: boolean
   error: string | null
   refresh: () => void
@@ -17,7 +22,12 @@ interface UseDashboardDataResult {
 export function useDashboardData(): UseDashboardDataResult {
   const [cases, setCases] = useState<Case[]>([])
   const [clients, setClients] = useState<Client[]>([])
-  const [chatSessions] = useState<ChatSession[]>([]) // Will be populated from local storage or API later
+  const [stats, setStats] = useState<DashboardStats>({
+    totalCases: 0,
+    activeCases: 0,
+    totalClients: 0,
+    upcomingHearings: 0,
+  })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -26,33 +36,39 @@ export function useDashboardData(): UseDashboardDataResult {
     setError(null)
 
     try {
-      // Fetch recent cases and clients in parallel
+      // Fetch cases (larger page to compute hearings) and clients in parallel
       const [casesResponse, clientsResponse] = await Promise.all([
-        caseApi.getAll({ page: 0, size: 10 }),
+        caseApi.getAll({ page: 0, size: 50 }),
         clientApi.getAll({ page: 0, size: 10 }),
       ])
 
+      let mappedCases: Case[] = []
+      let totalCases = 0
+
       if (casesResponse.status === 'success') {
-        const mappedCases = mapBackendCases(casesResponse.data.content)
+        mappedCases = mapBackendCases(casesResponse.data.content)
+        totalCases = casesResponse.data.totalElements
         setCases(mappedCases)
       }
 
+      let totalClients = 0
       if (clientsResponse.status === 'success') {
         const mappedClients = clientsResponse.data.content.map(mapBackendClient)
+        totalClients = clientsResponse.data.totalElements
         setClients(mappedClients)
       }
 
-      // Load chat sessions from localStorage (since there's no backend yet)
-      try {
-        const storedSessions = localStorage.getItem('ai_research_sessions')
-        if (storedSessions) {
-          // Sessions will be loaded by the AI Research component
-          // This is just a placeholder for future integration
-          JSON.parse(storedSessions)
-        }
-      } catch {
-        // Ignore localStorage errors
-      }
+      // Compute stats from real data
+      const now = new Date()
+      const activeCases = mappedCases.filter(
+        (c) => c.status === 'active' || c.status === 'pending' || c.status === 'on-hold'
+      ).length
+
+      const upcomingHearings = mappedCases.filter(
+        (c) => c.nextHearingDate && new Date(c.nextHearingDate) >= now
+      ).length
+
+      setStats({ totalCases, activeCases, totalClients, upcomingHearings })
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -73,7 +89,7 @@ export function useDashboardData(): UseDashboardDataResult {
   return {
     cases,
     clients,
-    chatSessions,
+    stats,
     isLoading,
     error,
     refresh: fetchData,
