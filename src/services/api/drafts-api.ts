@@ -9,8 +9,12 @@ export type DocumentType =
   | 'petition'
   | 'affidavit'
   | 'application'
+  | 'bail_application'
+  | 'criminal_appeal'
 
 export type InputMode = 'structured' | 'freetext' | 'file'
+
+export type Language = 'english' | 'hindi' | 'bilingual'
 
 export interface CreateDraftRequest {
   title: string
@@ -19,6 +23,8 @@ export interface CreateDraftRequest {
   subtype?: string
   freetext_body?: string
   file_ids?: string[]
+  language?: Language
+  config?: Record<string, string>
 }
 
 // Both create and single GET return the same flat CaseDraftResponse shape as list items

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Bold,
   Italic,
@@ -10,6 +10,8 @@ import {
   ListOrdered,
   Save,
   Download,
+  Printer,
+  FileText,
   ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -25,7 +27,9 @@ interface FormattingToolbarProps {
   onNumberedList: () => void
   onFontSize: (size: string) => void
   onSave?: () => void
-  onDownload?: (format: 'pdf' | 'doc') => void
+  onPrint?: () => void
+  onDownloadDoc?: () => void
+  onDownloadPdf?: () => void
   isSaving?: boolean
   hasChanges?: boolean
   className?: string
@@ -44,12 +48,29 @@ export function FormattingToolbar({
   onNumberedList,
   onFontSize,
   onSave,
-  onDownload,
+  onPrint,
+  onDownloadDoc,
+  onDownloadPdf,
   isSaving,
   hasChanges,
   className,
 }: FormattingToolbarProps) {
-  const [showDownloadMenu, setShowDownloadMenu] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const exportRef = useRef<HTMLDivElement>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!exportOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [exportOpen])
+
+  const hasExportOptions = onPrint || onDownloadDoc || onDownloadPdf
 
   return (
     <div
@@ -136,31 +157,55 @@ export function FormattingToolbar({
         <ListOrdered className="h-4 w-4" />
       </button>
 
-      {/* Spacer pushes Save to the right */}
+      {/* Spacer pushes right-side buttons to the right */}
       <div className="flex-1" />
 
-      {onDownload && (
-        <div className="relative" onMouseLeave={() => setShowDownloadMenu(false)}>
+      {/* Export dropdown (Print / Download as PDF / Download as Word) */}
+      {hasExportOptions && (
+        <div className="relative" ref={exportRef}>
           <button
-            onClick={() => setShowDownloadMenu((v) => !v)}
-            className="flex items-center gap-1 px-3 py-1.5 rounded text-sm font-medium text-ledger-gray-500 dark:text-ledger-gray-400 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors"
-            title="Download"
+            onClick={() => setExportOpen((prev) => !prev)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+              'text-ledger-gray-600 dark:text-ledger-gray-300 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700',
+              exportOpen && 'bg-ledger-gray-100 dark:bg-ledger-gray-700'
+            )}
+            title="Export options"
           >
             <Download className="h-4 w-4" />
-            Download
-            <ChevronDown className="h-3 w-3" />
+            Export
+            <ChevronDown className={cn('h-3 w-3 transition-transform', exportOpen && 'rotate-180')} />
           </button>
-          {showDownloadMenu && (
-            <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-ledger-gray-800 border border-ledger-gray-200 dark:border-ledger-gray-600 rounded-lg shadow-md z-10">
-              {(['pdf', 'doc'] as const).map((fmt) => (
+
+          {exportOpen && (
+            <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-ledger-gray-800 rounded-lg shadow-lg border border-ledger-gray-200 dark:border-ledger-gray-600 py-1 z-50">
+              {onPrint && (
                 <button
-                  key={fmt}
-                  className="flex w-full px-3 py-2 text-sm text-ledger-gray-700 dark:text-ledger-gray-300 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 first:rounded-t-lg last:rounded-b-lg transition-colors"
-                  onClick={() => { onDownload(fmt); setShowDownloadMenu(false) }}
+                  onClick={() => { onPrint(); setExportOpen(false) }}
+                  className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
                 >
-                  {fmt.toUpperCase()}
+                  <Printer className="h-4 w-4 text-ledger-gray-400 dark:text-ledger-gray-500" />
+                  Print
                 </button>
-              ))}
+              )}
+              {onDownloadPdf && (
+                <button
+                  onClick={() => { onDownloadPdf(); setExportOpen(false) }}
+                  className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+                >
+                  <FileText className="h-4 w-4 text-red-400" />
+                  Download PDF
+                </button>
+              )}
+              {onDownloadDoc && (
+                <button
+                  onClick={() => { onDownloadDoc(); setExportOpen(false) }}
+                  className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+                >
+                  <FileText className="h-4 w-4 text-blue-500" />
+                  Download Word
+                </button>
+              )}
             </div>
           )}
         </div>

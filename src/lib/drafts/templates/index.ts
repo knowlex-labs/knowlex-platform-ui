@@ -31,6 +31,10 @@ export type DraftTemplateType =
     | 'application-draft'
     | 'legal_notice'
     | 'application'
+    | 'bail_application'
+    | 'bail-application'
+    | 'criminal_appeal'
+    | 'criminal-appeal'
 
 export const templateRenderers: Record<string, (content: string) => string> = {
     // Interim Application variations
@@ -61,6 +65,14 @@ export const templateRenderers: Record<string, (content: string) => string> = {
     'petition': renderApplicationDraft,
     'contract': renderApplicationDraft,
     'agreement': renderApplicationDraft,
+
+    // Criminal - Bail Application
+    'bail_application': renderApplicationDraft,
+    'bail-application': renderApplicationDraft,
+
+    // Criminal - Criminal Appeal
+    'criminal_appeal': renderApplicationDraft,
+    'criminal-appeal': renderApplicationDraft,
 }
 
 /**

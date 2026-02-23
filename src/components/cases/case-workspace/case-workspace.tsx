@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -14,7 +14,7 @@ import { CenterPanel } from './center-panel'
 import { ChatPanel } from './chat-panel'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { TemplateFormModal } from './template-form-modal'
-import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
+import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/drafts-api'
 import type { Draft, DraftTemplate, TemplateFormData, Client } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
 
@@ -25,6 +25,8 @@ const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subty
   'application-draft': { documentType: 'application', subtype: 'vakalatnama' },
   'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
   'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
+  'bail-application': { documentType: 'bail_application' },
+  'criminal-appeal': { documentType: 'criminal_appeal' },
 }
 
 // Assembles template form fields into plain-language instructions for the AI
@@ -41,6 +43,10 @@ function assembleBody(templateId: string, formData: TemplateFormData): string {
       return `Draft an interim application. Plaintiff: ${get('plaintiff')}. Defendant: ${get('defendant')}. Grounds: ${get('grounds')}`.trim()
     case 'affidavit':
       return `Draft an affidavit for deponent ${get('deponent')}. Statements: ${get('statements')}`.trim()
+    case 'bail-application':
+      return `Draft a bail application. Applicant: ${get('applicant')}. Opposite Party: ${get('opposite_party')}. Court: ${get('court_details')}. FIR Details: ${get('fir_details')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
+    case 'criminal-appeal':
+      return `Draft a criminal appeal. Appellant: ${get('appellant')}. Respondent: ${get('respondent')}. Court: ${get('court_details')}. Impugned Order: ${get('impugned_order')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
     default:
       return 'Generate a legal document based on the provided information.'
   }
@@ -57,6 +63,41 @@ export function CaseWorkspace() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formModalOpen, setFormModalOpen] = useState(false)
+
+  // Resizable chat panel
+  const MIN_CHAT_WIDTH = 320
+  const MAX_CHAT_WIDTH = 700
+  const DEFAULT_CHAT_WIDTH = 384 // w-96
+  const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH)
+  const isResizingRef = useRef(false)
+  const startXRef = useRef(0)
+  const startWidthRef = useRef(DEFAULT_CHAT_WIDTH)
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizingRef.current) return
+    const delta = startXRef.current - e.clientX
+    const newWidth = Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, startWidthRef.current + delta))
+    setChatWidth(newWidth)
+  }, [])
+
+  const handleResizeEnd = useCallback(() => {
+    isResizingRef.current = false
+    document.body.style.cursor = ''
+    document.body.style.userSelect = ''
+    document.removeEventListener('mousemove', handleResizeMove)
+    document.removeEventListener('mouseup', handleResizeEnd)
+  }, [handleResizeMove])
+
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isResizingRef.current = true
+    startXRef.current = e.clientX
+    startWidthRef.current = chatWidth
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', handleResizeMove)
+    document.addEventListener('mouseup', handleResizeEnd)
+  }, [chatWidth, handleResizeMove, handleResizeEnd])
 
   const {
     sources,
@@ -203,6 +244,29 @@ export function CaseWorkspace() {
     const hasText = body.length > 0
     const hasFiles = sourceIds.length > 0
 
+    // Extract language for criminal templates
+    const language = formData['language'] as Language | undefined
+
+    // Build config object for criminal-specific fields
+    const isCriminal = templateId === 'bail-application' || templateId === 'criminal-appeal'
+    const criminalConfigKeys = [
+      'fir_details', 'criminal_history', 'bail_history', 'co_accused_details',
+      'impugned_order', 'court_details', 'facts', 'relief_sought',
+      'applicant', 'opposite_party', 'appellant', 'respondent',
+    ]
+    let draftConfig: Record<string, string> | undefined
+    if (isCriminal) {
+      const entries = criminalConfigKeys
+        .filter((key) => {
+          const val = formData[key]
+          return typeof val === 'string' && val.trim().length > 0
+        })
+        .map((key) => [key, (formData[key] as string).trim()])
+      if (entries.length > 0) {
+        draftConfig = Object.fromEntries(entries)
+      }
+    }
+
     const request: CreateDraftRequest = {
       title,
       document_type: config.documentType,
@@ -210,6 +274,8 @@ export function CaseWorkspace() {
       subtype: config.subtype,
       freetext_body: hasText ? body : undefined,
       file_ids: hasFiles ? sourceIds : undefined,
+      language: isCriminal ? language : undefined,
+      config: draftConfig,
     }
 
     const pendingDraft = createDraft(request)
@@ -298,15 +364,27 @@ export function CaseWorkspace() {
         </div>
 
         {rightPanelOpen && (
-          <div className="w-96 flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden">
-            <ChatPanel
-              messages={messages}
-              isLoading={chatLoading}
-              selectedSourceCount={selectedSourceIds.size}
-              onSendMessage={handleSendMessage}
-              onClearChat={clearChat}
-            />
-          </div>
+          <>
+            {/* Drag handle */}
+            <div
+              onMouseDown={handleResizeStart}
+              className="w-1 flex-shrink-0 cursor-col-resize hover:bg-kx-primary-400/40 active:bg-kx-primary-500/50 transition-colors relative group"
+            >
+              <div className="absolute inset-y-0 -left-1 -right-1" />
+            </div>
+            <div
+              className="flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden"
+              style={{ width: chatWidth }}
+            >
+              <ChatPanel
+                messages={messages}
+                isLoading={chatLoading}
+                selectedSourceCount={selectedSourceIds.size}
+                onSendMessage={handleSendMessage}
+                onClearChat={clearChat}
+              />
+            </div>
+          </>
         )}
       </div>
 

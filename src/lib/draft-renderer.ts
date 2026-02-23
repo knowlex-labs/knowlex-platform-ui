@@ -1,4 +1,3 @@
-import html2pdf from 'html2pdf.js'
 import type { DraftSection } from '@/types'
 import {
   documentToHtml,
@@ -141,6 +140,7 @@ export function renderDraftSections(sections: DraftSection[]): string {
 
 /**
  * Builds a full HTML document for DOC/PDF download with section-aware structure.
+ * Handles both plain text content and already-formatted HTML content (from the editor).
  */
 export function buildExportHtml(title: string, content: string, sections?: DraftSection[]): string {
   let bodyHtml: string
@@ -149,6 +149,9 @@ export function buildExportHtml(title: string, content: string, sections?: Draft
     bodyHtml = sorted
       .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${s.content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')}`)
       .join('\n')
+  } else if (content.trim().startsWith('<')) {
+    // Content is already HTML (from contentEditable editor) — use directly
+    bodyHtml = content
   } else {
     bodyHtml = content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')
   }
@@ -223,13 +226,15 @@ export function renderDraftToHtml(
   sections?: DraftSection[],
   templateType?: string
 ): string {
-  if (sections && sections.length > 0) {
-    return renderDraftSections(sections)
-  }
-
-  // Content saved as HTML from the editor — return directly
+  // If content is already HTML (saved from the editor), it means the user has
+  // edited the draft. Use it directly — it takes priority over original sections
+  // because the backend doesn't clear sections when draft_body is updated.
   if (content.trim().startsWith('<')) {
     return content
+  }
+
+  if (sections && sections.length > 0) {
+    return renderDraftSections(sections)
   }
 
   if (isRichDocumentString(content)) {
@@ -273,38 +278,81 @@ export function downloadAsTxt(title: string, content: string, sections?: DraftSe
 }
 
 /**
- * Download draft as a DOC file (HTML wrapped as application/msword).
+ * Download draft as a Word-compatible .doc file.
+ * Uses HTML wrapped in Word's XML namespace so Word/LibreOffice/Google Docs can open it natively.
  */
 export function downloadAsDoc(title: string, content: string, sections?: DraftSection[]): void {
-  const html = buildExportHtml(title, content, sections)
-  triggerDownload(new Blob([html], { type: 'application/msword' }), `${sanitizeFilename(title)}.doc`)
+  // Reuse buildExportHtml for the full document, then add Word XML namespaces
+  const fullHtml = buildExportHtml(title, content, sections)
+
+  // Add Word-compatible namespaces and meta to the existing HTML
+  const wordDoc = fullHtml
+    .replace('<html>', `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">`)
+    .replace('</head>', `  <meta name="ProgId" content="Word.Document">\n  <meta name="Generator" content="Knowlex Platform">\n  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->\n  </head>`)
+
+  triggerDownload(
+    new Blob([wordDoc], { type: 'application/msword' }),
+    `${sanitizeFilename(title)}.doc`
+  )
 }
 
 /**
- * Download draft as a real PDF file using html2pdf.js.
+ * Download draft as PDF by rendering HTML into a hidden iframe and triggering print.
+ * Uses the browser's built-in "Save as PDF" via the print dialog — no new window opened.
  */
 export function downloadAsPdf(title: string, content: string, sections?: DraftSection[]): void {
-  const html = buildExportHtml(title, content, sections)
+  const sects = sections?.length ? sections : undefined
+  const html = buildExportHtml(title, content, sects)
 
-  // Create a temporary container to render the HTML for pdf generation
-  const container = document.createElement('div')
-  container.innerHTML = html
-  // Apply body styles directly since html2pdf renders the element, not a full document
-  container.style.fontFamily = "'Times New Roman', Times, serif"
-  container.style.fontSize = '12pt'
-  container.style.lineHeight = '1.5'
-  container.style.color = '#000'
-  container.style.background = '#fff'
-  container.style.padding = '0'
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = 'none'
+  document.body.appendChild(iframe)
 
-  html2pdf()
-    .set({
-      margin: [0.75, 1, 0.75, 1],
-      filename: `${sanitizeFilename(title)}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
-    })
-    .from(container)
-    .save()
+  const doc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!doc) { document.body.removeChild(iframe); return }
+
+  doc.open()
+  doc.write(html)
+  doc.close()
+
+  iframe.onload = () => {
+    iframe.contentWindow?.print()
+    // Clean up after print dialog closes
+    setTimeout(() => { document.body.removeChild(iframe) }, 1000)
+  }
 }
+
+/**
+ * Open browser print dialog for the draft content (same window, no new tab).
+ */
+export function printDraft(title: string, content: string, sections?: DraftSection[]): void {
+  const sects = sections?.length ? sections : undefined
+  const html = buildExportHtml(title, content, sects)
+
+  const iframe = document.createElement('iframe')
+  iframe.style.position = 'fixed'
+  iframe.style.right = '0'
+  iframe.style.bottom = '0'
+  iframe.style.width = '0'
+  iframe.style.height = '0'
+  iframe.style.border = 'none'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!doc) { document.body.removeChild(iframe); return }
+
+  doc.open()
+  doc.write(html)
+  doc.close()
+
+  iframe.onload = () => {
+    iframe.contentWindow?.print()
+    setTimeout(() => { document.body.removeChild(iframe) }, 1000)
+  }
+}
+

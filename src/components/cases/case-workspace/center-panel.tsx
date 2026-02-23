@@ -110,6 +110,7 @@ export function CenterPanel({
       <div className="flex-1 overflow-hidden">
         {activeDraft ? (
           <DraftPreviewTab
+            key={activeDraft.id}
             draft={activeDraft}
             onSaveLocal={onSaveDraftLocal}
             onSaveToBackend={onSaveDraftToBackend}
