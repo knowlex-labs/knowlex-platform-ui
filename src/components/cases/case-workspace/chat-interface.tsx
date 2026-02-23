@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { ArrowUp, Trash2, Loader2, FileCheck, MessageSquare } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { WorkspaceMessage } from '@/types'
 import { ChatMessage } from './chat-message'

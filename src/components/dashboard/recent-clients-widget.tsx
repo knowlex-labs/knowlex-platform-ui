@@ -1,5 +1,4 @@
 import { Users, Mail, Phone, Briefcase } from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
 import type { Client } from '@/types'
 
 interface RecentClientsWidgetProps {

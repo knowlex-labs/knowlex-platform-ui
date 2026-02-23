@@ -5,10 +5,15 @@ import { useEditorFormatting } from '@/hooks/use-editor-formatting'
 import { FormattingToolbar } from './formatting-toolbar'
 import {
   renderDraftToHtml,
+  printDraft,
   downloadAsPdf,
   downloadAsDoc,
 } from '@/lib/draft-renderer'
 import type { Draft } from '@/types'
+
+// Module-level cache: survives unmount/remount race where the old component's
+// state update hasn't been processed before the new instance mounts.
+const draftContentCache = new Map<string, { title: string; content: string }>()
 
 interface DraftPreviewTabProps {
   draft: Draft
@@ -109,13 +114,16 @@ function CompletedDraftEditor({
   onSaveToBackend,
   onDirtyChange,
 }: DraftPreviewTabProps) {
-  const [title, setTitle] = useState(draft.title)
-  const [hasChanges, setHasChanges] = useState(false)
+  const cached = draftContentCache.get(draft.id)
+  const [title, setTitle] = useState(cached?.title ?? draft.title)
+  const [hasChanges, setHasChanges] = useState(!!cached)
   const [isSaving, setIsSaving] = useState(false)
   const editorRef = useRef<HTMLDivElement>(null)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Track whether we caused the draft.content change (to avoid re-rendering the editor)
   const isLocalEditRef = useRef(false)
+  // Track whether we mounted with cached content (skip first sync effect)
+  const mountedWithCacheRef = useRef(!!cached)
 
   const markDirty = useCallback(() => {
     setHasChanges(true)
@@ -124,17 +132,23 @@ function CompletedDraftEditor({
 
   const formatting = useEditorFormatting(editorRef, markDirty)
 
-  // Capture current editor content and save to local state
+  // Capture current editor content and save to local state + cache
   const flushToLocalState = useCallback(() => {
     if (editorRef.current) {
       isLocalEditRef.current = true
-      onSaveLocal(draft.id, title, editorRef.current.innerHTML)
+      const content = editorRef.current.innerHTML
+      draftContentCache.set(draft.id, { title, content })
+      onSaveLocal(draft.id, title, content)
     }
   }, [draft.id, title, onSaveLocal])
 
   // Sync editor HTML only when draft changes from OUTSIDE (e.g. polling, different draft opened)
-  // Skip if the change came from our own auto-save (isLocalEditRef)
+  // Skip if the change came from our own auto-save (isLocalEditRef) or if mounted with cache
   useEffect(() => {
+    if (mountedWithCacheRef.current) {
+      mountedWithCacheRef.current = false
+      return
+    }
     if (isLocalEditRef.current) {
       isLocalEditRef.current = false
       return
@@ -152,26 +166,45 @@ function CompletedDraftEditor({
     }
   }, [draft.id, draft.content, draft.title, draft.sections, draft.templateType])
 
+  // Capture editor content into a ref so we can save it on unmount
+  const latestContentRef = useRef<string | null>(null)
+  const latestTitleRef = useRef(title)
+  latestTitleRef.current = title
+
+  // Keep latestContentRef up to date on every input
+  const handleEditorChange = useCallback(() => {
+    if (editorRef.current) {
+      latestContentRef.current = editorRef.current.innerHTML
+    }
+  }, [])
+
   // Auto-save to local state on input (debounced 500ms)
   const handleEditorInput = useCallback(() => {
     setHasChanges(true)
     onDirtyChange?.(true)
+    // Capture content immediately so it's available on unmount
+    handleEditorChange()
 
     // Debounce: save to local state after 500ms of inactivity
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
       flushToLocalState()
     }, 500)
-  }, [onDirtyChange, flushToLocalState])
+  }, [onDirtyChange, handleEditorChange, flushToLocalState])
 
-  // Flush to local state on unmount (switching tabs)
+  // Flush to local state + backend + cache on unmount (switching tabs/navigating away)
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-      // Can't call flushToLocalState here because editorRef may already be gone
-      // Instead, the debounced save handles most cases
+      // Save the latest captured content on unmount
+      if (latestContentRef.current !== null) {
+        draftContentCache.set(draft.id, { title: latestTitleRef.current, content: latestContentRef.current })
+        onSaveLocal(draft.id, latestTitleRef.current, latestContentRef.current)
+        onSaveToBackend(draft.id, latestTitleRef.current, latestContentRef.current)
+      }
     }
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.id])
 
   // Save to local state when switching away from this tab (before unmount)
   // This captures the latest DOM content before it's destroyed
@@ -185,11 +218,21 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [flushToLocalState])
 
-  const handleDownload = useCallback((format: 'pdf' | 'doc') => {
-    const sections = draft.sections?.length ? draft.sections : undefined
-    if (format === 'pdf') downloadAsPdf(draft.title, draft.content, sections)
-    else downloadAsDoc(draft.title, draft.content, sections)
-  }, [draft.title, draft.content, draft.sections])
+  // Export handlers — all read current editor content
+  const getCurrentContent = useCallback(() => editorRef.current?.innerHTML || draft.content, [draft.content])
+  const getSections = useCallback(() => draft.sections?.length ? draft.sections : undefined, [draft.sections])
+
+  const handlePrint = useCallback(() => {
+    printDraft(title, getCurrentContent(), getSections())
+  }, [title, getCurrentContent, getSections])
+
+  const handleDownloadDoc = useCallback(() => {
+    downloadAsDoc(title, getCurrentContent(), getSections())
+  }, [title, getCurrentContent, getSections])
+
+  const handleDownloadPdf = useCallback(() => {
+    downloadAsPdf(title, getCurrentContent(), getSections())
+  }, [title, getCurrentContent, getSections])
 
   // Explicit save to backend (Ctrl+S or Save button)
   const handleSaveToBackend = useCallback(async () => {
@@ -198,6 +241,7 @@ function CompletedDraftEditor({
     try {
       isLocalEditRef.current = true
       await onSaveToBackend(draft.id, title, editorRef.current.innerHTML)
+      draftContentCache.delete(draft.id)
       setHasChanges(false)
       onDirtyChange?.(false)
     } finally {
@@ -219,6 +263,8 @@ function CompletedDraftEditor({
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialHtml = useMemo(() => {
+    const cachedEntry = draftContentCache.get(draft.id)
+    if (cachedEntry) return cachedEntry.content
     const hasSections = draft.sections && draft.sections.length > 0
     return renderDraftToHtml(
       draft.content,
@@ -241,7 +287,9 @@ function CompletedDraftEditor({
         onNumberedList={formatting.handleNumberedList}
         onFontSize={formatting.handleFontSize}
         onSave={handleSaveToBackend}
-        onDownload={handleDownload}
+        onPrint={handlePrint}
+        onDownloadDoc={handleDownloadDoc}
+        onDownloadPdf={handleDownloadPdf}
         isSaving={isSaving}
         hasChanges={hasChanges}
         className="bg-ledger-white dark:bg-ledger-gray-900"
@@ -272,6 +320,7 @@ function CompletedDraftEditor({
         </p>
         <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500" />
       </div>
+
     </div>
   )
 }

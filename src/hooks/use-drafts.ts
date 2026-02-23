@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { draftsApi, type DraftListItem, type CreateDraftRequest } from '@/services/api/drafts-api'
-import { config } from '@/config/env'
 import type { Draft } from '@/types'
 
 export type { DocumentType } from '@/services/api/drafts-api'
@@ -131,46 +130,43 @@ export function useDrafts(caseId: string): UseDraftsResult {
     }
   }, [caseId])
 
-  // Batch save dirty drafts to backend every 2 minutes
+  // Flush all dirty drafts to backend via the authenticated API
+  const flushDirtyDrafts = useCallback(() => {
+    const dirtyIds = dirtyDraftIdsRef.current
+    if (dirtyIds.size === 0) return
+
+    for (const id of Array.from(dirtyIds)) {
+      const draft = draftsRef.current.find((d) => d.id === id)
+      if (draft && draft.status === 'completed') {
+        draftsApi.update(caseIdRef.current, id, {
+          title: draft.title,
+          draft_body: draft.content,
+        }).then(() => {
+          dirtyIds.delete(id)
+        }).catch((err) => {
+          console.error('Flush save failed for draft:', id, err)
+        })
+      }
+    }
+  }, [])
+
+  // Batch save dirty drafts to backend every 30 seconds
   useEffect(() => {
-    const batchSaveInterval = setInterval(() => {
-      const dirtyIds = dirtyDraftIdsRef.current
-      if (dirtyIds.size === 0) return
+    const batchSaveInterval = setInterval(flushDirtyDrafts, 30 * 1000)
 
-      for (const id of dirtyIds) {
-        const draft = draftsRef.current.find((d) => d.id === id)
-        if (draft && draft.status === 'completed') {
-          draftsApi.update(caseIdRef.current, id, {
-            title: draft.title,
-            draft_body: draft.content,
-          }).then(() => {
-            dirtyIds.delete(id)
-          }).catch((err) => {
-            console.error('Batch save failed for draft:', id, err)
-          })
-        }
-      }
-    }, 2 * 60 * 1000)
-
+    // On page close, fire-and-forget save via authenticated API
     const handleBeforeUnload = () => {
-      const dirtyIds = dirtyDraftIdsRef.current
-      for (const id of dirtyIds) {
-        const draft = draftsRef.current.find((d) => d.id === id)
-        if (draft && draft.status === 'completed') {
-          const url = `${config.apiBaseUrl}/api/v1/cases/${caseIdRef.current}/drafts/${id}`
-          const body = JSON.stringify({ title: draft.title, draft_body: draft.content })
-          navigator.sendBeacon(url, new Blob([body], { type: 'application/json' }))
-        }
-      }
+      flushDirtyDrafts()
     }
     window.addEventListener('beforeunload', handleBeforeUnload)
 
     return () => {
       clearInterval(batchSaveInterval)
       window.removeEventListener('beforeunload', handleBeforeUnload)
-      handleBeforeUnload()
+      // On cleanup (e.g. navigating away from case), flush dirty drafts
+      flushDirtyDrafts()
     }
-  }, [caseId])
+  }, [caseId, flushDirtyDrafts])
 
   const fetchDrafts = useCallback(async () => {
     setIsLoading(true)
@@ -262,13 +258,18 @@ export function useDrafts(caseId: string): UseDraftsResult {
     const resolvedContent = content ?? draftsRef.current.find((d) => d.id === id)?.content
     if (resolvedTitle === undefined || resolvedContent === undefined) return
 
+    // Clear dirty flag immediately so flushDirtyDrafts won't re-send stale content
+    // if it runs concurrently (e.g. during unmount cleanup race).
+    dirtyDraftIdsRef.current.delete(id)
+
     try {
       await draftsApi.update(caseId, id, {
         title: resolvedTitle,
         draft_body: resolvedContent,
       })
-      dirtyDraftIdsRef.current.delete(id)
     } catch (error) {
+      // Re-mark as dirty so batch save retries later
+      dirtyDraftIdsRef.current.add(id)
       console.error('Failed to save draft to backend:', error)
       setError('Failed to save draft. Will retry automatically.')
     }
