@@ -15,6 +15,87 @@ import type { Draft } from '@/types'
 // state update hasn't been processed before the new instance mounts.
 const draftContentCache = new Map<string, { title: string; content: string }>()
 
+// ─── A4 paper layout constants (96 dpi) ───────────────────────────────────────
+const OUTER_BG = '#525659'       // dark background between pages
+const A4_TOTAL_H = 1122          // 297 mm × 3.7795 px/mm
+const PAGE_V_PAD = 96            // 1 inch top/bottom padding inside the paper
+const PAGE_H_PAD = 106           // ~1.1 inch left/right padding
+const A4_CONTENT_H = A4_TOTAL_H - PAGE_V_PAD * 2  // 930 px of content per page
+const PAGE_GAP = 28              // dark gap between pages (px)
+
+/**
+ * Return innerHTML with page-spacer divs removed.
+ * Always call this before saving so spacers are never persisted.
+ */
+function getCleanHtml(el: HTMLElement): string {
+  const clone = el.cloneNode(true) as HTMLElement
+  clone.querySelectorAll('[data-page-spacer]').forEach((s) => s.remove())
+  return clone.innerHTML
+}
+
+/**
+ * Walk the direct children of the editor element, measure their heights,
+ * and insert visual page-break spacers between pages.
+ *
+ * Each spacer renders:
+ *   [white: remaining space on current page] | [OUTER_BG: gap] | [white: next-page top margin]
+ *
+ * The spacer uses negative horizontal margins to stretch to the full paper width,
+ * making the gap visually span edge-to-edge like Google Docs.
+ */
+function repaginateEditor(el: HTMLElement): void {
+  // Remove previous spacers first so measurements are clean
+  el.querySelectorAll<HTMLElement>('[data-page-spacer]').forEach((s) => s.remove())
+
+  const children = Array.from(el.children) as HTMLElement[]
+  const inserts: { before: HTMLElement; remaining: number }[] = []
+  let pageUsed = 0
+
+  for (const child of children) {
+    const cs = window.getComputedStyle(child)
+    const mT = parseFloat(cs.marginTop) || 0
+    const mB = parseFloat(cs.marginBottom) || 0
+    const totalH = child.offsetHeight + mT + mB
+
+    if (pageUsed > 0 && pageUsed + totalH > A4_CONTENT_H) {
+      // Block would overflow → page break before this child
+      inserts.push({ before: child, remaining: A4_CONTENT_H - pageUsed })
+      pageUsed = totalH % A4_CONTENT_H
+    } else {
+      pageUsed = (pageUsed + totalH) % A4_CONTENT_H
+    }
+  }
+
+  // Insert spacers in reverse so DOM indices stay valid
+  for (let i = inserts.length - 1; i >= 0; i--) {
+    const { before, remaining } = inserts[i]
+    const spacerH = remaining + PAGE_GAP + PAGE_V_PAD
+
+    const div = document.createElement('div')
+    div.setAttribute('data-page-spacer', 'true')
+    div.contentEditable = 'false'
+    div.style.cssText = [
+      `height:${spacerH}px`,
+      // Stretch to full paper width by cancelling the paper's horizontal padding
+      `margin:0 -${PAGE_H_PAD}px`,
+      `padding:0`,
+      `display:block`,
+      `user-select:none`,
+      `pointer-events:none`,
+      // Gradient: white (rest of page) → dark gap → white (next page top margin)
+      `background:linear-gradient(to bottom,` +
+        `white 0px,` +
+        `white ${remaining}px,` +
+        `${OUTER_BG} ${remaining}px,` +
+        `${OUTER_BG} ${remaining + PAGE_GAP}px,` +
+        `white ${remaining + PAGE_GAP}px` +
+        `)`,
+    ].join(';')
+
+    before.parentElement!.insertBefore(div, before)
+  }
+}
+
 interface DraftPreviewTabProps {
   draft: Draft
   onSaveLocal: (id: string, title: string, content: string) => void
@@ -118,7 +199,11 @@ function CompletedDraftEditor({
   const [title, setTitle] = useState(cached?.title ?? draft.title)
   const [hasChanges, setHasChanges] = useState(!!cached)
   const [isSaving, setIsSaving] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
   const editorRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Track whether we caused the draft.content change (to avoid re-rendering the editor)
   const isLocalEditRef = useRef(false)
@@ -132,18 +217,28 @@ function CompletedDraftEditor({
 
   const formatting = useEditorFormatting(editorRef, markDirty)
 
-  // Capture current editor content and save to local state + cache
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  /** Run repagination and update page counts */
+  const repaginate = useCallback(() => {
+    if (!editorRef.current) return
+    repaginateEditor(editorRef.current)
+    setTotalPages(editorRef.current.querySelectorAll('[data-page-spacer]').length + 1)
+  }, [])
+
+  // ─── Saving ───────────────────────────────────────────────────────────────
+
+  // Capture current editor content (clean, no spacers) and save to local state + cache
   const flushToLocalState = useCallback(() => {
     if (editorRef.current) {
       isLocalEditRef.current = true
-      const content = editorRef.current.innerHTML
+      const content = getCleanHtml(editorRef.current)
       draftContentCache.set(draft.id, { title, content })
       onSaveLocal(draft.id, title, content)
     }
   }, [draft.id, title, onSaveLocal])
 
-  // Sync editor HTML only when draft changes from OUTSIDE (e.g. polling, different draft opened)
-  // Skip if the change came from our own auto-save (isLocalEditRef) or if mounted with cache
+  // ─── Sync from external changes (polling / new draft opened) ──────────────
   useEffect(() => {
     if (mountedWithCacheRef.current) {
       mountedWithCacheRef.current = false
@@ -164,40 +259,40 @@ function CompletedDraftEditor({
         draft.contentFormat
       )
       editorRef.current.innerHTML = html
+      // Re-paginate after setting new content
+      setTimeout(() => repaginate(), 80)
     }
-  }, [draft.id, draft.content, draft.title, draft.sections, draft.templateType])
+  }, [draft.id, draft.content, draft.title, draft.sections, draft.templateType, repaginate])
 
-  // Capture editor content into a ref so we can save it on unmount
+  // ─── Track latest content for unmount save ────────────────────────────────
   const latestContentRef = useRef<string | null>(null)
   const latestTitleRef = useRef(title)
   latestTitleRef.current = title
 
-  // Keep latestContentRef up to date on every input
   const handleEditorChange = useCallback(() => {
     if (editorRef.current) {
-      latestContentRef.current = editorRef.current.innerHTML
+      // Always store clean HTML (no spacers) in the ref
+      latestContentRef.current = getCleanHtml(editorRef.current)
     }
   }, [])
 
-  // Auto-save to local state on input (debounced 500ms)
+  // ─── Auto-save on input (debounced 500 ms) ────────────────────────────────
   const handleEditorInput = useCallback(() => {
     setHasChanges(true)
     onDirtyChange?.(true)
-    // Capture content immediately so it's available on unmount
     handleEditorChange()
 
-    // Debounce: save to local state after 500ms of inactivity
     if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     autoSaveTimerRef.current = setTimeout(() => {
       flushToLocalState()
+      repaginate()
     }, 500)
-  }, [onDirtyChange, handleEditorChange, flushToLocalState])
+  }, [onDirtyChange, handleEditorChange, flushToLocalState, repaginate])
 
-  // Flush to local state + backend + cache on unmount (switching tabs/navigating away)
+  // ─── Flush on unmount ─────────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
-      // Save the latest captured content on unmount
       if (latestContentRef.current !== null) {
         draftContentCache.set(draft.id, { title: latestTitleRef.current, content: latestContentRef.current })
         onSaveLocal(draft.id, latestTitleRef.current, latestContentRef.current)
@@ -207,8 +302,7 @@ function CompletedDraftEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draft.id])
 
-  // Save to local state when switching away from this tab (before unmount)
-  // This captures the latest DOM content before it's destroyed
+  // ─── Flush on tab hide ────────────────────────────────────────────────────
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.hidden && editorRef.current) {
@@ -219,29 +313,36 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [flushToLocalState])
 
-  // Export handlers — all read current editor content
-  const getCurrentContent = useCallback(() => editorRef.current?.innerHTML || draft.content, [draft.content])
-  const getSections = useCallback(() => draft.sections?.length ? draft.sections : undefined, [draft.sections])
+  // ─── Export handlers ──────────────────────────────────────────────────────
+  const getCurrentContent = useCallback(
+    () => (editorRef.current ? getCleanHtml(editorRef.current) : draft.content),
+    [draft.content]
+  )
+  const getSections = useCallback(
+    () => (draft.sections?.length ? draft.sections : undefined),
+    [draft.sections]
+  )
 
-  const handlePrint = useCallback(() => {
-    printDraft(title, getCurrentContent(), getSections(), draft.contentFormat)
-  }, [title, getCurrentContent, getSections, draft.contentFormat])
+  const handlePrint = useCallback(
+    () => printDraft(title, getCurrentContent(), getSections(), draft.contentFormat),
+    [title, getCurrentContent, getSections, draft.contentFormat]
+  )
+  const handleDownloadDoc = useCallback(
+    () => downloadAsDoc(title, getCurrentContent(), getSections(), draft.contentFormat),
+    [title, getCurrentContent, getSections, draft.contentFormat]
+  )
+  const handleDownloadPdf = useCallback(
+    () => downloadAsPdf(title, getCurrentContent(), getSections(), draft.contentFormat),
+    [title, getCurrentContent, getSections, draft.contentFormat]
+  )
 
-  const handleDownloadDoc = useCallback(() => {
-    downloadAsDoc(title, getCurrentContent(), getSections(), draft.contentFormat)
-  }, [title, getCurrentContent, getSections, draft.contentFormat])
-
-  const handleDownloadPdf = useCallback(() => {
-    downloadAsPdf(title, getCurrentContent(), getSections(), draft.contentFormat)
-  }, [title, getCurrentContent, getSections, draft.contentFormat])
-
-  // Explicit save to backend (Ctrl+S or Save button)
+  // ─── Explicit save (Ctrl+S / Save button) ────────────────────────────────
   const handleSaveToBackend = useCallback(async () => {
     if (!editorRef.current) return
     setIsSaving(true)
     try {
       isLocalEditRef.current = true
-      await onSaveToBackend(draft.id, title, editorRef.current.innerHTML)
+      await onSaveToBackend(draft.id, title, getCleanHtml(editorRef.current))
       draftContentCache.delete(draft.id)
       setHasChanges(false)
       onDirtyChange?.(false)
@@ -250,7 +351,7 @@ function CompletedDraftEditor({
     }
   }, [draft.id, title, onSaveToBackend, onDirtyChange])
 
-  // Keyboard shortcuts (Ctrl/Cmd + S to save to backend)
+  // ─── Keyboard shortcuts ───────────────────────────────────────────────────
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -262,6 +363,7 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleSaveToBackend])
 
+  // ─── Initial HTML ─────────────────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialHtml = useMemo(() => {
     const cachedEntry = draftContentCache.get(draft.id)
@@ -275,6 +377,32 @@ function CompletedDraftEditor({
     )
   }, [draft.id])
 
+  // ─── Initial pagination (runs once after first render) ───────────────────
+  useEffect(() => {
+    // Small delay: let the browser finish painting the injected HTML
+    const timer = setTimeout(() => repaginate(), 120)
+    return () => clearTimeout(timer)
+  }, [initialHtml, repaginate])
+
+  // ─── Scroll → page counter ────────────────────────────────────────────────
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current || !editorRef.current) return
+    const containerEl = scrollContainerRef.current
+    const containerMidY =
+      containerEl.getBoundingClientRect().top + containerEl.clientHeight / 2
+
+    const spacers = editorRef.current.querySelectorAll<HTMLElement>('[data-page-spacer]')
+    let page = 1
+    spacers.forEach((spacer) => {
+      const rect = spacer.getBoundingClientRect()
+      // Once the middle of the spacer (= page gap) scrolls above the viewport midpoint,
+      // the user is on the next page.
+      if (rect.top + rect.height / 2 < containerMidY) page++
+    })
+    setCurrentPage(page)
+  }, [])
+
+  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
       {/* Formatting Toolbar */}
@@ -297,21 +425,45 @@ function CompletedDraftEditor({
         className="bg-ledger-white dark:bg-ledger-gray-900"
       />
 
-      {/* Editable Content Area */}
-      <div className="flex-1 p-4 overflow-auto dark:bg-ledger-gray-900">
+      {/* ── Document viewer: dark background, A4 paper centered ── */}
+      <div
+        ref={scrollContainerRef}
+        className="flex-1 overflow-auto"
+        style={{ background: OUTER_BG }}
+        onScroll={handleScroll}
+      >
+        {/* Sticky page badge — floats top-right while scrolling */}
+        <div className="sticky top-3 z-10 h-0 overflow-visible flex justify-end pr-5 pointer-events-none">
+          <span className="bg-black/60 text-white text-xs px-3 py-1 rounded-full font-mono tracking-wide select-none">
+            {currentPage} / {totalPages}
+          </span>
+        </div>
+
+        {/* A4 paper — the actual contentEditable editor */}
         <div
           ref={editorRef}
           contentEditable
           suppressContentEditableWarning
           onInput={handleEditorInput}
           onBlur={flushToLocalState}
-          className="h-full border border-ledger-gray-200 dark:border-ledger-gray-600 rounded-lg overflow-auto focus:outline-none focus:ring-2 focus:ring-ledger-gray-300 bg-white"
-          style={{ fontFamily: "'Times New Roman', Times, serif", lineHeight: '1.8', fontSize: '12pt', minHeight: '400px', padding: '40px 60px', color: '#000' }}
+          className="legal-document focus:outline-none bg-white"
+          style={{
+            fontFamily: "'Times New Roman', Times, serif",
+            fontSize: '12pt',
+            lineHeight: '1.6',
+            color: '#000',
+            width: '794px',
+            maxWidth: `calc(100% - ${PAGE_H_PAD}px)`,
+            minHeight: `${A4_TOTAL_H}px`,
+            padding: `${PAGE_V_PAD}px ${PAGE_H_PAD}px`,
+            margin: '32px auto 40px',
+            boxShadow: '0 2px 20px rgba(0,0,0,0.5)',
+          }}
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
       </div>
 
-      {/* Footer */}
+      {/* Status footer */}
       <div className="px-4 py-2 border-t border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50 dark:bg-ledger-gray-900 flex items-center justify-between">
         <p className="text-xs text-ledger-gray-500">
           {hasChanges ? (
@@ -322,7 +474,6 @@ function CompletedDraftEditor({
         </p>
         <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500" />
       </div>
-
     </div>
   )
 }

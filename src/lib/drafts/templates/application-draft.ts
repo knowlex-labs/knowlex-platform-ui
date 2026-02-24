@@ -36,7 +36,9 @@ export function renderApplicationDraft(content: string): string {
         }
 
         // Authority/Office title (all caps lines at top)
-        if (i < 10 && trimmed === trimmed.toUpperCase() && trimmed.length > 5 && !/^\d+\./.test(trimmed)) {
+        // Skip lines starting with ** — scripts like Devanagari have no case so
+        // toUpperCase() is always equal, which would swallow bold-marker lines.
+        if (i < 10 && trimmed === trimmed.toUpperCase() && trimmed.length > 5 && !/^\d+\./.test(trimmed) && !trimmed.startsWith('**')) {
             htmlLines.push(`
         <p style="font-weight:700;margin:2px 0;">${escapeHtml(trimmed)}</p>
       `)

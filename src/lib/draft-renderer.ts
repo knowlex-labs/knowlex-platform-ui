@@ -6,14 +6,6 @@ import {
 } from './drafts/document-serializer'
 import { markdownToHtml, markdownSectionsToHtml } from './markdown-to-html'
 
-// Re-export template-based rendering system
-export { templateRenderers } from './drafts/templates'
-export type { DraftTemplateType } from './drafts/templates'
-
-import { getTemplateRenderer } from './drafts/templates'
-export { getTemplateRenderer }
-
-// Escapes HTML entities before injecting into dangerouslySetInnerHTML
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -22,148 +14,59 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
 }
 
-// Converts **bold** markers to <strong> on already-escaped text
-function renderInline(text: string): string {
-  return escapeHtml(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-}
-
 /**
- * Converts a plain-text legal draft (with **bold** markdown conventions)
- * into styled HTML. Intended for use with dangerouslySetInnerHTML.
+ * Render draft content to HTML.
  *
- * Patterns recognised:
- *   **HEADING**          → centred bold heading (when ALL CAPS or ends with :)
- *   **Label:** value     → key/value row
- *   1. clause text       → indented numbered clause
- *   ---                  → horizontal rule
- *   Lines with leading spaces → preserved as pre-formatted
- *   everything else      → justified paragraph
+ * All backend-generated content is markdown, so we always run it through
+ * the markdown library rather than branching on contentFormat/templateType.
+ *
+ * Priority:
+ * 1. Already-HTML (user-edited in the contentEditable editor) → use directly
+ * 2. Serialized RichDocument JSON (legacy) → documentToHtml
+ * 3. Everything else → markdownToHtml / markdownSectionsToHtml
  */
-export function renderDraftContent(content: string): string {
-  const lines = content.split('\n')
-  const htmlLines: string[] = []
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const trimmed = line.trim()
-
-    // Empty line → paragraph break
-    if (!trimmed) {
-      htmlLines.push('<div style="height:8px;"></div>')
-      continue
-    }
-
-    // Horizontal rule
-    if (/^[-*_]{3,}$/.test(trimmed)) {
-      htmlLines.push('<hr style="border:none;border-top:1px solid #d1d5db;margin:18px 0;" />')
-      continue
-    }
-
-    // Check if line has significant leading whitespace (for party details, addresses, etc.)
-    const leadingSpaces = line.match(/^(\s+)/)?.[1].length || 0
-    const hasIndent = leadingSpaces >= 4
-
-    // Court name / centered heading (often in ALL CAPS at top)
-    if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !trimmed.includes(':') && i < 10) {
-      htmlLines.push(`<p style="text-align:center;font-weight:700;font-size:13px;margin:4px 0;">${escapeHtml(trimmed)}</p>`)
-      continue
-    }
-
-    // "Vs." or "V/s" separator - center it
-    if (/^v[\/.]?s\.?$/i.test(trimmed)) {
-      htmlLines.push(`<p style="text-align:center;font-size:12px;margin:12px 0;">${escapeHtml(trimmed)}</p>`)
-      continue
-    }
-
-    // Lines ending with "…Plaintiff" or "…Defendant" - right-align and preserve
-    if (/\.\.\.\.*\s*(Plaintiff|Defendant)$/i.test(trimmed)) {
-      htmlLines.push(`<p style="font-size:12px;margin:4px 0;text-align:right;padding-right:20px;">${escapeHtml(trimmed)}</p>`)
-      continue
-    }
-
-    // Entire block is a single **…** line → heading or bold line
-    if (/^\*\*[^*\n]+\*\*$/.test(trimmed)) {
-      const inner = trimmed.slice(2, -2)
-      const escaped = escapeHtml(inner)
-      if (inner === inner.toUpperCase() || inner.endsWith(':')) {
-        htmlLines.push(`<p style="text-align:center;font-weight:700;font-size:13px;margin:18px 0 10px;">${escaped}</p>`)
-      } else {
-        htmlLines.push(`<p style="font-weight:700;font-size:12px;margin-bottom:10px;">${escaped}</p>`)
-      }
-      continue
-    }
-
-    // Numbered clause "1. …"
-    const numMatch = trimmed.match(/^(\d+)\.\s+(.+)/)
-    if (numMatch) {
-      htmlLines.push(`<p style="font-size:12px;margin-bottom:8px;text-align:justify;padding-left:24px;text-indent:-24px;"><strong>${numMatch[1]}.</strong> ${renderInline(numMatch[2])}</p>`)
-      continue
-    }
-
-    // Key-value "**Label:** value"
-    const kvMatch = trimmed.match(/^\*\*(.+?)\*\*\s*(.*)/)
-    if (kvMatch) {
-      htmlLines.push(`<p style="font-size:12px;margin-bottom:4px;"><strong>${escapeHtml(kvMatch[1])}</strong> ${renderInline(kvMatch[2])}</p>`)
-      continue
-    }
-
-    // Preserve indentation for pre-formatted lines (like party addresses)
-    if (hasIndent) {
-      const paddingLeft = Math.min(leadingSpaces * 6, 120) // max 120px indent
-      htmlLines.push(`<p style="font-size:12px;margin:2px 0;padding-left:${paddingLeft}px;white-space:pre-wrap;">${escapeHtml(trimmed)}</p>`)
-      continue
-    }
-
-    // Plain line
-    htmlLines.push(`<p style="font-size:12px;margin-bottom:4px;text-align:justify;">${renderInline(trimmed)}</p>`)
+export function renderDraftToHtml(
+  content: string,
+  sections?: DraftSection[],
+  _templateType?: string,
+  _contentFormat?: 'markdown' | 'html' | 'plain'
+): string {
+  // Content is already HTML (saved from the editor after user edits)
+  if (content.trim().startsWith('<')) {
+    return content
   }
 
-  return htmlLines.join('\n')
+  // RichDocument JSON — backward compat for very old drafts
+  if (isRichDocumentString(content)) {
+    const richDoc = deserializeDocument(content)
+    if (richDoc) {
+      return documentToHtml(richDoc)
+    }
+  }
+
+  // All other content is markdown
+  if (sections && sections.length > 0) {
+    return markdownSectionsToHtml(sections)
+  }
+  return markdownToHtml(content)
 }
 
 /**
- * Renders structured sections into styled HTML for on-screen display.
- * Sorts by `order` and renders each section's content.
- * Section headings are typically already included in the content from the backend,
- * so we don't add extra headings here to avoid duplication.
+ * Builds a full HTML document for DOC/PDF export.
+ * If the content is already HTML (from the editor), use it directly.
+ * Otherwise render as markdown.
  */
-export function renderDraftSections(sections: DraftSection[]): string {
-  const sorted = [...sections].sort((a, b) => a.order - b.order)
-
-  return sorted
-    .map((section) => {
-      const body = renderDraftContent(section.content)
-      // Add subtle separator between sections, but no extra heading
-      return `<div style="margin-bottom:16px;">${body}</div>`
-    })
-    .join('<div style="height:12px;"></div>')
-}
-
-/**
- * Builds a full HTML document for DOC/PDF download with section-aware structure.
- * Handles both plain text content and already-formatted HTML content (from the editor).
- */
-export function buildExportHtml(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): string {
+function buildExportHtml(title: string, content: string, sections?: DraftSection[]): string {
   let bodyHtml: string
   if (content.trim().startsWith('<')) {
-    // Content is already HTML (from contentEditable editor) — use directly
     bodyHtml = content
-  } else if (contentFormat === 'markdown') {
-    if (sections && sections.length > 0) {
-      const sorted = [...sections].sort((a, b) => a.order - b.order)
-      bodyHtml = sorted
-        .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${markdownToHtml(s.content)}`)
-        .join('\n')
-    } else {
-      bodyHtml = markdownToHtml(content)
-    }
   } else if (sections && sections.length > 0) {
     const sorted = [...sections].sort((a, b) => a.order - b.order)
     bodyHtml = sorted
-      .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${s.content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')}`)
+      .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${markdownToHtml(s.content)}`)
       .join('\n')
   } else {
-    bodyHtml = content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')
+    bodyHtml = markdownToHtml(content)
   }
 
   return `<!DOCTYPE html>
@@ -172,11 +75,37 @@ export function buildExportHtml(title: string, content: string, sections?: Draft
     <meta charset="utf-8">
     <title>${escapeHtml(title)}</title>
     <style>
+      @page {
+        size: A4;
+        /*
+         * Real page margins — the content area is inset by these values.
+         * Defining every margin box with content: '' suppresses Chrome's
+         * own URL / date / title chrome that normally appears in these slots.
+         * Only @bottom-center is given real content: the page number.
+         */
+        margin: 1in 1.1in 0.75in 1.1in;
+
+        @top-left    { content: ''; }
+        @top-center  { content: ''; }
+        @top-right   { content: ''; }
+        @bottom-left { content: ''; }
+        @bottom-right { content: ''; }
+
+        /* Page number — bottom center, 0.2 in above the page edge */
+        @bottom-center {
+          content: counter(page);
+          font-size: 10pt;
+          font-family: 'Times New Roman', Times, serif;
+          color: #444;
+          padding-bottom: 0.2in;
+        }
+      }
       body {
         font-family: 'Times New Roman', Times, serif;
         font-size: 12pt;
-        line-height: 1.5;
-        margin: 1in;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
         color: #000;
         background: #fff;
       }
@@ -224,6 +153,15 @@ export function buildExportHtml(title: string, content: string, sections?: Draft
         color: #555;
         font-style: italic;
       }
+      ul, ol {
+        margin: 8pt 0;
+        padding-left: 24pt;
+        line-height: 1.6;
+      }
+      li {
+        margin-bottom: 4pt;
+        text-align: justify;
+      }
     </style>
   </head>
   <body>
@@ -233,74 +171,6 @@ export function buildExportHtml(title: string, content: string, sections?: Draft
 </html>`
 }
 
-/**
- * Builds plain-text output for TXT download with section-aware structure.
- */
-export function buildExportText(content: string, sections?: DraftSection[]): string {
-  if (sections && sections.length > 0) {
-    const sorted = [...sections].sort((a, b) => a.order - b.order)
-    return sorted
-      .map((s) => `=== ${s.title.toUpperCase()} ===\n\n${s.content}`)
-      .join('\n\n')
-  }
-  return content
-}
-
-// ============================================================================
-// Shared Utilities (used by DraftPreview and DraftPreviewTab)
-// ============================================================================
-
-/**
- * Render draft content to HTML, handling all content formats:
- * 1. Structured sections → renderDraftSections
- * 2. Serialized RichDocument JSON → documentToHtml
- * 3. Plain text with templateType → template-specific renderer
- * 4. Plain text fallback → renderDraftContent
- */
-export function renderDraftToHtml(
-  content: string,
-  sections?: DraftSection[],
-  templateType?: string,
-  contentFormat?: 'markdown' | 'html' | 'plain'
-): string {
-  // If content is already HTML (saved from the editor), it means the user has
-  // edited the draft. Use it directly — it takes priority over original sections
-  // because the backend doesn't clear sections when draft_body is updated.
-  if (content.trim().startsWith('<')) {
-    return content
-  }
-
-  // RichDocument JSON — backward compat
-  if (isRichDocumentString(content)) {
-    const richDoc = deserializeDocument(content)
-    if (richDoc) {
-      return documentToHtml(richDoc)
-    }
-  }
-
-  // Markdown content (new backend format)
-  if (contentFormat === 'markdown') {
-    if (sections && sections.length > 0) {
-      return markdownSectionsToHtml(sections)
-    }
-    return markdownToHtml(content)
-  }
-
-  // Legacy fallback (no contentFormat field)
-  if (sections && sections.length > 0) {
-    return renderDraftSections(sections)
-  }
-
-  if (templateType) {
-    return getTemplateRenderer(templateType)(content)
-  }
-
-  return renderDraftContent(content)
-}
-
-/**
- * Trigger a file download in the browser.
- */
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -316,78 +186,29 @@ function sanitizeFilename(title: string): string {
   return title.replace(/[^a-z0-9]/gi, '_')
 }
 
-/**
- * Download draft as a plain text file.
- */
 export function downloadAsTxt(title: string, content: string, sections?: DraftSection[]): void {
-  const text = buildExportText(content, sections)
+  let text = content
+  if (sections && sections.length > 0) {
+    const sorted = [...sections].sort((a, b) => a.order - b.order)
+    text = sorted.map((s) => `=== ${s.title.toUpperCase()} ===\n\n${s.content}`).join('\n\n')
+  }
   triggerDownload(new Blob([text], { type: 'text/plain' }), `${sanitizeFilename(title)}.txt`)
 }
 
-/**
- * Download draft as a Word-compatible .doc file.
- * Uses HTML wrapped in Word's XML namespace so Word/LibreOffice/Google Docs can open it natively.
- */
-export function downloadAsDoc(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): void {
-  // Reuse buildExportHtml for the full document, then add Word XML namespaces
-  const fullHtml = buildExportHtml(title, content, sections, contentFormat)
-
-  // Add Word-compatible namespaces and meta to the existing HTML
+export function downloadAsDoc(title: string, content: string, sections?: DraftSection[], _contentFormat?: string): void {
+  const fullHtml = buildExportHtml(title, content, sections)
   const wordDoc = fullHtml
     .replace('<html>', `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">`)
     .replace('</head>', `  <meta name="ProgId" content="Word.Document">\n  <meta name="Generator" content="Knowlex Platform">\n  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->\n  </head>`)
-
-  triggerDownload(
-    new Blob([wordDoc], { type: 'application/msword' }),
-    `${sanitizeFilename(title)}.doc`
-  )
+  triggerDownload(new Blob([wordDoc], { type: 'application/msword' }), `${sanitizeFilename(title)}.doc`)
 }
 
-/**
- * Download draft as PDF by rendering HTML into a hidden iframe and triggering print.
- * Uses the browser's built-in "Save as PDF" via the print dialog — no new window opened.
- */
-export function downloadAsPdf(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): void {
+export function downloadAsPdf(title: string, content: string, sections?: DraftSection[], _contentFormat?: string): void {
   const sects = sections?.length ? sections : undefined
-  const html = buildExportHtml(title, content, sects, contentFormat)
+  const html = buildExportHtml(title, content, sects)
 
   const iframe = document.createElement('iframe')
-  iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = 'none'
-  document.body.appendChild(iframe)
-
-  const doc = iframe.contentDocument || iframe.contentWindow?.document
-  if (!doc) { document.body.removeChild(iframe); return }
-
-  doc.open()
-  doc.write(html)
-  doc.close()
-
-  iframe.onload = () => {
-    iframe.contentWindow?.print()
-    // Clean up after print dialog closes
-    setTimeout(() => { document.body.removeChild(iframe) }, 1000)
-  }
-}
-
-/**
- * Open browser print dialog for the draft content (same window, no new tab).
- */
-export function printDraft(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): void {
-  const sects = sections?.length ? sections : undefined
-  const html = buildExportHtml(title, content, sects, contentFormat)
-
-  const iframe = document.createElement('iframe')
-  iframe.style.position = 'fixed'
-  iframe.style.right = '0'
-  iframe.style.bottom = '0'
-  iframe.style.width = '0'
-  iframe.style.height = '0'
-  iframe.style.border = 'none'
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;'
   document.body.appendChild(iframe)
 
   const doc = iframe.contentDocument || iframe.contentWindow?.document
@@ -403,3 +224,23 @@ export function printDraft(title: string, content: string, sections?: DraftSecti
   }
 }
 
+export function printDraft(title: string, content: string, sections?: DraftSection[], _contentFormat?: string): void {
+  const sects = sections?.length ? sections : undefined
+  const html = buildExportHtml(title, content, sects)
+
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;'
+  document.body.appendChild(iframe)
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document
+  if (!doc) { document.body.removeChild(iframe); return }
+
+  doc.open()
+  doc.write(html)
+  doc.close()
+
+  iframe.onload = () => {
+    iframe.contentWindow?.print()
+    setTimeout(() => { document.body.removeChild(iframe) }, 1000)
+  }
+}

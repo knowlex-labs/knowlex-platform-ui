@@ -521,3 +521,23 @@
 .legal-document tr:nth-child(even) {
   background-color: #fafafa;
 }
+
+.legal-document ul,
+.legal-document ol {
+  margin: 8px 0;
+  padding-left: 24px;
+  line-height: 1.6;
+}
+
+.legal-document li {
+  margin-bottom: 4px;
+  text-align: justify;
+}
+
+.legal-document blockquote {
+  border-left: 3px solid #ccc;
+  padding-left: 12px;
+  margin: 12px 0;
+  color: #555;
+  font-style: italic;
+}

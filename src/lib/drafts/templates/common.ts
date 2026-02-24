@@ -49,7 +49,9 @@ export function renderGenericDraft(content: string): string {
         }
 
         // ALL CAPS lines → centered heading
-        if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !/^\d+\./.test(trimmed)) {
+        // Restrict to ASCII-only text: scripts like Devanagari have no lowercase so
+        // toUpperCase() is always equal, which would turn every Hindi line into a heading.
+        if (trimmed === trimmed.toUpperCase() && trimmed.length > 3 && !/^\d+\./.test(trimmed) && !trimmed.startsWith('**') && /^[\x20-\x7E]+$/.test(trimmed)) {
             htmlLines.push(`<p style="text-align:center;font-weight:700;margin:8px 0;">${escapeHtml(trimmed)}</p>`)
             continue
         }
