@@ -25,6 +25,7 @@ function mapListItemToDraft(item: DraftListItem): Draft {
     sections: item.sections || [],
     summary: item.metadata?.summary || '',
     templateType: item.document_type || item.metadata?.document_type,
+    contentFormat: (item.content_format as Draft['contentFormat']) || undefined,
     createdAt: new Date(item.created_at),
     updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(item.created_at),
   }

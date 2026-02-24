@@ -160,7 +160,8 @@ function CompletedDraftEditor({
       const html = renderDraftToHtml(
         draft.content,
         hasSections ? draft.sections : undefined,
-        draft.templateType
+        draft.templateType,
+        draft.contentFormat
       )
       editorRef.current.innerHTML = html
     }
@@ -223,16 +224,16 @@ function CompletedDraftEditor({
   const getSections = useCallback(() => draft.sections?.length ? draft.sections : undefined, [draft.sections])
 
   const handlePrint = useCallback(() => {
-    printDraft(title, getCurrentContent(), getSections())
-  }, [title, getCurrentContent, getSections])
+    printDraft(title, getCurrentContent(), getSections(), draft.contentFormat)
+  }, [title, getCurrentContent, getSections, draft.contentFormat])
 
   const handleDownloadDoc = useCallback(() => {
-    downloadAsDoc(title, getCurrentContent(), getSections())
-  }, [title, getCurrentContent, getSections])
+    downloadAsDoc(title, getCurrentContent(), getSections(), draft.contentFormat)
+  }, [title, getCurrentContent, getSections, draft.contentFormat])
 
   const handleDownloadPdf = useCallback(() => {
-    downloadAsPdf(title, getCurrentContent(), getSections())
-  }, [title, getCurrentContent, getSections])
+    downloadAsPdf(title, getCurrentContent(), getSections(), draft.contentFormat)
+  }, [title, getCurrentContent, getSections, draft.contentFormat])
 
   // Explicit save to backend (Ctrl+S or Save button)
   const handleSaveToBackend = useCallback(async () => {
@@ -269,7 +270,8 @@ function CompletedDraftEditor({
     return renderDraftToHtml(
       draft.content,
       hasSections ? draft.sections : undefined,
-      draft.templateType
+      draft.templateType,
+      draft.contentFormat
     )
   }, [draft.id])
 

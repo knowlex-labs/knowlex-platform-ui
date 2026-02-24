@@ -84,6 +84,7 @@ export interface Draft {
   sections: DraftSection[]
   summary: string
   templateType?: string  // e.g., 'interim-application', 'notice', 'affidavit', etc.
+  contentFormat?: 'markdown' | 'html' | 'plain'
   createdAt: Date
   updatedAt: Date
 }

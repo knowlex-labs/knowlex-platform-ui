@@ -4,6 +4,7 @@ import {
   deserializeDocument,
   isRichDocumentString,
 } from './drafts/document-serializer'
+import { markdownToHtml, markdownSectionsToHtml } from './markdown-to-html'
 
 // Re-export template-based rendering system
 export { templateRenderers } from './drafts/templates'
@@ -142,16 +143,25 @@ export function renderDraftSections(sections: DraftSection[]): string {
  * Builds a full HTML document for DOC/PDF download with section-aware structure.
  * Handles both plain text content and already-formatted HTML content (from the editor).
  */
-export function buildExportHtml(title: string, content: string, sections?: DraftSection[]): string {
+export function buildExportHtml(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): string {
   let bodyHtml: string
-  if (sections && sections.length > 0) {
+  if (content.trim().startsWith('<')) {
+    // Content is already HTML (from contentEditable editor) — use directly
+    bodyHtml = content
+  } else if (contentFormat === 'markdown') {
+    if (sections && sections.length > 0) {
+      const sorted = [...sections].sort((a, b) => a.order - b.order)
+      bodyHtml = sorted
+        .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${markdownToHtml(s.content)}`)
+        .join('\n')
+    } else {
+      bodyHtml = markdownToHtml(content)
+    }
+  } else if (sections && sections.length > 0) {
     const sorted = [...sections].sort((a, b) => a.order - b.order)
     bodyHtml = sorted
       .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${s.content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')}`)
       .join('\n')
-  } else if (content.trim().startsWith('<')) {
-    // Content is already HTML (from contentEditable editor) — use directly
-    bodyHtml = content
   } else {
     bodyHtml = content.split('\n').map((p) => `<p>${renderInline(p)}</p>`).join('\n')
   }
@@ -187,6 +197,32 @@ export function buildExportHtml(title: string, content: string, sections?: Draft
       p {
         margin-bottom: 12pt;
         text-align: justify;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12pt 0;
+        font-size: 11pt;
+      }
+      th, td {
+        border: 1px solid #333;
+        padding: 6pt 8pt;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background-color: #f5f5f5;
+        font-weight: bold;
+      }
+      tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+      blockquote {
+        border-left: 3px solid #ccc;
+        padding-left: 12pt;
+        margin: 12pt 0;
+        color: #555;
+        font-style: italic;
       }
     </style>
   </head>
@@ -224,7 +260,8 @@ export function buildExportText(content: string, sections?: DraftSection[]): str
 export function renderDraftToHtml(
   content: string,
   sections?: DraftSection[],
-  templateType?: string
+  templateType?: string,
+  contentFormat?: 'markdown' | 'html' | 'plain'
 ): string {
   // If content is already HTML (saved from the editor), it means the user has
   // edited the draft. Use it directly — it takes priority over original sections
@@ -233,15 +270,25 @@ export function renderDraftToHtml(
     return content
   }
 
-  if (sections && sections.length > 0) {
-    return renderDraftSections(sections)
-  }
-
+  // RichDocument JSON — backward compat
   if (isRichDocumentString(content)) {
     const richDoc = deserializeDocument(content)
     if (richDoc) {
       return documentToHtml(richDoc)
     }
+  }
+
+  // Markdown content (new backend format)
+  if (contentFormat === 'markdown') {
+    if (sections && sections.length > 0) {
+      return markdownSectionsToHtml(sections)
+    }
+    return markdownToHtml(content)
+  }
+
+  // Legacy fallback (no contentFormat field)
+  if (sections && sections.length > 0) {
+    return renderDraftSections(sections)
   }
 
   if (templateType) {
@@ -281,9 +328,9 @@ export function downloadAsTxt(title: string, content: string, sections?: DraftSe
  * Download draft as a Word-compatible .doc file.
  * Uses HTML wrapped in Word's XML namespace so Word/LibreOffice/Google Docs can open it natively.
  */
-export function downloadAsDoc(title: string, content: string, sections?: DraftSection[]): void {
+export function downloadAsDoc(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): void {
   // Reuse buildExportHtml for the full document, then add Word XML namespaces
-  const fullHtml = buildExportHtml(title, content, sections)
+  const fullHtml = buildExportHtml(title, content, sections, contentFormat)
 
   // Add Word-compatible namespaces and meta to the existing HTML
   const wordDoc = fullHtml
@@ -300,9 +347,9 @@ export function downloadAsDoc(title: string, content: string, sections?: DraftSe
  * Download draft as PDF by rendering HTML into a hidden iframe and triggering print.
  * Uses the browser's built-in "Save as PDF" via the print dialog — no new window opened.
  */
-export function downloadAsPdf(title: string, content: string, sections?: DraftSection[]): void {
+export function downloadAsPdf(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): void {
   const sects = sections?.length ? sections : undefined
-  const html = buildExportHtml(title, content, sects)
+  const html = buildExportHtml(title, content, sects, contentFormat)
 
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
@@ -330,9 +377,9 @@ export function downloadAsPdf(title: string, content: string, sections?: DraftSe
 /**
  * Open browser print dialog for the draft content (same window, no new tab).
  */
-export function printDraft(title: string, content: string, sections?: DraftSection[]): void {
+export function printDraft(title: string, content: string, sections?: DraftSection[], contentFormat?: 'markdown' | 'html' | 'plain'): void {
   const sects = sections?.length ? sections : undefined
-  const html = buildExportHtml(title, content, sects)
+  const html = buildExportHtml(title, content, sects, contentFormat)
 
   const iframe = document.createElement('iframe')
   iframe.style.position = 'fixed'
