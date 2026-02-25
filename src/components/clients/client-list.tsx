@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Phone, Mail, MessageCircle, ChevronRight as ArrowRight } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ChevronLeft, ChevronRight, Plus, Phone, Mail, MessageCircle, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ClientListSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { AddClientModal } from '@/components/clients/add-client-modal'
 import { useNavigate } from 'react-router-dom'
@@ -10,7 +8,6 @@ import { useClients } from '@/hooks/use-clients'
 import { cn } from '@/lib/utils'
 import type { ClientWithCase } from '@/types'
 
-// Contact action buttons component
 function ContactActions({
   phone,
   email,
@@ -20,9 +17,7 @@ function ContactActions({
 }) {
   const handlePhone = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (phone) {
-      window.location.href = `tel:${phone}`
-    }
+    if (phone) window.location.href = `tel:${phone}`
   }
 
   const handleWhatsApp = (e: React.MouseEvent) => {
@@ -35,95 +30,87 @@ function ContactActions({
 
   const handleEmail = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (email) {
-      window.location.href = `mailto:${email}`
-    }
+    if (email) window.location.href = `mailto:${email}`
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-0.5">
       {phone && (
         <>
           <button
             onClick={handlePhone}
-            className="p-2 rounded-full hover:bg-ledger-gray-100 transition-colors"
+            className="p-1.5 rounded hover:bg-ledger-gray-100 dark:hover:bg-white/10 transition-colors"
             title="Call"
           >
-            <Phone className="h-4 w-4 text-ledger-gray-500" />
+            <Phone className="h-3.5 w-3.5 text-ledger-gray-500" />
           </button>
           <button
             onClick={handleWhatsApp}
-            className="p-2 rounded-full hover:bg-ledger-gray-100 transition-colors"
+            className="p-1.5 rounded hover:bg-ledger-gray-100 dark:hover:bg-white/10 transition-colors"
             title="WhatsApp"
           >
-            <MessageCircle className="h-4 w-4 text-ledger-gray-500" />
+            <MessageCircle className="h-3.5 w-3.5 text-ledger-gray-500" />
           </button>
         </>
       )}
       {email && (
         <button
           onClick={handleEmail}
-          className="p-2 rounded-full hover:bg-ledger-gray-100 transition-colors"
+          className="p-1.5 rounded hover:bg-ledger-gray-100 dark:hover:bg-white/10 transition-colors"
           title="Email"
         >
-          <Mail className="h-4 w-4 text-ledger-gray-500" />
+          <Mail className="h-3.5 w-3.5 text-ledger-gray-500" />
         </button>
       )}
     </div>
   )
 }
 
-// Mobile card component for client
-function ClientCard({ client, onClick }: { client: ClientWithCase; onClick: () => void }) {
-  const handleCardClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button[title]')) {
-      return
-    }
-    onClick()
-  }
-
+function ClientTableSkeleton() {
   return (
-    <div
-      onClick={handleCardClick}
-      className={cn(
-        'w-full p-4 text-left cursor-pointer',
-        'border-b border-kx-card-border/50 last:border-b-0',
-        'hover:bg-kx-primary-50/50 dark:hover:bg-white/[0.03] active:bg-ledger-gray-100 dark:active:bg-white/[0.05] transition-colors'
-      )}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-kx-primary-900 truncate">
-            {client.name}
-          </p>
-          <div className="flex items-center gap-3 mt-1">
-            {client.phone && (
-              <p className="text-xs text-ledger-gray-500 truncate">{client.phone}</p>
-            )}
-            {client.email && (
-              <p className="text-xs text-ledger-gray-500 truncate">{client.email}</p>
-            )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <ContactActions phone={client.phone} email={client.email} />
-          <ArrowRight className="h-4 w-4 text-ledger-gray-300" />
-        </div>
+    <div className="border border-kx-card-border rounded-lg overflow-hidden shadow-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+              <th className="text-left px-4 py-3"><div className="h-3 w-12 bg-ledger-gray-200 rounded animate-pulse" /></th>
+              <th className="text-left px-4 py-3 hidden sm:table-cell"><div className="h-3 w-10 bg-ledger-gray-200 rounded animate-pulse" /></th>
+              <th className="text-left px-4 py-3 hidden md:table-cell"><div className="h-3 w-16 bg-ledger-gray-200 rounded animate-pulse" /></th>
+              <th className="text-left px-4 py-3 hidden lg:table-cell"><div className="h-3 w-12 bg-ledger-gray-200 rounded animate-pulse" /></th>
+              <th className="text-left px-4 py-3"><div className="h-3 w-14 bg-ledger-gray-200 rounded animate-pulse" /></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-kx-card-border">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <tr key={i} className="bg-kx-card">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-ledger-gray-100 animate-pulse flex-shrink-0" />
+                    <div className="space-y-1">
+                      <div className="h-4 w-32 bg-ledger-gray-100 rounded animate-pulse" />
+                      <div className="h-3 w-20 bg-ledger-gray-100 rounded animate-pulse" />
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 hidden sm:table-cell"><div className="h-4 w-28 bg-ledger-gray-100 rounded animate-pulse" /></td>
+                <td className="px-4 py-3 hidden md:table-cell"><div className="h-4 w-36 bg-ledger-gray-100 rounded animate-pulse" /></td>
+                <td className="px-4 py-3 hidden lg:table-cell"><div className="h-5 w-16 bg-ledger-gray-100 rounded-full animate-pulse" /></td>
+                <td className="px-4 py-3"><div className="h-4 w-20 bg-ledger-gray-100 rounded animate-pulse" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
 }
 
-// Desktop table row component
 function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: () => void }) {
   const handleRowClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button[title]')) {
-      return
-    }
+    if ((e.target as HTMLElement).closest('button[title]')) return
     onClick()
   }
 
-  // Get initials for avatar
   const initials = client.name
     .split(' ')
     .map((n) => n[0])
@@ -131,46 +118,69 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
     .slice(0, 2)
     .toUpperCase()
 
+  const activeCases = client.cases.filter((c) => c.status === 'active')
+
   return (
-    <div
+    <tr
       onClick={handleRowClick}
       className={cn(
-        'w-full grid grid-cols-12 gap-4 px-5 py-3.5 text-left cursor-pointer items-center',
-        'border-b border-kx-card-border/50 last:border-b-0',
-        'hover:bg-kx-primary-50/50 dark:hover:bg-white/[0.03] transition-colors'
+        'bg-kx-card cursor-pointer transition-all duration-150',
+        'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-50',
+        'border-l-2 border-l-transparent hover:border-l-kx-primary-500'
       )}
     >
-      <div className="col-span-4 flex items-center gap-3">
-        <div className="h-8 w-8 rounded-full bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center flex-shrink-0">
-          <span className="text-xs font-semibold text-kx-primary-600 dark:text-kx-primary-400">{initials}</span>
+      {/* Name */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-full bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-semibold text-kx-primary-600 dark:text-kx-primary-400">{initials}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-kx-text-primary truncate">{client.name}</p>
+            <p className="text-xs text-ledger-gray-400 capitalize mt-0.5">{client.clientType}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-kx-primary-900 truncate">
-            {client.name}
-          </p>
-          <p className="text-xs text-ledger-gray-400 mt-0.5 capitalize">
-            {client.clientType}
-          </p>
-        </div>
-      </div>
-      <div className="col-span-3 flex items-center">
+      </td>
+
+      {/* Phone */}
+      <td className="px-4 py-3 whitespace-nowrap hidden sm:table-cell">
         {client.phone ? (
-          <p className="text-sm text-ledger-gray-600">{client.phone}</p>
+          <span className="text-sm text-ledger-gray-600">{client.phone}</span>
         ) : (
-          <span className="text-xs text-ledger-gray-400">-</span>
+          <span className="text-xs text-ledger-gray-400">—</span>
         )}
-      </div>
-      <div className="col-span-3 flex items-center">
+      </td>
+
+      {/* Email */}
+      <td className="px-4 py-3 hidden md:table-cell">
         {client.email ? (
-          <p className="text-sm text-ledger-gray-600 truncate">{client.email}</p>
+          <span className="text-sm text-ledger-gray-600 truncate max-w-[200px] block">{client.email}</span>
         ) : (
-          <span className="text-xs text-ledger-gray-400">-</span>
+          <span className="text-xs text-ledger-gray-400">—</span>
         )}
-      </div>
-      <div className="col-span-2 flex items-center justify-end">
+      </td>
+
+      {/* Cases */}
+      <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
+        {client.cases.length > 0 ? (
+          <span className={cn(
+            'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full',
+            activeCases.length > 0
+              ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+              : 'bg-ledger-gray-100 text-ledger-gray-600 dark:bg-ledger-gray-200 dark:text-ledger-gray-500'
+          )}>
+            {activeCases.length > 0 ? `${activeCases.length} active` : `${client.cases.length} case${client.cases.length !== 1 ? 's' : ''}`}
+          </span>
+        ) : (
+          <span className="text-xs text-ledger-gray-400">—</span>
+        )}
+      </td>
+
+      {/* Actions */}
+      <td className="px-4 py-3 whitespace-nowrap">
         <ContactActions phone={client.phone} email={client.email} />
-      </div>
-    </div>
+      </td>
+    </tr>
   )
 }
 
@@ -204,137 +214,94 @@ export function ClientList() {
     </div>
   )
 
-  if (isLoading) {
-    return (
-      <div>
-        {header}
-        <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
-          <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
-            <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
-              Name
-            </div>
-            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
-              Phone
-            </div>
-            <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
-              Email
-            </div>
-            <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider text-right">
-              Actions
-            </div>
-          </div>
-          <ClientListSkeleton />
-        </div>
-        <AddClientModal
-          open={showAddClientModal}
-          onOpenChange={setShowAddClientModal}
-          onSuccess={refresh}
-        />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div>
-        {header}
-        <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
-          <ErrorDisplay
-            title="Failed to load clients"
-            message={error}
-            onRetry={refresh}
-          />
-        </div>
-        <AddClientModal
-          open={showAddClientModal}
-          onOpenChange={setShowAddClientModal}
-          onSuccess={refresh}
-        />
-      </div>
-    )
-  }
-
   return (
     <div>
       {header}
 
-      <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
-        {/* Desktop Table Header */}
-        <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 border-b border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
-          <div className="col-span-4 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
-            Name
-          </div>
-          <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
-            Phone
-          </div>
-          <div className="col-span-3 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider">
-            Email
-          </div>
-          <div className="col-span-2 text-xs font-medium text-ledger-gray-500 uppercase tracking-wider text-right">
-            Actions
+      {isLoading ? (
+        <ClientTableSkeleton />
+      ) : error ? (
+        <div className="border border-kx-card-border rounded-lg overflow-hidden shadow-sm bg-kx-card">
+          <ErrorDisplay title="Failed to load clients" message={error} onRetry={refresh} />
+        </div>
+      ) : clients.length === 0 ? (
+        <div className="border border-kx-card-border rounded-lg overflow-hidden shadow-sm bg-kx-card">
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="h-16 w-16 rounded-full bg-ledger-gray-100 dark:bg-ledger-gray-200 flex items-center justify-center mb-4">
+              <Users className="h-7 w-7 text-ledger-gray-400" />
+            </div>
+            <h3 className="text-lg font-serif font-semibold text-kx-text-primary mb-1">
+              No clients yet
+            </h3>
+            <p className="text-sm text-ledger-gray-500 max-w-sm">
+              Add your first client to get started.
+            </p>
           </div>
         </div>
-
-        {/* Table Body */}
-        {clients.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <p className="text-sm text-ledger-gray-500">No clients found</p>
+      ) : (
+        <div className="border border-kx-card-border rounded-lg overflow-hidden shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                    Name
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">
+                    Phone
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
+                    Email
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
+                    Cases
+                  </th>
+                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-kx-card-border">
+                {clients.map((client) => (
+                  <ClientTableRow
+                    key={client.id}
+                    client={client}
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  />
+                ))}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <ScrollArea className="h-[calc(100vh-220px)] md:h-[calc(100vh-280px)]">
-            {/* Mobile Card View */}
-            <div className="md:hidden">
-              {clients.map((client) => (
-                <ClientCard
-                  key={client.id}
-                  client={client}
-                  onClick={() => navigate(`/clients/${client.id}`)}
-                />
-              ))}
-            </div>
 
-            {/* Desktop Table View */}
-            <div className="hidden md:block">
-              {clients.map((client) => (
-                <ClientTableRow
-                  key={client.id}
-                  client={client}
-                  onClick={() => navigate(`/clients/${client.id}`)}
-                />
-              ))}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-5 py-3 border-t border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
+              <p className="text-xs text-ledger-gray-500">
+                Page {currentPage + 1} of {totalPages}
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage - 1)}
+                  disabled={currentPage === 0}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(currentPage + 1)}
+                  disabled={currentPage >= totalPages - 1}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
-          </ScrollArea>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
-            <p className="text-xs text-ledger-gray-500">
-              Page {currentPage + 1} of {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(currentPage - 1)}
-                disabled={currentPage === 0}
-                className="h-10 w-10 p-0"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(currentPage + 1)}
-                disabled={currentPage >= totalPages - 1}
-                className="h-10 w-10 p-0"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       <AddClientModal
         open={showAddClientModal}

@@ -48,6 +48,7 @@ export interface DraftListItem {
     input_mode?: string
     case_id?: string
   }
+  content_format?: string
   created_at: string
   updated_at: string
   completed_at: string | null

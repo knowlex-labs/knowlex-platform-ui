@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { useCasesWithClients, type CaseWithClient } from '@/hooks/use-cases-with-clients'
 import { useCaseFilters } from '@/hooks/use-case-filters'
+import { useCaseTypes } from '@/hooks/use-case-types'
 import { CaseFolderGrid, CaseFolderGridSkeleton } from './case-folder-grid'
 import { CaseFilters } from './case-filters'
 import { AddCaseModal } from './add-case-modal'
@@ -41,6 +42,7 @@ export function CaseList() {
     filterCases,
   } = useCaseFilters()
 
+  const { caseTypes } = useCaseTypes()
   const [clients, setClients] = useState<ClientOption[]>([])
   const [showAddCaseModal, setShowAddCaseModal] = useState(false)
 
@@ -133,6 +135,7 @@ export function CaseList() {
         <CaseFilters
           filters={filters}
           clients={clients}
+          caseTypes={caseTypes}
           onDateRangeChange={setDateRange}
           onClientChange={setClientFilter}
           onCaseTypeChange={setCaseTypeFilter}

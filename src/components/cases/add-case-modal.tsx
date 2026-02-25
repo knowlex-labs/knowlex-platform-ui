@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { caseApi, clientApi } from '@/services/api'
 import { mapBackendClient } from '@/services/mappers'
+import { useCaseTypes } from '@/hooks/use-case-types'
 import type { BackendCaseType, BackendCaseStatus } from '@/types'
 
 interface AddCaseModalProps {
@@ -60,6 +61,7 @@ export function AddCaseModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [clients, setClients] = useState<ClientOption[]>([])
+  const { caseTypes } = useCaseTypes()
 
   useEffect(() => {
     if (!open) return
@@ -194,12 +196,13 @@ export function AddCaseModal({
                 value={formData.caseType}
                 onChange={handleChange}
                 disabled={isSubmitting}
+                searchable
+                searchPlaceholder="Search type..."
               >
                 <option value="">Select type</option>
-                <option value="CIVIL">Civil</option>
-                <option value="CRIMINAL">Criminal</option>
-                <option value="FAMILY">Family</option>
-                <option value="CORPORATE">Corporate</option>
+                {caseTypes.map((t) => (
+                  <option key={t.value} value={t.value}>{t.displayName}</option>
+                ))}
               </Select>
             </div>
           </div>
