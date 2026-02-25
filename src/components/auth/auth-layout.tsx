@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 
 interface AuthLayoutProps {
@@ -34,13 +33,13 @@ export function AuthLayout({ children }: AuthLayoutProps) {
           <p className="text-sm text-red-300/80 mt-6 max-w-sm mx-auto leading-relaxed">
             AI-powered drafting, legal research, and client management — built for Indian law firms.
           </p>
-          <Link
-            to="/"
+          <a
+            href="https://getknowlex.com"
             className="inline-flex items-center gap-2 mt-8 text-sm text-white/70 hover:text-white font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Learn More
-          </Link>
+          </a>
         </div>
       </div>
     </div>

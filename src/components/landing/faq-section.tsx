@@ -4,11 +4,6 @@ import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 
 const faqs = [
   {
-    question: 'What is Knowlex?',
-    answer:
-      'Knowlex is an AI-powered legal practice management platform built specifically for Indian lawyers. It helps you manage clients, cases, deadlines, and documents — and uses AI to assist with legal research and drafting.',
-  },
-  {
     question: 'How does AI-assisted drafting work?',
     answer:
       'You select a document template (petition, reply, application, etc.), provide the key facts, and our AI generates a court-ready draft with relevant legal provisions and case citations. You can review, edit, and finalize the document before downloading.',
@@ -21,17 +16,17 @@ const faqs = [
   {
     question: 'Which courts and jurisdictions are supported?',
     answer:
-      'Knowlex currently supports drafting and research for the Supreme Court of India, High Courts, and District Courts. We are continuously expanding our coverage to include tribunals and other specialized forums.',
+      'Knowlex currently supports drafting and research for the Supreme Court of India and the Madhya Pradesh High Court. We are continuously expanding our coverage to include more High Courts, District Courts, and specialized tribunals.',
   },
   {
-    question: 'Can I try Knowlex for free?',
+    question: 'What happens if I exceed my monthly draft limit?',
     answer:
-      'Absolutely. Our Basic plan is free and includes core case management features for up to 10 clients. You can upgrade to Pro anytime for unlimited clients, AI-assisted drafting, and priority support.',
+      'Additional drafts beyond your plan quota are charged at ₹10 per draft. If you regularly exceed your limit, upgrading to a higher plan is more cost-effective. Enterprise customers can negotiate volume draft bundles and custom per-draft pricing.',
   },
   {
     question: 'How do I get support?',
     answer:
-      'You can reach us at nakul.jain@getknowlex.com or through the in-app chat. Pro and Enterprise customers receive priority support with faster response times.',
+      'You can reach us at nakul.jain@getknowlex.com. Pro customers receive email support and Premium customers receive priority support with faster response times. Enterprise customers get dedicated support as part of their contract.',
   },
 ]
 
