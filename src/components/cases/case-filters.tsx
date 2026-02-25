@@ -1,11 +1,12 @@
 import { X } from 'lucide-react'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import type { CaseFilter } from '@/types'
+import type { CaseFilter, CaseTypeOption } from '@/types'
 
 interface CaseFiltersProps {
   filters: CaseFilter
   clients: { id: string; name: string }[]
+  caseTypes: CaseTypeOption[]
   onDateRangeChange: (from: Date | null, to: Date | null) => void
   onClientChange: (clientId: string | null) => void
   onCaseTypeChange: (caseType: string | null) => void
@@ -13,13 +14,6 @@ interface CaseFiltersProps {
   onClearFilters: () => void
   hasActiveFilters: boolean
 }
-
-const CASE_TYPES = [
-  { value: 'civil', label: 'Civil' },
-  { value: 'criminal', label: 'Criminal' },
-  { value: 'family', label: 'Family' },
-  { value: 'corporate', label: 'Corporate' },
-]
 
 const CASE_STATUSES = [
   { value: 'active', label: 'Active' },
@@ -75,6 +69,7 @@ function getCurrentDateRangeValue(dateRange: CaseFilter['dateRange']): string {
 export function CaseFilters({
   filters,
   clients,
+  caseTypes,
   onDateRangeChange,
   onClientChange,
   onCaseTypeChange,
@@ -120,13 +115,13 @@ export function CaseFilters({
       <Select
         value={filters.caseType ?? ''}
         onChange={(e) => onCaseTypeChange(e.target.value || null)}
-        className="w-32"
+        className="w-36"
+        searchable
+        searchPlaceholder="Search type..."
       >
         <option value="">All Types</option>
-        {CASE_TYPES.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
+        {caseTypes.map((t) => (
+          <option key={t.value} value={t.value}>{t.displayName}</option>
         ))}
       </Select>
 

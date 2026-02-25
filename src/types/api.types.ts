@@ -2,7 +2,13 @@
 
 // Enums from backend
 export type BackendClientType = 'INDIVIDUAL' | 'COMPANY'
-export type BackendCaseType = 'CIVIL' | 'CRIMINAL' | 'FAMILY' | 'CORPORATE'
+export type BackendCaseType = string
+
+export interface CaseTypeOption {
+  value: string
+  code: string
+  displayName: string
+}
 export type BackendCaseStatus = 'ACTIVE' | 'PENDING' | 'CLOSED' | 'APPEALED' | 'BLOCKED'
 
 // Backend Case entity (exact API response type)

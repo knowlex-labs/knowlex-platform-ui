@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { caseApi } from '@/services/api'
+import { useCaseTypes } from '@/hooks/use-case-types'
 import type { BackendCaseType, BackendCaseStatus } from '@/types'
 
 interface EditCaseModalProps {
@@ -54,6 +55,7 @@ export function EditCaseModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoadingCase, setIsLoadingCase] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { caseTypes } = useCaseTypes()
 
   // Fetch case data when modal opens
   useEffect(() => {
@@ -194,12 +196,13 @@ export function EditCaseModal({
                   value={formData.caseType}
                   onChange={handleChange}
                   disabled={isSubmitting}
+                  searchable
+                  searchPlaceholder="Search type..."
                 >
                   <option value="">Select type</option>
-                  <option value="CIVIL">Civil</option>
-                  <option value="CRIMINAL">Criminal</option>
-                  <option value="FAMILY">Family</option>
-                  <option value="CORPORATE">Corporate</option>
+                  {caseTypes.map((t) => (
+                    <option key={t.value} value={t.value}>{t.displayName}</option>
+                  ))}
                 </Select>
               </div>
             </div>

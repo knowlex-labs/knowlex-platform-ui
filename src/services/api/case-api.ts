@@ -6,6 +6,7 @@ import type {
   BackendCase,
   BackendCaseStatus,
   BackendClient,
+  CaseTypeOption,
   CreateCaseRequest,
   PaginatedData,
   UpdateCaseRequest,
@@ -56,5 +57,9 @@ export const caseApi = {
 
   addJudgment: (caseId: string, judgmentId: string): Promise<ApiResponse<unknown>> => {
     return apiClient.post<ApiResponse<unknown>>(`${CASES_ENDPOINT}/${caseId}/judgments`, { judgmentId })
+  },
+
+  getTypes: (): Promise<ApiResponse<CaseTypeOption[]>> => {
+    return apiClient.get<ApiResponse<CaseTypeOption[]>>(`${CASES_ENDPOINT}/types`)
   },
 }

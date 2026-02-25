@@ -153,7 +153,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={dropdownRef}
             role="listbox"
             className={cn(
-              'absolute z-50 mt-1 w-full rounded border border-ledger-gray-200 bg-ledger-white shadow-lg',
+              'absolute z-50 mt-1 min-w-full w-max max-w-xs rounded border border-ledger-gray-200 bg-ledger-white shadow-lg',
               'animate-in fade-in-0 zoom-in-95 duration-100'
             )}
           >
@@ -179,7 +179,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             )}
 
             {/* Options list */}
-            <div className="max-h-52 overflow-y-auto py-1">
+            <div className="max-h-80 overflow-y-auto py-1">
               {filteredOptions.length === 0 ? (
                 <div className="px-3 py-4 text-sm text-ledger-gray-400 text-center">
                   No results found
@@ -210,7 +210,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
                           isSelected ? 'opacity-100' : 'opacity-0'
                         )}
                       />
-                      <span className="truncate">{option.label}</span>
+                      <span className="break-words">{option.label}</span>
                     </button>
                   )
                 })
