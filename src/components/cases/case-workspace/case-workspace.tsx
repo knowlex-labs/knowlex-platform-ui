@@ -6,12 +6,12 @@ import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
 import { mapBackendClient } from '@/services/mappers'
 import { useCaseSources } from '@/hooks/use-case-sources'
-import { useWorkspaceChat } from '@/hooks/use-workspace-chat'
+import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
 import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
-import { ChatPanel } from './chat-panel'
+import { DraftChatPanel } from './draft-chat-panel'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { TemplateFormModal } from './template-form-modal'
 import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/drafts-api'
@@ -114,10 +114,19 @@ export function CaseWorkspace() {
 
   const {
     messages,
-    isLoading: chatLoading,
-    sendMessage,
+    isStreaming: chatStreaming,
+    isLoadingHistory: chatLoadingHistory,
+    sessions: chatSessions,
+    activeSessionId,
+    isLoadingSessions,
+    settings: chatSettings,
+    sendMessage: draftSendMessage,
     clearChat,
-  } = useWorkspaceChat(caseId)
+    deleteSession: deleteChatSession,
+    selectSession,
+    startNewChat,
+    updateSettings: updateChatSettings,
+  } = useDraftChat(caseId)
 
   const {
     drafts,
@@ -172,7 +181,7 @@ export function CaseWorkspace() {
 
   const handleSendMessage = async (query: string) => {
     setLeftPanelOpen(false)
-    await sendMessage(query, Array.from(selectedSourceIds))
+    await draftSendMessage(query, Array.from(selectedSourceIds))
   }
 
   const handleSendToChat = (text: string) => {
@@ -376,12 +385,21 @@ export function CaseWorkspace() {
               className="flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden"
               style={{ width: chatWidth }}
             >
-              <ChatPanel
+              <DraftChatPanel
                 messages={messages}
-                isLoading={chatLoading}
+                isStreaming={chatStreaming}
+                isLoadingHistory={chatLoadingHistory}
+                sessions={chatSessions}
+                activeSessionId={activeSessionId}
+                isLoadingSessions={isLoadingSessions}
                 selectedSourceCount={selectedSourceIds.size}
+                settings={chatSettings}
                 onSendMessage={handleSendMessage}
                 onClearChat={clearChat}
+                onDeleteSession={deleteChatSession}
+                onSelectSession={selectSession}
+                onNewChat={startNewChat}
+                onUpdateSettings={updateChatSettings}
               />
             </div>
           </>
