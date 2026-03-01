@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
-import { Bot, Settings2, Trash2, Plus, ChevronDown, MessageSquare, Eraser } from 'lucide-react'
+import { Bot, Settings2, Trash2, ChevronDown, MessageSquare, Eraser } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,7 +28,6 @@ interface DraftChatPanelProps {
   onClearChat: () => void
   onDeleteSession: (id: string) => void
   onSelectSession: (id: string) => void
-  onNewChat: () => void
   onUpdateSettings: (updates: Partial<DraftChatSettings>) => void
 }
 
@@ -93,7 +92,6 @@ export function DraftChatPanel({
   onClearChat,
   onDeleteSession,
   onSelectSession,
-  onNewChat,
   onUpdateSettings,
 }: DraftChatPanelProps) {
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
@@ -145,7 +143,7 @@ export function DraftChatPanel({
                 <span className="truncate">
                   {isLoadingSessions
                     ? 'Loading...'
-                    : activeSession?.title || 'Draft Assistant'}
+                    : activeSession?.title || 'Chat'}
                 </span>
                 <ChevronDown className="h-3 w-3 flex-shrink-0 opacity-60" />
               </button>
@@ -157,21 +155,6 @@ export function DraftChatPanel({
                 sideOffset={6}
                 className="z-50 w-72 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95"
               >
-                {/* New Chat button */}
-                <div className="p-2 border-b border-ledger-gray-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onNewChat()
-                      setSessionSwitcherOpen(false)
-                    }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-kx-primary-700 hover:bg-kx-primary-50 rounded-lg transition-colors"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New Chat
-                  </button>
-                </div>
-
                 {/* Session list */}
                 <ScrollArea className="max-h-64">
                   <div className="p-1.5">
@@ -224,10 +207,10 @@ export function DraftChatPanel({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-kx-primary-700"
+                className="h-7 w-7 p-0 text-ledger-gray-600 dark:text-ledger-gray-300 hover:text-kx-primary-700"
                 title="Settings"
               >
-                <Settings2 className="h-3.5 w-3.5" />
+                <Settings2 className="h-4 w-4" />
               </Button>
             </PopoverPrimitive.Trigger>
             <PopoverPrimitive.Portal>
@@ -279,17 +262,15 @@ export function DraftChatPanel({
           </PopoverPrimitive.Root>
 
           {/* Clear messages button */}
-          {messages.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0 text-ledger-gray-400 hover:text-red-500"
-              title="Clear messages"
-              onClick={() => setClearDialogOpen(true)}
-            >
-              <Eraser className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0 text-ledger-gray-600 dark:text-ledger-gray-300 hover:text-red-500"
+            title="Clear messages"
+            onClick={() => setClearDialogOpen(true)}
+          >
+            <Eraser className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 

@@ -124,7 +124,6 @@ export function CaseWorkspace() {
     clearChat,
     deleteSession: deleteChatSession,
     selectSession,
-    startNewChat,
     updateSettings: updateChatSettings,
   } = useDraftChat(caseId)
 
@@ -180,7 +179,6 @@ export function CaseWorkspace() {
   }
 
   const handleSendMessage = async (query: string) => {
-    setLeftPanelOpen(false)
     await draftSendMessage(query, Array.from(selectedSourceIds))
   }
 
@@ -398,7 +396,6 @@ export function CaseWorkspace() {
                 onClearChat={clearChat}
                 onDeleteSession={deleteChatSession}
                 onSelectSession={selectSession}
-                onNewChat={startNewChat}
                 onUpdateSettings={updateChatSettings}
               />
             </div>

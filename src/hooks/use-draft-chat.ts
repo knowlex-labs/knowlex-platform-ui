@@ -29,7 +29,7 @@ export function useDraftChat(caseId: string) {
   const loadHistory = useCallback(async (sessionId: string) => {
     setIsLoadingHistory(true)
     try {
-      const history = await draftChatApi.getHistory(sessionId)
+      const history = await draftChatApi.getHistory(caseId, sessionId)
       const mapped: DraftChatMessage[] = history.map((msg, i) => ({
         id: `hist-${sessionId}-${i}`,
         role: msg.role,
@@ -43,7 +43,7 @@ export function useDraftChat(caseId: string) {
     } finally {
       setIsLoadingHistory(false)
     }
-  }, [])
+  }, [caseId])
 
   // On mount / caseId change: list sessions, select most recent or create new
   useEffect(() => {
@@ -190,6 +190,7 @@ export function useDraftChat(caseId: string) {
       const unescapeToken = (t: string) => t.replace(/\\n/g, '\n').replace(/\\t/g, '\t')
 
       const controller = draftChatApi.sendMessage(
+        caseId,
         activeSessionId,
         {
           message: trimmed,
@@ -282,23 +283,23 @@ export function useDraftChat(caseId: string) {
 
       abortControllerRef.current = controller
     },
-    [activeSessionId, isStreaming, settings]
+    [caseId, activeSessionId, isStreaming, settings]
   )
 
   const clearChat = useCallback(async () => {
     if (!activeSessionId) return
     try {
-      await draftChatApi.clearMessages(activeSessionId)
+      await draftChatApi.clearMessages(caseId, activeSessionId)
     } catch {
       // Continue even if API fails
     }
     setMessages([])
-  }, [activeSessionId])
+  }, [caseId, activeSessionId])
 
   const deleteSession = useCallback(
     async (sessionId: string) => {
       try {
-        await draftChatApi.deleteSession(sessionId)
+        await draftChatApi.deleteSession(caseId, sessionId)
       } catch {
         // Continue even if API fails
       }
@@ -338,12 +339,12 @@ export function useDraftChat(caseId: string) {
       setSettings((prev) => {
         const next = { ...prev, ...updates }
         if (activeSessionId) {
-          draftChatApi.updateDefaults(activeSessionId, next.tone, next.style).catch(() => {})
+          draftChatApi.updateDefaults(caseId, activeSessionId, next.tone, next.style).catch(() => {})
         }
         return next
       })
     },
-    [activeSessionId]
+    [caseId, activeSessionId]
   )
 
   return {

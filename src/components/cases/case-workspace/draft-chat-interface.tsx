@@ -80,7 +80,7 @@ function AssistantBubble({ message }: { message: DraftChatMessage }) {
     <div>
       <div className="flex items-center gap-1.5 mb-1">
         <Bot className="h-3 w-3 text-ledger-gray-400" />
-        <span className="text-xs font-medium text-ledger-gray-500">Draft Assistant</span>
+        <span className="text-xs font-medium text-ledger-gray-500">Chat</span>
       </div>
       <div className="pl-0.5">
         {showThinkingDots && <StreamingIndicator />}
@@ -179,7 +179,7 @@ export function DraftChatInterface({
             <MessageSquareDot className="h-6 w-6 text-white" />
           </div>
           <p className="text-base text-ledger-gray-700 dark:text-ledger-gray-300 font-semibold mb-2">
-            Draft Assistant
+            Chat
           </p>
           <p className="text-sm text-ledger-gray-400 dark:text-ledger-gray-500 max-w-[280px] leading-relaxed">
             Ask about your documents, refine drafts, or get legal writing help

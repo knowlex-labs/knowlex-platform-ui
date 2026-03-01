@@ -16,7 +16,7 @@ import type { Draft } from '@/types'
 const draftContentCache = new Map<string, { title: string; content: string }>()
 
 // ─── A4 paper layout constants (96 dpi) ───────────────────────────────────────
-const OUTER_BG = '#525659'       // dark background between pages
+const OUTER_BG_LIGHT = '#f1f5f9' // light background between pages (ledger-gray-100)
 const A4_TOTAL_H = 1122          // 297 mm × 3.7795 px/mm
 const PAGE_V_PAD = 96            // 1 inch top/bottom padding inside the paper
 const PAGE_H_PAD = 106           // ~1.1 inch left/right padding
@@ -38,7 +38,7 @@ function getCleanHtml(el: HTMLElement): string {
  * and insert visual page-break spacers between pages.
  *
  * Each spacer renders:
- *   [white: remaining space on current page] | [OUTER_BG: gap] | [white: next-page top margin]
+ *   [white: remaining space on current page] | [bg gap] | [white: next-page top margin]
  *
  * The spacer uses negative horizontal margins to stretch to the full paper width,
  * making the gap visually span edge-to-edge like Google Docs.
@@ -82,12 +82,12 @@ function repaginateEditor(el: HTMLElement): void {
       `display:block`,
       `user-select:none`,
       `pointer-events:none`,
-      // Gradient: white (rest of page) → dark gap → white (next page top margin)
+      // Gradient: white (rest of page) → gap color → white (next page top margin)
       `background:linear-gradient(to bottom,` +
         `white 0px,` +
         `white ${remaining}px,` +
-        `${OUTER_BG} ${remaining}px,` +
-        `${OUTER_BG} ${remaining + PAGE_GAP}px,` +
+        `var(--page-gap-bg, ${OUTER_BG_LIGHT}) ${remaining}px,` +
+        `var(--page-gap-bg, ${OUTER_BG_LIGHT}) ${remaining + PAGE_GAP}px,` +
         `white ${remaining + PAGE_GAP}px` +
         `)`,
     ].join(';')
@@ -425,16 +425,15 @@ function CompletedDraftEditor({
         className="bg-ledger-white dark:bg-ledger-gray-900"
       />
 
-      {/* ── Document viewer: dark background, A4 paper centered ── */}
+      {/* ── Document viewer: light background, A4 paper centered ── */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto"
-        style={{ background: OUTER_BG }}
+        className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800 [--page-gap-bg:#f1f5f9] dark:[--page-gap-bg:#1e293b]"
         onScroll={handleScroll}
       >
         {/* Sticky page badge — floats top-right while scrolling */}
         <div className="sticky top-3 z-10 h-0 overflow-visible flex justify-end pr-5 pointer-events-none">
-          <span className="bg-black/60 text-white text-xs px-3 py-1 rounded-full font-mono tracking-wide select-none">
+          <span className="bg-ledger-gray-600/80 text-white text-xs px-3 py-1 rounded-full font-mono tracking-wide select-none">
             {currentPage} / {totalPages}
           </span>
         </div>
@@ -456,8 +455,8 @@ function CompletedDraftEditor({
             maxWidth: `calc(100% - ${PAGE_H_PAD}px)`,
             minHeight: `${A4_TOTAL_H}px`,
             padding: `${PAGE_V_PAD}px ${PAGE_H_PAD}px`,
-            margin: '32px auto 40px',
-            boxShadow: '0 2px 20px rgba(0,0,0,0.5)',
+            margin: '16px auto 24px',
+            boxShadow: '0 1px 8px rgba(0,0,0,0.08)',
           }}
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />

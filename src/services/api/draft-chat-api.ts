@@ -3,6 +3,10 @@ import { apiClient } from './api-client'
 
 const API_BASE_URL = config.apiBaseUrl
 
+function chatBase(caseId: string) {
+  return `/api/v1/cases/${caseId}/chat/sessions`
+}
+
 interface CreateSessionResponse {
   status: string
   message: string
@@ -52,11 +56,11 @@ export interface DraftChatSSECallbacks {
 
 export const draftChatApi = {
   createSession: async (
-    caseFolderId: string
+    caseId: string
   ): Promise<{ id: string; title: string; createdAt: string }> => {
     const response = await apiClient.post<CreateSessionResponse>(
-      '/api/v1/draft-chat/sessions',
-      { case_folder_id: caseFolderId }
+      chatBase(caseId),
+      {}
     )
     return {
       id: response.data.session_id,
@@ -66,10 +70,10 @@ export const draftChatApi = {
   },
 
   listSessions: async (
-    caseFolderId: string
+    caseId: string
   ): Promise<Array<{ id: string; title: string; createdAt: string }>> => {
     const response = await apiClient.get<ListSessionsResponse>(
-      `/api/v1/draft-chat/case-folders/${caseFolderId}/sessions`
+      chatBase(caseId)
     )
     return (response.data ?? []).map((s) => ({
       id: s.session_id,
@@ -79,6 +83,7 @@ export const draftChatApi = {
   },
 
   getHistory: async (
+    caseId: string,
     sessionId: string
   ): Promise<
     Array<{
@@ -88,7 +93,7 @@ export const draftChatApi = {
     }>
   > => {
     const response = await apiClient.get<ChatHistoryResponse>(
-      `/api/v1/draft-chat/sessions/${sessionId}/history`
+      `${chatBase(caseId)}/${sessionId}/history`
     )
     return (response.data?.messages ?? []).map((msg) => ({
       role: msg.role === 'human' ? ('user' as const) : ('assistant' as const),
@@ -97,15 +102,16 @@ export const draftChatApi = {
     }))
   },
 
-  clearMessages: async (sessionId: string): Promise<void> => {
-    await apiClient.post(`/api/v1/draft-chat/sessions/${sessionId}/clear`, {})
+  clearMessages: async (caseId: string, sessionId: string): Promise<void> => {
+    await apiClient.post(`${chatBase(caseId)}/${sessionId}/clear`, {})
   },
 
-  deleteSession: async (sessionId: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/draft-chat/sessions/${sessionId}`)
+  deleteSession: async (caseId: string, sessionId: string): Promise<void> => {
+    await apiClient.delete(`${chatBase(caseId)}/${sessionId}`)
   },
 
   updateDefaults: async (
+    caseId: string,
     sessionId: string,
     tone: string,
     style: string
@@ -115,7 +121,7 @@ export const draftChatApi = {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' }
     if (token) headers['Authorization'] = `Bearer ${token}`
     if (userId) headers['x-user-id'] = userId
-    await fetch(`${API_BASE_URL}/api/v1/draft-chat/sessions/${sessionId}`, {
+    await fetch(`${API_BASE_URL}${chatBase(caseId)}/${sessionId}`, {
       method: 'PATCH',
       headers,
       body: JSON.stringify({ tone, style }),
@@ -123,6 +129,7 @@ export const draftChatApi = {
   },
 
   sendMessage: (
+    caseId: string,
     sessionId: string,
     payload: { message: string; tone: string; style: string; file_ids: string[]; model: string },
     callbacks: DraftChatSSECallbacks
@@ -133,11 +140,12 @@ export const draftChatApi = {
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Accept': 'text/event-stream',
     }
     if (token) headers['Authorization'] = `Bearer ${token}`
     if (userId) headers['x-user-id'] = userId
 
-    fetch(`${API_BASE_URL}/api/v1/draft-chat/sessions/${sessionId}/messages`, {
+    fetch(`${API_BASE_URL}${chatBase(caseId)}/${sessionId}/messages`, {
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
