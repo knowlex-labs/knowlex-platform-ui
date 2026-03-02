@@ -155,6 +155,28 @@ export interface GeneratedDraft {
 }
 
 // Draft template definitions
+export interface DraftChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+  isStreaming?: boolean
+  streamingPhase?: 'waiting' | 'tools' | 'answering'
+  toolCalls?: Array<{ name: string; args: Record<string, unknown>; result?: string }>
+}
+
+export interface DraftChatSettings {
+  tone: 'formal' | 'conversational' | 'neutral'
+  style: 'precise' | 'balanced' | 'detailed'
+  model: 'openai' | 'gemini'
+}
+
+export interface DraftChatSession {
+  id: string
+  title: string
+  createdAt: Date
+}
+
 export const DRAFT_TEMPLATES: DraftTemplate[] = [
   {
     id: 'notice',

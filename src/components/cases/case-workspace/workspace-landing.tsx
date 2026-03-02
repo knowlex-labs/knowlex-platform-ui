@@ -61,8 +61,8 @@ export function WorkspaceLanding({ onDraftingClick }: WorkspaceLandingProps) {
                   'relative flex flex-col items-center gap-3 p-6 rounded-xl border transition-all duration-150',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-kx-primary-500',
                   tool.locked
-                    ? 'border-ledger-gray-200 bg-ledger-gray-50/50 opacity-60 cursor-not-allowed'
-                    : 'border-ledger-gray-200 bg-white hover:border-kx-primary-300 hover:shadow-md hover:bg-kx-primary-50/30 cursor-pointer'
+                    ? 'border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50/50 dark:bg-ledger-gray-800/50 opacity-60 cursor-not-allowed'
+                    : 'border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card hover:border-kx-primary-300 dark:hover:border-kx-primary-600 hover:shadow-md hover:bg-kx-primary-50/30 dark:hover:bg-kx-primary-900/20 cursor-pointer'
                 )}
               >
                 {tool.locked && (
@@ -74,8 +74,8 @@ export function WorkspaceLanding({ onDraftingClick }: WorkspaceLandingProps) {
                   className={cn(
                     'w-12 h-12 rounded-lg flex items-center justify-center',
                     tool.locked
-                      ? 'bg-ledger-gray-100 text-ledger-gray-400'
-                      : 'bg-kx-primary-100 text-kx-primary-600'
+                      ? 'bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-400'
+                      : 'bg-kx-primary-100 dark:bg-kx-primary-900/40 text-kx-primary-600 dark:text-kx-primary-400'
                   )}
                 >
                   <Icon className="h-6 w-6" />
