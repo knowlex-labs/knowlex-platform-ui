@@ -1,10 +1,14 @@
 import { useState, useCallback, useEffect } from 'react'
 import type { WorkspaceTabItem, Draft } from '@/types'
 
+const SUMMARY_TAB_ID = 'summary'
+
 interface UseWorkspaceTabsResult {
   tabs: WorkspaceTabItem[]
   activeTabId: string
   openTab: (draft: Draft) => void
+  openSummaryTab: () => void
+  closeSummaryTab: () => void
   closeTab: (tabId: string) => void
   setActiveTab: (tabId: string) => void
   getActiveDraft: () => Draft | null
@@ -113,6 +117,27 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
     })
   }, [drafts])
 
+  const openSummaryTab = useCallback(() => {
+    setTabs((prev) => {
+      const existing = prev.find((t) => t.id === SUMMARY_TAB_ID)
+      if (existing) {
+        setActiveTabId(SUMMARY_TAB_ID)
+        return prev
+      }
+      const summaryTab: WorkspaceTabItem = {
+        id: SUMMARY_TAB_ID,
+        type: 'summary',
+        label: 'Summary',
+      }
+      setActiveTabId(SUMMARY_TAB_ID)
+      return [...prev, summaryTab]
+    })
+  }, [])
+
+  const closeSummaryTab = useCallback(() => {
+    closeTab(SUMMARY_TAB_ID)
+  }, [closeTab])
+
   const setTabDirty = useCallback((tabId: string, isDirty: boolean) => {
     setTabs((prev) =>
       prev.map((t) => (t.id === tabId ? { ...t, isUnsaved: isDirty } : t))
@@ -123,6 +148,8 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
     tabs,
     activeTabId,
     openTab,
+    openSummaryTab,
+    closeSummaryTab,
     closeTab,
     setActiveTab,
     getActiveDraft,

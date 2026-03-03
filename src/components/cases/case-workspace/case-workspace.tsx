@@ -8,12 +8,14 @@ import { mapBackendClient } from '@/services/mappers'
 import { useCaseSources } from '@/hooks/use-case-sources'
 import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
+import { useSummary } from '@/hooks/use-summary'
 import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
 import { DraftChatPanel } from './draft-chat-panel'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { TemplateFormModal } from './template-form-modal'
+import { AddSourceModal } from './add-source-modal'
 import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/drafts-api'
 import type { Draft, DraftTemplate, TemplateFormData, Client } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
@@ -63,6 +65,7 @@ export function CaseWorkspace() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formModalOpen, setFormModalOpen] = useState(false)
+  const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
 
   // Resizable chat panel
   const MIN_CHAT_WIDTH = 320
@@ -139,10 +142,20 @@ export function CaseWorkspace() {
     tabs,
     activeTabId,
     openTab,
+    openSummaryTab,
+    closeSummaryTab,
     closeTab,
     setActiveTab,
     setTabDirty,
   } = useWorkspaceTabs(drafts)
+
+  const {
+    summary,
+    isLoading: isSummaryLoading,
+    isGenerating: isGeneratingSummary,
+    generateSummary,
+    deleteSummary,
+  } = useSummary(caseId)
 
   // Auto-hide sidebar when workspace opens
   useEffect(() => {
@@ -206,6 +219,25 @@ export function CaseWorkspace() {
     await deleteDraft(id)
   }
 
+  // Called from header/landing Summary button — opens existing if available, generates if not
+  const handleSummaryClick = () => {
+    openSummaryTab()
+    if (!summary || summary.status === 'failed') {
+      generateSummary()
+    }
+  }
+
+  // Called from SummaryView's Regenerate button — always triggers a new generation
+  const handleGenerateSummary = () => {
+    generateSummary()
+    openSummaryTab()
+  }
+
+  const handleDeleteSummary = async () => {
+    await deleteSummary()
+    closeSummaryTab()
+  }
+
   const handleRetryDraft = (draftId: string) => {
     const failedDraft = drafts.find((d) => d.id === draftId)
     if (!failedDraft) return
@@ -228,6 +260,10 @@ export function CaseWorkspace() {
       const pendingDraft = createDraft(request)
       openTab(pendingDraft)
     })
+  }
+
+  const handleUploadDocumentsClick = () => {
+    setAddSourceModalOpen(true)
   }
 
   const handleDraftingClick = () => {
@@ -307,7 +343,11 @@ export function CaseWorkspace() {
         <div className="flex items-center gap-2">
           {hasTabs && (
             <>
-              <HeaderToolButtons onDraftingClick={handleDraftingClick} />
+              <HeaderToolButtons
+                onDraftingClick={handleDraftingClick}
+                onSummaryClick={handleSummaryClick}
+                onUploadDocumentsClick={handleUploadDocumentsClick}
+              />
               <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
             </>
           )}
@@ -339,16 +379,18 @@ export function CaseWorkspace() {
               sources={sources}
               selectedSourceIds={selectedSourceIds}
               isSourcesLoading={sourcesLoading}
-              isUploading={isUploading}
               drafts={drafts}
+              summary={summary}
+              isSummaryLoading={isSummaryLoading}
               onToggleSourceSelection={toggleSourceSelection}
               onSelectAllSources={selectAllSources}
               onDeselectAllSources={deselectAllSources}
-              onUploadFile={uploadFile}
               onDeleteSource={deleteSource}
               onLinkContent={linkContent}
               onDraftClick={handleDraftClick}
               onDeleteDraft={handleDeleteDraft}
+              onSummaryClick={handleSummaryClick}
+              onDeleteSummary={handleDeleteSummary}
             />
           </div>
         )}
@@ -358,6 +400,8 @@ export function CaseWorkspace() {
             tabs={tabs}
             activeTabId={activeTabId}
             drafts={drafts}
+            summary={summary}
+            isGeneratingSummary={isGeneratingSummary}
             onTabClick={setActiveTab}
             onTabClose={closeTab}
             onSaveDraftLocal={handleSaveDraftLocal}
@@ -366,7 +410,11 @@ export function CaseWorkspace() {
             onRetryDraft={handleRetryDraft}
             onTabDirtyChange={setTabDirty}
             onDraftingClick={handleDraftingClick}
+            onSummaryClick={handleSummaryClick}
+            onUploadDocumentsClick={handleUploadDocumentsClick}
             onSendToChat={handleSendToChat}
+            onGenerateSummary={handleGenerateSummary}
+            onDeleteSummary={handleDeleteSummary}
           />
         </div>
 
@@ -415,6 +463,13 @@ export function CaseWorkspace() {
         onGenerate={handleGenerate}
         onTemplateChange={handleTemplateClick}
         templates={DRAFT_TEMPLATES}
+      />
+
+      <AddSourceModal
+        open={addSourceModalOpen}
+        onOpenChange={setAddSourceModalOpen}
+        onUpload={uploadFile}
+        isUploading={isUploading}
       />
     </div>
   )

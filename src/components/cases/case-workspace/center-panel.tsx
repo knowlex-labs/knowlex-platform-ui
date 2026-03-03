@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { WorkspaceTabBar } from './workspace-tab-bar'
 import { WorkspaceLanding } from './workspace-landing'
 import { DraftPreviewTab } from './draft-preview-tab'
+import { SummaryView } from './summary-view'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,12 +12,14 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import type { WorkspaceTabItem, Draft } from '@/types'
+import type { WorkspaceTabItem, Draft, CaseSummary } from '@/types'
 
 interface CenterPanelProps {
   tabs: WorkspaceTabItem[]
   activeTabId: string
   drafts: Draft[]
+  summary: CaseSummary | null
+  isGeneratingSummary: boolean
   onTabClick: (tabId: string) => void
   onTabClose: (tabId: string) => void
   onSaveDraftLocal: (id: string, title: string, content: string) => void
@@ -25,13 +28,19 @@ interface CenterPanelProps {
   onRetryDraft?: (draftId: string) => void
   onTabDirtyChange: (tabId: string, isDirty: boolean) => void
   onDraftingClick: () => void
+  onSummaryClick: () => void
+  onUploadDocumentsClick: () => void
   onSendToChat: (text: string) => void
+  onGenerateSummary: () => void
+  onDeleteSummary: () => void
 }
 
 export function CenterPanel({
   tabs,
   activeTabId,
   drafts,
+  summary,
+  isGeneratingSummary,
   onTabClick,
   onTabClose,
   onSaveDraftLocal,
@@ -40,7 +49,11 @@ export function CenterPanel({
   onRetryDraft,
   onTabDirtyChange,
   onDraftingClick,
+  onSummaryClick,
+  onUploadDocumentsClick,
   onSendToChat,
+  onGenerateSummary,
+  onDeleteSummary,
 }: CenterPanelProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId)
   const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null)
@@ -91,7 +104,11 @@ export function CenterPanel({
   if (tabs.length === 0) {
     return (
       <div className="flex flex-col h-full bg-kx-card overflow-hidden">
-        <WorkspaceLanding onDraftingClick={onDraftingClick} />
+        <WorkspaceLanding
+          onDraftingClick={onDraftingClick}
+          onSummaryClick={onSummaryClick}
+          onUploadDocumentsClick={onUploadDocumentsClick}
+        />
       </div>
     )
   }
@@ -108,7 +125,14 @@ export function CenterPanel({
 
       {/* Content Area */}
       <div className="flex-1 overflow-hidden">
-        {activeDraft ? (
+        {activeTab?.type === 'summary' ? (
+          <SummaryView
+            summary={summary}
+            isGenerating={isGeneratingSummary}
+            onRegenerate={onGenerateSummary}
+            onDelete={onDeleteSummary}
+          />
+        ) : activeDraft ? (
           <DraftPreviewTab
             key={activeDraft.id}
             draft={activeDraft}

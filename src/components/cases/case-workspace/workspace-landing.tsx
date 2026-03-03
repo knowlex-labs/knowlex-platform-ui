@@ -1,11 +1,20 @@
-import { PenLine, FileText, ListChecks, FileOutput, Lock } from 'lucide-react'
+import { PenLine, FileText, ListChecks, Upload, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface WorkspaceLandingProps {
   onDraftingClick: () => void
+  onSummaryClick: () => void
+  onUploadDocumentsClick: () => void
 }
 
 const tools = [
+  {
+    id: 'upload',
+    name: 'Upload Documents',
+    description: 'Upload and index source documents for your case',
+    icon: Upload,
+    locked: false,
+  },
   {
     id: 'drafting',
     name: 'Drafts',
@@ -18,7 +27,7 @@ const tools = [
     name: 'Summary',
     description: 'Generate concise summaries from your case documents',
     icon: FileText,
-    locked: true,
+    locked: false,
   },
   {
     id: 'key-facts',
@@ -27,16 +36,15 @@ const tools = [
     icon: ListChecks,
     locked: true,
   },
-  {
-    id: 'report',
-    name: 'Report',
-    description: 'Build comprehensive legal analysis reports',
-    icon: FileOutput,
-    locked: true,
-  },
 ]
 
-export function WorkspaceLanding({ onDraftingClick }: WorkspaceLandingProps) {
+export function WorkspaceLanding({ onDraftingClick, onSummaryClick, onUploadDocumentsClick }: WorkspaceLandingProps) {
+  const handleClick = (toolId: string) => {
+    if (toolId === 'drafting') onDraftingClick()
+    else if (toolId === 'summary') onSummaryClick()
+    else if (toolId === 'upload') onUploadDocumentsClick()
+  }
+
   return (
     <div className="flex items-center justify-center h-full p-8">
       <div className="max-w-lg w-full">
@@ -55,7 +63,7 @@ export function WorkspaceLanding({ onDraftingClick }: WorkspaceLandingProps) {
             return (
               <button
                 key={tool.id}
-                onClick={tool.locked ? undefined : onDraftingClick}
+                onClick={tool.locked ? undefined : () => handleClick(tool.id)}
                 disabled={tool.locked}
                 className={cn(
                   'relative flex flex-col items-center gap-3 p-6 rounded-xl border transition-all duration-150',

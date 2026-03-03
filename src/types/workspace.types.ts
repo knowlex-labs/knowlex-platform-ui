@@ -112,10 +112,19 @@ export interface CaseFilter {
 
 export type WorkspaceTab = 'chat' | 'drafts' | 'notes'
 
+// Case summary
+export interface CaseSummary {
+  id: string
+  status: 'pending' | 'completed' | 'failed'
+  content: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 // IDE-like tab system for workspace
 export interface WorkspaceTabItem {
   id: string
-  type: 'chat' | 'draft'
+  type: 'chat' | 'draft' | 'summary'
   label: string
   draftId?: string
   isUnsaved?: boolean
