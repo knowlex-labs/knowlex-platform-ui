@@ -6,7 +6,7 @@ export interface CaseSource {
   fileSize: number
   storageUrl: string
   storageKey: string
-  documentSource: 'UPLOAD' | 'GOOGLE_DRIVE'
+  documentSource: 'UPLOAD' | 'GOOGLE_DRIVE' | 'JUDGMENT'
   description?: string
   caseId: string
   collectionId?: string
@@ -124,9 +124,12 @@ export interface CaseSummary {
 // IDE-like tab system for workspace
 export interface WorkspaceTabItem {
   id: string
-  type: 'chat' | 'draft' | 'summary'
+  type: 'chat' | 'draft' | 'summary' | 'source'
   label: string
   draftId?: string
+  sourceId?: string
+  sourceUrl?: string
+  sourceFileType?: CaseSource['fileType']
   isUnsaved?: boolean
 }
 
@@ -194,8 +197,8 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'FileWarning',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter notice title' },
-      { id: 'sender', label: 'Sender Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'recipient', label: 'Recipient Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'sender', label: 'Sender Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'recipient', label: 'Recipient Details', type: 'textarea', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'body', label: 'Notice Content', type: 'textarea', required: false, placeholder: 'Enter initial content (optional)' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],
@@ -207,8 +210,8 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'Lightbulb',
     fields: [
       { id: 'title', label: 'Patent Title', type: 'text', required: true, placeholder: 'Enter patent title' },
-      { id: 'inventor', label: 'Inventor Name', type: 'text', required: true, placeholder: 'Enter inventor name' },
-      { id: 'description', label: 'Description', type: 'textarea', required: true, placeholder: 'Describe the invention' },
+      { id: 'inventor', label: 'Inventor Name', type: 'text', required: false, placeholder: 'Enter inventor name' },
+      { id: 'description', label: 'Description', type: 'textarea', required: false, placeholder: 'Describe the invention' },
       { id: 'sources', label: 'Supporting Documents', type: 'sources', required: false },
     ],
   },
@@ -219,7 +222,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'FileText',
     fields: [
       { id: 'title', label: 'Application Title', type: 'text', required: true, placeholder: 'Enter application title' },
-      { id: 'applicant', label: 'Applicant Name', type: 'client-select', required: true, placeholder: 'Enter applicant name' },
+      { id: 'applicant', label: 'Applicant Name', type: 'client-select', required: false, placeholder: 'Enter applicant name' },
       { id: 'body', label: 'Application Body', type: 'textarea', required: false, placeholder: 'Enter initial content (optional)' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],
@@ -231,9 +234,9 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'FileClock',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter application title' },
-      { id: 'plaintiff', label: 'Plaintiff Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'defendant', label: 'Defendant Details', type: 'textarea', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'grounds', label: 'Grounds', type: 'textarea', required: true, placeholder: 'Enter grounds for application' },
+      { id: 'plaintiff', label: 'Plaintiff Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'defendant', label: 'Defendant Details', type: 'textarea', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'grounds', label: 'Grounds', type: 'textarea', required: false, placeholder: 'Enter grounds for application' },
       { id: 'sources', label: 'Supporting Documents', type: 'sources', required: false },
     ],
   },
@@ -244,8 +247,8 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'Scale',
     fields: [
       { id: 'title', label: 'Affidavit Title', type: 'text', required: true, placeholder: 'Enter affidavit title' },
-      { id: 'deponent', label: 'Deponent Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'statements', label: 'Statements', type: 'textarea', required: true, placeholder: 'Enter affidavit statements' },
+      { id: 'deponent', label: 'Deponent Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'statements', label: 'Statements', type: 'textarea', required: false, placeholder: 'Enter affidavit statements' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],
   },
@@ -256,16 +259,16 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'Gavel',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter application title' },
-      { id: 'applicant', label: 'Applicant Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
-      { id: 'opposite_party', label: 'Opposite Party / State', type: 'textarea', required: true, placeholder: 'Enter opposite party details (e.g., State of Karnataka through PSI, XYZ Police Station)' },
-      { id: 'court_details', label: 'Court Details', type: 'text', required: true, placeholder: 'e.g., Sessions Court, Bangalore Urban District' },
-      { id: 'fir_details', label: 'FIR Details', type: 'textarea', required: true, placeholder: 'FIR number, police station, date, sections invoked (e.g., FIR No. 123/2025, XYZ PS, u/s 302, 34 IPC)' },
-      { id: 'facts', label: 'Brief Facts', type: 'textarea', required: true, placeholder: 'Briefly describe the facts of the case' },
+      { id: 'applicant', label: 'Applicant Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
+      { id: 'opposite_party', label: 'Opposite Party / State', type: 'textarea', required: false, placeholder: 'Enter opposite party details (e.g., State of Karnataka through PSI, XYZ Police Station)' },
+      { id: 'court_details', label: 'Court Details', type: 'text', required: false, placeholder: 'e.g., Sessions Court, Bangalore Urban District' },
+      { id: 'fir_details', label: 'FIR Details', type: 'textarea', required: false, placeholder: 'FIR number, police station, date, sections invoked (e.g., FIR No. 123/2025, XYZ PS, u/s 302, 34 IPC)' },
+      { id: 'facts', label: 'Brief Facts', type: 'textarea', required: false, placeholder: 'Briefly describe the facts of the case' },
       { id: 'criminal_history', label: 'Criminal History', type: 'textarea', required: false, placeholder: 'Details of any prior criminal cases (leave blank if none)' },
       { id: 'bail_history', label: 'Bail History', type: 'textarea', required: false, placeholder: 'Details of any prior bail applications and their outcome' },
       { id: 'co_accused_details', label: 'Co-Accused Details', type: 'textarea', required: false, placeholder: 'Details of co-accused persons, if any' },
-      { id: 'relief_sought', label: 'Relief Sought', type: 'textarea', required: true, placeholder: 'Describe the relief being sought (e.g., regular bail, anticipatory bail)' },
-      { id: 'language', label: 'Language', type: 'select', required: true, options: [
+      { id: 'relief_sought', label: 'Relief Sought', type: 'textarea', required: false, placeholder: 'Describe the relief being sought (e.g., regular bail, anticipatory bail)' },
+      { id: 'language', label: 'Language', type: 'select', required: false, options: [
         { label: 'English', value: 'english' },
         { label: 'Hindi', value: 'hindi' },
         { label: 'Bilingual', value: 'bilingual' },
@@ -280,15 +283,15 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     icon: 'ShieldAlert',
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter appeal title' },
-      { id: 'appellant', label: 'Appellant Details', type: 'client-select', required: true, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
-      { id: 'respondent', label: 'Respondent Details', type: 'textarea', required: true, placeholder: 'Enter respondent details (e.g., State of Maharashtra through PP, High Court)' },
-      { id: 'court_details', label: 'Court Details', type: 'text', required: true, placeholder: 'e.g., High Court of Bombay, Appellate Side' },
-      { id: 'impugned_order', label: 'Impugned Order Details', type: 'textarea', required: true, placeholder: 'Details of the order/judgment being challenged — court, date, case number, conviction details' },
-      { id: 'facts', label: 'Brief Facts', type: 'textarea', required: true, placeholder: 'Briefly describe the facts of the case' },
+      { id: 'appellant', label: 'Appellant Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
+      { id: 'respondent', label: 'Respondent Details', type: 'textarea', required: false, placeholder: 'Enter respondent details (e.g., State of Maharashtra through PP, High Court)' },
+      { id: 'court_details', label: 'Court Details', type: 'text', required: false, placeholder: 'e.g., High Court of Bombay, Appellate Side' },
+      { id: 'impugned_order', label: 'Impugned Order Details', type: 'textarea', required: false, placeholder: 'Details of the order/judgment being challenged — court, date, case number, conviction details' },
+      { id: 'facts', label: 'Brief Facts', type: 'textarea', required: false, placeholder: 'Briefly describe the facts of the case' },
       { id: 'criminal_history', label: 'Criminal History', type: 'textarea', required: false, placeholder: 'Details of any prior criminal cases (leave blank if none)' },
       { id: 'co_accused_details', label: 'Co-Accused Details', type: 'textarea', required: false, placeholder: 'Details of co-accused persons, if any' },
-      { id: 'relief_sought', label: 'Relief Sought', type: 'textarea', required: true, placeholder: 'Describe the relief being sought (e.g., acquittal, reduction of sentence, suspension of sentence)' },
-      { id: 'language', label: 'Language', type: 'select', required: true, options: [
+      { id: 'relief_sought', label: 'Relief Sought', type: 'textarea', required: false, placeholder: 'Describe the relief being sought (e.g., acquittal, reduction of sentence, suspension of sentence)' },
+      { id: 'language', label: 'Language', type: 'select', required: false, options: [
         { label: 'English', value: 'english' },
         { label: 'Hindi', value: 'hindi' },
         { label: 'Bilingual', value: 'bilingual' },

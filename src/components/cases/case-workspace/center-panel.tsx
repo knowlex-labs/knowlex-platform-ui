@@ -1,8 +1,10 @@
 import { useState, useCallback } from 'react'
+import { ExternalLink } from 'lucide-react'
 import { WorkspaceTabBar } from './workspace-tab-bar'
 import { WorkspaceLanding } from './workspace-landing'
 import { DraftPreviewTab } from './draft-preview-tab'
 import { SummaryView } from './summary-view'
+import { DraftCreationWizard } from './draft-creation-wizard'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,7 +14,8 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import type { WorkspaceTabItem, Draft, CaseSummary } from '@/types'
+import type { WorkspaceTabItem, Draft, CaseSummary, CaseSource, Client } from '@/types'
+import type { CreateDraftRequest } from '@/services/api/drafts-api'
 
 interface CenterPanelProps {
   tabs: WorkspaceTabItem[]
@@ -30,9 +33,15 @@ interface CenterPanelProps {
   onDraftingClick: () => void
   onSummaryClick: () => void
   onUploadDocumentsClick: () => void
+  onLinkJudgmentClick: () => void
   onSendToChat: (text: string) => void
   onGenerateSummary: () => void
   onDeleteSummary: () => void
+  showDraftWizard?: boolean
+  wizardSources?: CaseSource[]
+  wizardClient?: Client | null
+  onWizardGenerate?: (request: CreateDraftRequest) => void
+  onWizardCancel?: () => void
 }
 
 export function CenterPanel({
@@ -51,9 +60,15 @@ export function CenterPanel({
   onDraftingClick,
   onSummaryClick,
   onUploadDocumentsClick,
+  onLinkJudgmentClick,
   onSendToChat,
   onGenerateSummary,
   onDeleteSummary,
+  showDraftWizard = false,
+  wizardSources = [],
+  wizardClient = null,
+  onWizardGenerate,
+  onWizardCancel,
 }: CenterPanelProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId)
   const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null)
@@ -100,6 +115,20 @@ export function CenterPanel({
     setPendingCloseTabId(null)
   }, [pendingCloseTabId, onTabClose])
 
+  // Full-panel wizard — replaces all other content when active
+  if (showDraftWizard && onWizardGenerate && onWizardCancel) {
+    return (
+      <div className="flex flex-col h-full bg-kx-card overflow-hidden">
+        <DraftCreationWizard
+          sources={wizardSources}
+          client={wizardClient}
+          onGenerate={onWizardGenerate}
+          onCancel={onWizardCancel}
+        />
+      </div>
+    )
+  }
+
   // Empty state — show landing with tool cards
   if (tabs.length === 0) {
     return (
@@ -108,6 +137,7 @@ export function CenterPanel({
           onDraftingClick={onDraftingClick}
           onSummaryClick={onSummaryClick}
           onUploadDocumentsClick={onUploadDocumentsClick}
+          onLinkJudgmentClick={onLinkJudgmentClick}
         />
       </div>
     )
@@ -132,6 +162,35 @@ export function CenterPanel({
             onRegenerate={onGenerateSummary}
             onDelete={onDeleteSummary}
           />
+        ) : activeTab?.type === 'source' ? (
+          <div className="flex flex-col h-full bg-ledger-gray-100">
+            {(['PDF', 'JPG', 'JPEG', 'PNG'] as const).some((t) => t === activeTab.sourceFileType) ? (
+              activeTab.sourceFileType === 'PDF' ? (
+                <iframe
+                  key={activeTab.sourceUrl}
+                  src={activeTab.sourceUrl}
+                  className="flex-1 w-full border-0"
+                  title={activeTab.label}
+                />
+              ) : (
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <img
+                    src={activeTab.sourceUrl}
+                    alt={activeTab.label}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center gap-3 text-ledger-gray-500">
+                <p className="text-sm">Preview not available for this file type.</p>
+                <Button variant="outline" size="sm" onClick={() => window.open(activeTab.sourceUrl, '_blank')}>
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open file
+                </Button>
+              </div>
+            )}
+          </div>
         ) : activeDraft ? (
           <DraftPreviewTab
             key={activeDraft.id}

@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Loader2, FileText, Trash2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { CaseSource, Draft, CaseSummary } from '@/types'
+import type { CaseSource, Draft, CaseSummary, Judgment } from '@/types'
 import { SourceItem } from './source-item'
 import { DraftItem } from './draft-item'
 
 interface LeftSidebarProps {
   sources: CaseSource[]
+  judgments: Judgment[]
+  isJudgmentsLoading: boolean
   selectedSourceIds: Set<string>
   isSourcesLoading: boolean
   drafts: Draft[]
@@ -21,10 +23,15 @@ interface LeftSidebarProps {
   onDeleteDraft: (id: string) => void
   onSummaryClick: () => void
   onDeleteSummary: () => void
+  onOpenSourceInTab: (source: CaseSource, url: string) => void
+  onOpenJudgment: (judgment: Judgment) => void
+  onDeleteJudgment?: (judgmentId: string) => void
 }
 
 export function LeftSidebar({
   sources,
+  judgments,
+  isJudgmentsLoading,
   selectedSourceIds,
   isSourcesLoading,
   drafts,
@@ -39,64 +46,41 @@ export function LeftSidebar({
   onDeleteDraft,
   onSummaryClick,
   onDeleteSummary,
+  onOpenSourceInTab,
+  onOpenJudgment,
+  onDeleteJudgment,
 }: LeftSidebarProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(true)
+  const [judgmentsExpanded, setJudgmentsExpanded] = useState(true)
   const [draftsExpanded, setDraftsExpanded] = useState(true)
   const [summaryExpanded, setSummaryExpanded] = useState(true)
 
-  const allSourcesSelected = sources.length > 0 && selectedSourceIds.size === sources.length
-  const someSourcesSelected = selectedSourceIds.size > 0 && selectedSourceIds.size < sources.length
+  // Filter sources by type
+  const uploadedSources = sources.filter(s => s.documentSource === 'UPLOAD')
 
-  const handleSourcesSelectAll = () => {
-    if (allSourcesSelected || someSourcesSelected) {
-      onDeselectAllSources()
-    } else {
-      onSelectAllSources()
-    }
-  }
+  const allSourcesSelected = uploadedSources.length > 0 && selectedSourceIds.size === uploadedSources.length
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-kx-card">
       <div className="flex-1 overflow-y-auto">
-        {/* Sources Section */}
+        {/* User Uploaded Section */}
         <div className="pb-2">
-          <div className="flex items-center px-4 py-3 hover:bg-ledger-gray-50 transition-colors">
-            {sources.length > 0 && (
-              <input
-                type="checkbox"
-                checked={allSourcesSelected}
-                ref={(el) => {
-                  if (el) el.indeterminate = someSourcesSelected
-                }}
-                onChange={handleSourcesSelectAll}
-                onClick={(e) => e.stopPropagation()}
-                className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0 mr-2"
-              />
+          <button
+            className="flex items-center gap-2 px-4 py-3 w-full hover:bg-ledger-gray-50 transition-colors"
+            onClick={() => setSourcesExpanded(!sourcesExpanded)}
+          >
+            {sourcesExpanded ? (
+              <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
             )}
-            <button
-              className="flex-1 flex items-center justify-between"
-              onClick={() => setSourcesExpanded(!sourcesExpanded)}
-            >
-              <div className="flex items-center gap-2">
-                {sourcesExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
-                )}
-                <span className="text-sm font-semibold text-kx-primary-900">Sources</span>
-                {sources.length > 0 && (
-                  <span className="text-xs text-ledger-gray-400 px-1.5">
-                    {sources.length}
-                  </span>
-                )}
-              </div>
-              {selectedSourceIds.size > 0 && (
-                <span className="text-xs text-ledger-gray-500">
-                  {selectedSourceIds.size} selected
-                </span>
-              )}
-            </button>
-          </div>
+            <span className="text-sm font-semibold text-kx-primary-900">Sources</span>
+            {uploadedSources.length > 0 && (
+              <span className="text-xs text-ledger-gray-400 px-1.5">
+                {uploadedSources.length}
+              </span>
+            )}
+          </button>
 
           {sourcesExpanded && (
             <div>
@@ -104,13 +88,24 @@ export function LeftSidebar({
                 <div className="flex items-center justify-center py-6">
                   <Loader2 className="h-4 w-4 animate-spin text-ledger-gray-400" />
                 </div>
-              ) : sources.length === 0 ? (
+              ) : uploadedSources.length === 0 ? (
                 <div className="px-4 py-4 text-center">
-                  <p className="text-xs text-ledger-gray-500">No sources added</p>
+                  <p className="text-xs text-ledger-gray-500">No documents uploaded</p>
                 </div>
               ) : (
                 <div>
-                  {sources.map((source) => (
+                  <div className="flex items-center justify-between px-4 py-1">
+                    <button
+                      className="text-xs text-ledger-gray-500 hover:text-kx-primary-700 transition-colors"
+                      onClick={allSourcesSelected ? onDeselectAllSources : onSelectAllSources}
+                    >
+                      {allSourcesSelected ? 'Deselect all' : 'Select all'}
+                    </button>
+                    {selectedSourceIds.size > 0 && (
+                      <span className="text-xs text-ledger-gray-400">{selectedSourceIds.size} selected</span>
+                    )}
+                  </div>
+                  {uploadedSources.map((source) => (
                     <SourceItem
                       key={source.id}
                       source={source}
@@ -118,7 +113,72 @@ export function LeftSidebar({
                       onToggleSelection={() => onToggleSourceSelection(source.id)}
                       onDelete={() => onDeleteSource(source.id)}
                       onLinkContent={() => onLinkContent(source.id)}
+                      onOpenInTab={onOpenSourceInTab}
                     />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="mx-4 border-t border-ledger-gray-200" />
+
+        {/* Judgments Section */}
+        <div className="pb-2">
+          <button
+            className="flex items-center gap-2 px-4 py-3 w-full hover:bg-ledger-gray-50 transition-colors"
+            onClick={() => setJudgmentsExpanded(!judgmentsExpanded)}
+          >
+            {judgmentsExpanded ? (
+              <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
+            )}
+            <span className="text-sm font-semibold text-kx-primary-900">Judgments</span>
+            {judgments.length > 0 && (
+              <span className="text-xs text-ledger-gray-400 px-1.5">
+                {judgments.length}
+              </span>
+            )}
+          </button>
+
+          {judgmentsExpanded && (
+            <div>
+              {isJudgmentsLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-4 w-4 animate-spin text-ledger-gray-400" />
+                </div>
+              ) : judgments.length === 0 ? (
+                <div className="px-4 py-4 text-center">
+                  <p className="text-xs text-ledger-gray-500">No judgments linked</p>
+                </div>
+              ) : (
+                <div>
+                  {judgments.map((judgment) => (
+                    <div
+                      key={judgment.id}
+                      className="group relative flex items-center gap-2 px-4 py-2.5 hover:bg-ledger-gray-50 transition-colors cursor-pointer"
+                      onClick={() => onOpenJudgment(judgment)}
+                    >
+                      <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-kx-primary-900 truncate">{judgment.title}</p>
+                        <p className="text-xs text-ledger-gray-500 truncate">{judgment.citation}</p>
+                      </div>
+                      {onDeleteJudgment && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
+                          onClick={(e) => { e.stopPropagation(); onDeleteJudgment(judgment.id) }}
+                          title="Remove judgment"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   ))}
                 </div>
               )}

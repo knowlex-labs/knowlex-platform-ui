@@ -7,7 +7,7 @@ const MAX_POLL_ATTEMPTS = 60
 
 export function useSummary(caseId: string) {
   const [summary, setSummary] = useState<CaseSummary | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading] = useState(false) // Summary fetch is synchronous; loading state not needed
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -65,22 +65,10 @@ export function useSummary(caseId: string) {
     }, POLL_INTERVAL_MS)
   }, [fetchSummary, stopPolling])
 
-  // Initial fetch on mount / caseId change
+  // Cleanup polling on unmount
   useEffect(() => {
-    setIsLoading(true)
-    setSummary(null)
-    fetchSummary().then((current) => {
-      if (current && current.status === 'pending') {
-        setIsGenerating(true)
-        startPolling()
-      }
-    }).finally(() => {
-      setIsLoading(false)
-    })
-
     return () => stopPolling()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [caseId])
+  }, [stopPolling])
 
   const generateSummary = useCallback(async () => {
     setError(null)
@@ -115,6 +103,7 @@ export function useSummary(caseId: string) {
     isLoading,
     isGenerating,
     error,
+    fetchSummary,
     generateSummary,
     deleteSummary,
   }

@@ -10,9 +10,17 @@ import type {
   CreateCaseRequest,
   PaginatedData,
   UpdateCaseRequest,
+  Judgment,
 } from '@/types'
 
 const CASES_ENDPOINT = '/api/v1/cases'
+
+export interface CaseOverviewSummary {
+  documentCount: number
+  judgmentCount: number
+  draftCount: number
+  summaryCount: number
+}
 
 export interface GetCasesParams {
   page?: number
@@ -59,7 +67,15 @@ export const caseApi = {
     return apiClient.post<ApiResponse<unknown>>(`${CASES_ENDPOINT}/${caseId}/judgments`, { judgmentId })
   },
 
+  getJudgments: (caseId: string): Promise<ApiResponse<Judgment[]>> => {
+    return apiClient.get<ApiResponse<Judgment[]>>(`${CASES_ENDPOINT}/${caseId}/judgments`)
+  },
+
   getTypes: (): Promise<ApiResponse<CaseTypeOption[]>> => {
     return apiClient.get<ApiResponse<CaseTypeOption[]>>(`${CASES_ENDPOINT}/types`)
+  },
+
+  getOverviewSummary: (caseId: string): Promise<ApiResponse<CaseOverviewSummary>> => {
+    return apiClient.get<ApiResponse<CaseOverviewSummary>>(`${CASES_ENDPOINT}/${caseId}/overview/summary`)
   },
 }

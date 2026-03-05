@@ -10,6 +10,7 @@ interface ApiResponse<T> {
 
 // Presigned URL response from backend
 interface PresignedUrlData {
+  documentId: string
   uploadUrl: string
   storageKey: string
   storageUrl: string
@@ -29,12 +30,6 @@ interface BackendChatResponse {
     page_number: number | null
     concepts: string[]
   }[]
-}
-
-// Helper to map file extension to fileType enum
-function getFileType(filename: string): string {
-  const ext = filename.split('.').pop()?.toUpperCase() || 'PDF'
-  return ['PDF', 'DOCX', 'DOC', 'JPG', 'JPEG', 'PNG'].includes(ext) ? ext : 'PDF'
 }
 
 // Map backend chat response to frontend ChatResponse
@@ -62,28 +57,29 @@ interface PaginatedResponse<T> {
 export const workspaceApi = {
   /**
    * Get all documents for a case
+   * GET /api/v1/cases/{caseId}/documents - returns only user-uploaded documents
+   * GET /api/v1/cases/{caseId}/documents?includeDrafts=true - includes drafts
    */
-  async getCaseDocuments(caseId: string): Promise<CaseSource[]> {
+  async getCaseDocuments(caseId: string, includeDrafts = false): Promise<CaseSource[]> {
+    const params = includeDrafts ? '?includeDrafts=true' : ''
     const response = await apiClient.get<ApiResponse<PaginatedResponse<CaseSource>>>(
-      `/api/v1/documents?caseId=${caseId}&page=0&size=100`
+      `/api/v1/cases/${caseId}/documents${params}`
     )
     return response.data.content
   },
 
   /**
-   * Step 1: Get presigned URL for uploading a file to S3
+   * Get presigned upload URL (simplified flow)
+   * POST /api/v1/presigned-url/upload with { caseId, fileName }
+   * Backend creates document and returns { documentId, uploadUrl, storageKey, storageUrl }
    */
   async getPresignedUploadUrl(
     caseId: string,
-    filename: string,
+    fileName: string
   ): Promise<PresignedUrlData> {
     const response = await apiClient.post<ApiResponse<PresignedUrlData>>(
-      '/api/v1/documents/upload-url',
-      {
-        filename,
-        fileType: getFileType(filename),
-        caseId,
-      }
+      '/api/v1/presigned-url/upload',
+      { caseId, fileName }
     )
     return response.data
   },
@@ -106,38 +102,15 @@ export const workspaceApi = {
   },
 
   /**
-   * Step 3: Register document with backend after S3 upload
-   */
-  async createCaseSource(
-    caseId: string,
-    file: File,
-    storageUrl: string,
-    storageKey: string
-  ): Promise<CaseSource> {
-    const response = await apiClient.post<ApiResponse<CaseSource>>(
-      '/api/v1/documents',
-      {
-        filename: file.name,
-        originalFilename: file.name,
-        fileType: getFileType(file.name),
-        fileSize: file.size,
-        storageUrl,
-        storageKey,
-        documentSource: 'UPLOAD',
-        caseId,
-      }
-    )
-    return response.data
-  },
-
-  /**
    * Get a presigned download URL for viewing/downloading a document
+   * POST /api/v1/presigned-url/download with { documentId }
    */
   async getDownloadUrl(documentId: string): Promise<string> {
-    const response = await apiClient.get<ApiResponse<{ downloadUrl: string }>>(
-      `/api/v1/documents/${documentId}/download-url`
+    const response = await apiClient.post<ApiResponse<{ uploadUrl: string }>>(
+      '/api/v1/presigned-url/download',
+      { documentId }
     )
-    return response.data.downloadUrl
+    return response.data.uploadUrl
   },
 
   /**

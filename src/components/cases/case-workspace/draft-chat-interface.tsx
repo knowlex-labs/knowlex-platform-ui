@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { ArrowUp, Loader2, FileCheck, MessageSquareDot, Search, ChevronDown, ChevronRight, Wrench, Bot, User } from 'lucide-react'
-import { ScrollArea } from '@/components/ui/scroll-area'
+import { ArrowUp, Loader2, FileCheck, MessageSquareDot, Search, ChevronDown, ChevronRight, Wrench } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MarkdownRenderer } from '@/components/ai-research/markdown-renderer'
 import { StreamingIndicator } from '@/components/ai-research/streaming-indicator'
@@ -51,16 +50,22 @@ function ToolsIndicator({ toolCalls }: { toolCalls?: DraftChatMessage['toolCalls
   )
 }
 
+function stripInjectedContext(content: string): string {
+  const delimiters = ['\n\n---\n', '\n---\n', '\n---', 'RESPONSE INSTRUCTIONS:']
+  for (const d of delimiters) {
+    const idx = content.indexOf(d)
+    if (idx !== -1) return content.slice(0, idx).trim()
+  }
+  return content
+}
+
 function UserBubble({ message }: { message: DraftChatMessage }) {
+  const displayContent = stripInjectedContext(message.content || '')
   return (
     <div className="flex justify-end">
       <div className="max-w-[75%]">
-        <div className="flex items-center justify-end gap-1.5 mb-1">
-          <span className="text-xs font-medium text-ledger-gray-500">You</span>
-          <User className="h-3 w-3 text-ledger-gray-400" />
-        </div>
         <div className="rounded-2xl rounded-br-sm bg-kx-primary-600 text-white px-4 py-2.5">
-          <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
+          <p className="text-sm whitespace-pre-wrap leading-relaxed">{displayContent}</p>
         </div>
       </div>
     </div>
@@ -78,10 +83,6 @@ function AssistantBubble({ message }: { message: DraftChatMessage }) {
 
   return (
     <div>
-      <div className="flex items-center gap-1.5 mb-1">
-        <Bot className="h-3 w-3 text-ledger-gray-400" />
-        <span className="text-xs font-medium text-ledger-gray-500">Chat</span>
-      </div>
       <div className="pl-0.5">
         {showThinkingDots && <StreamingIndicator />}
 
@@ -127,8 +128,10 @@ export function DraftChatInterface({
   onSendMessage,
 }: DraftChatInterfaceProps) {
   const [input, setInput] = useState('')
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const isNearBottomRef = useRef(true)
 
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current
@@ -137,12 +140,35 @@ export function DraftChatInterface({
     textarea.style.height = `${Math.min(textarea.scrollHeight, 150)}px`
   }, [])
 
-  // Auto-scroll to bottom when messages change
+  const scrollToBottom = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  }, [])
+
+  // Track whether user is near the bottom so we don't hijack manual scrolling
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    isNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  }, [])
+
+  // ResizeObserver on content: fires as streaming adds tokens — no React dep needed
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [messages.length])
+    const content = contentRef.current
+    if (!content) return
+    const observer = new ResizeObserver(() => {
+      if (isNearBottomRef.current) scrollToBottom()
+    })
+    observer.observe(content)
+    return () => observer.disconnect()
+  }, [scrollToBottom])
+
+  // When a new message is added, always snap to bottom
+  useEffect(() => {
+    isNearBottomRef.current = true
+    scrollToBottom()
+  }, [messages.length, scrollToBottom])
 
   useEffect(() => {
     adjustTextareaHeight()
@@ -186,8 +212,12 @@ export function DraftChatInterface({
           </p>
         </div>
       ) : (
-        <ScrollArea className="flex-1 px-4" ref={scrollRef}>
-          <div className="py-4 space-y-4">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 scroll-smooth"
+          onScroll={handleScroll}
+        >
+          <div ref={contentRef} className="py-4 space-y-4">
             {messages.map((message) =>
               message.role === 'user' ? (
                 <UserBubble key={message.id} message={message} />
@@ -196,7 +226,7 @@ export function DraftChatInterface({
               )
             )}
           </div>
-        </ScrollArea>
+        </div>
       )}
 
       {/* Input */}

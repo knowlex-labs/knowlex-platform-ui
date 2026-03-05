@@ -168,28 +168,24 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
       setError(null)
 
       try {
-        // Step 1: Get presigned URL
-        const { uploadUrl, storageKey, storageUrl } =
+        // Step 1: Get presigned URL (backend creates document automatically)
+        const { documentId, uploadUrl } =
           await workspaceApi.getPresignedUploadUrl(caseId, file.name)
 
         // Step 2: Upload to S3
         await workspaceApi.uploadFileToS3(uploadUrl, file)
 
-        // Step 3: Register with backend
-        const source = await workspaceApi.createCaseSource(
-          caseId,
-          file,
-          storageUrl,
-          storageKey
-        )
+        // Step 3: Refresh sources to get the newly created document
+        const documents = await workspaceApi.getCaseDocuments(caseId)
+        setSources(documents)
 
-        // Step 4: Add to local state and auto-select
-        setSources((prev) => [...prev, source])
-        setSelectedSourceIds((prev) => new Set([...prev, source.id]))
+        // Step 4: Select the newly uploaded document
+        setSelectedSourceIds((prev) => new Set([...prev, documentId]))
 
         // Step 5: Start polling if status needs it
-        if (source.indexingStatus === 'INDEXING' || source.indexingStatus === 'INDEXING_PENDING') {
-          startPolling(source.id)
+        const newSource = documents.find(s => s.id === documentId)
+        if (newSource && (newSource.indexingStatus === 'INDEXING' || newSource.indexingStatus === 'INDEXING_PENDING')) {
+          startPolling(documentId)
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to upload file'

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
@@ -14,45 +14,10 @@ import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
 import { DraftChatPanel } from './draft-chat-panel'
 import { HeaderToolButtons } from './header-tool-buttons'
-import { TemplateFormModal } from './template-form-modal'
 import { AddSourceModal } from './add-source-modal'
-import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/drafts-api'
-import type { Draft, DraftTemplate, TemplateFormData, Client } from '@/types'
-import { DRAFT_TEMPLATES } from '@/types'
-
-// Maps each template to its API document_type and optional subtype
-const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
-  'notice': { documentType: 'legal_notice', subtype: 'demand' },
-  'patent': { documentType: 'application' },
-  'application-draft': { documentType: 'application', subtype: 'vakalatnama' },
-  'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
-  'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
-  'bail-application': { documentType: 'bail_application' },
-  'criminal-appeal': { documentType: 'criminal_appeal' },
-}
-
-// Assembles template form fields into plain-language instructions for the AI
-function assembleBody(templateId: string, formData: TemplateFormData): string {
-  const get = (key: string): string => (formData[key] as string) || ''
-  switch (templateId) {
-    case 'notice':
-      return `Draft a legal notice to ${get('recipient')}. ${get('body')}`.trim()
-    case 'patent':
-      return `Draft a patent application for inventor ${get('inventor')}. Description: ${get('description')}`.trim()
-    case 'application-draft':
-      return `Draft an application for applicant ${get('applicant')}. ${get('body')}`.trim()
-    case 'interim-application':
-      return `Draft an interim application. Plaintiff: ${get('plaintiff')}. Defendant: ${get('defendant')}. Grounds: ${get('grounds')}`.trim()
-    case 'affidavit':
-      return `Draft an affidavit for deponent ${get('deponent')}. Statements: ${get('statements')}`.trim()
-    case 'bail-application':
-      return `Draft a bail application. Applicant: ${get('applicant')}. Opposite Party: ${get('opposite_party')}. Court: ${get('court_details')}. FIR Details: ${get('fir_details')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'criminal-appeal':
-      return `Draft a criminal appeal. Appellant: ${get('appellant')}. Respondent: ${get('respondent')}. Court: ${get('court_details')}. Impugned Order: ${get('impugned_order')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    default:
-      return 'Generate a legal document based on the provided information.'
-  }
-}
+import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
+import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
+import type { Draft, Client, Judgment } from '@/types'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -63,9 +28,10 @@ export function CaseWorkspace() {
   const [caseClient, setCaseClient] = useState<Client | null>(null)
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
-  const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
-  const [formModalOpen, setFormModalOpen] = useState(false)
+  const [showDraftWizard, setShowDraftWizard] = useState(false)
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
+  const [judgments, setJudgments] = useState<Judgment[]>([])
+  const [isJudgmentsLoading, setIsJudgmentsLoading] = useState(false)
 
   // Resizable chat panel
   const MIN_CHAT_WIDTH = 320
@@ -144,6 +110,7 @@ export function CaseWorkspace() {
     openTab,
     openSummaryTab,
     closeSummaryTab,
+    openSourceTab,
     closeTab,
     setActiveTab,
     setTabDirty,
@@ -153,6 +120,7 @@ export function CaseWorkspace() {
     summary,
     isLoading: isSummaryLoading,
     isGenerating: isGeneratingSummary,
+    fetchSummary,
     generateSummary,
     deleteSummary,
   } = useSummary(caseId)
@@ -183,8 +151,20 @@ export function CaseWorkspace() {
     })
   }, [caseId])
 
-  // Whether any tabs are open (to show header tool buttons vs landing)
-  const hasTabs = tabs.length > 0
+  // Fetch judgments linked to this case
+  useEffect(() => {
+    setIsJudgmentsLoading(true)
+    caseApi.getJudgments(caseId)
+      .then((response) => {
+        setJudgments(response.data || [])
+      })
+      .catch(() => {
+        // No judgments or API error — leave empty
+      })
+      .finally(() => {
+        setIsJudgmentsLoading(false)
+      })
+  }, [caseId])
 
   const handleBack = () => {
     setSidebarCollapsed(false)
@@ -219,10 +199,12 @@ export function CaseWorkspace() {
     await deleteDraft(id)
   }
 
-  // Called from header/landing Summary button — opens existing if available, generates if not
-  const handleSummaryClick = () => {
+  // Called from header/landing Summary button — fetch first, generate only if nothing exists
+  const handleSummaryClick = async () => {
     openSummaryTab()
-    if (!summary || summary.status === 'failed') {
+    if (summary && summary.status !== 'failed') return
+    const existing = await fetchSummary()
+    if (!existing || existing.status === 'failed') {
       generateSummary()
     }
   }
@@ -266,65 +248,31 @@ export function CaseWorkspace() {
     setAddSourceModalOpen(true)
   }
 
+  const handleLinkJudgment = () => {
+    // TODO: Open judgment picker modal
+    // For now, navigate to judgments page
+    navigate('/judgments')
+  }
+
+  const handleOpenJudgment = (judgment: Judgment) => {
+    // Open judgment in a new tab
+    if (judgment.s3PdfKey) {
+      window.open(`/judgments/${judgment.id}`, '_blank')
+    }
+  }
+
   const handleDraftingClick = () => {
-    setSelectedTemplate(DRAFT_TEMPLATES[0])
-    setFormModalOpen(true)
+    setShowDraftWizard(true)
   }
 
-  const handleTemplateClick = (template: DraftTemplate) => {
-    setSelectedTemplate(template)
-  }
-
-  const handleGenerate = async (
-    templateId: string,
-    formData: TemplateFormData,
-    sourceIds: string[]
-  ) => {
-    const config = TEMPLATE_TO_DOC_CONFIG[templateId] || { documentType: 'legal_notice' as DocumentType }
-    const title = (formData['title'] as string) || DRAFT_TEMPLATES.find((t) => t.id === templateId)?.name || 'Untitled'
-
-    const body = assembleBody(templateId, formData)
-    const hasText = body.length > 0
-    const hasFiles = sourceIds.length > 0
-
-    // Extract language for criminal templates
-    const language = formData['language'] as Language | undefined
-
-    // Build config object for criminal-specific fields
-    const isCriminal = templateId === 'bail-application' || templateId === 'criminal-appeal'
-    const criminalConfigKeys = [
-      'fir_details', 'criminal_history', 'bail_history', 'co_accused_details',
-      'impugned_order', 'court_details', 'facts', 'relief_sought',
-      'applicant', 'opposite_party', 'appellant', 'respondent',
-    ]
-    let draftConfig: Record<string, string> | undefined
-    if (isCriminal) {
-      const entries = criminalConfigKeys
-        .filter((key) => {
-          const val = formData[key]
-          return typeof val === 'string' && val.trim().length > 0
-        })
-        .map((key) => [key, (formData[key] as string).trim()])
-      if (entries.length > 0) {
-        draftConfig = Object.fromEntries(entries)
-      }
-    }
-
-    const request: CreateDraftRequest = {
-      title,
-      document_type: config.documentType,
-      input_mode: hasFiles && !hasText ? 'file' : 'freetext',
-      subtype: config.subtype,
-      freetext_body: hasText ? body : undefined,
-      file_ids: hasFiles ? sourceIds : undefined,
-      language: isCriminal ? language : undefined,
-      config: draftConfig,
-    }
-
+  const handleWizardGenerate = (request: CreateDraftRequest) => {
     const pendingDraft = createDraft(request)
-    setFormModalOpen(false)
-    setSelectedTemplate(null)
+    setShowDraftWizard(false)
     openTab(pendingDraft)
+  }
+
+  const handleWizardCancel = () => {
+    setShowDraftWizard(false)
   }
 
   return (
@@ -341,16 +289,13 @@ export function CaseWorkspace() {
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {hasTabs && (
-            <>
-              <HeaderToolButtons
-                onDraftingClick={handleDraftingClick}
-                onSummaryClick={handleSummaryClick}
-                onUploadDocumentsClick={handleUploadDocumentsClick}
-              />
-              <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
-            </>
-          )}
+          <HeaderToolButtons
+            onDraftingClick={handleDraftingClick}
+            onSummaryClick={handleSummaryClick}
+            onUploadDocumentsClick={handleUploadDocumentsClick}
+            onLinkJudgmentClick={handleLinkJudgment}
+          />
+          <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
           <Button
             variant="ghost"
             size="sm"
@@ -364,10 +309,18 @@ export function CaseWorkspace() {
             variant="ghost"
             size="sm"
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700"
-            title={rightPanelOpen ? 'Hide chat' : 'Show chat'}
+            className={rightPanelOpen ? 'h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700' : 'h-8 px-3 gap-1.5 text-ledger-gray-500 hover:text-kx-primary-700'}
+            title={rightPanelOpen ? 'Hide AI Chat' : 'Open AI Chat'}
           >
-            {rightPanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            {rightPanelOpen
+              ? <PanelRightClose className="h-4 w-4" />
+              : (
+                <>
+                  <Bot className="h-4 w-4" />
+                  <span className="text-sm font-medium">AI Chat</span>
+                </>
+              )
+            }
           </Button>
         </div>
       </div>
@@ -377,6 +330,8 @@ export function CaseWorkspace() {
           <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden">
             <LeftSidebar
               sources={sources}
+              judgments={judgments}
+              isJudgmentsLoading={isJudgmentsLoading}
               selectedSourceIds={selectedSourceIds}
               isSourcesLoading={sourcesLoading}
               drafts={drafts}
@@ -391,6 +346,8 @@ export function CaseWorkspace() {
               onDeleteDraft={handleDeleteDraft}
               onSummaryClick={handleSummaryClick}
               onDeleteSummary={handleDeleteSummary}
+              onOpenSourceInTab={openSourceTab}
+              onOpenJudgment={handleOpenJudgment}
             />
           </div>
         )}
@@ -412,9 +369,15 @@ export function CaseWorkspace() {
             onDraftingClick={handleDraftingClick}
             onSummaryClick={handleSummaryClick}
             onUploadDocumentsClick={handleUploadDocumentsClick}
+            onLinkJudgmentClick={handleLinkJudgment}
             onSendToChat={handleSendToChat}
             onGenerateSummary={handleGenerateSummary}
             onDeleteSummary={handleDeleteSummary}
+            showDraftWizard={showDraftWizard}
+            wizardSources={sources}
+            wizardClient={caseClient}
+            onWizardGenerate={handleWizardGenerate}
+            onWizardCancel={handleWizardCancel}
           />
         </div>
 
@@ -450,20 +413,6 @@ export function CaseWorkspace() {
           </>
         )}
       </div>
-
-      <TemplateFormModal
-        template={selectedTemplate}
-        isOpen={formModalOpen}
-        sources={sources}
-        isGenerating={false}
-        client={caseClient}
-        leftPanelOpen={leftPanelOpen}
-        rightPanelOpen={rightPanelOpen}
-        onClose={() => setFormModalOpen(false)}
-        onGenerate={handleGenerate}
-        onTemplateChange={handleTemplateClick}
-        templates={DRAFT_TEMPLATES}
-      />
 
       <AddSourceModal
         open={addSourceModalOpen}

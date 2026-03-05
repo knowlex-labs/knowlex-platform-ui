@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import type { WorkspaceTabItem, Draft } from '@/types'
+import type { WorkspaceTabItem, Draft, CaseSource } from '@/types'
 
 const SUMMARY_TAB_ID = 'summary'
 
@@ -9,6 +9,7 @@ interface UseWorkspaceTabsResult {
   openTab: (draft: Draft) => void
   openSummaryTab: () => void
   closeSummaryTab: () => void
+  openSourceTab: (source: CaseSource, url: string) => void
   closeTab: (tabId: string) => void
   setActiveTab: (tabId: string) => void
   getActiveDraft: () => Draft | null
@@ -117,6 +118,33 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
     })
   }, [drafts])
 
+  const openSourceTab = useCallback((source: CaseSource, url: string) => {
+    setTabs((prev) => {
+      const existing = prev.find((t) => t.sourceId === source.id)
+      if (existing) {
+        // Refresh URL in case it expired
+        const updated = prev.map((t) =>
+          t.sourceId === source.id ? { ...t, sourceUrl: url } : t
+        )
+        setActiveTabId(existing.id)
+        return updated
+      }
+      const label = source.filename.length > 20
+        ? source.filename.slice(0, 20) + '...'
+        : source.filename
+      const newTab: WorkspaceTabItem = {
+        id: `source-${source.id}`,
+        type: 'source',
+        label,
+        sourceId: source.id,
+        sourceUrl: url,
+        sourceFileType: source.fileType,
+      }
+      setActiveTabId(newTab.id)
+      return [...prev, newTab]
+    })
+  }, [])
+
   const openSummaryTab = useCallback(() => {
     setTabs((prev) => {
       const existing = prev.find((t) => t.id === SUMMARY_TAB_ID)
@@ -150,6 +178,7 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
     openTab,
     openSummaryTab,
     closeSummaryTab,
+    openSourceTab,
     closeTab,
     setActiveTab,
     getActiveDraft,

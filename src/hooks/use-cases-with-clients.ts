@@ -8,6 +8,7 @@ import type { Case, BackendCaseStatus } from '@/types'
 export interface CaseWithClient extends Case {
   clientName: string | null
   clientId: string | null
+  draftCount: number
 }
 
 interface UseCasesWithClientsOptions {
@@ -75,14 +76,29 @@ export function useCasesWithClients(
       }
 
       // Combine cases with client names
-      const casesWithClients: CaseWithClient[] = mappedCases.map((caseItem) => {
-        const clientId = clientIdByCaseId.get(caseItem.id) ?? null
-        return {
-          ...caseItem,
-          clientId,
-          clientName: clientId ? clientMap.get(clientId) ?? null : null,
-        }
-      })
+      const casesWithClients: CaseWithClient[] = await Promise.all(
+        mappedCases.map(async (caseItem) => {
+          const clientId = clientIdByCaseId.get(caseItem.id) ?? null
+
+          // Fetch overview summary for this case (includes draft, document, judgment counts)
+          let draftCount = 0
+          try {
+            const overviewResponse = await caseApi.getOverviewSummary(caseItem.id)
+            if (overviewResponse.status === 'success') {
+              draftCount = overviewResponse.data.draftCount
+            }
+          } catch {
+            // Ignore overview errors
+          }
+
+          return {
+            ...caseItem,
+            clientId,
+            clientName: clientId ? clientMap.get(clientId) ?? null : null,
+            draftCount,
+          }
+        })
+      )
 
       setCases(casesWithClients)
       setTotalElements(paginatedData.totalElements)

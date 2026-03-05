@@ -11,6 +11,9 @@ export type DocumentType =
   | 'application'
   | 'bail_application'
   | 'criminal_appeal'
+  | 'DRAFT'
+  | 'SUMMARY'
+  | 'SOURCE_DOC'
 
 export type InputMode = 'structured' | 'freetext' | 'file'
 
@@ -39,6 +42,7 @@ export interface DraftListItem {
   document_type: string
   status: 'pending' | 'processing' | 'completed' | 'failed'
   draft_body: string
+  file_path?: string
   sections: Array<{ title: string; content: string; order: number }>
   metadata: {
     document_type: string
@@ -60,6 +64,14 @@ export type ListDraftsResponse = DraftListItem[]
 export interface UpdateDraftRequest {
   title?: string
   draft_body?: string
+  storage_key?: string
+}
+
+// Presigned URL response for draft uploads/downloads
+export interface DraftPresignedUrlData {
+  uploadUrl: string
+  storageKey: string
+  storageUrl: string
 }
 
 export const draftsApi = {
@@ -79,11 +91,33 @@ export const draftsApi = {
     return apiClient.get<ApiResponse<ListDraftsResponse>>(`/api/v1/cases/${caseId}/drafts?${params}`)
   },
 
+  count: async (caseId: string): Promise<ApiResponse<{ count: number }>> => {
+    return apiClient.get<ApiResponse<{ count: number }>>(`/api/v1/cases/${caseId}/drafts/count`)
+  },
+
   cancel: async (caseId: string, jobId: string): Promise<ApiResponse<null>> => {
     return apiClient.delete<ApiResponse<null>>(`/api/v1/cases/${caseId}/drafts/${jobId}`)
   },
 
   update: async (caseId: string, jobId: string, data: UpdateDraftRequest): Promise<ApiResponse<DraftJobResponse>> => {
     return apiClient.put<ApiResponse<DraftJobResponse>>(`/api/v1/cases/${caseId}/drafts/${jobId}`, data)
+  },
+
+  // Get presigned URL for upload
+  getPresignedUploadUrl: async (documentId: string, fileName: string, contentType: string): Promise<DraftPresignedUrlData> => {
+    const response = await apiClient.post<ApiResponse<DraftPresignedUrlData>>(
+      '/api/v1/presigned-url/upload',
+      { documentId, fileName, contentType }
+    )
+    return response.data
+  },
+
+  // Get presigned URL for download
+  getPresignedDownloadUrl: async (documentId: string, fileName: string, contentType: string): Promise<DraftPresignedUrlData> => {
+    const response = await apiClient.post<ApiResponse<DraftPresignedUrlData>>(
+      '/api/v1/presigned-url/download',
+      { documentId, fileName, contentType }
+    )
+    return response.data
   },
 }

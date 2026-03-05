@@ -4,9 +4,10 @@ import {
   FileImage,
   File,
   MoreVertical,
-  Eye,
+  Loader2,
   Trash2,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { workspaceApi } from '@/services/api/workspace-api'
@@ -18,6 +19,7 @@ interface SourceItemProps {
   onToggleSelection: () => void
   onDelete: () => void
   onLinkContent: () => void
+  onOpenInTab: (source: CaseSource, url: string) => void
 }
 
 function getFileIcon(fileType: string) {
@@ -64,6 +66,7 @@ export function SourceItem({
   onToggleSelection,
   onDelete,
   onLinkContent,
+  onOpenInTab,
 }: SourceItemProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -97,10 +100,10 @@ export function SourceItem({
     setIsLoadingView(true)
     try {
       const url = await workspaceApi.getDownloadUrl(source.id)
-      window.open(url, '_blank')
+      onOpenInTab(source, url)
     } catch {
       // Fallback to direct URL if endpoint not available
-      window.open(source.storageUrl, '_blank')
+      onOpenInTab(source, source.storageUrl)
     } finally {
       setIsLoadingView(false)
       setShowMenu(false)
@@ -120,13 +123,21 @@ export function SourceItem({
         className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0"
       />
 
-      {/* File Icon */}
-      <Icon className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
-
-      {/* Filename */}
-      <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">
-        {source.filename}
-      </span>
+      {/* File Icon + Filename — click to open PDF */}
+      <button
+        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+        onClick={handleView}
+        disabled={isLoadingView}
+        title="Open file"
+      >
+        {isLoadingView
+          ? <Loader2 className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0 animate-spin" />
+          : <Icon className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
+        }
+        <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0 hover:underline">
+          {source.filename}
+        </span>
+      </button>
 
       {/* Menu Button */}
       <div className="relative flex-shrink-0">
@@ -149,11 +160,19 @@ export function SourceItem({
             </div>
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors disabled:opacity-50"
-              onClick={handleView}
-              disabled={isLoadingView}
+              onClick={async () => {
+                try {
+                  const url = await workspaceApi.getDownloadUrl(source.id)
+                  window.open(url, '_blank')
+                } catch {
+                  window.open(source.storageUrl, '_blank')
+                } finally {
+                  setShowMenu(false)
+                }
+              }}
             >
-              <Eye className="h-4 w-4" />
-              {isLoadingView ? 'Opening...' : 'View'}
+              <ExternalLink className="h-4 w-4" />
+              Open in new tab
             </button>
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-600 dark:text-kx-primary-400 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950 transition-colors disabled:opacity-50"

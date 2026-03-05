@@ -15,12 +15,43 @@ function normalizeStatus(status: string): 'pending' | 'completed' | 'failed' {
   return 'pending'
 }
 
+// If draft_body is empty but we have a storage key, fetch content from S3 via download URL
+async function resolveDraftBody(draft_body: string, documentId: string, _documentType?: string): Promise<string> {
+  // If draft_body is a URL, fetch from it directly
+  if (draft_body && draft_body.startsWith('http')) {
+    try {
+      const response = await fetch(draft_body)
+      return await response.text()
+    } catch {
+      return ''
+    }
+  }
+
+  // If draft_body is empty, try to get download URL from S3
+  if (!draft_body) {
+    try {
+      // Generate filename and content type from document info
+      const fileName = `${documentId}.html`
+      const contentType = 'text/html'
+      const { storageUrl } = await draftsApi.getPresignedDownloadUrl(documentId, fileName, contentType)
+      if (storageUrl) {
+        const response = await fetch(storageUrl)
+        return await response.text()
+      }
+    } catch {
+      return ''
+    }
+  }
+
+  return draft_body || ''
+}
+
 // Maps a flat CaseDraftResponse (used by list, single GET, and create endpoints) to Draft
-function mapListItemToDraft(item: DraftListItem): Draft {
+function mapListItemToDraft(item: DraftListItem, resolvedContent?: string): Draft {
   return {
     id: item.id,
     title: item.title || item.metadata?.title || 'Untitled',
-    content: item.draft_body || '',
+    content: resolvedContent ?? item.draft_body ?? '',
     status: normalizeStatus(item.status),
     sections: item.sections || [],
     summary: item.metadata?.summary || '',
@@ -29,6 +60,12 @@ function mapListItemToDraft(item: DraftListItem): Draft {
     createdAt: new Date(item.created_at),
     updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(item.created_at),
   }
+}
+
+// Map a list item, resolving presigned URL content if needed
+async function mapListItemToDraftAsync(item: DraftListItem): Promise<Draft> {
+  const content = await resolveDraftBody(item.draft_body || '', item.id, item.document_type)
+  return mapListItemToDraft(item, content)
 }
 
 interface UseDraftsResult {
@@ -84,7 +121,7 @@ export function useDrafts(caseId: string): UseDraftsResult {
         const status = normalizeStatus(item.status)
 
         if (status === 'completed') {
-          const draft = mapListItemToDraft(item)
+          const draft = await mapListItemToDraftAsync(item)
           setDrafts((prev) =>
             prev.map((d) => (d.id === info.draftId ? draft : d))
           )
@@ -131,22 +168,42 @@ export function useDrafts(caseId: string): UseDraftsResult {
     }
   }, [caseId])
 
-  // Flush all dirty drafts to backend via the authenticated API
-  const flushDirtyDrafts = useCallback(() => {
+  // Flush all dirty drafts to backend via the authenticated API (with S3 upload)
+  const flushDirtyDrafts = useCallback(async () => {
     const dirtyIds = dirtyDraftIdsRef.current
     if (dirtyIds.size === 0) return
 
     for (const id of Array.from(dirtyIds)) {
       const draft = draftsRef.current.find((d) => d.id === id)
       if (draft && draft.status === 'completed') {
-        draftsApi.update(caseIdRef.current, id, {
-          title: draft.title,
-          draft_body: draft.content,
-        }).then(() => {
+        try {
+          // Skip S3 upload for empty content
+          if (!draft.content.trim()) {
+            await draftsApi.update(caseIdRef.current, id, { title: draft.title })
+            dirtyIds.delete(id)
+            continue
+          }
+
+          // Get presigned URL and upload to S3
+          const fileName = `${id}.html`
+          const { uploadUrl, storageKey } = await draftsApi.getPresignedUploadUrl(id, fileName, 'text/html')
+
+          await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'text/html' },
+            body: draft.content,
+          })
+
+          // Update with storage key
+          await draftsApi.update(caseIdRef.current, id, {
+            title: draft.title,
+            storage_key: storageKey,
+          })
+
           dirtyIds.delete(id)
-        }).catch((err) => {
+        } catch (err) {
           console.error('Flush save failed for draft:', id, err)
-        })
+        }
       }
     }
   }, [])
@@ -175,7 +232,8 @@ export function useDrafts(caseId: string): UseDraftsResult {
     try {
       const response = await draftsApi.list(caseId)
       const items = response.data || []
-      setDrafts(items.map(mapListItemToDraft))
+      const mapped = await Promise.all(items.map(mapListItemToDraftAsync))
+      setDrafts(mapped)
 
       // Resume polling for any in-progress drafts (use job_id for GET, draft.id for matching)
       for (const item of items) {
@@ -264,9 +322,27 @@ export function useDrafts(caseId: string): UseDraftsResult {
     dirtyDraftIdsRef.current.delete(id)
 
     try {
+      // Skip S3 upload for empty content - just update title
+      if (!resolvedContent.trim()) {
+        await draftsApi.update(caseId, id, { title: resolvedTitle })
+        return
+      }
+
+      // Get presigned URL and upload content directly to S3
+      const fileName = `${id}.html`
+      const { uploadUrl, storageKey } = await draftsApi.getPresignedUploadUrl(id, fileName, 'text/html')
+
+      // Upload content to S3
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/html' },
+        body: resolvedContent,
+      })
+
+      // Update draft with storage key
       await draftsApi.update(caseId, id, {
         title: resolvedTitle,
-        draft_body: resolvedContent,
+        storage_key: storageKey,
       })
     } catch (error) {
       // Re-mark as dirty so batch save retries later
