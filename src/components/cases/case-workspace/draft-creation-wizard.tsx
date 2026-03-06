@@ -367,7 +367,7 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
                                           {localSourceIds.has(source.id) && <Check className="h-3 w-3" />}
                                         </button>
                                         <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200 truncate">
-                                          {source.originalFilename}
+                                          {source.name}
                                         </span>
                                       </label>
                                     ))}

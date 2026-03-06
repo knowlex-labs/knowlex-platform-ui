@@ -129,16 +129,18 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
         setActiveTabId(existing.id)
         return updated
       }
-      const label = source.filename.length > 20
-        ? source.filename.slice(0, 20) + '...'
-        : source.filename
+      const label = source.name.length > 20
+        ? source.name.slice(0, 20) + '...'
+        : source.name
+      // Derive file type from extension
+      const ext = source.name.split('.').pop()?.toUpperCase() || 'PDF'
       const newTab: WorkspaceTabItem = {
         id: `source-${source.id}`,
         type: 'source',
         label,
         sourceId: source.id,
         sourceUrl: url,
-        sourceFileType: source.fileType,
+        sourceFileType: ext,
       }
       setActiveTabId(newTab.id)
       return [...prev, newTab]

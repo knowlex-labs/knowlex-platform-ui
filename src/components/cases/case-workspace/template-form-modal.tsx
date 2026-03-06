@@ -311,7 +311,7 @@ export function TemplateFormModal({
                                         )}
                                       </button>
                                       <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200 truncate">
-                                        {source.originalFilename}
+                                        {source.name}
                                       </span>
                                     </label>
                                   ))}

@@ -22,36 +22,30 @@ interface SourceItemProps {
   onOpenInTab: (source: CaseSource, url: string) => void
 }
 
-function getFileIcon(fileType: string) {
-  const type = fileType.toUpperCase()
-  if (['JPG', 'JPEG', 'PNG'].includes(type)) {
+function getFileIcon(fileName: string) {
+  const ext = fileName.split('.').pop()?.toUpperCase() || ''
+  if (['JPG', 'JPEG', 'PNG'].includes(ext)) {
     return FileImage
   }
-  if (type === 'PDF') {
+  if (ext === 'PDF') {
     return FileText
   }
-  if (['DOCX', 'DOC'].includes(type)) {
+  if (['DOCX', 'DOC'].includes(ext)) {
     return FileText
   }
   return File
 }
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function getStatusBadge(status: CaseSource['indexingStatus'] | undefined | null) {
+function getStatusBadge(status: string | undefined | null) {
   const config: Record<string, { color: string; text: string }> = {
-    INDEXING_PENDING: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800', text: 'Pending' },
-    INDEXING: { color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', text: 'Indexing' },
-    INDEXED: { color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800', text: 'Indexed' },
-    INDEXING_FAILED: { color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', text: 'Failed' },
+    pending: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800', text: 'Pending' },
+    processing: { color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', text: 'Processing' },
+    completed: { color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800', text: 'Completed' },
+    failed: { color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', text: 'Failed' },
   }
 
-  const statusConfig = status && config[status]
-  const { color, text } = statusConfig || { color: 'bg-gray-100 text-gray-800 border-gray-200', text: 'Unknown' }
+  const statusConfig = status && config[status.toLowerCase()]
+  const { color, text } = statusConfig || { color: 'bg-gray-100 text-gray-800 border-gray-200', text: status || 'Unknown' }
 
   return (
     <span className={`text-xs px-1.5 py-0.5 rounded border flex-shrink-0 ${color}`}>
@@ -72,7 +66,7 @@ export function SourceItem({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLinking, setIsLinking] = useState(false)
 
-  const Icon = getFileIcon(source.fileType)
+  const Icon = getFileIcon(source.name)
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -101,9 +95,8 @@ export function SourceItem({
     try {
       const url = await workspaceApi.getDownloadUrl(source.id)
       onOpenInTab(source, url)
-    } catch {
-      // Fallback to direct URL if endpoint not available
-      onOpenInTab(source, source.storageUrl)
+    } catch (err) {
+      console.error('Failed to get download URL:', err)
     } finally {
       setIsLoadingView(false)
       setShowMenu(false)
@@ -135,7 +128,7 @@ export function SourceItem({
           : <Icon className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
         }
         <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0 hover:underline">
-          {source.filename}
+          {source.name}
         </span>
       </button>
 
@@ -155,8 +148,7 @@ export function SourceItem({
           <div className="absolute right-0 top-full mt-1 w-48 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
             {/* File details */}
             <div className="px-3 py-2 border-b border-ledger-gray-100">
-              <p className="text-xs text-ledger-gray-500">{formatFileSize(source.fileSize)}</p>
-              <div className="mt-1">{getStatusBadge(source.indexingStatus)}</div>
+              <div className="mt-1">{getStatusBadge(source.status)}</div>
             </div>
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors disabled:opacity-50"
@@ -164,8 +156,8 @@ export function SourceItem({
                 try {
                   const url = await workspaceApi.getDownloadUrl(source.id)
                   window.open(url, '_blank')
-                } catch {
-                  window.open(source.storageUrl, '_blank')
+                } catch (err) {
+                  console.error('Failed to get download URL:', err)
                 } finally {
                   setShowMenu(false)
                 }

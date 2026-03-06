@@ -38,16 +38,16 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
 
     for (const documentId of pollingIdsRef.current) {
       try {
-        const status = await workspaceApi.getIndexingStatus(documentId)
+        const status = await workspaceApi.getIndexingStatus(caseId!, documentId)
 
         setSources((prev) =>
           prev.map((s) =>
-            s.id === documentId ? { ...s, indexingStatus: status } : s
+            s.id === documentId ? { ...s, status } : s
           )
         )
 
         // Stop polling if terminal status
-        if (status === 'INDEXED' || status === 'INDEXING_FAILED') {
+        if (status === 'completed' || status === 'failed') {
           idsToRemove.push(documentId)
         }
       } catch {
@@ -120,7 +120,7 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
 
         // Start polling for documents with INDEXING or INDEXING_PENDING status
         for (const doc of documents) {
-          if (doc.indexingStatus === 'INDEXING' || doc.indexingStatus === 'INDEXING_PENDING') {
+          if (doc.status === 'processing' || doc.status === 'pending') {
             startPolling(doc.id)
           }
         }
@@ -184,7 +184,7 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
 
         // Step 5: Start polling if status needs it
         const newSource = documents.find(s => s.id === documentId)
-        if (newSource && (newSource.indexingStatus === 'INDEXING' || newSource.indexingStatus === 'INDEXING_PENDING')) {
+        if (newSource && (newSource.status === 'processing' || newSource.status === 'pending')) {
           startPolling(documentId)
         }
       } catch (err) {
@@ -226,14 +226,14 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
   const linkContent = useCallback(
     async (sourceId: string) => {
       try {
-        const updatedSource = await workspaceApi.linkContent(sourceId)
+        const updatedSource = await workspaceApi.triggerIndexing(caseId!, sourceId)
         // Update source in state
         setSources((prev) =>
           prev.map((s) => (s.id === sourceId ? updatedSource : s))
         )
 
         // Start polling after re-indexing
-        if (updatedSource.indexingStatus === 'INDEXING' || updatedSource.indexingStatus === 'INDEXING_PENDING') {
+        if (updatedSource.status === 'processing' || updatedSource.status === 'pending') {
           startPolling(sourceId)
         }
       } catch (err) {
@@ -268,12 +268,12 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
   const batchLinkContent = useCallback(
     async (sourceIds: string[]) => {
       try {
-        await workspaceApi.batchLinkContent(sourceIds)
-        // Optimistically update status to INDEXING
+        await workspaceApi.batchTriggerIndexing(caseId!, sourceIds)
+        // Optimistically update status to processing
         setSources((prev) =>
           prev.map((s) =>
             sourceIds.includes(s.id)
-              ? { ...s, indexingStatus: 'INDEXING' as const }
+              ? { ...s, status: 'processing' as const }
               : s
           )
         )

@@ -45,27 +45,20 @@ function mapChatResponse(data: BackendChatResponse): ChatResponse {
   }
 }
 
-// Paginated response from backend
-interface PaginatedResponse<T> {
-  content: T[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-}
-
 export const workspaceApi = {
   /**
    * Get all documents for a case
-   * GET /api/v1/cases/{caseId}/documents - returns only user-uploaded documents
-   * GET /api/v1/cases/{caseId}/documents?includeDrafts=true - includes drafts
+   * GET /api/v1/cases/{caseId}/documents - returns all documents
+   * GET /api/v1/cases/{caseId}/documents?type=DRAFT - returns only drafts
+   * GET /api/v1/cases/{caseId}/documents?type=USER_UPLOADED - returns only uploaded docs
+   * Response: { success: true, data: [...] } - direct array (not paginated)
    */
-  async getCaseDocuments(caseId: string, includeDrafts = false): Promise<CaseSource[]> {
-    const params = includeDrafts ? '?includeDrafts=true' : ''
-    const response = await apiClient.get<ApiResponse<PaginatedResponse<CaseSource>>>(
+  async getCaseDocuments(caseId: string, type?: 'USER_UPLOADED' | 'DRAFT'): Promise<CaseSource[]> {
+    const params = type ? `?type=${type}` : ''
+    const response = await apiClient.get<ApiResponse<CaseSource[]>>(
       `/api/v1/cases/${caseId}/documents${params}`
     )
-    return response.data.content
+    return response.data
   },
 
   /**
@@ -143,32 +136,35 @@ export const workspaceApi = {
   },
 
   /**
-   * Re-index a single document (Link Content action)
+   * Trigger indexing for a document
+   * POST /api/v1/cases/{caseId}/{documentId}/index
    */
-  async linkContent(documentId: string): Promise<CaseSource> {
+  async triggerIndexing(caseId: string, documentId: string): Promise<CaseSource> {
     const response = await apiClient.post<ApiResponse<CaseSource>>(
-      `/api/v1/documents/${documentId}/link-content`
+      `/api/v1/cases/${caseId}/${documentId}/index`
     )
     return response.data
   },
 
   /**
-   * Batch re-index multiple documents
+   * Batch trigger indexing for multiple documents
    */
-  async batchLinkContent(documentIds: string[]): Promise<void> {
+  async batchTriggerIndexing(caseId: string, documentIds: string[]): Promise<void> {
     await Promise.all(
       documentIds.map(id =>
-        apiClient.post(`/api/v1/documents/${id}/link-content`)
+        apiClient.post(`/api/v1/cases/${caseId}/${id}/index`)
       )
     )
   },
 
   /**
-   * Poll indexing status for a document
+   * Get indexing status for a document
+   * GET /api/v1/cases/{caseId}/{documentId}/indexing-status
+   * Returns: pending, processing, completed, failed
    */
-  async getIndexingStatus(documentId: string): Promise<CaseSource['indexingStatus']> {
-    const response = await apiClient.get<ApiResponse<{ status: CaseSource['indexingStatus'] }>>(
-      `/api/v1/documents/${documentId}/indexing-status?refresh=true`
+  async getIndexingStatus(caseId: string, documentId: string): Promise<string> {
+    const response = await apiClient.get<ApiResponse<{ status: string }>>(
+      `/api/v1/cases/${caseId}/${documentId}/indexing-status`
     )
     return response.data.status
   },

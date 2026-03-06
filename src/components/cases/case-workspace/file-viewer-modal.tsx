@@ -1,4 +1,5 @@
-import { X, ExternalLink } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { X, ExternalLink, Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -6,6 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { workspaceApi } from '@/services/api/workspace-api'
 import type { CaseSource } from '@/types'
 
 interface FileViewerModalProps {
@@ -14,13 +16,30 @@ interface FileViewerModalProps {
 }
 
 export function FileViewerModal({ source, onClose }: FileViewerModalProps) {
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (!source) return
+
+    // Fetch download URL when modal opens
+    setIsLoading(true)
+    workspaceApi.getDownloadUrl(source.id)
+      .then(setDownloadUrl)
+      .catch(console.error)
+      .finally(() => setIsLoading(false))
+  }, [source?.id])
+
   if (!source) return null
 
-  const isImage = ['JPG', 'JPEG', 'PNG'].includes(source.fileType)
-  const isPdf = source.fileType === 'PDF'
+  const ext = source.name.split('.').pop()?.toUpperCase() || ''
+  const isImage = ['JPG', 'JPEG', 'PNG'].includes(ext)
+  const isPdf = ext === 'PDF'
 
   const handleOpenExternal = () => {
-    window.open(source.storageUrl, '_blank')
+    if (downloadUrl) {
+      window.open(downloadUrl, '_blank')
+    }
   }
 
   return (
@@ -28,12 +47,13 @@ export function FileViewerModal({ source, onClose }: FileViewerModalProps) {
       <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b border-ledger-gray-200 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <DialogTitle className="truncate pr-4">{source.filename}</DialogTitle>
+            <DialogTitle className="truncate pr-4">{source.name}</DialogTitle>
             <div className="flex items-center gap-2 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleOpenExternal}
+                disabled={!downloadUrl}
                 className="gap-2"
               >
                 <ExternalLink className="h-4 w-4" />
@@ -52,29 +72,34 @@ export function FileViewerModal({ source, onClose }: FileViewerModalProps) {
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden bg-ledger-gray-100">
-          {isPdf && (
+          {isLoading && (
+            <div className="w-full h-full flex items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-ledger-gray-400" />
+            </div>
+          )}
+          {!isLoading && isPdf && downloadUrl && (
             <iframe
-              src={source.storageUrl}
+              src={downloadUrl}
               className="w-full h-full border-0"
-              title={source.filename}
+              title={source.name}
             />
           )}
-          {isImage && (
+          {!isLoading && isImage && downloadUrl && (
             <div className="w-full h-full flex items-center justify-center p-4">
               <img
-                src={source.storageUrl}
-                alt={source.filename}
+                src={downloadUrl}
+                alt={source.name}
                 className="max-w-full max-h-full object-contain"
               />
             </div>
           )}
-          {!isPdf && !isImage && (
+          {!isLoading && !isPdf && !isImage && (
             <div className="w-full h-full flex items-center justify-center">
               <div className="text-center">
                 <p className="text-sm text-ledger-gray-500 mb-4">
                   Preview not available for this file type
                 </p>
-                <Button onClick={handleOpenExternal}>
+                <Button onClick={handleOpenExternal} disabled={!downloadUrl}>
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Open file
                 </Button>

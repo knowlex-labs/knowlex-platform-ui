@@ -56,7 +56,7 @@ export function LeftSidebar({
   const [summaryExpanded, setSummaryExpanded] = useState(true)
 
   // Filter sources by type
-  const uploadedSources = sources.filter(s => s.documentSource === 'UPLOAD')
+  const uploadedSources = (sources || []).filter(s => s.type === 'USER_UPLOADED')
 
   const allSourcesSelected = uploadedSources.length > 0 && selectedSourceIds.size === uploadedSources.length
 

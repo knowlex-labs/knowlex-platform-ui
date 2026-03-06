@@ -1,18 +1,8 @@
 export interface CaseSource {
   id: string
-  filename: string
-  originalFilename: string
-  fileType: 'PDF' | 'DOCX' | 'DOC' | 'JPG' | 'JPEG' | 'PNG'
-  fileSize: number
-  storageUrl: string
-  storageKey: string
-  documentSource: 'UPLOAD' | 'GOOGLE_DRIVE' | 'JUDGMENT'
-  description?: string
-  caseId: string
-  collectionId?: string
-  indexingStatus: 'INDEXING_PENDING' | 'INDEXING' | 'INDEXED' | 'INDEXING_FAILED'
-  createdAt: string
-  updatedAt: string
+  name: string
+  type: 'USER_UPLOADED' | 'DRAFT'
+  status: string
 }
 
 export interface ChatResponse {
@@ -129,7 +119,7 @@ export interface WorkspaceTabItem {
   draftId?: string
   sourceId?: string
   sourceUrl?: string
-  sourceFileType?: CaseSource['fileType']
+  sourceFileType?: string
   isUnsaved?: boolean
 }
 
