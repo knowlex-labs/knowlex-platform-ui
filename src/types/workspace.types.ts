@@ -1,8 +1,10 @@
+export type CaseSourceStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
 export interface CaseSource {
   id: string
   name: string
   type: 'USER_UPLOADED' | 'DRAFT'
-  status: string
+  status: CaseSourceStatus
 }
 
 export interface ChatResponse {

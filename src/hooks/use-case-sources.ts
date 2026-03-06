@@ -50,8 +50,9 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         if (status === 'completed' || status === 'failed') {
           idsToRemove.push(documentId)
         }
-      } catch {
+      } catch (error) {
         // Document may have been deleted, stop polling
+        console.error('Polling indexing status error:', error)
         idsToRemove.push(documentId)
       }
     }

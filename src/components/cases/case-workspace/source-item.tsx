@@ -155,7 +155,7 @@ export function SourceItem({
               onClick={async () => {
                 try {
                   const url = await workspaceApi.getDownloadUrl(source.id)
-                  window.open(url, '_blank')
+                  window.open(url, '_blank', 'noopener,noreferrer')
                 } catch (err) {
                   console.error('Failed to get download URL:', err)
                 } finally {

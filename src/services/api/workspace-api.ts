@@ -1,5 +1,5 @@
 import { apiClient } from './api-client'
-import type { CaseSource, ChatResponse } from '@/types'
+import type { CaseSource, CaseSourceStatus, ChatResponse } from '@/types'
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -162,10 +162,10 @@ export const workspaceApi = {
    * GET /api/v1/cases/{caseId}/{documentId}/indexing-status
    * Returns: pending, processing, completed, failed
    */
-  async getIndexingStatus(caseId: string, documentId: string): Promise<string> {
+  async getIndexingStatus(caseId: string, documentId: string): Promise<CaseSourceStatus> {
     const response = await apiClient.get<ApiResponse<{ status: string }>>(
       `/api/v1/cases/${caseId}/${documentId}/indexing-status`
     )
-    return response.data.status
+    return response.data.status as CaseSourceStatus
   },
 }
