@@ -32,6 +32,32 @@ interface BackendChatResponse {
   }[]
 }
 
+// Document creation types for unified API
+interface CreateDocumentData {
+  title: string
+  document_type: string
+  input_mode: 'structured' | 'freetext' | 'file'
+  [key: string]: unknown
+}
+
+interface CreateDocumentRequest {
+  document_type: 'draft'
+  sub_type: string
+  data: CreateDocumentData
+}
+
+interface CreateDocumentResponse {
+  id: string
+  jobId: string
+  name: string | null
+  type: string
+  subType: string
+  status: string
+  jobStatus: string
+  indexingStatus: string
+  filePath: string | null
+}
+
 // Map backend chat response to frontend ChatResponse
 function mapChatResponse(data: BackendChatResponse): ChatResponse {
   return {
@@ -167,5 +193,40 @@ export const workspaceApi = {
       `/api/v1/cases/${caseId}/${documentId}/indexing-status`
     )
     return response.data.status as CaseSourceStatus
+  },
+
+  /**
+   * Create a document using the unified document generation API
+   * POST /api/v1/cases/{caseId}/documents
+   */
+  async createDocument(caseId: string, data: CreateDocumentRequest): Promise<CreateDocumentResponse> {
+    const response = await apiClient.post<ApiResponse<CreateDocumentResponse>>(
+      `/api/v1/cases/${caseId}/documents`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Get a document by ID (for polling status)
+   * GET /api/v1/cases/{caseId}/documents/{documentId}
+   */
+  async getDocument(caseId: string, documentId: string): Promise<CreateDocumentResponse> {
+    const response = await apiClient.get<ApiResponse<CreateDocumentResponse>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}`
+    )
+    return response.data
+  },
+
+  /**
+   * Get presigned download URL for a completed document
+   * POST /api/v1/presigned/download with { documentId }
+   */
+  async getPresignedDownloadUrl(documentId: string): Promise<{ uploadUrl: string; storageUrl: string }> {
+    const response = await apiClient.post<ApiResponse<{ uploadUrl: string; storageUrl: string }>>(
+      '/api/v1/presigned/download',
+      { documentId }
+    )
+    return response.data
   },
 }

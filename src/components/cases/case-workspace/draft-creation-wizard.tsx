@@ -23,6 +23,17 @@ export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType
   'criminal-appeal': { documentType: 'criminal_appeal' },
 }
 
+// Maps each template to its sub_type for the unified document API
+export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
+  'notice': 'Notice',
+  'patent': 'Patent',
+  'application-draft': 'Application',
+  'interim-application': 'Interim',
+  'affidavit': 'Affidavit',
+  'bail-application': 'Bail',
+  'criminal-appeal': 'CriminalAppeal',
+}
+
 // Assembles template form fields into plain-language instructions for the AI
 function assembleBody(templateId: string, formData: TemplateFormData): string {
   const get = (key: string): string => (formData[key] as string) || ''

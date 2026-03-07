@@ -1,9 +1,25 @@
-export type CaseSourceStatus = 'pending' | 'processing' | 'completed' | 'failed'
+export enum IndexingStatus {
+  PENDING = 'INDEXING_PENDING',
+  RUNNING = 'INDEXING_RUNNING',
+  COMPLETED = 'INDEXING_COMPLETED',
+  FAILED = 'INDEXING_FAILED',
+  CANCELLED = 'INDEXING_CANCELLED',
+}
+
+export enum JobStatus {
+  PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
+  FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
+  INACTIVE = 'INACTIVE',
+}
+
+export type CaseSourceStatus = IndexingStatus | JobStatus
 
 export interface CaseSource {
   id: string
   name: string
-  type: 'USER_UPLOADED' | 'DRAFT'
+  type: 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT'
   status: CaseSourceStatus
 }
 

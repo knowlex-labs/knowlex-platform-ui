@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Loader2, FileText, Trash2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { CaseSource, Draft, CaseSummary, Judgment } from '@/types'
+import type { CaseSource, Draft, CaseSummary } from '@/types'
 import { SourceItem } from './source-item'
 import { DraftItem } from './draft-item'
 
 interface LeftSidebarProps {
   sources: CaseSource[]
-  judgments: Judgment[]
+  judgments: CaseSource[]  // Now accepts CaseSource with type 'JUDGMENT'
   isJudgmentsLoading: boolean
   selectedSourceIds: Set<string>
   isSourcesLoading: boolean
@@ -24,7 +24,7 @@ interface LeftSidebarProps {
   onSummaryClick: () => void
   onDeleteSummary: () => void
   onOpenSourceInTab: (source: CaseSource, url: string) => void
-  onOpenJudgment: (judgment: Judgment) => void
+  onOpenJudgment: (judgment: CaseSource) => void  // Changed to CaseSource
   onDeleteJudgment?: (judgmentId: string) => void
 }
 
@@ -164,8 +164,8 @@ export function LeftSidebar({
                     >
                       <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-kx-primary-900 truncate">{judgment.title}</p>
-                        <p className="text-xs text-ledger-gray-500 truncate">{judgment.citation}</p>
+                        <p className="text-sm text-kx-primary-900 truncate">{judgment.name}</p>
+                        <p className="text-xs text-ledger-gray-500 truncate">Judgment</p>
                       </div>
                       {onDeleteJudgment && (
                         <Button

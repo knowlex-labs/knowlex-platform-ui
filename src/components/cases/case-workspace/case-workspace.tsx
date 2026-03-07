@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
-import { mapBackendClient } from '@/services/mappers'
 import { useCaseSources } from '@/hooks/use-case-sources'
 import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
@@ -17,7 +16,7 @@ import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
 import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
-import type { Draft, Client, Judgment } from '@/types'
+import type { Draft, CaseSource } from '@/types'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -25,13 +24,10 @@ export function CaseWorkspace() {
   const navigate = useNavigate()
   const { setSidebarCollapsed } = useUIState()
   const [caseName, setCaseName] = useState('Case Workspace')
-  const [caseClient, setCaseClient] = useState<Client | null>(null)
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [showDraftWizard, setShowDraftWizard] = useState(false)
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
-  const [judgments, setJudgments] = useState<Judgment[]>([])
-  const [isJudgmentsLoading, setIsJudgmentsLoading] = useState(false)
 
   // Resizable chat panel
   const MIN_CHAT_WIDTH = 320
@@ -70,6 +66,7 @@ export function CaseWorkspace() {
 
   const {
     sources,
+    judgments,
     selectedSourceIds,
     isLoading: sourcesLoading,
     isUploading,
@@ -96,13 +93,16 @@ export function CaseWorkspace() {
     updateSettings: updateChatSettings,
   } = useDraftChat(caseId)
 
+  // Combine sources and judgments for drafts hook to filter DRAFT types
+  const allDocuments: CaseSource[] = [...sources, ...judgments]
+
   const {
     drafts,
     createDraft,
     updateDraftLocal,
     saveDraftToBackend,
     deleteDraft,
-  } = useDrafts(caseId)
+  } = useDrafts(caseId, allDocuments)
 
   const {
     tabs,
@@ -137,33 +137,6 @@ export function CaseWorkspace() {
     }).catch(() => {
       // Keep default name on error
     })
-  }, [caseId])
-
-  // Fetch the client linked to this case
-  useEffect(() => {
-    caseApi.getClients(caseId).then((response) => {
-      const clients = response.data
-      if (clients && clients.length > 0) {
-        setCaseClient(mapBackendClient(clients[0]))
-      }
-    }).catch(() => {
-      // No client linked or API error — leave null
-    })
-  }, [caseId])
-
-  // Fetch judgments linked to this case
-  useEffect(() => {
-    setIsJudgmentsLoading(true)
-    caseApi.getJudgments(caseId)
-      .then((response) => {
-        setJudgments(response.data || [])
-      })
-      .catch(() => {
-        // No judgments or API error — leave empty
-      })
-      .finally(() => {
-        setIsJudgmentsLoading(false)
-      })
   }, [caseId])
 
   const handleBack = () => {
@@ -254,11 +227,9 @@ export function CaseWorkspace() {
     navigate('/judgments')
   }
 
-  const handleOpenJudgment = (judgment: Judgment) => {
-    // Open judgment in a new tab
-    if (judgment.s3PdfKey) {
-      window.open(`/judgments/${judgment.id}`, '_blank')
-    }
+  const handleOpenJudgment = (judgment: CaseSource) => {
+    // Open judgment in a new tab - using document ID
+    window.open(`/documents/${judgment.id}`, '_blank')
   }
 
   const handleDraftingClick = () => {
@@ -331,7 +302,7 @@ export function CaseWorkspace() {
             <LeftSidebar
               sources={sources}
               judgments={judgments}
-              isJudgmentsLoading={isJudgmentsLoading}
+              isJudgmentsLoading={sourcesLoading}
               selectedSourceIds={selectedSourceIds}
               isSourcesLoading={sourcesLoading}
               drafts={drafts}
@@ -375,7 +346,7 @@ export function CaseWorkspace() {
             onDeleteSummary={handleDeleteSummary}
             showDraftWizard={showDraftWizard}
             wizardSources={sources}
-            wizardClient={caseClient}
+            wizardClient={undefined}
             onWizardGenerate={handleWizardGenerate}
             onWizardCancel={handleWizardCancel}
           />

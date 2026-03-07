@@ -1,6 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { draftsApi, type DraftListItem, type CreateDraftRequest } from '@/services/api/drafts-api'
-import type { Draft } from '@/types'
+import { workspaceApi } from '@/services/api/workspace-api'
+import { TEMPLATE_TO_SUB_TYPE } from '@/components/cases/case-workspace/draft-creation-wizard'
+import type { Draft, CaseSource } from '@/types'
+import { JobStatus } from '@/types'
 
 export type { DocumentType } from '@/services/api/drafts-api'
 
@@ -80,14 +83,16 @@ interface UseDraftsResult {
   refresh: () => Promise<void>
 }
 
-export function useDrafts(caseId: string): UseDraftsResult {
+export function useDrafts(caseId: string, documents?: CaseSource[]): UseDraftsResult {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Polling: jobId → { attempts, draftId }
   // The GET endpoint uses job_id in the URL, but we track which draft.id it belongs to
-  const pollingJobsRef = useRef<Map<string, { attempts: number; draftId: string }>>(new Map())
+  // jobId is the polling key (used for GET /documents/{jobId})
+  // draftId is the document id (for local state updates)
+  const pollingJobsRef = useRef<Map<string, { attempts: number; draftId: string; documentId: string }>>(new Map())
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const caseIdRef = useRef(caseId)
   caseIdRef.current = caseId
@@ -116,17 +121,49 @@ export function useDrafts(caseId: string): UseDraftsResult {
       }
 
       try {
-        const jobResponse = await draftsApi.get(caseIdRef.current, jobId)
-        const item = jobResponse.data
-        const status = normalizeStatus(item.status)
+        // Use jobId for polling (GET /documents/{jobId})
+        const docResponse = await workspaceApi.getDocument(caseIdRef.current, jobId)
+        const doc = docResponse
+        // Check jobStatus (new API) or status for completion
+        const jobStatus = doc.jobStatus || doc.status
+        const normalizedStatus = normalizeStatus(jobStatus)
 
-        if (status === 'completed') {
-          const draft = await mapListItemToDraftAsync(item)
+        if (normalizedStatus === 'completed') {
+          // Fetch content via presigned download URL
+          let resolvedContent = ''
+          try {
+            const { storageUrl } = await workspaceApi.getPresignedDownloadUrl(info.documentId)
+            if (storageUrl) {
+              const response = await fetch(storageUrl)
+              resolvedContent = await response.text()
+            }
+          } catch {
+            // Content fetch failed, leave empty
+          }
+
+          // Map the new document response to Draft format
+          const resolvedDraft = await mapListItemToDraftAsync({
+            id: info.documentId,
+            job_id: jobId,
+            title: doc.name || 'Untitled',
+            document_type: doc.subType || '',
+            status: 'completed',
+            draft_body: resolvedContent,
+            sections: [],
+            metadata: {
+              document_type: doc.subType || '',
+              title: doc.name || 'Untitled',
+              summary: '',
+            },
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            completed_at: null,
+          })
           setDrafts((prev) =>
-            prev.map((d) => (d.id === info.draftId ? draft : d))
+            prev.map((d) => (d.id === info.draftId ? resolvedDraft : d))
           )
           toRemove.push(jobId)
-        } else if (status === 'failed') {
+        } else if (normalizedStatus === 'failed') {
           setDrafts((prev) =>
             prev.map((d) =>
               d.id === info.draftId ? { ...d, status: 'failed' as const } : d
@@ -227,21 +264,32 @@ export function useDrafts(caseId: string): UseDraftsResult {
   }, [caseId, flushDirtyDrafts])
 
   const fetchDrafts = useCallback(async () => {
+    // Don't fetch from separate API - always use documents passed from useCaseSources
+    // If no documents provided, set empty drafts
+    if (!documents) {
+      setDrafts([])
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
-    try {
-      const response = await draftsApi.list(caseId)
-      const items = response.data || []
-      const mapped = await Promise.all(items.map(mapListItemToDraftAsync))
-      setDrafts(mapped)
 
-      // Resume polling for any in-progress drafts (use job_id for GET, draft.id for matching)
-      for (const item of items) {
-        if (item.status !== 'completed' && item.status !== 'failed') {
-          pollingJobsRef.current.set(item.job_id, { attempts: 0, draftId: item.id })
-        }
-      }
-      ensurePolling()
+    try {
+      // Filter documents for DRAFT type
+      const draftDocs = documents.filter((d) => d.type === 'DRAFT')
+      // Map CaseSource to Draft format
+      const mapped: Draft[] = draftDocs.map((doc) => ({
+        id: doc.id,
+        title: doc.name,
+        content: '',
+        status: doc.status === JobStatus.COMPLETED ? 'completed' : doc.status === JobStatus.FAILED ? 'failed' : 'pending',
+        sections: [],
+        summary: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }))
+      setDrafts(mapped)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch drafts'
       setError(message)
@@ -249,7 +297,7 @@ export function useDrafts(caseId: string): UseDraftsResult {
     } finally {
       setIsLoading(false)
     }
-  }, [caseId, ensurePolling])
+  }, [caseId, documents])
 
   useEffect(() => {
     fetchDrafts()
@@ -272,10 +320,40 @@ export function useDrafts(caseId: string): UseDraftsResult {
 
     setDrafts((prev) => [placeholder, ...prev])
 
-    draftsApi.create(caseId, request).then((createResponse) => {
-      const data = createResponse.data
-      // Use database id as the draft identifier; fall back to job_id for older API shapes
-      const draftId = data.id || data.job_id
+    // Build the new unified document API request
+    // Determine sub_type: use request.subtype if provided, otherwise try mapping from document_type
+    const documentTypeStr = request.document_type.toLowerCase()
+    let subType = request.subtype || ''
+
+    // If no subtype provided, try to get it from TEMPLATE_TO_SUB_TYPE mapping
+    if (!subType) {
+      // Find matching template key from document_type (e.g., 'bail_application' -> 'bail-application')
+      const templateKey = Object.keys(TEMPLATE_TO_SUB_TYPE).find(
+        key => TEMPLATE_TO_SUB_TYPE[key].toLowerCase() === documentTypeStr ||
+               key.replace(/-/g, '_') === documentTypeStr
+      )
+      if (templateKey) {
+        subType = TEMPLATE_TO_SUB_TYPE[templateKey]
+      }
+    }
+
+    const documentRequest = {
+      document_type: 'draft' as const,
+      sub_type: subType,
+      data: {
+        title: request.title,
+        document_type: request.document_type,
+        input_mode: request.input_mode,
+        ...(request.freetext_body && { freetext_body: request.freetext_body }),
+        ...(request.file_ids?.length && { file_ids: request.file_ids }),
+        ...(request.language && { language: request.language }),
+        ...(request.config && { config: request.config }),
+      },
+    }
+
+    workspaceApi.createDocument(caseId, documentRequest).then((createResponse) => {
+      const draftId = createResponse.id
+      const jobId = createResponse.jobId
 
       setDrafts((prev) =>
         prev.map((d) =>
@@ -283,8 +361,8 @@ export function useDrafts(caseId: string): UseDraftsResult {
         )
       )
 
-      // Poll using the database id (backend GET endpoint expects id in URL)
-      pollingJobsRef.current.set(draftId, { attempts: 0, draftId })
+      // Poll using jobId (new API returns jobId for polling)
+      pollingJobsRef.current.set(jobId, { attempts: 0, draftId, documentId: draftId })
       ensurePolling()
     }).catch(() => {
       setDrafts((prev) =>
