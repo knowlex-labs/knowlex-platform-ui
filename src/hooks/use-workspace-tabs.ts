@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import type { WorkspaceTabItem, Draft, CaseSource } from '@/types'
+import type { WorkspaceTabItem, Draft, CaseDocument } from '@/types'
 
 const SUMMARY_TAB_ID = 'summary'
 
@@ -9,7 +9,7 @@ interface UseWorkspaceTabsResult {
   openTab: (draft: Draft) => void
   openSummaryTab: () => void
   closeSummaryTab: () => void
-  openSourceTab: (source: CaseSource, url: string) => void
+  openSourceTab: (source: CaseDocument, url: string) => void
   closeTab: (tabId: string) => void
   setActiveTab: (tabId: string) => void
   getActiveDraft: () => Draft | null
@@ -118,7 +118,7 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
     })
   }, [drafts])
 
-  const openSourceTab = useCallback((source: CaseSource, url: string) => {
+  const openSourceTab = useCallback((source: CaseDocument, url: string) => {
     setTabs((prev) => {
       const existing = prev.find((t) => t.sourceId === source.id)
       if (existing) {

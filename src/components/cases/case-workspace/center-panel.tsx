@@ -14,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import type { WorkspaceTabItem, Draft, CaseSummary, CaseSource, Client } from '@/types'
+import type { WorkspaceTabItem, Draft, CaseSummary, CaseDocument, Client } from '@/types'
 import type { CreateDraftRequest } from '@/services/api/drafts-api'
 
 interface CenterPanelProps {
@@ -38,7 +38,7 @@ interface CenterPanelProps {
   onGenerateSummary: () => void
   onDeleteSummary: () => void
   showDraftWizard?: boolean
-  wizardSources?: CaseSource[]
+  wizardSources?: CaseDocument[]
   wizardClient?: Client | null
   onWizardGenerate?: (request: CreateDraftRequest) => void
   onWizardCancel?: () => void

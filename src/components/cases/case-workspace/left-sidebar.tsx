@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Loader2, FileText, Trash2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { CaseSource, Draft, CaseSummary } from '@/types'
+import type { CaseDocument, Draft, CaseSummary } from '@/types'
 import { SourceItem } from './source-item'
 import { DraftItem } from './draft-item'
 
 interface LeftSidebarProps {
-  sources: CaseSource[]
-  judgments: CaseSource[]  // Now accepts CaseSource with type 'JUDGMENT'
+  sources: CaseDocument[]
+  judgments: CaseDocument[]  // Now accepts CaseDocument with type 'JUDGMENT'
   isJudgmentsLoading: boolean
   selectedSourceIds: Set<string>
   isSourcesLoading: boolean
@@ -23,8 +23,8 @@ interface LeftSidebarProps {
   onDeleteDraft: (id: string) => void
   onSummaryClick: () => void
   onDeleteSummary: () => void
-  onOpenSourceInTab: (source: CaseSource, url: string) => void
-  onOpenJudgment: (judgment: CaseSource) => void  // Changed to CaseSource
+  onOpenSourceInTab: (source: CaseDocument, url: string) => void
+  onOpenJudgment: (judgment: CaseDocument) => void  // Changed to CaseDocument
   onDeleteJudgment?: (judgmentId: string) => void
 }
 

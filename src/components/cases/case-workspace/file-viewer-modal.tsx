@@ -8,10 +8,10 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { workspaceApi } from '@/services/api/workspace-api'
-import type { CaseSource } from '@/types'
+import type { CaseDocument } from '@/types'
 
 interface FileViewerModalProps {
-  source: CaseSource | null
+  source: CaseDocument | null
   onClose: () => void
 }
 

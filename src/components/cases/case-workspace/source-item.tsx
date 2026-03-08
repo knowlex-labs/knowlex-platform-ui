@@ -11,15 +11,15 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { workspaceApi } from '@/services/api/workspace-api'
-import type { CaseSource } from '@/types'
+import type { CaseDocument } from '@/types'
 
 interface SourceItemProps {
-  source: CaseSource
+  source: CaseDocument
   isSelected: boolean
   onToggleSelection: () => void
   onDelete: () => void
   onLinkContent: () => void
-  onOpenInTab: (source: CaseSource, url: string) => void
+  onOpenInTab: (source: CaseDocument, url: string) => void
 }
 
 function getFileIcon(fileName: string) {

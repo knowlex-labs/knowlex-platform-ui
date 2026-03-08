@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
-import { useCaseSources } from '@/hooks/use-case-sources'
+import { useCaseDocuments } from '@/hooks/use-case-sources'
 import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
 import { useSummary } from '@/hooks/use-summary'
@@ -16,7 +16,8 @@ import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
 import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
-import type { Draft, CaseSource } from '@/types'
+import type { Draft, CaseDocument } from '@/types'
+import { JobStatus } from '@/types'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -65,8 +66,7 @@ export function CaseWorkspace() {
   }, [chatWidth, handleResizeMove, handleResizeEnd])
 
   const {
-    sources,
-    judgments,
+    documents,
     selectedSourceIds,
     isLoading: sourcesLoading,
     isUploading,
@@ -76,7 +76,12 @@ export function CaseWorkspace() {
     uploadFile,
     deleteSource,
     linkContent,
-  } = useCaseSources(caseId)
+  } = useCaseDocuments(caseId)
+
+  // Filter documents by type for display
+  const sources = documents.filter(d => d.type === 'USER_UPLOADED')
+  const judgments = documents.filter(d => d.type === 'JUDGMENT')
+  const draftDocuments = documents.filter(d => d.type === 'DRAFT')
 
   const {
     messages,
@@ -93,16 +98,26 @@ export function CaseWorkspace() {
     updateSettings: updateChatSettings,
   } = useDraftChat(caseId)
 
-  // Combine sources and judgments for drafts hook to filter DRAFT types
-  const allDocuments: CaseSource[] = [...sources, ...judgments]
-
+  // Draft management functions from useDrafts hook
   const {
-    drafts,
     createDraft,
     updateDraftLocal,
     saveDraftToBackend,
     deleteDraft,
-  } = useDrafts(caseId, allDocuments)
+  } = useDrafts(caseId, draftDocuments)
+
+  // TODO: Remove useDrafts - need to handle draft creation/deletion via useCaseDocuments
+  // For now, create empty placeholder drafts from documents
+  const drafts: Draft[] = draftDocuments.map(d => ({
+    id: d.id,
+    title: d.name || 'Untitled Draft',
+    content: '',
+    status: d.status === JobStatus.COMPLETED ? 'completed' : d.status === JobStatus.FAILED ? 'failed' : 'pending',
+    sections: [],
+    summary: '',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }))
 
   const {
     tabs,
@@ -227,7 +242,7 @@ export function CaseWorkspace() {
     navigate('/judgments')
   }
 
-  const handleOpenJudgment = (judgment: CaseSource) => {
+  const handleOpenJudgment = (judgment: CaseDocument) => {
     // Open judgment in a new tab - using document ID
     window.open(`/documents/${judgment.id}`, '_blank')
   }

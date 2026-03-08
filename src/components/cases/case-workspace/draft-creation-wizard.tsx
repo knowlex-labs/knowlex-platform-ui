@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import type { DraftTemplate, TemplateFormData, CaseSource, Client } from '@/types'
+import type { DraftTemplate, TemplateFormData, CaseDocument, Client } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
 import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/drafts-api'
 
@@ -68,7 +68,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 }
 
 export interface DraftCreationWizardProps {
-  sources: CaseSource[]
+  sources: CaseDocument[]
   client: Client | null
   onGenerate: (request: CreateDraftRequest) => void
   onCancel: () => void

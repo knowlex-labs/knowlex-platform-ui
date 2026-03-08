@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { draftsApi, type DraftListItem, type CreateDraftRequest } from '@/services/api/drafts-api'
 import { workspaceApi } from '@/services/api/workspace-api'
 import { TEMPLATE_TO_SUB_TYPE } from '@/components/cases/case-workspace/draft-creation-wizard'
-import type { Draft, CaseSource } from '@/types'
+import type { Draft, CaseDocument } from '@/types'
 import { JobStatus } from '@/types'
 
 export type { DocumentType } from '@/services/api/drafts-api'
@@ -83,7 +83,7 @@ interface UseDraftsResult {
   refresh: () => Promise<void>
 }
 
-export function useDrafts(caseId: string, documents?: CaseSource[]): UseDraftsResult {
+export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDraftsResult {
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -264,7 +264,7 @@ export function useDrafts(caseId: string, documents?: CaseSource[]): UseDraftsRe
   }, [caseId, flushDirtyDrafts])
 
   const fetchDrafts = useCallback(async () => {
-    // Don't fetch from separate API - always use documents passed from useCaseSources
+    // Don't fetch from separate API - always use documents passed from useCaseDocuments
     // If no documents provided, set empty drafts
     if (!documents) {
       setDrafts([])
@@ -278,7 +278,7 @@ export function useDrafts(caseId: string, documents?: CaseSource[]): UseDraftsRe
     try {
       // Filter documents for DRAFT type
       const draftDocs = documents.filter((d) => d.type === 'DRAFT')
-      // Map CaseSource to Draft format
+      // Map CaseDocument to Draft format
       const mapped: Draft[] = draftDocs.map((doc) => ({
         id: doc.id,
         title: doc.name,

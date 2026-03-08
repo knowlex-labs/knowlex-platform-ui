@@ -14,13 +14,13 @@ export enum JobStatus {
   INACTIVE = 'INACTIVE',
 }
 
-export type CaseSourceStatus = IndexingStatus | JobStatus
+export type CaseDocumentStatus = IndexingStatus | JobStatus
 
-export interface CaseSource {
+export interface CaseDocument {
   id: string
   name: string
-  type: 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT'
-  status: CaseSourceStatus
+  type: 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT' | 'SUMMARY'
+  status: CaseDocumentStatus
 }
 
 export interface ChatResponse {

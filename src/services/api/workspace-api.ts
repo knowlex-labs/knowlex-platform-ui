@@ -1,5 +1,5 @@
 import { apiClient } from './api-client'
-import type { CaseSource, CaseSourceStatus, ChatResponse } from '@/types'
+import type { CaseDocument, CaseDocumentStatus, ChatResponse } from '@/types'
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -79,9 +79,9 @@ export const workspaceApi = {
    * GET /api/v1/cases/{caseId}/documents?type=USER_UPLOADED - returns only uploaded docs
    * Response: { success: true, data: [...] } - direct array (not paginated)
    */
-  async getCaseDocuments(caseId: string, type?: 'USER_UPLOADED' | 'DRAFT'): Promise<CaseSource[]> {
+  async getCaseDocuments(caseId: string, type?: 'USER_UPLOADED' | 'DRAFT'): Promise<CaseDocument[]> {
     const params = type ? `?type=${type}` : ''
-    const response = await apiClient.get<ApiResponse<CaseSource[]>>(
+    const response = await apiClient.get<ApiResponse<CaseDocument[]>>(
       `/api/v1/cases/${caseId}/documents${params}`
     )
     return response.data
@@ -135,7 +135,7 @@ export const workspaceApi = {
   /**
    * Delete a document
    */
-  async deleteCaseSource(documentId: string): Promise<void> {
+  async deleteCaseDocument(documentId: string): Promise<void> {
     await apiClient.delete(`/api/v1/documents/${documentId}`)
   },
 
@@ -165,8 +165,8 @@ export const workspaceApi = {
    * Trigger indexing for a document
    * POST /api/v1/cases/{caseId}/{documentId}/index
    */
-  async triggerIndexing(caseId: string, documentId: string): Promise<CaseSource> {
-    const response = await apiClient.post<ApiResponse<CaseSource>>(
+  async triggerIndexing(caseId: string, documentId: string): Promise<CaseDocument> {
+    const response = await apiClient.post<ApiResponse<CaseDocument>>(
       `/api/v1/cases/${caseId}/${documentId}/index`
     )
     return response.data
@@ -188,11 +188,11 @@ export const workspaceApi = {
    * GET /api/v1/cases/{caseId}/{documentId}/indexing-status
    * Returns: pending, processing, completed, failed
    */
-  async getIndexingStatus(caseId: string, documentId: string): Promise<CaseSourceStatus> {
+  async getIndexingStatus(caseId: string, documentId: string): Promise<CaseDocumentStatus> {
     const response = await apiClient.get<ApiResponse<{ status: string }>>(
       `/api/v1/cases/${caseId}/${documentId}/indexing-status`
     )
-    return response.data.status as CaseSourceStatus
+    return response.data.status as CaseDocumentStatus
   },
 
   /**

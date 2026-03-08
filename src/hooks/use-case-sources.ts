@@ -1,12 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { workspaceApi } from '@/services/api/workspace-api'
-import { IndexingStatus, JobStatus, type CaseSource, type CaseSourceStatus } from '@/types'
+import { IndexingStatus, JobStatus, type CaseDocument, type CaseDocumentStatus } from '@/types'
 
 const POLLING_INTERVAL = 3000 // 3 seconds
 
-interface UseCaseSourcesResult {
-  sources: CaseSource[]
-  judgments: CaseSource[]
+interface UseCaseDocumentsResult {
+  documents: CaseDocument[]
   selectedSourceIds: Set<string>
   isLoading: boolean
   isUploading: boolean
@@ -22,9 +21,8 @@ interface UseCaseSourcesResult {
   refresh: () => Promise<void>
 }
 
-export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
-  const [sources, setSources] = useState<CaseSource[]>([])
-  const [judgments, setJudgments] = useState<CaseSource[]>([])
+export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult {
+  const [documents, setDocuments] = useState<CaseDocument[]>([])
   const [selectedSourceIds, setSelectedSourceIds] = useState<Set<string>>(new Set())
   const [isLoading, setIsLoading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
@@ -43,11 +41,11 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
     for (const documentId of pollingIdsRef.current) {
       try {
         const doc = await workspaceApi.getDocument(caseId, documentId)
-        const status = doc.jobStatus as CaseSourceStatus
+        const status = doc.jobStatus as CaseDocumentStatus
 
-        setSources((prev) =>
-          prev.map((s) =>
-            s.id === documentId ? { ...s, status } : s
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === documentId ? { ...d, status } : d
           )
         )
 
@@ -111,7 +109,7 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
     stopAllPolling()
 
     if (!caseId) {
-      setSources([])
+      setDocuments([])
       setSelectedSourceIds(new Set())
       return
     }
@@ -120,20 +118,15 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
       setIsLoading(true)
       setError(null)
       try {
-        const documents = await workspaceApi.getCaseDocuments(caseId)
+        const docs = await workspaceApi.getCaseDocuments(caseId)
+        setDocuments(docs)
 
-        // Filter documents by type
-        const userUploadedDocs = documents.filter((d) => d.type === 'USER_UPLOADED')
-        const judgmentDocs = documents.filter((d) => d.type === 'JUDGMENT')
-
-        setSources(userUploadedDocs)
-        setJudgments(judgmentDocs)
-
-        // Auto-select all sources by default
+        // Auto-select all sources by default (only USER_UPLOADED)
+        const userUploadedDocs = docs.filter((d) => d.type === 'USER_UPLOADED')
         setSelectedSourceIds(new Set(userUploadedDocs.map((d) => d.id)))
 
-        // Start polling for documents with processing or pending status
-        for (const doc of documents) {
+        // Start polling for documents with processing status
+        for (const doc of docs) {
           if (doc.status === IndexingStatus.RUNNING || doc.status === IndexingStatus.PENDING || doc.status === JobStatus.PROCESSING) {
             startPolling(doc.id)
           }
@@ -167,8 +160,9 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
   }, [])
 
   const selectAllSources = useCallback(() => {
-    setSelectedSourceIds(new Set(sources.map((s) => s.id)))
-  }, [sources])
+    const userUploadedDocs = documents.filter((d) => d.type === 'USER_UPLOADED')
+    setSelectedSourceIds(new Set(userUploadedDocs.map((d) => d.id)))
+  }, [documents])
 
   const deselectAllSources = useCallback(() => {
     setSelectedSourceIds(new Set())
@@ -189,22 +183,16 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         // Step 2: Upload to S3
         await workspaceApi.uploadFileToS3(uploadUrl, file)
 
-        // Step 3: Refresh sources to get the newly created document
-        const documents = await workspaceApi.getCaseDocuments(caseId)
-
-        // Filter documents by type
-        const userUploadedDocs = documents.filter((d) => d.type === 'USER_UPLOADED')
-        const judgmentDocs = documents.filter((d) => d.type === 'JUDGMENT')
-
-        setSources(userUploadedDocs)
-        setJudgments(judgmentDocs)
+        // Step 3: Refresh documents to get the newly created document
+        const docs = await workspaceApi.getCaseDocuments(caseId)
+        setDocuments(docs)
 
         // Step 4: Select the newly uploaded document
         setSelectedSourceIds((prev) => new Set([...prev, documentId]))
 
         // Step 5: Start polling if status needs it
-        const newSource = documents.find(s => s.id === documentId)
-        if (newSource && (newSource.status === IndexingStatus.RUNNING || newSource.status === IndexingStatus.PENDING || newSource.status === JobStatus.PROCESSING)) {
+        const newDoc = docs.find(d => d.id === documentId)
+        if (newDoc && (newDoc.status === IndexingStatus.RUNNING || newDoc.status === IndexingStatus.PENDING || newDoc.status === JobStatus.PROCESSING)) {
           startPolling(documentId)
         }
       } catch (err) {
@@ -225,10 +213,10 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
         stopPolling(sourceId)
 
         // Delete from backend
-        await workspaceApi.deleteCaseSource(sourceId)
+        await workspaceApi.deleteCaseDocument(sourceId)
 
         // Remove from local state
-        setSources((prev) => prev.filter((s) => s.id !== sourceId))
+        setDocuments((prev) => prev.filter((d) => d.id !== sourceId))
         setSelectedSourceIds((prev) => {
           const next = new Set(prev)
           next.delete(sourceId)
@@ -246,14 +234,14 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
   const linkContent = useCallback(
     async (sourceId: string) => {
       try {
-        const updatedSource = await workspaceApi.triggerIndexing(caseId!, sourceId)
-        // Update source in state
-        setSources((prev) =>
-          prev.map((s) => (s.id === sourceId ? updatedSource : s))
+        const updatedDoc = await workspaceApi.triggerIndexing(caseId!, sourceId)
+        // Update document in state
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === sourceId ? updatedDoc : d))
         )
 
         // Start polling after re-indexing
-        if (updatedSource.status === IndexingStatus.RUNNING || updatedSource.status === IndexingStatus.PENDING || updatedSource.status === JobStatus.PROCESSING) {
+        if (updatedDoc.status === IndexingStatus.RUNNING || updatedDoc.status === IndexingStatus.PENDING || updatedDoc.status === JobStatus.PROCESSING) {
           startPolling(sourceId)
         }
       } catch (err) {
@@ -273,8 +261,8 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
           stopPolling(id)
         }
 
-        await Promise.all(sourceIds.map((id) => workspaceApi.deleteCaseSource(id)))
-        setSources((prev) => prev.filter((s) => !sourceIds.includes(s.id)))
+        await Promise.all(sourceIds.map((id) => workspaceApi.deleteCaseDocument(id)))
+        setDocuments((prev) => prev.filter((d) => !sourceIds.includes(d.id)))
         deselectAllSources()
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to delete sources'
@@ -290,11 +278,11 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
       try {
         await workspaceApi.batchTriggerIndexing(caseId!, sourceIds)
         // Optimistically update status to processing
-        setSources((prev) =>
-          prev.map((s) =>
-            sourceIds.includes(s.id)
-              ? { ...s, status: JobStatus.PROCESSING }
-              : s
+        setDocuments((prev) =>
+          prev.map((d) =>
+            sourceIds.includes(d.id)
+              ? { ...d, status: JobStatus.PROCESSING }
+              : d
           )
         )
 
@@ -317,14 +305,8 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
     setIsLoading(true)
     setError(null)
     try {
-      const documents = await workspaceApi.getCaseDocuments(caseId)
-
-      // Filter documents by type
-      const userUploadedDocs = documents.filter((d) => d.type === 'USER_UPLOADED')
-      const judgmentDocs = documents.filter((d) => d.type === 'JUDGMENT')
-
-      setSources(userUploadedDocs)
-      setJudgments(judgmentDocs)
+      const docs = await workspaceApi.getCaseDocuments(caseId)
+      setDocuments(docs)
       // Keep current selection, just refresh data
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch documents'
@@ -335,8 +317,7 @@ export function useCaseSources(caseId: string | null): UseCaseSourcesResult {
   }, [caseId])
 
   return {
-    sources,
-    judgments,
+    documents,
     selectedSourceIds,
     isLoading,
     isUploading,
