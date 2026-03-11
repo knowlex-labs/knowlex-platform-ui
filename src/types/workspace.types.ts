@@ -25,6 +25,7 @@ export interface CaseDocument {
   jobId?: string
   subType?: string
   filePath?: string
+  storageUrl?: string
 }
 
 export interface ChatResponse {

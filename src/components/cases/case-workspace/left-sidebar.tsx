@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button'
 import type { CaseDocument, Draft, CaseSummary } from '@/types'
 import { SourceItem } from './source-item'
 import { DraftItem } from './draft-item'
+import { DocumentItem } from './document-item'
 
 interface LeftSidebarProps {
   sources: CaseDocument[]
+  apiDraftDocuments: CaseDocument[]  // DRAFT type documents from API
   judgments: CaseDocument[]  // Now accepts CaseDocument with type 'JUDGMENT'
   isJudgmentsLoading: boolean
   selectedSourceIds: Set<string>
@@ -30,6 +32,7 @@ interface LeftSidebarProps {
 
 export function LeftSidebar({
   sources,
+  apiDraftDocuments,
   judgments,
   isJudgmentsLoading,
   selectedSourceIds,
@@ -210,12 +213,13 @@ export function LeftSidebar({
 
           {draftsExpanded && (
             <div className="pb-2">
-              {drafts.length === 0 ? (
+              {drafts.length === 0 && apiDraftDocuments.length === 0 ? (
                 <div className="px-4 py-4 text-center">
                   <p className="text-xs text-ledger-gray-500">No drafts yet</p>
                 </div>
               ) : (
                 <div>
+                  {/* Only show AI-generated drafts from useDrafts hook - these are the same as API DRAFT documents */}
                   {drafts.map((draft) => (
                     <DraftItem
                       key={draft.id}

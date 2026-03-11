@@ -1,4 +1,3 @@
-import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { ThemeProvider } from '@/contexts/theme-context'
@@ -9,14 +8,12 @@ import { router } from '@/router'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <AuthProvider>
-        <UIStateProvider>
-          <RouterProvider router={router} />
-          <Toaster />
-        </UIStateProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </React.StrictMode>
+  <ThemeProvider>
+    <AuthProvider>
+      <UIStateProvider>
+        <RouterProvider router={router} />
+        <Toaster />
+      </UIStateProvider>
+    </AuthProvider>
+  </ThemeProvider>
 )

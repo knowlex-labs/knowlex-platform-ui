@@ -104,6 +104,7 @@ export function CaseWorkspace() {
     updateDraftLocal,
     saveDraftToBackend,
     deleteDraft,
+    fetchDraftContent,
   } = useDrafts(caseId, draftDocuments)
 
   const {
@@ -155,7 +156,10 @@ export function CaseWorkspace() {
     handleSendMessage(text)
   }
 
-  const handleDraftClick = (draft: Draft) => {
+  const handleDraftClick = async (draft: Draft) => {
+    if (!draft.content && draft.status === 'completed') {
+      await fetchDraftContent(draft.id)
+    }
     openTab(draft)
   }
 
@@ -303,6 +307,7 @@ export function CaseWorkspace() {
           <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden">
             <LeftSidebar
               sources={sources}
+              apiDraftDocuments={draftDocuments}
               judgments={judgments}
               isJudgmentsLoading={sourcesLoading}
               selectedSourceIds={selectedSourceIds}

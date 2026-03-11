@@ -77,6 +77,7 @@ interface UseDraftsResult {
   saveDraftToBackend: (id: string, title?: string, content?: string) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
   getDraft: (id: string) => Draft | undefined
+  fetchDraftContent: (id: string) => Promise<Draft | undefined>
   refresh: () => Promise<void>
 }
 
@@ -272,6 +273,28 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     }
   }, [caseId, flushDirtyDrafts])
 
+  // Lazily fetch content for a single draft by ID (called on click)
+  const fetchDraftContent = useCallback(async (id: string): Promise<Draft | undefined> => {
+    const draft = draftsRef.current.find((d) => d.id === id)
+    if (!draft || draft.content) return draft // Already has content
+
+    try {
+      const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(id)
+      if (downloadUrl) {
+        const response = await fetch(downloadUrl)
+        const content = await response.text()
+        const updated = { ...draft, content }
+        setDrafts((prev) =>
+          prev.map((d) => d.id === id ? { ...d, content } : d)
+        )
+        return updated
+      }
+    } catch {
+      console.error('Failed to fetch draft content:', id)
+    }
+    return draft
+  }, [])
+
   const fetchDrafts = useCallback(async () => {
     const docs = documentsRef.current
     // Don't fetch from separate API - always use documents passed from useCaseDocuments
@@ -289,40 +312,20 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
       // Filter documents for DRAFT type
       const draftDocs = docs.filter((d) => d.type === 'DRAFT')
 
-      // For each draft, fetch content if completed (skip presigned URL if we already have content)
-      const mapped: Draft[] = await Promise.all(
-        draftDocs.map(async (doc) => {
-          let content = ''
-          const existing = draftsRef.current.find((d) => d.id === doc.id)
-
-          if (doc.jobStatus === JobStatus.COMPLETED) {
-            if (existing?.content) {
-              content = existing.content
-            } else {
-              try {
-                const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(doc.id)
-                if (downloadUrl) {
-                  const response = await fetch(downloadUrl)
-                  content = await response.text()
-                }
-              } catch {
-                // Content fetch failed, leave empty
-              }
-            }
-          }
-
-          return {
-            id: doc.id,
-            title: doc.name || 'Untitled Draft',
-            content,
-            status: doc.jobStatus === JobStatus.COMPLETED ? 'completed' : doc.jobStatus === JobStatus.FAILED ? 'failed' : 'pending',
-            sections: [],
-            summary: '',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
-        })
-      )
+      // Map to Draft objects without eagerly fetching content — content is loaded on click
+      const mapped: Draft[] = draftDocs.map((doc) => {
+        const existing = draftsRef.current.find((d) => d.id === doc.id)
+        return {
+          id: doc.id,
+          title: doc.name || 'Untitled Draft',
+          content: existing?.content || '', // Keep cached content, don't fetch new
+          status: doc.jobStatus === JobStatus.COMPLETED ? 'completed' : doc.jobStatus === JobStatus.FAILED ? 'failed' : 'pending',
+          sections: [],
+          summary: '',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      })
 
       setDrafts(mapped)
 
@@ -508,6 +511,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     saveDraftToBackend,
     deleteDraft,
     getDraft,
+    fetchDraftContent,
     refresh: fetchDrafts,
   }
 }
