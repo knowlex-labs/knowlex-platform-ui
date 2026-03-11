@@ -4,7 +4,10 @@ import { useAuth } from '@/contexts/auth-context'
 import { useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { useDashboardData } from '@/hooks/use-dashboard-data'
+import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'
 import { StatsOverview } from './stats-overview'
+import { ActivityChart } from './activity-chart'
+import { ActivityFeed } from './activity-feed'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
 import { RecentClientsWidget } from './recent-clients-widget'
 import { ContinueWhereLeftOff } from './continue-where-left-off'
@@ -21,6 +24,13 @@ export function DashboardHome() {
   const navigate = useNavigate()
   const { setShowAddCaseModal } = useUIState()
   const { cases, clients, stats, isLoading } = useDashboardData()
+  const {
+    aiStats,
+    chartData,
+    chartPeriod,
+    setChartPeriod,
+    activityFeed,
+  } = useDashboardAnalytics()
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
 
@@ -49,8 +59,8 @@ export function DashboardHome() {
 
   return (
     <div className="space-y-6 md:space-y-8">
-      {/* Header row: greeting + notification bell */}
-      <div className="flex items-start justify-between">
+      {/* Header: greeting + quick actions + bell */}
+      <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
             {greeting}, {displayName}
@@ -59,49 +69,99 @@ export function DashboardHome() {
             Here's an overview of your practice
           </p>
         </div>
-        <div className="relative" ref={notifRef}>
+
+        <div className="flex items-center gap-2 flex-shrink-0">
           <button
-            onClick={() => setNotifOpen(!notifOpen)}
-            className="relative h-9 w-9 flex items-center justify-center rounded-lg border border-kx-card-border bg-kx-card shadow-sm hover:bg-ledger-gray-50 dark:hover:bg-white/5 transition-colors"
-            aria-label="Notifications"
+            onClick={() => {
+              setShowAddCaseModal(true)
+              navigate('/cases')
+            }}
+            className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-kx-primary-600 text-white hover:bg-kx-primary-700 transition-colors shadow-sm"
           >
-            <Bell className="h-5 w-5 text-kx-primary-700" />
+            <Plus className="h-4 w-4" />
+            New Case
           </button>
-          {notifOpen && (
-            <div className="absolute right-0 top-11 w-72 bg-kx-card border border-kx-card-border rounded-xl shadow-lg p-4 z-50">
-              <p className="text-sm font-semibold text-kx-primary-900 mb-3">Notifications</p>
-              <div className="text-center py-6">
-                <Bell className="h-8 w-8 text-ledger-gray-300 mx-auto mb-2" />
-                <p className="text-xs text-ledger-gray-500">No new reminders</p>
+          <button
+            onClick={() => navigate('/clients')}
+            className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border border-kx-card-border bg-kx-card text-kx-primary-900 hover:bg-ledger-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
+          >
+            <UserPlus className="h-4 w-4" />
+            Add Client
+          </button>
+          <div className="relative" ref={notifRef}>
+            <button
+              onClick={() => setNotifOpen(!notifOpen)}
+              className="relative h-9 w-9 flex items-center justify-center rounded-lg border border-kx-card-border bg-kx-card shadow-sm hover:bg-ledger-gray-50 dark:hover:bg-white/5 transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="h-5 w-5 text-kx-primary-700" />
+            </button>
+            {notifOpen && (
+              <div className="absolute right-0 top-11 w-72 bg-kx-card border border-kx-card-border rounded-xl shadow-lg p-4 z-50">
+                <p className="text-sm font-semibold text-kx-primary-900 mb-3">Notifications</p>
+                <div className="text-center py-6">
+                  <Bell className="h-8 w-8 text-ledger-gray-300 mx-auto mb-2" />
+                  <p className="text-xs text-ledger-gray-500">No new reminders</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Stats Overview */}
+      {/* Mobile quick actions (visible on small screens) */}
+      <div className="grid grid-cols-2 gap-3 sm:hidden">
+        <button
+          onClick={() => {
+            setShowAddCaseModal(true)
+            navigate('/cases')
+          }}
+          className="flex items-center gap-2 justify-center px-3 py-2.5 text-sm font-medium rounded-lg bg-kx-primary-600 text-white hover:bg-kx-primary-700 transition-colors shadow-sm"
+        >
+          <Plus className="h-4 w-4" />
+          New Case
+        </button>
+        <button
+          onClick={() => navigate('/clients')}
+          className="flex items-center gap-2 justify-center px-3 py-2.5 text-sm font-medium rounded-lg border border-kx-card-border bg-kx-card text-kx-primary-900 hover:bg-ledger-gray-50 dark:hover:bg-white/5 transition-colors shadow-sm"
+        >
+          <UserPlus className="h-4 w-4" />
+          Add Client
+        </button>
+      </div>
+
+      {/* Stats: Total Cases, Total Drafts Generated, Total Clients, Time Saved */}
       <section>
         <StatsOverview
           totalCases={stats.totalCases}
-          activeCases={stats.activeCases}
+          totalDraftsGenerated={aiStats.draftsGenerated}
           totalClients={stats.totalClients}
-          upcomingHearings={stats.upcomingHearings}
+          timeSaved={aiStats.timeSavedHours}
           isLoading={isLoading}
         />
       </section>
 
-      {/* Bento two-panel layout */}
+      {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 lg:gap-6">
 
-        {/* LEFT: Main bento content */}
+        {/* LEFT column */}
         <div className="space-y-5">
-          {/* Continue where you left off */}
+          {/* Continue where you left off (Recent Cases) */}
           <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
             <h2 className="text-base font-semibold text-kx-primary-900 mb-4">Continue where you left off</h2>
             <ContinueWhereLeftOff
               cases={cases}
               isLoading={isLoading}
               onCaseClick={handleCaseClick}
+            />
+          </section>
+
+          {/* Activity Chart */}
+          <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
+            <ActivityChart
+              data={chartData}
+              period={chartPeriod}
+              onPeriodChange={setChartPeriod}
             />
           </section>
 
@@ -114,49 +174,12 @@ export function DashboardHome() {
               onClientClick={handleClientClick}
             />
           </section>
-
-          {/* Quick Actions */}
-          <section>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => {
-                  setShowAddCaseModal(true)
-                  navigate('/cases')
-                }}
-                className="bg-kx-card border border-kx-card-border rounded-lg p-4 shadow-sm card-elevated text-left animate-bounce-in"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                    <Plus className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-kx-primary-900">New Case</p>
-                    <p className="text-xs text-ledger-gray-500">Start a new case file</p>
-                  </div>
-                </div>
-              </button>
-              <button
-                onClick={() => navigate('/clients')}
-                className="bg-kx-card border border-kx-card-border rounded-lg p-4 shadow-sm card-elevated text-left animate-bounce-in"
-                style={{ animationDelay: '60ms' }}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                    <UserPlus className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-kx-primary-900">Add Client</p>
-                    <p className="text-xs text-ledger-gray-500">Register a new client</p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </section>
         </div>
 
-        {/* RIGHT: Upcoming Hearings — sticky panel */}
+        {/* RIGHT sidebar */}
         <aside>
-          <div className="lg:sticky lg:top-6">
+          <div className="lg:sticky lg:top-6 space-y-5">
+            {/* Upcoming Hearings */}
             <div className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
               <div className="flex items-center gap-2 mb-4">
                 <CalendarDays className="h-4 w-4 text-amber-600" />
@@ -167,6 +190,12 @@ export function DashboardHome() {
                 isLoading={isLoading}
                 onCaseClick={handleCaseClick}
               />
+            </div>
+
+            {/* Recent Activity Feed */}
+            <div className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
+              <h2 className="text-sm font-semibold text-kx-primary-900 mb-4">Recent Activity</h2>
+              <ActivityFeed items={activityFeed} />
             </div>
           </div>
         </aside>

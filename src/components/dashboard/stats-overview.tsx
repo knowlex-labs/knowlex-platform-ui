@@ -1,10 +1,10 @@
-import { Briefcase, Scale, Users, CalendarClock } from 'lucide-react'
+import { Briefcase, FileText, Users, Clock } from 'lucide-react'
 
 interface StatsOverviewProps {
   totalCases: number
-  activeCases: number
+  totalDraftsGenerated: number
   totalClients: number
-  upcomingHearings: number
+  timeSaved: number
   isLoading: boolean
 }
 
@@ -12,41 +12,45 @@ const STATS_CONFIG = [
   {
     key: 'totalCases',
     label: 'Total Cases',
+    suffix: undefined,
     icon: Briefcase,
     iconColors: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
   },
   {
-    key: 'activeCases',
-    label: 'Active Cases',
-    icon: Scale,
-    iconColors: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+    key: 'totalDraftsGenerated',
+    label: 'Total Drafts Generated',
+    suffix: undefined,
+    icon: FileText,
+    iconColors: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
   },
   {
     key: 'totalClients',
-    label: 'Clients',
+    label: 'Total Clients',
+    suffix: undefined,
     icon: Users,
     iconColors: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
   },
   {
-    key: 'upcomingHearings',
-    label: 'Upcoming Hearings',
-    icon: CalendarClock,
-    iconColors: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
+    key: 'timeSaved',
+    label: 'Time Saved',
+    suffix: 'hrs',
+    icon: Clock,
+    iconColors: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
   },
 ] as const
 
 export function StatsOverview({
   totalCases,
-  activeCases,
+  totalDraftsGenerated,
   totalClients,
-  upcomingHearings,
+  timeSaved,
   isLoading,
 }: StatsOverviewProps) {
   const values: Record<string, number> = {
     totalCases,
-    activeCases,
+    totalDraftsGenerated,
     totalClients,
-    upcomingHearings,
+    timeSaved,
   }
 
   return (
@@ -67,6 +71,7 @@ export function StatsOverview({
               ) : (
                 <p className="text-2xl font-bold text-kx-primary-900 leading-tight">
                   {values[stat.key]}
+                  {stat.suffix && <span className="text-sm font-medium text-ledger-gray-500 ml-0.5">{stat.suffix}</span>}
                 </p>
               )}
               <p className="text-xs text-ledger-gray-500 truncate">{stat.label}</p>

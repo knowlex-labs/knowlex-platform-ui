@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import type { CaseDocument, Draft, CaseSummary } from '@/types'
 import { SourceItem } from './source-item'
 import { DraftItem } from './draft-item'
-import { DocumentItem } from './document-item'
 
 interface LeftSidebarProps {
   sources: CaseDocument[]

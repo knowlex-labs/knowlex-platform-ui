@@ -95,14 +95,14 @@ export function DocumentItem({ document }: DocumentItemProps) {
         url = await workspaceApi.getDownloadUrl(document.id)
       }
 
-      // Trigger download
-      const link = document.createElement('a')
+      // Trigger download - use window.document to avoid shadowing the prop
+      const link = window.document.createElement('a')
       link.href = url
       link.download = displayName
       link.target = '_blank'
-      document.body.appendChild(link)
+      window.document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      window.document.body.removeChild(link)
     } catch (err) {
       console.error('Failed to download document:', err)
     } finally {
