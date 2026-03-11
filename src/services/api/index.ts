@@ -10,3 +10,12 @@ export type { BackendUser } from './user-api'
 export { workspaceApi } from './workspace-api'
 export { judgmentsApi } from './judgments-api'
 export type { JudgmentListParams } from './judgments-api'
+export { dashboardApi } from './dashboard-api'
+export type {
+  DashboardSummary,
+  RecentCase,
+  RecentClient,
+  RecentActivityItem,
+  ChartDataPoint as ChartDataPointApi,
+  ChartData as ChartDataApi,
+} from './dashboard-api'
