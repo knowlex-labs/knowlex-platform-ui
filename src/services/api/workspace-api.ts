@@ -88,7 +88,7 @@ export const workspaceApi = {
   },
 
   /**
-   * Get presigned upload URL (simplified flow)
+   * Get presigned upload URL for a NEW document (creates a document record).
    * POST /api/v1/presigned-url/upload with { caseId, fileName }
    * Backend creates document and returns { documentId, uploadUrl, storageKey, storageUrl }
    */
@@ -99,6 +99,22 @@ export const workspaceApi = {
     const response = await apiClient.post<ApiResponse<PresignedUrlData>>(
       '/api/v1/presigned-url/upload',
       { caseId, fileName }
+    )
+    return response.data
+  },
+
+  /**
+   * Get presigned upload URL for an EXISTING document (does NOT create a new record).
+   * POST /api/v1/presigned-url/upload with { documentId, fileName }
+   * Returns { documentId, uploadUrl, storageKey, storageUrl }
+   */
+  async getPresignedUploadUrlForExisting(
+    documentId: string,
+    fileName: string
+  ): Promise<PresignedUrlData> {
+    const response = await apiClient.post<ApiResponse<PresignedUrlData>>(
+      '/api/v1/presigned-url/upload',
+      { documentId, fileName }
     )
     return response.data
   },

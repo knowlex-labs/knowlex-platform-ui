@@ -231,9 +231,9 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
             continue
           }
 
-          // Get presigned URL and upload to S3
+          // Get presigned URL for the EXISTING document (don't create a new one)
           const fileName = `${id}.html`
-          const { uploadUrl, storageKey } = await workspaceApi.getPresignedUploadUrl(caseIdRef.current, fileName)
+          const { uploadUrl, storageKey } = await workspaceApi.getPresignedUploadUrlForExisting(id, fileName)
 
           await fetch(uploadUrl, {
             method: 'PUT',
@@ -456,9 +456,9 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         return
       }
 
-      // Get presigned URL and upload content directly to S3
+      // Get presigned URL for the EXISTING document (don't create a new one)
       const fileName = `${id}.html`
-      const { uploadUrl, storageKey } = await workspaceApi.getPresignedUploadUrl(caseId, fileName)
+      const { uploadUrl, storageKey } = await workspaceApi.getPresignedUploadUrlForExisting(id, fileName)
 
       // Upload content to S3
       await fetch(uploadUrl, {
