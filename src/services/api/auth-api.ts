@@ -2,6 +2,11 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
 
+// Helper to check if API response indicates success (handles both 'success' and 'status' from backend)
+function isApiSuccess(_response: { success?: boolean; status?: string }): boolean {
+  return _response.success === true || _response.status === 'success'
+}
+
 export interface RegisterRequest {
   username: string
   email: string
@@ -25,7 +30,7 @@ export interface RefreshTokenRequest {
 }
 
 export interface ApiResponse<T> {
-  status: 'success' | 'error'
+  success: boolean
   message: string
   data: T | null
 }
@@ -123,7 +128,7 @@ function extractUserFromToken(token: string): AuthResponse['user'] | null {
 async function handleAuthResponse(response: Response): Promise<AuthResponse> {
   const apiResponse: ApiResponse<AuthTokens> = await response.json()
 
-  if (!response.ok || apiResponse.status !== 'success') {
+  if (!response.ok || !isApiSuccess(apiResponse)) {
     const errorMessage = apiResponse.message || `Authentication failed (${response.status})`
     throw { message: errorMessage, status: response.status } as AuthError
   }
@@ -165,7 +170,7 @@ export const authApi = {
     })
     const apiResponse: ApiResponse<null> = await response.json()
 
-    if (!response.ok || apiResponse.status !== 'success') {
+    if (!response.ok || !isApiSuccess(apiResponse)) {
       const errorMessage = apiResponse.message || `Registration failed (${response.status})`
       throw { message: errorMessage, status: response.status } as AuthError
     }

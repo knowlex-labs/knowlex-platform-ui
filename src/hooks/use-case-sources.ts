@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { workspaceApi } from '@/services/api/workspace-api'
 import { IndexingStatus, JobStatus, type CaseDocument, type CaseDocumentStatus } from '@/types'
 
-const POLLING_INTERVAL = 3000 // 3 seconds
+const POLLING_INTERVAL = 6000 // 6 seconds
+const MAX_POLL_ATTEMPTS = 20
 
 interface UseCaseDocumentsResult {
   documents: CaseDocument[]
@@ -28,8 +29,8 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Track documents being polled
-  const pollingIdsRef = useRef<Set<string>>(new Set())
+  // Track documents being polled: documentId -> attempts count
+  const pollingAttemptsRef = useRef<Map<string, number>>(new Map())
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Poll job status for documents
@@ -38,14 +39,34 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
     const idsToRemove: string[] = []
 
-    for (const documentId of pollingIdsRef.current) {
+    for (const [documentId, attempts] of pollingAttemptsRef.current) {
+      // Stop polling if max attempts reached
+      if (attempts >= MAX_POLL_ATTEMPTS) {
+        console.warn(`Polling max attempts reached for document ${documentId}`)
+        idsToRemove.push(documentId)
+        continue
+      }
+
       try {
         const doc = await workspaceApi.getDocument(caseId, documentId)
-        const status = doc.jobStatus as CaseDocumentStatus
+        const docType = doc.type as 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT' | 'SUMMARY'
+
+        // Use jobStatus for DRAFT and SUMMARY, indexingStatus for USER_UPLOADED and JUDGMENT
+        const isDraftOrSummary = docType === 'DRAFT' || docType === 'SUMMARY'
+        const status = isDraftOrSummary
+          ? doc.jobStatus as CaseDocumentStatus
+          : doc.indexingStatus as CaseDocumentStatus
 
         setDocuments((prev) =>
           prev.map((d) =>
-            d.id === documentId ? { ...d, status } : d
+            d.id === documentId
+              ? {
+                  ...d,
+                  ...(isDraftOrSummary
+                    ? { jobStatus: doc.jobStatus as JobStatus }
+                    : { indexingStatus: doc.indexingStatus as IndexingStatus }),
+                }
+              : d
           )
         )
 
@@ -54,6 +75,9 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
         const isFailed = status === IndexingStatus.FAILED || status === JobStatus.FAILED
         if (isCompleted || isFailed) {
           idsToRemove.push(documentId)
+        } else {
+          // Increment attempts for non-terminal documents
+          pollingAttemptsRef.current.set(documentId, attempts + 1)
         }
       } catch (error) {
         // Document may have been deleted, stop polling
@@ -64,11 +88,11 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
     // Remove terminal documents from polling
     for (const id of idsToRemove) {
-      pollingIdsRef.current.delete(id)
+      pollingAttemptsRef.current.delete(id)
     }
 
     // Stop interval if nothing left to poll
-    if (pollingIdsRef.current.size === 0 && pollingIntervalRef.current) {
+    if (pollingAttemptsRef.current.size === 0 && pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current)
       pollingIntervalRef.current = null
     }
@@ -76,7 +100,10 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
   // Start polling for a document
   const startPolling = useCallback((documentId: string) => {
-    pollingIdsRef.current.add(documentId)
+    // Only add if not already being polled
+    if (!pollingAttemptsRef.current.has(documentId)) {
+      pollingAttemptsRef.current.set(documentId, 0)
+    }
 
     // Start interval if not already running
     if (!pollingIntervalRef.current) {
@@ -86,9 +113,9 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
   // Stop polling for a document
   const stopPolling = useCallback((documentId: string) => {
-    pollingIdsRef.current.delete(documentId)
+    pollingAttemptsRef.current.delete(documentId)
 
-    if (pollingIdsRef.current.size === 0 && pollingIntervalRef.current) {
+    if (pollingAttemptsRef.current.size === 0 && pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current)
       pollingIntervalRef.current = null
     }
@@ -96,7 +123,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
   // Stop all polling
   const stopAllPolling = useCallback(() => {
-    pollingIdsRef.current.clear()
+    pollingAttemptsRef.current.clear()
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current)
       pollingIntervalRef.current = null
@@ -127,7 +154,9 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
         // Start polling for documents with processing status
         for (const doc of docs) {
-          if (doc.status === IndexingStatus.RUNNING || doc.status === IndexingStatus.PENDING || doc.status === JobStatus.PROCESSING) {
+          const isDraftOrSummary = doc.type === 'DRAFT' || doc.type === 'SUMMARY'
+          const status = isDraftOrSummary ? doc.jobStatus : doc.indexingStatus
+          if (status === IndexingStatus.RUNNING || status === IndexingStatus.PENDING || status === JobStatus.PROCESSING) {
             startPolling(doc.id)
           }
         }
@@ -192,7 +221,16 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
         // Step 5: Start polling if status needs it
         const newDoc = docs.find(d => d.id === documentId)
-        if (newDoc && (newDoc.status === IndexingStatus.RUNNING || newDoc.status === IndexingStatus.PENDING || newDoc.status === JobStatus.PROCESSING)) {
+        const isDraftOrSummary = newDoc?.type === 'DRAFT' || newDoc?.type === 'SUMMARY'
+        const status = isDraftOrSummary ? newDoc?.jobStatus : newDoc?.indexingStatus
+        // For USER_UPLOADED docs, also start polling if status is undefined (backend may not return initial status)
+        const shouldPoll = newDoc && (
+          status === IndexingStatus.RUNNING ||
+          status === IndexingStatus.PENDING ||
+          status === JobStatus.PROCESSING ||
+          (!isDraftOrSummary && !status) // Start polling for USER_UPLOADED when status is undefined
+        )
+        if (shouldPoll) {
           startPolling(documentId)
         }
       } catch (err) {
@@ -213,7 +251,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
         stopPolling(sourceId)
 
         // Delete from backend
-        await workspaceApi.deleteCaseDocument(sourceId)
+        await workspaceApi.deleteCaseDocument(caseId!, sourceId)
 
         // Remove from local state
         setDocuments((prev) => prev.filter((d) => d.id !== sourceId))
@@ -241,7 +279,9 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
         )
 
         // Start polling after re-indexing
-        if (updatedDoc.status === IndexingStatus.RUNNING || updatedDoc.status === IndexingStatus.PENDING || updatedDoc.status === JobStatus.PROCESSING) {
+        const isDraftOrSummary = updatedDoc.type === 'DRAFT' || updatedDoc.type === 'SUMMARY'
+        const status = isDraftOrSummary ? updatedDoc.jobStatus : updatedDoc.indexingStatus
+        if (status === IndexingStatus.RUNNING || status === IndexingStatus.PENDING || status === JobStatus.PROCESSING) {
           startPolling(sourceId)
         }
       } catch (err) {
@@ -261,7 +301,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
           stopPolling(id)
         }
 
-        await Promise.all(sourceIds.map((id) => workspaceApi.deleteCaseDocument(id)))
+        await Promise.all(sourceIds.map((id) => workspaceApi.deleteCaseDocument(caseId!, id)))
         setDocuments((prev) => prev.filter((d) => !sourceIds.includes(d.id)))
         deselectAllSources()
       } catch (err) {

@@ -15,7 +15,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import type { WorkspaceTabItem, Draft, CaseSummary, CaseDocument, Client } from '@/types'
-import type { CreateDraftRequest } from '@/services/api/drafts-api'
+import type { CreateDraftRequest } from '@/services/api/document-types'
 
 interface CenterPanelProps {
   tabs: WorkspaceTabItem[]

@@ -8,7 +8,7 @@ function chatBase(caseId: string) {
 }
 
 interface CreateSessionResponse {
-  status: string
+  success: boolean
   message: string
   data: {
     session_id: string
@@ -17,8 +17,20 @@ interface CreateSessionResponse {
   }
 }
 
+interface GetSessionResponse {
+  success: boolean
+  message: string
+  data: {
+    id: string
+    caseId: string
+    title: string
+    style: string
+    createdAt: string
+  }
+}
+
 interface ListSessionsResponse {
-  status: string
+  success: boolean
   message: string
   data: Array<{
     session_id: string
@@ -34,7 +46,7 @@ interface HistoryToolCall {
 }
 
 interface ChatHistoryResponse {
-  status: string
+  success: boolean
   message: string
   data: {
     session_id: string
@@ -82,6 +94,22 @@ export const draftChatApi = {
     }))
   },
 
+  getSession: async (
+    caseId: string,
+    sessionId: string
+  ): Promise<{ id: string; caseId: string; title: string; style: string; createdAt: string }> => {
+    const response = await apiClient.get<GetSessionResponse>(
+      `${chatBase(caseId)}/${sessionId}`
+    )
+    return {
+      id: response.data.id,
+      caseId: response.data.caseId,
+      title: response.data.title,
+      style: response.data.style,
+      createdAt: response.data.createdAt,
+    }
+  },
+
   getHistory: async (
     caseId: string,
     sessionId: string
@@ -103,7 +131,7 @@ export const draftChatApi = {
   },
 
   clearMessages: async (caseId: string, sessionId: string): Promise<void> => {
-    await apiClient.post(`${chatBase(caseId)}/${sessionId}/clear`, {})
+    await apiClient.delete(`${chatBase(caseId)}/${sessionId}/history`)
   },
 
   deleteSession: async (caseId: string, sessionId: string): Promise<void> => {
@@ -113,7 +141,7 @@ export const draftChatApi = {
   updateDefaults: async (
     caseId: string,
     sessionId: string,
-    tone: string,
+    title: string,
     style: string
   ): Promise<void> => {
     const token = localStorage.getItem('auth_token')
@@ -122,9 +150,9 @@ export const draftChatApi = {
     if (token) headers['Authorization'] = `Bearer ${token}`
     if (userId) headers['x-user-id'] = userId
     await fetch(`${API_BASE_URL}${chatBase(caseId)}/${sessionId}`, {
-      method: 'PATCH',
+      method: 'PUT',
       headers,
-      body: JSON.stringify({ tone, style }),
+      body: JSON.stringify({ title, style }),
     })
   },
 

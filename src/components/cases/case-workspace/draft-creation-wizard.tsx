@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { DraftTemplate, TemplateFormData, CaseDocument, Client } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
-import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/drafts-api'
+import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/document-types'
 
 // Maps each template to its API document_type and optional subtype
 export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {

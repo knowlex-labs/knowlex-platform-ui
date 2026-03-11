@@ -39,6 +39,11 @@ const STATUS_CONFIG: Record<Case['status'], { label: string; badge: string; left
     badge: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
     leftBorder: 'border-l-red-500',
   },
+  archived: {
+    label: 'Archived',
+    badge: 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800',
+    leftBorder: 'border-l-slate-500',
+  },
 }
 
 const DEFAULT_STATUS_CONFIG = STATUS_CONFIG.closed

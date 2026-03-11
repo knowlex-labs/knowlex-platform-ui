@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { summaryApi } from '@/services/api/summary-api'
 import type { CaseSummary } from '@/types'
 
-const POLL_INTERVAL_MS = 3000
+const POLL_INTERVAL_MS = 6000
 const MAX_POLL_ATTEMPTS = 60
 
 export function useSummary(caseId: string) {

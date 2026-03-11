@@ -19,8 +19,12 @@ export type CaseDocumentStatus = IndexingStatus | JobStatus
 export interface CaseDocument {
   id: string
   name: string
-  type: 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT' | 'SUMMARY'
-  status: CaseDocumentStatus
+  type: 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT' | 'SUMMARY' | 'BRIEF'
+  indexingStatus?: IndexingStatus
+  jobStatus?: JobStatus
+  jobId?: string
+  subType?: string
+  filePath?: string
 }
 
 export interface ChatResponse {

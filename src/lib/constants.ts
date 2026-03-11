@@ -23,6 +23,7 @@ export const STATUS_COLORS = {
   'on-hold': 'bg-orange-100 text-orange-800 border border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
   appealed: 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
   blocked: 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+  archived: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-900/30 dark:text-slate-400 dark:border-slate-800',
 } as const
 
 export const APP_NAME = 'Knowlex'

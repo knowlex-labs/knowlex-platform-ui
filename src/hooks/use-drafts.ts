@@ -1,14 +1,14 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { draftsApi, type DraftListItem, type CreateDraftRequest } from '@/services/api/drafts-api'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { workspaceApi } from '@/services/api/workspace-api'
 import { TEMPLATE_TO_SUB_TYPE } from '@/components/cases/case-workspace/draft-creation-wizard'
 import type { Draft, CaseDocument } from '@/types'
 import { JobStatus } from '@/types'
+import type { CreateDraftRequest, DraftListItem } from '@/services/api/document-types'
 
-export type { DocumentType } from '@/services/api/drafts-api'
+export type { DocumentType } from '@/services/api/document-types'
 
-const POLL_INTERVAL_MS = 3000
-const MAX_POLL_ATTEMPTS = 60
+const POLL_INTERVAL_MS = 6000
+const MAX_POLL_ATTEMPTS = 20
 
 // Normalize API status: backend returns "processing" | "completed" | "failed"
 function normalizeStatus(status: string): 'pending' | 'completed' | 'failed' {
@@ -33,12 +33,9 @@ async function resolveDraftBody(draft_body: string, documentId: string, _documen
   // If draft_body is empty, try to get download URL from S3
   if (!draft_body) {
     try {
-      // Generate filename and content type from document info
-      const fileName = `${documentId}.html`
-      const contentType = 'text/html'
-      const { storageUrl } = await draftsApi.getPresignedDownloadUrl(documentId, fileName, contentType)
-      if (storageUrl) {
-        const response = await fetch(storageUrl)
+      const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(documentId)
+      if (downloadUrl) {
+        const response = await fetch(downloadUrl)
         return await response.text()
       }
     } catch {
@@ -100,7 +97,19 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
   // Dirty tracking for batch backend save
   const dirtyDraftIdsRef = useRef<Set<string>>(new Set())
   const draftsRef = useRef(drafts)
+  const documentsRef = useRef(documents)
   draftsRef.current = drafts
+  documentsRef.current = documents
+
+  // Stable key so we only refetch when draft list or status actually changes (avoids loop when parent passes new array ref each render)
+  const draftListKey = useMemo(
+    () =>
+      (documents?.filter((d) => d.type === 'DRAFT') ?? [])
+        .map((d) => `${d.id}:${d.jobStatus ?? ''}`)
+        .sort()
+        .join(','),
+    [documents]
+  )
 
   // Poll pending drafts
   const pollPendingDrafts = useCallback(async () => {
@@ -121,20 +130,20 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
       }
 
       try {
-        // Use jobId for polling (GET /documents/{jobId})
-        const docResponse = await workspaceApi.getDocument(caseIdRef.current, jobId)
+        // Use documentId for polling (GET /documents/{documentId})
+        const docResponse = await workspaceApi.getDocument(caseIdRef.current, info.documentId)
         const doc = docResponse
         // Check jobStatus (new API) or status for completion
-        const jobStatus = doc.jobStatus || doc.status
+        const jobStatus = doc.jobStatus
         const normalizedStatus = normalizeStatus(jobStatus)
 
         if (normalizedStatus === 'completed') {
           // Fetch content via presigned download URL
           let resolvedContent = ''
           try {
-            const { storageUrl } = await workspaceApi.getPresignedDownloadUrl(info.documentId)
-            if (storageUrl) {
-              const response = await fetch(storageUrl)
+            const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(info.documentId)
+            if (downloadUrl) {
+              const response = await fetch(downloadUrl)
               resolvedContent = await response.text()
             }
           } catch {
@@ -216,14 +225,14 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         try {
           // Skip S3 upload for empty content
           if (!draft.content.trim()) {
-            await draftsApi.update(caseIdRef.current, id, { title: draft.title })
+            await workspaceApi.updateDocument(caseIdRef.current, id, { title: draft.title })
             dirtyIds.delete(id)
             continue
           }
 
           // Get presigned URL and upload to S3
           const fileName = `${id}.html`
-          const { uploadUrl, storageKey } = await draftsApi.getPresignedUploadUrl(id, fileName, 'text/html')
+          const { uploadUrl, storageKey } = await workspaceApi.getPresignedUploadUrl(caseIdRef.current, fileName)
 
           await fetch(uploadUrl, {
             method: 'PUT',
@@ -232,7 +241,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
           })
 
           // Update with storage key
-          await draftsApi.update(caseIdRef.current, id, {
+          await workspaceApi.updateDocument(caseIdRef.current, id, {
             title: draft.title,
             storage_key: storageKey,
           })
@@ -264,9 +273,10 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
   }, [caseId, flushDirtyDrafts])
 
   const fetchDrafts = useCallback(async () => {
+    const docs = documentsRef.current
     // Don't fetch from separate API - always use documents passed from useCaseDocuments
     // If no documents provided, set empty drafts
-    if (!documents) {
+    if (!docs) {
       setDrafts([])
       setIsLoading(false)
       return
@@ -277,19 +287,56 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
 
     try {
       // Filter documents for DRAFT type
-      const draftDocs = documents.filter((d) => d.type === 'DRAFT')
-      // Map CaseDocument to Draft format
-      const mapped: Draft[] = draftDocs.map((doc) => ({
-        id: doc.id,
-        title: doc.name,
-        content: '',
-        status: doc.status === JobStatus.COMPLETED ? 'completed' : doc.status === JobStatus.FAILED ? 'failed' : 'pending',
-        sections: [],
-        summary: '',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }))
+      const draftDocs = docs.filter((d) => d.type === 'DRAFT')
+
+      // For each draft, fetch content if completed (skip presigned URL if we already have content)
+      const mapped: Draft[] = await Promise.all(
+        draftDocs.map(async (doc) => {
+          let content = ''
+          const existing = draftsRef.current.find((d) => d.id === doc.id)
+
+          if (doc.jobStatus === JobStatus.COMPLETED) {
+            if (existing?.content) {
+              content = existing.content
+            } else {
+              try {
+                const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(doc.id)
+                if (downloadUrl) {
+                  const response = await fetch(downloadUrl)
+                  content = await response.text()
+                }
+              } catch {
+                // Content fetch failed, leave empty
+              }
+            }
+          }
+
+          return {
+            id: doc.id,
+            title: doc.name || 'Untitled Draft',
+            content,
+            status: doc.jobStatus === JobStatus.COMPLETED ? 'completed' : doc.jobStatus === JobStatus.FAILED ? 'failed' : 'pending',
+            sections: [],
+            summary: '',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
+        })
+      )
+
       setDrafts(mapped)
+
+      // Start polling for drafts that are still processing
+      for (const doc of draftDocs) {
+        if (doc.jobStatus === JobStatus.PROCESSING) {
+          pollingJobsRef.current.set(doc.jobId || doc.id, {
+            attempts: 0,
+            draftId: doc.id,
+            documentId: doc.id,
+          })
+        }
+      }
+      ensurePolling()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch drafts'
       setError(message)
@@ -297,11 +344,11 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     } finally {
       setIsLoading(false)
     }
-  }, [caseId, documents])
+  }, [caseId, ensurePolling])
 
   useEffect(() => {
     fetchDrafts()
-  }, [fetchDrafts])
+  }, [fetchDrafts, draftListKey])
 
   // Create draft: POST → insert placeholder → poll → content fills in
   const createDraft = useCallback((request: CreateDraftRequest): Draft => {
@@ -402,13 +449,13 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     try {
       // Skip S3 upload for empty content - just update title
       if (!resolvedContent.trim()) {
-        await draftsApi.update(caseId, id, { title: resolvedTitle })
+        await workspaceApi.updateDocument(caseId, id, { title: resolvedTitle })
         return
       }
 
       // Get presigned URL and upload content directly to S3
       const fileName = `${id}.html`
-      const { uploadUrl, storageKey } = await draftsApi.getPresignedUploadUrl(id, fileName, 'text/html')
+      const { uploadUrl, storageKey } = await workspaceApi.getPresignedUploadUrl(caseId, fileName)
 
       // Upload content to S3
       await fetch(uploadUrl, {
@@ -418,7 +465,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
       })
 
       // Update draft with storage key
-      await draftsApi.update(caseId, id, {
+      await workspaceApi.updateDocument(caseId, id, {
         title: resolvedTitle,
         storage_key: storageKey,
       })
@@ -440,7 +487,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     }
 
     try {
-      await draftsApi.cancel(caseId, id)
+      await workspaceApi.deleteCaseDocument(caseId, id)
     } catch {
       // job may already be completed — safe to ignore
     }

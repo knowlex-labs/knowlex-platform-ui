@@ -42,9 +42,16 @@ function getStatusBadge(status: string | undefined | null) {
     processing: { color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', text: 'Processing' },
     completed: { color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800', text: 'Completed' },
     failed: { color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', text: 'Failed' },
+    indexing_pending: { color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800', text: 'Pending' },
+    indexing_running: { color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', text: 'Processing' },
+    indexing_completed: { color: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800', text: 'Completed' },
+    indexing_failed: { color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800', text: 'Failed' },
   }
 
-  const statusConfig = status && config[status.toLowerCase()]
+  // For USER_UPLOADED documents, if indexingStatus is undefined, assume it's pending
+  // as indexing should start immediately after upload
+  const normalizedStatus = (!status ? 'indexing_pending' : status.toLowerCase()) || ''
+  const statusConfig = config[normalizedStatus]
   const { color, text } = statusConfig || { color: 'bg-gray-100 text-gray-800 border-gray-200', text: status || 'Unknown' }
 
   return (
@@ -66,7 +73,8 @@ export function SourceItem({
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLinking, setIsLinking] = useState(false)
 
-  const Icon = getFileIcon(source.name)
+  const displayName = source.name || `${source.type} Document`
+  const Icon = getFileIcon(displayName)
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -91,6 +99,9 @@ export function SourceItem({
   const [isLoadingView, setIsLoadingView] = useState(false)
 
   const handleView = async () => {
+    // Prevent multiple simultaneous calls
+    if (isLoadingView) return
+
     setIsLoadingView(true)
     try {
       const url = await workspaceApi.getDownloadUrl(source.id)
@@ -128,7 +139,7 @@ export function SourceItem({
           : <Icon className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
         }
         <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0 hover:underline">
-          {source.name}
+          {displayName}
         </span>
       </button>
 
@@ -148,7 +159,7 @@ export function SourceItem({
           <div className="absolute right-0 top-full mt-1 w-48 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
             {/* File details */}
             <div className="px-3 py-2 border-b border-ledger-gray-100">
-              <div className="mt-1">{getStatusBadge(source.status)}</div>
+              <div className="mt-1">{getStatusBadge(source.type === 'DRAFT' ? source.jobStatus : source.indexingStatus)}</div>
             </div>
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors disabled:opacity-50"

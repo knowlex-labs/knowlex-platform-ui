@@ -135,8 +135,8 @@ export const workspaceApi = {
   /**
    * Delete a document
    */
-  async deleteCaseDocument(documentId: string): Promise<void> {
-    await apiClient.delete(`/api/v1/documents/${documentId}`)
+  async deleteCaseDocument(caseId: string, documentId: string): Promise<void> {
+    await apiClient.delete(`/api/v1/cases/${caseId}/documents/${documentId}`)
   },
 
   /**
@@ -163,11 +163,11 @@ export const workspaceApi = {
 
   /**
    * Trigger indexing for a document
-   * POST /api/v1/cases/{caseId}/{documentId}/index
+   * POST /api/v1/cases/{caseId}/documents/{documentId}/index
    */
   async triggerIndexing(caseId: string, documentId: string): Promise<CaseDocument> {
     const response = await apiClient.post<ApiResponse<CaseDocument>>(
-      `/api/v1/cases/${caseId}/${documentId}/index`
+      `/api/v1/cases/${caseId}/documents/${documentId}/index`
     )
     return response.data
   },
@@ -178,19 +178,19 @@ export const workspaceApi = {
   async batchTriggerIndexing(caseId: string, documentIds: string[]): Promise<void> {
     await Promise.all(
       documentIds.map(id =>
-        apiClient.post(`/api/v1/cases/${caseId}/${id}/index`)
+        apiClient.post(`/api/v1/cases/${caseId}/documents/${id}/index`)
       )
     )
   },
 
   /**
    * Get indexing status for a document
-   * GET /api/v1/cases/{caseId}/{documentId}/indexing-status
+   * GET /api/v1/cases/{caseId}/documents/{documentId}/indexing-status
    * Returns: pending, processing, completed, failed
    */
   async getIndexingStatus(caseId: string, documentId: string): Promise<CaseDocumentStatus> {
     const response = await apiClient.get<ApiResponse<{ status: string }>>(
-      `/api/v1/cases/${caseId}/${documentId}/indexing-status`
+      `/api/v1/cases/${caseId}/documents/${documentId}/indexing-status`
     )
     return response.data.status as CaseDocumentStatus
   },
@@ -220,12 +220,25 @@ export const workspaceApi = {
 
   /**
    * Get presigned download URL for a completed document
-   * POST /api/v1/presigned/download with { documentId }
+   * POST /api/v1/presigned-url/download with { documentId }
+   * Returns { downloadUrl, storageUrl }
    */
-  async getPresignedDownloadUrl(documentId: string): Promise<{ uploadUrl: string; storageUrl: string }> {
-    const response = await apiClient.post<ApiResponse<{ uploadUrl: string; storageUrl: string }>>(
-      '/api/v1/presigned/download',
+  async getPresignedDownloadUrl(documentId: string): Promise<{ downloadUrl: string; storageUrl: string }> {
+    const response = await apiClient.post<ApiResponse<{ downloadUrl: string; storageUrl: string }>>(
+      '/api/v1/presigned-url/download',
       { documentId }
+    )
+    return response.data
+  },
+
+  /**
+   * Update a document (title, storage_key)
+   * PUT /api/v1/cases/{caseId}/documents/{documentId}
+   */
+  async updateDocument(caseId: string, documentId: string, data: { title?: string; storage_key?: string }): Promise<CreateDocumentResponse> {
+    const response = await apiClient.put<ApiResponse<CreateDocumentResponse>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}`,
+      data
     )
     return response.data
   },

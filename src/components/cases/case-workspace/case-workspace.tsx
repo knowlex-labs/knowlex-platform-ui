@@ -15,9 +15,8 @@ import { DraftChatPanel } from './draft-chat-panel'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
 import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
-import type { CreateDraftRequest, DocumentType } from '@/services/api/drafts-api'
+import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
 import type { Draft, CaseDocument } from '@/types'
-import { JobStatus } from '@/types'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -98,26 +97,14 @@ export function CaseWorkspace() {
     updateSettings: updateChatSettings,
   } = useDraftChat(caseId)
 
-  // Draft management functions from useDrafts hook
+  // Draft management from useDrafts hook - includes polling and content fetching
   const {
+    drafts,
     createDraft,
     updateDraftLocal,
     saveDraftToBackend,
     deleteDraft,
   } = useDrafts(caseId, draftDocuments)
-
-  // TODO: Remove useDrafts - need to handle draft creation/deletion via useCaseDocuments
-  // For now, create empty placeholder drafts from documents
-  const drafts: Draft[] = draftDocuments.map(d => ({
-    id: d.id,
-    title: d.name || 'Untitled Draft',
-    content: '',
-    status: d.status === JobStatus.COMPLETED ? 'completed' : d.status === JobStatus.FAILED ? 'failed' : 'pending',
-    sections: [],
-    summary: '',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }))
 
   const {
     tabs,

@@ -13,10 +13,13 @@ import {
   Printer,
   FileText,
   ChevronDown,
+  Pencil,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface FormattingToolbarProps {
+  isEditing?: boolean
   onBold: () => void
   onItalic: () => void
   onUnderline: () => void
@@ -26,7 +29,9 @@ interface FormattingToolbarProps {
   onBulletList: () => void
   onNumberedList: () => void
   onFontSize: (size: string) => void
+  onEdit?: () => void
   onSave?: () => void
+  onCancel?: () => void
   onPrint?: () => void
   onDownloadDoc?: () => void
   onDownloadPdf?: () => void
@@ -38,6 +43,7 @@ interface FormattingToolbarProps {
 const FONT_SIZES = ['8', '10', '12', '14', '16', '18', '24'] as const
 
 export function FormattingToolbar({
+  isEditing = false,
   onBold,
   onItalic,
   onUnderline,
@@ -47,7 +53,9 @@ export function FormattingToolbar({
   onBulletList,
   onNumberedList,
   onFontSize,
+  onEdit,
   onSave,
+  onCancel,
   onPrint,
   onDownloadDoc,
   onDownloadPdf,
@@ -72,6 +80,83 @@ export function FormattingToolbar({
 
   const hasExportOptions = onPrint || onDownloadDoc || onDownloadPdf
 
+  // View mode: show Edit button
+  if (!isEditing) {
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-1 px-4 py-2 border-b border-ledger-gray-200 dark:border-ledger-gray-700',
+          className
+        )}
+      >
+        <div className="flex-1" />
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+              'text-ledger-gray-600 dark:text-ledger-gray-300 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700'
+            )}
+            title="Edit document"
+          >
+            <Pencil className="h-4 w-4" />
+            Edit
+          </button>
+        )}
+        {hasExportOptions && (
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setExportOpen((prev) => !prev)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium transition-colors',
+                'text-ledger-gray-600 dark:text-ledger-gray-300 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700',
+                exportOpen && 'bg-ledger-gray-100 dark:bg-ledger-gray-700'
+              )}
+              title="Export options"
+            >
+              <Download className="h-4 w-4" />
+              Export
+              <ChevronDown className={cn('h-3 w-3 transition-transform', exportOpen && 'rotate-180')} />
+            </button>
+
+            {exportOpen && (
+              <div className="absolute right-0 top-full mt-1 w-52 bg-white dark:bg-ledger-gray-800 rounded-lg shadow-lg border border-ledger-gray-200 dark:border-ledger-gray-600 py-1 z-50">
+                {onPrint && (
+                  <button
+                    onClick={() => { onPrint(); setExportOpen(false) }}
+                    className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+                  >
+                    <Printer className="h-4 w-4 text-ledger-gray-400 dark:text-ledger-gray-500" />
+                    Print
+                  </button>
+                )}
+                {onDownloadPdf && (
+                  <button
+                    onClick={() => { onDownloadPdf(); setExportOpen(false) }}
+                    className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+                  >
+                    <FileText className="h-4 w-4 text-red-400" />
+                    Download PDF
+                  </button>
+                )}
+                {onDownloadDoc && (
+                  <button
+                    onClick={() => { onDownloadDoc(); setExportOpen(false) }}
+                    className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+                  >
+                    <FileText className="h-4 w-4 text-blue-500" />
+                    Download Word
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Edit mode: show full formatting toolbar + Save button
   return (
     <div
       className={cn(
@@ -227,6 +312,18 @@ export function FormattingToolbar({
         >
           <Save className="h-4 w-4" />
           {isSaving ? 'Saving...' : 'Save'}
+        </button>
+      )}
+
+      {onCancel && (
+        <button
+          onClick={onCancel}
+          disabled={isSaving}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-medium text-ledger-gray-500 dark:text-ledger-gray-400 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors"
+          title="Cancel editing"
+        >
+          <X className="h-4 w-4" />
+          Cancel
         </button>
       )}
     </div>
