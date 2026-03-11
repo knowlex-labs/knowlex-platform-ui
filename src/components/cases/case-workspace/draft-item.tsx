@@ -27,16 +27,14 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
   return (
     <div
       className={cn(
-        'group relative flex items-center gap-2 px-4 py-2.5',
+        'group relative flex items-center gap-2 px-4 py-2.5 cursor-pointer',
         'hover:bg-ledger-gray-50 transition-colors',
         draft.status === 'failed' && 'opacity-60'
       )}
+      onClick={onClick}
       onMouseLeave={() => setShowMenu(false)}
     >
-      <button
-        className="flex items-center gap-2 flex-1 min-w-0 text-left"
-        onClick={onClick}
-      >
+      <div className="flex items-center gap-2 flex-1 min-w-0 text-left">
         {draft.status === 'pending' ? (
           <Loader2 className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0 animate-spin" />
         ) : draft.status === 'failed' ? (
@@ -53,7 +51,7 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
             <span className="text-red-400 ml-1">- Failed</span>
           )}
         </span>
-      </button>
+      </div>
 
       {/* Three-dot Menu */}
       <div className="relative flex-shrink-0">
@@ -61,7 +59,7 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
           variant="ghost"
           size="sm"
           className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
-          onClick={() => setShowMenu(!showMenu)}
+          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
         >
           <MoreVertical className="h-3.5 w-3.5" />
         </Button>
@@ -70,7 +68,7 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
           <div className="absolute right-0 top-full mt-1 w-44 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-lg disabled:opacity-50"
-              onClick={handleDelete}
+              onClick={(e) => { e.stopPropagation(); handleDelete() }}
               disabled={isDeleting}
             >
               <Trash2 className="h-4 w-4" />

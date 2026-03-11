@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Trash2, AlertCircle, RotateCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
 import { FormattingToolbar } from './formatting-toolbar'
 import {
@@ -199,6 +200,7 @@ function CompletedDraftEditor({
   const [title, setTitle] = useState(cached?.title ?? draft.title)
   const [hasChanges, setHasChanges] = useState(!!cached)
   const [isSaving, setIsSaving] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -219,7 +221,7 @@ function CompletedDraftEditor({
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
-  /** Run repagination and update page counts */
+  /** Run repagination and update page counts - always shows page breaks */
   const repaginate = useCallback(() => {
     if (!editorRef.current) return
     repaginateEditor(editorRef.current)
@@ -278,6 +280,7 @@ function CompletedDraftEditor({
 
   // ─── Auto-save on input (debounced 500 ms) ────────────────────────────────
   const handleEditorInput = useCallback(() => {
+    if (!isEditing) return
     setHasChanges(true)
     onDirtyChange?.(true)
     handleEditorChange()
@@ -287,7 +290,7 @@ function CompletedDraftEditor({
       flushToLocalState()
       repaginate()
     }, 500)
-  }, [onDirtyChange, handleEditorChange, flushToLocalState, repaginate])
+  }, [isEditing, onDirtyChange, handleEditorChange, flushToLocalState, repaginate])
 
   // ─── Flush on unmount ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -312,6 +315,12 @@ function CompletedDraftEditor({
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [flushToLocalState])
+
+  // ─── Handle mode switching ────────────────────────────────────────────────
+  useEffect(() => {
+    // Always show page breaks (like PDF) - repaginate handles this
+    repaginate()
+  }, [isEditing, repaginate])
 
   // ─── Export handlers ──────────────────────────────────────────────────────
   const getCurrentContent = useCallback(
@@ -363,6 +372,38 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleSaveToBackend])
 
+  // ─── Handle save completion ─────────────────────────────────────────────────
+  const handleSaveAndExitEditMode = useCallback(async () => {
+    await handleSaveToBackend()
+    setIsEditing(false)
+  }, [handleSaveToBackend])
+
+  // ─── Handle cancel editing ─────────────────────────────────────────────────
+  const handleCancelEdit = useCallback(() => {
+    // Clear any pending auto-save
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current)
+    }
+    // Discard local changes by reloading from cache or original content
+    draftContentCache.delete(draft.id)
+    setHasChanges(false)
+    onDirtyChange?.(false)
+    // Reload original content
+    if (editorRef.current) {
+      const hasSections = draft.sections && draft.sections.length > 0
+      const html = renderDraftToHtml(
+        draft.content,
+        hasSections ? draft.sections : undefined,
+        draft.templateType,
+        draft.contentFormat
+      )
+      editorRef.current.innerHTML = html
+      // Repaginate after content is set
+      setTimeout(() => repaginate(), 50)
+    }
+    setIsEditing(false)
+  }, [draft, onDirtyChange, repaginate])
+
   // ─── Initial HTML ─────────────────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const initialHtml = useMemo(() => {
@@ -407,6 +448,8 @@ function CompletedDraftEditor({
     <div className="flex flex-col h-full">
       {/* Formatting Toolbar */}
       <FormattingToolbar
+        isEditing={isEditing}
+        onEdit={() => setIsEditing(true)}
         onBold={formatting.handleBold}
         onItalic={formatting.handleItalic}
         onUnderline={formatting.handleUnderline}
@@ -416,7 +459,8 @@ function CompletedDraftEditor({
         onBulletList={formatting.handleBulletList}
         onNumberedList={formatting.handleNumberedList}
         onFontSize={formatting.handleFontSize}
-        onSave={handleSaveToBackend}
+        onSave={handleSaveAndExitEditMode}
+        onCancel={handleCancelEdit}
         onPrint={handlePrint}
         onDownloadDoc={handleDownloadDoc}
         onDownloadPdf={handleDownloadPdf}
@@ -441,11 +485,11 @@ function CompletedDraftEditor({
         {/* A4 paper — the actual contentEditable editor */}
         <div
           ref={editorRef}
-          contentEditable
+          contentEditable={isEditing}
           suppressContentEditableWarning
-          onInput={handleEditorInput}
-          onBlur={flushToLocalState}
-          className="legal-document focus:outline-none bg-white"
+          onInput={isEditing ? handleEditorInput : undefined}
+          onBlur={isEditing ? flushToLocalState : undefined}
+          className={cn('legal-document focus:outline-none bg-white', !isEditing && 'cursor-default')}
           style={{
             fontFamily: "'Times New Roman', Times, serif",
             fontSize: '12pt',

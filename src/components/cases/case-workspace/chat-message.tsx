@@ -49,10 +49,27 @@ function formatTime(date: Date): string {
   })
 }
 
+function stripInjectedContext(content: string): string {
+  // Strip system-injected blocks appended to user messages.
+  // Try multiple possible delimiters the backend might store.
+  const delimiters = [
+    '\n\n---\n',
+    '\n---\n',
+    '\n---',
+    'RESPONSE INSTRUCTIONS:',
+  ]
+  for (const d of delimiters) {
+    const idx = content.indexOf(d)
+    if (idx !== -1) return content.slice(0, idx).trim()
+  }
+  return content
+}
+
 export function ChatMessage({ message }: ChatMessageProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(false)
   const isUser = message.role === 'user'
-  const content = message.content || ''
+  const rawContent = message.content || ''
+  const content = isUser ? stripInjectedContext(rawContent) : rawContent
   const isToolExecution = content.startsWith('[Executing tool:')
 
   const { mainContent, sources } = parseMessageContent(content)

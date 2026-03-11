@@ -10,9 +10,17 @@ import type {
   CreateCaseRequest,
   PaginatedData,
   UpdateCaseRequest,
+  Judgment,
 } from '@/types'
 
 const CASES_ENDPOINT = '/api/v1/cases'
+
+export interface CaseOverviewSummary {
+  documentCount: number
+  judgmentCount: number
+  draftCount: number
+  summaryCount: number
+}
 
 export interface GetCasesParams {
   page?: number
@@ -55,11 +63,19 @@ export const caseApi = {
     return apiClient.get<ApiResponse<BackendClient[]>>(`${CASES_ENDPOINT}/${caseId}/clients`)
   },
 
-  addJudgment: (caseId: string, judgmentId: string): Promise<ApiResponse<unknown>> => {
-    return apiClient.post<ApiResponse<unknown>>(`${CASES_ENDPOINT}/${caseId}/judgments`, { judgmentId })
+  addJudgment: (caseId: string, judgmentId: string, collectionId?: string): Promise<ApiResponse<unknown>> => {
+    return apiClient.post<ApiResponse<unknown>>(`${CASES_ENDPOINT}/${caseId}/judgments`, { judgmentId, collectionId })
+  },
+
+  getJudgments: (caseId: string): Promise<ApiResponse<Judgment[]>> => {
+    return apiClient.get<ApiResponse<Judgment[]>>(`${CASES_ENDPOINT}/${caseId}/judgments`)
   },
 
   getTypes: (): Promise<ApiResponse<CaseTypeOption[]>> => {
     return apiClient.get<ApiResponse<CaseTypeOption[]>>(`${CASES_ENDPOINT}/types`)
+  },
+
+  getOverviewSummary: (caseId: string): Promise<ApiResponse<CaseOverviewSummary>> => {
+    return apiClient.get<ApiResponse<CaseOverviewSummary>>(`${CASES_ENDPOINT}/${caseId}/overview/summary`)
   },
 }

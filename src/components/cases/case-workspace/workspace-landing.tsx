@@ -1,105 +1,64 @@
-import { PenLine, FileText, ListChecks, FileOutput, Lock } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { PenLine, Upload, FileText, Scale } from 'lucide-react'
 
 interface WorkspaceLandingProps {
   onDraftingClick: () => void
+  onSummaryClick: () => void
+  onUploadDocumentsClick: () => void
+  onLinkJudgmentClick: () => void
 }
 
-const tools = [
-  {
-    id: 'drafting',
-    name: 'Drafts',
-    description: 'Create legal documents from templates with AI assistance',
-    icon: PenLine,
-    locked: false,
-  },
-  {
-    id: 'summary',
-    name: 'Summary',
-    description: 'Generate concise summaries from your case documents',
-    icon: FileText,
-    locked: true,
-  },
-  {
-    id: 'key-facts',
-    name: 'Key Facts',
-    description: 'Extract important facts and details from sources',
-    icon: ListChecks,
-    locked: true,
-  },
-  {
-    id: 'report',
-    name: 'Report',
-    description: 'Build comprehensive legal analysis reports',
-    icon: FileOutput,
-    locked: true,
-  },
+function getGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+const suggestions = [
+  { icon: PenLine, label: 'Start a new draft', action: 'drafting' },
+  { icon: Upload,  label: 'Upload documents',  action: 'upload'   },
+  { icon: Scale,   label: 'Link judgment',     action: 'judgment' },
+  { icon: FileText, label: 'Generate summary', action: 'summary'  },
 ]
 
-export function WorkspaceLanding({ onDraftingClick }: WorkspaceLandingProps) {
-  return (
-    <div className="flex items-center justify-center h-full p-8">
-      <div className="max-w-lg w-full">
-        <div className="text-center mb-8">
-          <h2 className="text-lg font-semibold text-kx-primary-900">
-            What would you like to do?
-          </h2>
-          <p className="text-sm text-ledger-gray-500 mt-1">
-            Choose a tool to get started with your case
-          </p>
-        </div>
+export function WorkspaceLanding({ onDraftingClick, onSummaryClick, onUploadDocumentsClick, onLinkJudgmentClick }: WorkspaceLandingProps) {
+  const handleAction = (action: string) => {
+    if (action === 'drafting') onDraftingClick()
+    else if (action === 'upload') onUploadDocumentsClick()
+    else if (action === 'judgment') onLinkJudgmentClick()
+    else if (action === 'summary') onSummaryClick()
+  }
 
-        <div className="grid grid-cols-2 gap-4">
-          {tools.map((tool) => {
-            const Icon = tool.icon
-            return (
-              <button
-                key={tool.id}
-                onClick={tool.locked ? undefined : onDraftingClick}
-                disabled={tool.locked}
-                className={cn(
-                  'relative flex flex-col items-center gap-3 p-6 rounded-xl border transition-all duration-150',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-kx-primary-500',
-                  tool.locked
-                    ? 'border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50/50 dark:bg-ledger-gray-800/50 opacity-60 cursor-not-allowed'
-                    : 'border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card hover:border-kx-primary-300 dark:hover:border-kx-primary-600 hover:shadow-md hover:bg-kx-primary-50/30 dark:hover:bg-kx-primary-900/20 cursor-pointer'
-                )}
-              >
-                {tool.locked && (
-                  <div className="absolute top-3 right-3">
-                    <Lock className="h-3.5 w-3.5 text-ledger-gray-400" />
-                  </div>
-                )}
-                <div
-                  className={cn(
-                    'w-12 h-12 rounded-lg flex items-center justify-center',
-                    tool.locked
-                      ? 'bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-400'
-                      : 'bg-kx-primary-100 dark:bg-kx-primary-900/40 text-kx-primary-600 dark:text-kx-primary-400'
-                  )}
-                >
-                  <Icon className="h-6 w-6" />
-                </div>
-                <div className="text-center">
-                  <span className="text-sm font-medium text-kx-primary-900 block">
-                    {tool.name}
-                  </span>
-                  {tool.locked && (
-                    <span className="text-xs text-ledger-gray-400 mt-0.5 block">
-                      Coming Soon
-                    </span>
-                  )}
-                  {!tool.locked && (
-                    <span className="text-xs text-ledger-gray-500 mt-0.5 block">
-                      {tool.description}
-                    </span>
-                  )}
-                </div>
-              </button>
-            )
-          })}
-        </div>
+  return (
+    <div className="flex flex-col items-center justify-center h-full px-8 gap-8">
+
+      {/* Greeting */}
+      <div className="text-center">
+        <h2 className="text-2xl font-semibold text-kx-primary-900">
+          {getGreeting()}, Advocate
+        </h2>
+        <p className="text-sm text-ledger-gray-400 mt-2">
+          What would you like to work on today?
+        </p>
       </div>
+
+      {/* Quick actions */}
+      <div className="flex items-center gap-3 flex-wrap justify-center">
+        {suggestions.map((s) => {
+          const Icon = s.icon
+          return (
+            <button
+              key={s.action}
+              onClick={() => handleAction(s.action)}
+              className="flex items-center gap-2 px-4 py-2 rounded-full border border-ledger-gray-200 bg-kx-card text-sm text-kx-primary-800 hover:border-kx-primary-400 hover:bg-kx-primary-50 transition-all"
+            >
+              <Icon className="h-3.5 w-3.5 text-kx-primary-500" />
+              {s.label}
+            </button>
+          )
+        })}
+      </div>
+
     </div>
   )
 }

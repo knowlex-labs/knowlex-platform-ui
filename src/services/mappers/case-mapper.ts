@@ -1,21 +1,25 @@
 // Map backend Case to frontend Case
 
-import type { BackendCase, BackendCaseStatus, BackendCaseType } from '@/types/api.types'
+import type { BackendCase, BackendCaseStatus } from '@/types/api.types'
 import type { Case, CaseStatus, CaseType } from '@/types/case.types'
 
 const caseStatusMap: Record<BackendCaseStatus, CaseStatus> = {
-  ACTIVE: 'active',
+  OPEN: 'active',
   PENDING: 'pending',
   CLOSED: 'closed',
-  APPEALED: 'appealed',
-  BLOCKED: 'blocked',
+  ARCHIVED: 'archived',
+  ACTIVE: 'active',
+  ON_HOLD: 'on-hold',
 }
 
-const caseTypeMap: Record<BackendCaseType, CaseType> = {
+const caseTypeMap: Record<string, CaseType> = {
   CIVIL: 'civil',
   CRIMINAL: 'criminal',
   FAMILY: 'family',
   CORPORATE: 'corporate',
+  CS: 'civil',
+  CA_R: 'civil',
+  // Map any unknown type to civil as fallback
 }
 
 export function mapBackendCase(backendCase: BackendCase): Case {

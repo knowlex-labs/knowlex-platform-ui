@@ -9,14 +9,16 @@ export interface CaseTypeOption {
   code: string
   displayName: string
 }
-export type BackendCaseStatus = 'ACTIVE' | 'PENDING' | 'CLOSED' | 'APPEALED' | 'BLOCKED'
+export type BackendCaseStatus = 'OPEN' | 'PENDING' | 'CLOSED' | 'ARCHIVED' | 'ACTIVE' | 'ON_HOLD'
 
 // Backend Case entity (exact API response type)
 export interface BackendCase {
   id: string
+  title: string
   caseNumber: string | null
   caseType: BackendCaseType | null
   caseStatus: BackendCaseStatus
+  clientId: string | null
   caseTitle: string | null
   judgeName: string | null
   courtName: string | null
@@ -41,9 +43,10 @@ export interface BackendClient {
 
 // API Response wrapper
 export interface ApiResponse<T> {
-  status: 'success' | 'error'
+  status: string
   message: string
   data: T
+  requestId?: string
 }
 
 // Paginated response structure (Spring Boot Page format)
@@ -73,6 +76,7 @@ export interface PaginatedData<T> {
 
 // Request DTOs
 export interface CreateCaseRequest {
+  clientId?: string
   caseNumber?: string
   caseType?: BackendCaseType
   caseStatus?: BackendCaseStatus

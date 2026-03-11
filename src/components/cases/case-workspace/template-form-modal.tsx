@@ -13,12 +13,12 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
-import type { DraftTemplate, TemplateFormData, CaseSource, Client } from '@/types'
+import type { DraftTemplate, TemplateFormData, CaseDocument, Client } from '@/types'
 
 interface TemplateFormModalProps {
   template: DraftTemplate | null
   isOpen: boolean
-  sources: CaseSource[]
+  sources: CaseDocument[]
   isGenerating: boolean
   client?: Client | null
   leftPanelOpen?: boolean
@@ -311,7 +311,7 @@ export function TemplateFormModal({
                                         )}
                                       </button>
                                       <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200 truncate">
-                                        {source.originalFilename}
+                                        {source.name}
                                       </span>
                                     </label>
                                   ))}

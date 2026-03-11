@@ -1,5 +1,5 @@
 import { apiClient } from './api-client'
-import type { CaseSource, ChatResponse } from '@/types'
+import type { CaseDocument, CaseDocumentStatus, ChatResponse } from '@/types'
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -10,6 +10,7 @@ interface ApiResponse<T> {
 
 // Presigned URL response from backend
 interface PresignedUrlData {
+  documentId: string
   uploadUrl: string
   storageKey: string
   storageUrl: string
@@ -31,10 +32,30 @@ interface BackendChatResponse {
   }[]
 }
 
-// Helper to map file extension to fileType enum
-function getFileType(filename: string): string {
-  const ext = filename.split('.').pop()?.toUpperCase() || 'PDF'
-  return ['PDF', 'DOCX', 'DOC', 'JPG', 'JPEG', 'PNG'].includes(ext) ? ext : 'PDF'
+// Document creation types for unified API
+interface CreateDocumentData {
+  title: string
+  document_type: string
+  input_mode: 'structured' | 'freetext' | 'file'
+  [key: string]: unknown
+}
+
+interface CreateDocumentRequest {
+  document_type: 'draft'
+  sub_type: string
+  data: CreateDocumentData
+}
+
+interface CreateDocumentResponse {
+  id: string
+  jobId: string
+  name: string | null
+  type: string
+  subType: string
+  status: string
+  jobStatus: string
+  indexingStatus: string
+  filePath: string | null
 }
 
 // Map backend chat response to frontend ChatResponse
@@ -50,40 +71,34 @@ function mapChatResponse(data: BackendChatResponse): ChatResponse {
   }
 }
 
-// Paginated response from backend
-interface PaginatedResponse<T> {
-  content: T[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-}
-
 export const workspaceApi = {
   /**
    * Get all documents for a case
+   * GET /api/v1/cases/{caseId}/documents - returns all documents
+   * GET /api/v1/cases/{caseId}/documents?type=DRAFT - returns only drafts
+   * GET /api/v1/cases/{caseId}/documents?type=USER_UPLOADED - returns only uploaded docs
+   * Response: { success: true, data: [...] } - direct array (not paginated)
    */
-  async getCaseDocuments(caseId: string): Promise<CaseSource[]> {
-    const response = await apiClient.get<ApiResponse<PaginatedResponse<CaseSource>>>(
-      `/api/v1/documents?caseId=${caseId}&page=0&size=100`
+  async getCaseDocuments(caseId: string, type?: 'USER_UPLOADED' | 'DRAFT'): Promise<CaseDocument[]> {
+    const params = type ? `?type=${type}` : ''
+    const response = await apiClient.get<ApiResponse<CaseDocument[]>>(
+      `/api/v1/cases/${caseId}/documents${params}`
     )
-    return response.data.content
+    return response.data
   },
 
   /**
-   * Step 1: Get presigned URL for uploading a file to S3
+   * Get presigned upload URL (simplified flow)
+   * POST /api/v1/presigned-url/upload with { caseId, fileName }
+   * Backend creates document and returns { documentId, uploadUrl, storageKey, storageUrl }
    */
   async getPresignedUploadUrl(
     caseId: string,
-    filename: string,
+    fileName: string
   ): Promise<PresignedUrlData> {
     const response = await apiClient.post<ApiResponse<PresignedUrlData>>(
-      '/api/v1/documents/upload-url',
-      {
-        filename,
-        fileType: getFileType(filename),
-        caseId,
-      }
+      '/api/v1/presigned-url/upload',
+      { caseId, fileName }
     )
     return response.data
   },
@@ -106,45 +121,22 @@ export const workspaceApi = {
   },
 
   /**
-   * Step 3: Register document with backend after S3 upload
-   */
-  async createCaseSource(
-    caseId: string,
-    file: File,
-    storageUrl: string,
-    storageKey: string
-  ): Promise<CaseSource> {
-    const response = await apiClient.post<ApiResponse<CaseSource>>(
-      '/api/v1/documents',
-      {
-        filename: file.name,
-        originalFilename: file.name,
-        fileType: getFileType(file.name),
-        fileSize: file.size,
-        storageUrl,
-        storageKey,
-        documentSource: 'UPLOAD',
-        caseId,
-      }
-    )
-    return response.data
-  },
-
-  /**
    * Get a presigned download URL for viewing/downloading a document
+   * POST /api/v1/presigned-url/download with { documentId }
    */
   async getDownloadUrl(documentId: string): Promise<string> {
-    const response = await apiClient.get<ApiResponse<{ downloadUrl: string }>>(
-      `/api/v1/documents/${documentId}/download-url`
+    const response = await apiClient.post<ApiResponse<{ uploadUrl: string }>>(
+      '/api/v1/presigned-url/download',
+      { documentId }
     )
-    return response.data.downloadUrl
+    return response.data.uploadUrl
   },
 
   /**
    * Delete a document
    */
-  async deleteCaseSource(documentId: string): Promise<void> {
-    await apiClient.delete(`/api/v1/documents/${documentId}`)
+  async deleteCaseDocument(caseId: string, documentId: string): Promise<void> {
+    await apiClient.delete(`/api/v1/cases/${caseId}/documents/${documentId}`)
   },
 
   /**
@@ -170,33 +162,84 @@ export const workspaceApi = {
   },
 
   /**
-   * Re-index a single document (Link Content action)
+   * Trigger indexing for a document
+   * POST /api/v1/cases/{caseId}/documents/{documentId}/index
    */
-  async linkContent(documentId: string): Promise<CaseSource> {
-    const response = await apiClient.post<ApiResponse<CaseSource>>(
-      `/api/v1/documents/${documentId}/link-content`
+  async triggerIndexing(caseId: string, documentId: string): Promise<CaseDocument> {
+    const response = await apiClient.post<ApiResponse<CaseDocument>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}/index`
     )
     return response.data
   },
 
   /**
-   * Batch re-index multiple documents
+   * Batch trigger indexing for multiple documents
    */
-  async batchLinkContent(documentIds: string[]): Promise<void> {
+  async batchTriggerIndexing(caseId: string, documentIds: string[]): Promise<void> {
     await Promise.all(
       documentIds.map(id =>
-        apiClient.post(`/api/v1/documents/${id}/link-content`)
+        apiClient.post(`/api/v1/cases/${caseId}/documents/${id}/index`)
       )
     )
   },
 
   /**
-   * Poll indexing status for a document
+   * Get indexing status for a document
+   * GET /api/v1/cases/{caseId}/documents/{documentId}/indexing-status
+   * Returns: pending, processing, completed, failed
    */
-  async getIndexingStatus(documentId: string): Promise<CaseSource['indexingStatus']> {
-    const response = await apiClient.get<ApiResponse<{ status: CaseSource['indexingStatus'] }>>(
-      `/api/v1/documents/${documentId}/indexing-status?refresh=true`
+  async getIndexingStatus(caseId: string, documentId: string): Promise<CaseDocumentStatus> {
+    const response = await apiClient.get<ApiResponse<{ status: string }>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}/indexing-status`
     )
-    return response.data.status
+    return response.data.status as CaseDocumentStatus
+  },
+
+  /**
+   * Create a document using the unified document generation API
+   * POST /api/v1/cases/{caseId}/documents
+   */
+  async createDocument(caseId: string, data: CreateDocumentRequest): Promise<CreateDocumentResponse> {
+    const response = await apiClient.post<ApiResponse<CreateDocumentResponse>>(
+      `/api/v1/cases/${caseId}/documents`,
+      data
+    )
+    return response.data
+  },
+
+  /**
+   * Get a document by ID (for polling status)
+   * GET /api/v1/cases/{caseId}/documents/{documentId}
+   */
+  async getDocument(caseId: string, documentId: string): Promise<CreateDocumentResponse> {
+    const response = await apiClient.get<ApiResponse<CreateDocumentResponse>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}`
+    )
+    return response.data
+  },
+
+  /**
+   * Get presigned download URL for a completed document
+   * POST /api/v1/presigned-url/download with { documentId }
+   * Returns { downloadUrl, storageUrl }
+   */
+  async getPresignedDownloadUrl(documentId: string): Promise<{ downloadUrl: string; storageUrl: string }> {
+    const response = await apiClient.post<ApiResponse<{ downloadUrl: string; storageUrl: string }>>(
+      '/api/v1/presigned-url/download',
+      { documentId }
+    )
+    return response.data
+  },
+
+  /**
+   * Update a document (title, storage_key)
+   * PUT /api/v1/cases/{caseId}/documents/{documentId}
+   */
+  async updateDocument(caseId: string, documentId: string, data: { title?: string; storage_key?: string }): Promise<CreateDocumentResponse> {
+    const response = await apiClient.put<ApiResponse<CreateDocumentResponse>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}`,
+      data
+    )
+    return response.data
   },
 }
