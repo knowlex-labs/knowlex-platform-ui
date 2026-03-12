@@ -5,17 +5,18 @@ import type { ApiResponse } from '@/types'
 
 export interface RecentCase {
   id: string
-  title: string
-  status: string
-  createdAt: string
-  clientName?: string
+  caseTitle: string
+  caseNumber: string
+  caseStatus: string
+  updatedAt: string
 }
 
 export interface RecentClient {
   id: string
   name: string
   email?: string
-  createdAt: string
+  clientType: string
+  updatedAt: string
 }
 
 export interface DashboardSummary {
@@ -45,6 +46,18 @@ export interface ChartData {
   monthly: ChartDataPoint[]
 }
 
+export interface UpcomingHearing {
+  id: string
+  causeListDate: string
+  caseNumber: string
+  bench: string
+  court: string
+  judgeName: string
+  hearingType: string
+  lawyerName: string
+  serialNumber: number
+}
+
 export const dashboardApi = {
   getSummary: (): Promise<ApiResponse<DashboardSummary>> => {
     return apiClient.get<ApiResponse<DashboardSummary>>('/api/v1/dashboard/summary')
@@ -56,5 +69,9 @@ export const dashboardApi = {
 
   getActivityChart: (): Promise<ApiResponse<ChartData>> => {
     return apiClient.get<ApiResponse<ChartData>>('/api/v1/dashboard/recent-activity/chart')
+  },
+
+  getUpcomingHearings: (): Promise<ApiResponse<UpcomingHearing[]>> => {
+    return apiClient.get<ApiResponse<UpcomingHearing[]>>('/api/v1/dashboard/upcoming-hearings')
   },
 }

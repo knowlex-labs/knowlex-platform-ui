@@ -3,7 +3,6 @@ import { Plus, UserPlus, CalendarDays, Bell } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
-import { useDashboardData } from '@/hooks/use-dashboard-data'
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'
 import { StatsOverview } from './stats-overview'
 import { ActivityChart } from './activity-chart'
@@ -23,13 +22,17 @@ export function DashboardHome() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const { setShowAddCaseModal } = useUIState()
-  const { cases, clients, stats, isLoading } = useDashboardData()
   const {
     aiStats,
+    recentCases,
+    recentClients,
+    totalCases,
+    totalClients,
     chartData,
     chartPeriod,
     setChartPeriod,
     activityFeed,
+    isLoading,
   } = useDashboardAnalytics()
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
@@ -58,7 +61,7 @@ export function DashboardHome() {
   }, [notifOpen])
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-6 md:space-y-8 min-w-0">
       {/* Header: greeting + quick actions + bell */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -133,24 +136,24 @@ export function DashboardHome() {
       {/* Stats: Total Cases, Total Drafts Generated, Total Clients, Time Saved */}
       <section>
         <StatsOverview
-          totalCases={stats.totalCases}
+          totalCases={totalCases}
           totalDraftsGenerated={aiStats.draftsGenerated}
-          totalClients={stats.totalClients}
+          totalClients={totalClients}
           timeSaved={aiStats.timeSavedHours}
           isLoading={isLoading}
         />
       </section>
 
       {/* Two-column layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-5 lg:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-5 lg:gap-6 min-w-0">
 
         {/* LEFT column */}
-        <div className="space-y-5">
+        <div className="space-y-5 min-w-0">
           {/* Continue where you left off (Recent Cases) */}
           <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
             <h2 className="text-base font-semibold text-kx-primary-900 mb-4">Continue where you left off</h2>
             <ContinueWhereLeftOff
-              cases={cases}
+              cases={recentCases}
               isLoading={isLoading}
               onCaseClick={handleCaseClick}
             />
@@ -169,7 +172,7 @@ export function DashboardHome() {
           <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
             <h2 className="text-base font-semibold text-kx-primary-900 mb-4">Recent clients</h2>
             <RecentClientsWidget
-              clients={clients}
+              clients={recentClients}
               isLoading={isLoading}
               onClientClick={handleClientClick}
             />
@@ -185,11 +188,7 @@ export function DashboardHome() {
                 <CalendarDays className="h-4 w-4 text-amber-600" />
                 <h2 className="text-sm font-semibold text-kx-primary-900">Upcoming Hearings</h2>
               </div>
-              <UpcomingHearingsWidget
-                cases={cases}
-                isLoading={isLoading}
-                onCaseClick={handleCaseClick}
-              />
+              <UpcomingHearingsWidget />
             </div>
 
             {/* Recent Activity Feed */}

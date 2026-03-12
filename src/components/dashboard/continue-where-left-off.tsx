@@ -1,35 +1,32 @@
 import { Briefcase, ArrowRight, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatDistanceToNow } from 'date-fns'
-import type { Case } from '@/types'
+import type { RecentCase } from '@/services/api/dashboard-api'
 
 interface ContinueWhereLeftOffProps {
-  cases: Case[]
+  cases: RecentCase[]
   isLoading: boolean
   onCaseClick: (caseId: string) => void
 }
 
 const statusColors: Record<string, string> = {
-  active: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  'on-hold': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  closed: 'bg-ledger-gray-100 text-ledger-gray-600 dark:bg-ledger-gray-200 dark:text-ledger-gray-400',
-  appealed: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  blocked: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  PENDING: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  ON_HOLD: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  CLOSED: 'bg-ledger-gray-100 text-ledger-gray-600 dark:bg-ledger-gray-200 dark:text-ledger-gray-400',
+  APPEALED: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  BLOCKED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 }
 
-const caseTypeColors: Record<string, string> = {
-  civil: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  criminal: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
-  family: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-  corporate: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
+function formatStatus(status: string): string {
+  return status.toLowerCase().replace(/_/g, ' ')
 }
 
 export function ContinueWhereLeftOff({ cases, isLoading, onCaseClick }: ContinueWhereLeftOffProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {[1, 2, 3, 4].map((i) => (
+        {[1, 2].map((i) => (
           <div key={i} className="border border-ledger-gray-200 rounded-lg p-5 animate-pulse">
             <div className="h-4 bg-ledger-gray-200 rounded w-3/4 mb-3" />
             <div className="h-3 bg-ledger-gray-200 rounded w-1/2 mb-4" />
@@ -43,13 +40,7 @@ export function ContinueWhereLeftOff({ cases, isLoading, onCaseClick }: Continue
     )
   }
 
-  // Show recently updated active cases, sorted by most recently updated
-  const recentCases = [...cases]
-    .filter((c) => c.status === 'active' || c.status === 'pending' || c.status === 'on-hold')
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 2)
-
-  if (recentCases.length === 0) {
+  if (cases.length === 0) {
     return (
       <div className="text-center py-12 border border-dashed border-ledger-gray-300 rounded-lg">
         <Briefcase className="h-12 w-12 text-ledger-gray-400 mx-auto mb-3" />
@@ -61,7 +52,7 @@ export function ContinueWhereLeftOff({ cases, isLoading, onCaseClick }: Continue
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {recentCases.map((caseItem, index) => (
+      {cases.map((caseItem, index) => (
         <button
           key={caseItem.id}
           onClick={() => onCaseClick(caseItem.id)}
@@ -74,12 +65,7 @@ export function ContinueWhereLeftOff({ cases, isLoading, onCaseClick }: Continue
         >
           {/* Header row: icon + arrow */}
           <div className="flex items-start justify-between mb-3">
-            <div className={cn(
-              'h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0',
-              caseItem.caseType
-                ? caseTypeColors[caseItem.caseType] || 'bg-kx-primary-100 text-kx-primary-700'
-                : 'bg-kx-primary-100 text-kx-primary-700'
-            )}>
+            <div className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-kx-primary-100 text-kx-primary-700">
               <Scale className="h-4 w-4" />
             </div>
             <ArrowRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-500 transition-colors" />
@@ -101,9 +87,9 @@ export function ContinueWhereLeftOff({ cases, isLoading, onCaseClick }: Continue
           <div className="flex items-center gap-2 mt-3">
             <span className={cn(
               'text-[10px] font-medium px-2 py-0.5 rounded-full capitalize',
-              statusColors[caseItem.status] || statusColors.active
+              statusColors[caseItem.caseStatus] || statusColors.ACTIVE
             )}>
-              {caseItem.status}
+              {formatStatus(caseItem.caseStatus)}
             </span>
             <span className="text-[10px] text-ledger-gray-400">
               {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}

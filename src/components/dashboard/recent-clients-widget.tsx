@@ -1,8 +1,8 @@
-import { Users, Mail, Phone, Briefcase } from 'lucide-react'
-import type { Client } from '@/types'
+import { Users, Mail } from 'lucide-react'
+import type { RecentClient } from '@/services/api/dashboard-api'
 
 interface RecentClientsWidgetProps {
-  clients: Client[]
+  clients: RecentClient[]
   isLoading: boolean
   onClientClick: (clientId: string) => void
 }
@@ -56,29 +56,19 @@ export function RecentClientsWidget({ clients, isLoading, onClientClick }: Recen
                 {client.name}
               </h3>
               <div className="flex items-center gap-3 mt-0.5">
-                <span className="text-xs text-ledger-gray-500 capitalize">{client.clientType}</span>
-                <span className="flex items-center gap-1 text-xs text-ledger-gray-400">
-                  <Briefcase className="h-3 w-3" />
-                  {client.caseIds.length}
+                <span className="text-xs text-ledger-gray-500 capitalize">
+                  {client.clientType.toLowerCase()}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mt-2.5 pl-[52px] text-xs text-ledger-gray-500">
-            {client.email && (
-              <span className="flex items-center gap-1 truncate">
-                <Mail className="h-3 w-3 flex-shrink-0" />
-                <span className="truncate">{client.email}</span>
-              </span>
-            )}
-            {client.phone && (
-              <span className="flex items-center gap-1 flex-shrink-0">
-                <Phone className="h-3 w-3" />
-                {client.phone}
-              </span>
-            )}
-          </div>
+          {client.email && (
+            <div className="flex items-center gap-1 mt-2.5 pl-[52px] text-xs text-ledger-gray-500 truncate">
+              <Mail className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{client.email}</span>
+            </div>
+          )}
         </button>
       ))}
     </div>

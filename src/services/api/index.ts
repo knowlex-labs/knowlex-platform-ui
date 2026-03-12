@@ -18,4 +18,5 @@ export type {
   RecentActivityItem,
   ChartDataPoint as ChartDataPointApi,
   ChartData as ChartDataApi,
+  UpcomingHearing,
 } from './dashboard-api'

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { dashboardApi } from '@/services/api/dashboard-api'
-import type { ChartDataPoint as ChartDataPointApi } from '@/services/api/dashboard-api'
+import type { ChartDataPoint as ChartDataPointApi, RecentCase, RecentClient } from '@/services/api/dashboard-api'
 import type {
   AiProductivityStats,
   ChartDataPoint,
@@ -30,6 +30,10 @@ function mapChartData(apiData: ChartDataPointApi[]): ChartDataPoint[] {
 
 interface UseDashboardAnalyticsResult {
   aiStats: AiProductivityStats
+  recentCases: RecentCase[]
+  recentClients: RecentClient[]
+  totalCases: number
+  totalClients: number
   chartData: ChartDataPoint[]
   chartPeriod: ChartPeriod
   setChartPeriod: (period: ChartPeriod) => void
@@ -53,6 +57,8 @@ export function useDashboardAnalytics(): UseDashboardAnalyticsResult {
   const [activityData, setActivityData] = useState<
     { type: string; caseTitle: string; description: string; timestamp: string }[]
   >([])
+  const [recentCases, setRecentCases] = useState<RecentCase[]>([])
+  const [recentClients, setRecentClients] = useState<RecentClient[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -76,6 +82,8 @@ export function useDashboardAnalytics(): UseDashboardAnalyticsResult {
             totalClients: summaryRes.data.totalClients,
             hrsSaved: summaryRes.data.hrsSaved,
           })
+          setRecentCases(summaryRes.data.recentCases || [])
+          setRecentClients(summaryRes.data.recentClients || [])
         }
 
         if (chartRes.data) {
@@ -130,6 +138,10 @@ export function useDashboardAnalytics(): UseDashboardAnalyticsResult {
 
   return {
     aiStats,
+    recentCases,
+    recentClients,
+    totalCases: summaryData?.totalCases ?? 0,
+    totalClients: summaryData?.totalClients ?? 0,
     chartData,
     chartPeriod,
     setChartPeriod,
