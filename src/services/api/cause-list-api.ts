@@ -6,6 +6,8 @@ export interface CauseListParams {
   size?: number
   date?: string
   court?: string
+  bench?: string
+  lawyerName?: string
 }
 
 export const causeListApi = {
@@ -16,6 +18,8 @@ export const causeListApi = {
     if (params.size !== undefined) searchParams.set('size', params.size.toString())
     if (params.date) searchParams.set('date', params.date)
     if (params.court) searchParams.set('court', params.court)
+    if (params.bench) searchParams.set('bench', params.bench)
+    if (params.lawyerName) searchParams.set('lawyerName', params.lawyerName)
 
     const query = searchParams.toString()
     return apiClient.get<ApiResponse<PaginatedData<CauseListItem>>>(`/api/v1/cause-lists${query ? `?${query}` : ''}`)
