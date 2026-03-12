@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { summaryApi } from '@/services/api/summary-api'
+import { workspaceApi } from '@/services/api/workspace-api'
 import type { CaseSummary } from '@/types'
 
 const POLL_INTERVAL_MS = 6000
@@ -7,12 +7,13 @@ const MAX_POLL_ATTEMPTS = 60
 
 export function useSummary(caseId: string) {
   const [summary, setSummary] = useState<CaseSummary | null>(null)
-  const [isLoading] = useState(false) // Summary fetch is synchronous; loading state not needed
+  const [isLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollAttemptsRef = useRef(0)
+  const documentIdRef = useRef<string | null>(null)
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -22,23 +23,54 @@ export function useSummary(caseId: string) {
     pollAttemptsRef.current = 0
   }, [])
 
+  type RawDoc = { id: string; status?: string; jobStatus?: string; draft_body?: string; content?: string; signedUrl?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }
+
+  const mapDoc = (raw: RawDoc, fetchedContent?: string): CaseSummary => {
+    const rawStatus = (raw.status ?? raw.jobStatus ?? 'pending').toLowerCase()
+    const status = rawStatus === 'processing' ? 'pending' : (rawStatus as CaseSummary['status'])
+    return {
+      id: raw.id,
+      status,
+      content: fetchedContent ?? raw.draft_body ?? raw.content ?? '',
+      createdAt: new Date(raw.created_at ?? raw.createdAt ?? Date.now()),
+      updatedAt: new Date(raw.updated_at ?? raw.updatedAt ?? Date.now()),
+    }
+  }
+
   const fetchSummary = useCallback(async (): Promise<CaseSummary | null> => {
     try {
-      const response = await summaryApi.get(caseId)
-      if (response.data) {
-        const raw = response.data
-        const mapped: CaseSummary = {
-          id: raw.id,
-          status: raw.status === 'processing' ? 'pending' : raw.status,
-          content: raw.content ?? '',
-          createdAt: new Date(raw.created_at),
-          updatedAt: new Date(raw.updated_at),
+      let raw: RawDoc | null = null
+
+      if (documentIdRef.current) {
+        raw = await workspaceApi.getDocument(caseId, documentIdRef.current) as RawDoc
+      } else {
+        const docs = await workspaceApi.getCaseDocuments(caseId, 'SUMMARY')
+        if (docs && docs.length > 0) {
+          raw = docs[0] as RawDoc
+          documentIdRef.current = raw.id
         }
-        setSummary(mapped)
-        return mapped
       }
+
+      if (!raw) return null
+
+      const rawStatus = (raw.status ?? raw.jobStatus ?? '').toLowerCase()
+      const isCompleted = rawStatus === 'completed'
+
+      let fetchedContent: string | undefined
+      if (isCompleted && raw.signedUrl) {
+        try {
+          const res = await fetch(raw.signedUrl)
+          fetchedContent = await res.text()
+        } catch {
+          // fall back to empty string
+        }
+      }
+
+      const mapped = mapDoc(raw, fetchedContent)
+      setSummary(mapped)
+      return mapped
     } catch {
-      // 404 or other error means no summary exists yet
+      // 404 or no summary yet
     }
     return null
   }, [caseId])
@@ -65,7 +97,11 @@ export function useSummary(caseId: string) {
     }, POLL_INTERVAL_MS)
   }, [fetchSummary, stopPolling])
 
-  // Cleanup polling on unmount
+  // Fetch existing summary on mount
+  useEffect(() => {
+    fetchSummary()
+  }, [fetchSummary])
+
   useEffect(() => {
     return () => stopPolling()
   }, [stopPolling])
@@ -73,14 +109,18 @@ export function useSummary(caseId: string) {
   const generateSummary = useCallback(async () => {
     setError(null)
     setIsGenerating(true)
-    // Optimistic pending state
     setSummary((prev) =>
       prev
         ? { ...prev, status: 'pending', content: '' }
         : { id: 'pending', status: 'pending', content: '', createdAt: new Date(), updatedAt: new Date() }
     )
     try {
-      await summaryApi.generate(caseId)
+      const doc = await workspaceApi.createDocument(caseId, {
+        document_type: 'SUMMARY',
+      } as Parameters<typeof workspaceApi.createDocument>[1])
+      if (doc?.id) {
+        documentIdRef.current = doc.id
+      }
       startPolling()
     } catch {
       setIsGenerating(false)
@@ -91,12 +131,15 @@ export function useSummary(caseId: string) {
 
   const deleteSummary = useCallback(async () => {
     try {
-      await summaryApi.delete(caseId)
+      const id = documentIdRef.current ?? summary?.id
+      if (!id || id === 'pending') return
+      await workspaceApi.deleteDocument(caseId, id)
+      documentIdRef.current = null
       setSummary(null)
     } catch {
       setError('Failed to delete summary.')
     }
-  }, [caseId])
+  }, [caseId, summary?.id])
 
   return {
     summary,

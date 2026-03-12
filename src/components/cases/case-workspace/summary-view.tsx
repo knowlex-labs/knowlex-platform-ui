@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { Loader2, RefreshCw, Trash2, Download, AlertCircle } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 import type { CaseSummary } from '@/types'
 
@@ -100,8 +101,22 @@ export function SummaryView({ summary, isGenerating, onRegenerate, onDelete }: S
           </div>
         ) : isReady ? (
           <div className="max-w-3xl mx-auto px-8 py-8">
-            <div className="text-sm text-kx-primary-900 leading-relaxed whitespace-pre-wrap font-sans">
-              {summary!.content}
+            <div className="summary-markdown text-sm text-kx-primary-900 dark:text-kx-primary-100 leading-relaxed font-sans">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 text-kx-primary-900 dark:text-kx-primary-100">{children}</h1>,
+                  h2: ({ children }) => <h2 className="text-base font-semibold mt-6 mb-2 text-kx-primary-900 dark:text-kx-primary-100">{children}</h2>,
+                  h3: ({ children }) => <h3 className="text-sm font-semibold mt-4 mb-1 text-kx-primary-900 dark:text-kx-primary-100">{children}</h3>,
+                  p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
+                  ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-0.5">{children}</ul>,
+                  ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-0.5">{children}</ol>,
+                  li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                  hr: () => <hr className="my-4 border-ledger-gray-200 dark:border-ledger-gray-700" />,
+                }}
+              >
+                {summary!.content}
+              </ReactMarkdown>
             </div>
           </div>
         ) : null}

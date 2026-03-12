@@ -41,9 +41,9 @@ interface CreateDocumentData {
 }
 
 interface CreateDocumentRequest {
-  document_type: 'draft'
-  sub_type: string
-  data: CreateDocumentData
+  document_type: string
+  sub_type?: string
+  data?: CreateDocumentData
 }
 
 interface CreateDocumentResponse {
@@ -79,7 +79,7 @@ export const workspaceApi = {
    * GET /api/v1/cases/{caseId}/documents?type=USER_UPLOADED - returns only uploaded docs
    * Response: { success: true, data: [...] } - direct array (not paginated)
    */
-  async getCaseDocuments(caseId: string, type?: 'USER_UPLOADED' | 'DRAFT'): Promise<CaseDocument[]> {
+  async getCaseDocuments(caseId: string, type?: 'USER_UPLOADED' | 'DRAFT' | 'SUMMARY'): Promise<CaseDocument[]> {
     const params = type ? `?type=${type}` : ''
     const response = await apiClient.get<ApiResponse<CaseDocument[]>>(
       `/api/v1/cases/${caseId}/documents${params}`
@@ -257,5 +257,15 @@ export const workspaceApi = {
       data
     )
     return response.data
+  },
+
+  /**
+   * Delete a document
+   * DELETE /api/v1/cases/{caseId}/documents/{documentId}
+   */
+  async deleteDocument(caseId: string, documentId: string): Promise<void> {
+    await apiClient.delete<ApiResponse<null>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}`
+    )
   },
 }
