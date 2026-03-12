@@ -75,6 +75,7 @@ export function CaseWorkspace() {
     uploadFile,
     deleteSource,
     linkContent,
+    renameDocument,
   } = useCaseDocuments(caseId)
 
   // Filter documents by type for display
@@ -233,9 +234,18 @@ export function CaseWorkspace() {
     navigate('/judgments')
   }
 
-  const handleOpenJudgment = (judgment: CaseDocument) => {
-    // Open judgment in a new tab - using document ID
-    window.open(`/documents/${judgment.id}`, '_blank')
+  const handleOpenJudgmentInTab = (judgment: CaseDocument, url: string) => {
+    openSourceTab(judgment, url)
+  }
+
+  const handleDeleteJudgment = async (judgmentId: string) => {
+    const tabId = `source-${judgmentId}`
+    closeTab(tabId)
+    await deleteSource(judgmentId)
+  }
+
+  const handleReindexJudgment = async (judgmentId: string) => {
+    await linkContent(judgmentId)
   }
 
   const handleDraftingClick = () => {
@@ -325,7 +335,10 @@ export function CaseWorkspace() {
               onSummaryClick={handleSummaryClick}
               onDeleteSummary={handleDeleteSummary}
               onOpenSourceInTab={openSourceTab}
-              onOpenJudgment={handleOpenJudgment}
+              onOpenJudgmentInTab={handleOpenJudgmentInTab}
+              onDeleteJudgment={handleDeleteJudgment}
+              onReindexJudgment={handleReindexJudgment}
+              onRenameDocument={renameDocument}
             />
           </div>
         )}

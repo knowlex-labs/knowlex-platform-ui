@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { ChevronDown, ChevronRight, Loader2, FileText, Trash2, AlertCircle } from 'lucide-react'
+import { ChevronDown, ChevronRight, Loader2, FileText, Trash2, AlertCircle, MoreVertical, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CaseDocument, Draft, CaseSummary } from '@/types'
 import { SourceItem } from './source-item'
+import { JudgmentItem } from './judgment-item'
 import { DraftItem } from './draft-item'
 
 interface LeftSidebarProps {
@@ -25,8 +26,10 @@ interface LeftSidebarProps {
   onSummaryClick: () => void
   onDeleteSummary: () => void
   onOpenSourceInTab: (source: CaseDocument, url: string) => void
-  onOpenJudgment: (judgment: CaseDocument) => void  // Changed to CaseDocument
-  onDeleteJudgment?: (judgmentId: string) => void
+  onOpenJudgmentInTab: (judgment: CaseDocument, url: string) => void
+  onDeleteJudgment: (judgmentId: string) => Promise<void>
+  onReindexJudgment: (judgmentId: string) => Promise<void>
+  onRenameDocument: (documentId: string, newName: string) => Promise<void>
 }
 
 export function LeftSidebar({
@@ -49,13 +52,16 @@ export function LeftSidebar({
   onSummaryClick,
   onDeleteSummary,
   onOpenSourceInTab,
-  onOpenJudgment,
+  onOpenJudgmentInTab,
   onDeleteJudgment,
+  onReindexJudgment,
+  onRenameDocument,
 }: LeftSidebarProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(true)
   const [judgmentsExpanded, setJudgmentsExpanded] = useState(true)
   const [draftsExpanded, setDraftsExpanded] = useState(true)
   const [summaryExpanded, setSummaryExpanded] = useState(true)
+  const [showSummaryMenu, setShowSummaryMenu] = useState(false)
 
   // Filter sources by type
   const uploadedSources = (sources || []).filter(s => s.type === 'USER_UPLOADED')
@@ -116,6 +122,7 @@ export function LeftSidebar({
                       onDelete={() => onDeleteSource(source.id)}
                       onLinkContent={() => onLinkContent(source.id)}
                       onOpenInTab={onOpenSourceInTab}
+                      onRename={(newName) => onRenameDocument(source.id, newName)}
                     />
                   ))}
                 </div>
@@ -159,28 +166,14 @@ export function LeftSidebar({
               ) : (
                 <div>
                   {judgments.map((judgment) => (
-                    <div
+                    <JudgmentItem
                       key={judgment.id}
-                      className="group relative flex items-center gap-2 px-4 py-2.5 hover:bg-ledger-gray-50 transition-colors cursor-pointer"
-                      onClick={() => onOpenJudgment(judgment)}
-                    >
-                      <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-kx-primary-900 truncate">{judgment.name}</p>
-                        <p className="text-xs text-ledger-gray-500 truncate">Judgment</p>
-                      </div>
-                      {onDeleteJudgment && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                          onClick={(e) => { e.stopPropagation(); onDeleteJudgment(judgment.id) }}
-                          title="Remove judgment"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                    </div>
+                      judgment={judgment}
+                      onDelete={() => onDeleteJudgment(judgment.id)}
+                      onLinkContent={() => onReindexJudgment(judgment.id)}
+                      onOpenInTab={onOpenJudgmentInTab}
+                      onRename={(newName) => onRenameDocument(judgment.id, newName)}
+                    />
                   ))}
                 </div>
               )}
@@ -279,7 +272,10 @@ export function LeftSidebar({
                   </span>
                 </div>
               ) : (
-                <div className="group relative flex items-center gap-2 px-4 py-2.5 hover:bg-ledger-gray-50 transition-colors">
+                <div
+                  className="group relative flex items-center gap-2 px-4 py-2.5 hover:bg-ledger-gray-50 transition-colors"
+                  onMouseLeave={() => setShowSummaryMenu(false)}
+                >
                   <button
                     className="flex items-center gap-2 flex-1 min-w-0 text-left"
                     onClick={onSummaryClick}
@@ -289,15 +285,44 @@ export function LeftSidebar({
                       Case Summary
                     </span>
                   </button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100 flex-shrink-0"
-                    onClick={(e) => { e.stopPropagation(); onDeleteSummary() }}
-                    title="Delete summary"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="relative flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+                      onClick={(e) => { e.stopPropagation(); setShowSummaryMenu(!showSummaryMenu) }}
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </Button>
+
+                    {showSummaryMenu && (
+                      <div className="absolute right-0 top-full mt-1 w-44 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
+                        <button
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors rounded-t-lg"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (summary?.content) {
+                              const blob = new Blob([summary.content], { type: 'text/plain' })
+                              const url = URL.createObjectURL(blob)
+                              window.open(url, '_blank')
+                            }
+                            setShowSummaryMenu(false)
+                          }}
+                          disabled={!summary?.content}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Open in new tab
+                        </button>
+                        <button
+                          className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-b-lg"
+                          onClick={(e) => { e.stopPropagation(); onDeleteSummary(); setShowSummaryMenu(false) }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

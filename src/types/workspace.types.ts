@@ -26,6 +26,7 @@ export interface CaseDocument {
   subType?: string
   filePath?: string
   storageUrl?: string
+  signedUrl?: string
 }
 
 export interface ChatResponse {
@@ -137,7 +138,7 @@ export interface CaseSummary {
 // IDE-like tab system for workspace
 export interface WorkspaceTabItem {
   id: string
-  type: 'chat' | 'draft' | 'summary' | 'source'
+  type: 'chat' | 'draft' | 'summary' | 'source' | 'judgment'
   label: string
   draftId?: string
   sourceId?: string

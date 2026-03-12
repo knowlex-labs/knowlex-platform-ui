@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { FolderOpen, User, Calendar, MoreVertical, Pencil, Trash2, FileText } from 'lucide-react'
+import { FolderOpen, User, Calendar, MoreVertical, Pencil, Trash2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -164,12 +164,6 @@ export function CaseFolderCard({ caseItem, onClick, onRefresh }: CaseFolderCardP
               <span>{formatDate(caseItem.createdAt)}</span>
             </div>
             <div className="flex items-center gap-2">
-              {caseItem.draftCount > 0 && (
-                <div className="flex items-center gap-1 text-xs text-kx-primary-600">
-                  <FileText className="h-3 w-3" />
-                  <span>{caseItem.draftCount}</span>
-                </div>
-              )}
               <StatusBadge status={caseItem.status} />
             </div>
           </div>

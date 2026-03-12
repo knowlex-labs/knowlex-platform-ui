@@ -8,7 +8,6 @@ import type { Case, BackendCaseStatus } from '@/types'
 export interface CaseWithClient extends Case {
   clientName: string | null
   clientId: string | null
-  draftCount: number
 }
 
 interface UseCasesWithClientsOptions {
@@ -17,8 +16,14 @@ interface UseCasesWithClientsOptions {
   status?: BackendCaseStatus
 }
 
+export interface ClientOption {
+  id: string
+  name: string
+}
+
 interface UseCasesWithClientsResult {
   cases: CaseWithClient[]
+  clients: ClientOption[]
   isLoading: boolean
   error: string | null
   totalElements: number
@@ -34,6 +39,7 @@ export function useCasesWithClients(
   const { page: initialPage = 0, pageSize = 20, status } = options
 
   const [cases, setCases] = useState<CaseWithClient[]>([])
+  const [clients, setClients] = useState<ClientOption[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalElements, setTotalElements] = useState(0)
@@ -64,41 +70,30 @@ export function useCasesWithClients(
       const clientsResponse = await clientApi.getAll({ page: 0, size: 100 })
       const clientMap = new Map<string, string>()
       const clientIdByCaseId = new Map<string, string>()
+      const clientList: ClientOption[] = []
 
       if (clientsResponse.status === 'success') {
         clientsResponse.data.content.forEach((backendClient) => {
           const client = mapBackendClient(backendClient)
           clientMap.set(client.id, client.name)
+          clientList.push({ id: client.id, name: client.name })
           client.caseIds.forEach((cId) => {
             clientIdByCaseId.set(cId, client.id)
           })
         })
       }
 
+      setClients(clientList)
+
       // Combine cases with client names
-      const casesWithClients: CaseWithClient[] = await Promise.all(
-        mappedCases.map(async (caseItem) => {
-          const clientId = clientIdByCaseId.get(caseItem.id) ?? null
-
-          // Fetch overview summary for this case (includes draft, document, judgment counts)
-          let draftCount = 0
-          try {
-            const overviewResponse = await caseApi.getOverviewSummary(caseItem.id)
-            if (overviewResponse.status === 'success') {
-              draftCount = overviewResponse.data.draftCount
-            }
-          } catch {
-            // Ignore overview errors
-          }
-
-          return {
-            ...caseItem,
-            clientId,
-            clientName: clientId ? clientMap.get(clientId) ?? null : null,
-            draftCount,
-          }
-        })
-      )
+      const casesWithClients: CaseWithClient[] = mappedCases.map((caseItem) => {
+        const clientId = clientIdByCaseId.get(caseItem.id) ?? null
+        return {
+          ...caseItem,
+          clientId,
+          clientName: clientId ? clientMap.get(clientId) ?? null : null,
+        }
+      })
 
       setCases(casesWithClients)
       setTotalElements(paginatedData.totalElements)
@@ -127,6 +122,7 @@ export function useCasesWithClients(
 
   return {
     cases,
+    clients,
     isLoading,
     error,
     totalElements,

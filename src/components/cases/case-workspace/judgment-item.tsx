@@ -14,12 +14,10 @@ import { Button } from '@/components/ui/button'
 import { workspaceApi } from '@/services/api/workspace-api'
 import type { CaseDocument } from '@/types'
 
-interface SourceItemProps {
-  source: CaseDocument
-  isSelected: boolean
-  onToggleSelection: () => void
-  onDelete: () => void
-  onLinkContent: () => void
+interface JudgmentItemProps {
+  judgment: CaseDocument
+  onDelete: () => Promise<void>
+  onLinkContent: () => Promise<void>
   onOpenInTab: (source: CaseDocument, url: string) => void
   onRename: (newName: string) => Promise<void>
 }
@@ -61,23 +59,22 @@ function getStatusBadge(status: string | undefined | null) {
   )
 }
 
-export function SourceItem({
-  source,
-  isSelected,
-  onToggleSelection,
+export function JudgmentItem({
+  judgment,
   onDelete,
   onLinkContent,
   onOpenInTab,
   onRename,
-}: SourceItemProps) {
+}: JudgmentItemProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLinking, setIsLinking] = useState(false)
+  const [isLoadingView, setIsLoadingView] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
 
-  const displayName = source.name || `${source.type} Document`
+  const displayName = judgment.name || `${judgment.type} Document`
   const Icon = getFileIcon(displayName)
 
   useEffect(() => {
@@ -140,7 +137,7 @@ export function SourceItem({
 
   const handleOpenInNewTab = async () => {
     try {
-      const url = source.signedUrl || await workspaceApi.getDownloadUrl(source.id)
+      const url = judgment.signedUrl || await workspaceApi.getDownloadUrl(judgment.id)
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err) {
       console.error('Failed to get download URL:', err)
@@ -149,15 +146,13 @@ export function SourceItem({
     }
   }
 
-  const [isLoadingView, setIsLoadingView] = useState(false)
-
   const handleView = async () => {
     if (isLoadingView) return
 
     setIsLoadingView(true)
     try {
-      const url = source.signedUrl || await workspaceApi.getDownloadUrl(source.id)
-      onOpenInTab(source, url)
+      const url = judgment.signedUrl || await workspaceApi.getDownloadUrl(judgment.id)
+      onOpenInTab(judgment, url)
     } catch (err) {
       console.error('Failed to get download URL:', err)
     } finally {
@@ -171,15 +166,7 @@ export function SourceItem({
       className="group relative flex items-center gap-2 px-4 py-2.5 hover:bg-ledger-gray-50 transition-colors"
       onMouseLeave={() => setShowMenu(false)}
     >
-      {/* Checkbox */}
-      <input
-        type="checkbox"
-        checked={isSelected}
-        onChange={onToggleSelection}
-        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0"
-      />
-
-      {/* File Icon + Filename — click to open PDF */}
+      {/* File Icon + Filename — click to open in tab */}
       {isRenaming ? (
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <Icon className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
@@ -227,9 +214,9 @@ export function SourceItem({
         {/* Dropdown Menu */}
         {showMenu && (
           <div className="absolute right-0 top-full mt-1 w-48 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
-            {/* File details */}
+            {/* Status badge */}
             <div className="px-3 py-2 border-b border-ledger-gray-100">
-              <div className="mt-1">{getStatusBadge(source.type === 'DRAFT' ? source.jobStatus : source.indexingStatus)}</div>
+              <div className="mt-1">{getStatusBadge(judgment.indexingStatus)}</div>
             </div>
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"

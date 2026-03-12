@@ -89,7 +89,7 @@ export function DocumentItem({ document }: DocumentItemProps) {
 
     setIsDownloading(true)
     try {
-      let url = document.storageUrl
+      let url = document.signedUrl || document.storageUrl
 
       if (!url) {
         url = await workspaceApi.getDownloadUrl(document.id)

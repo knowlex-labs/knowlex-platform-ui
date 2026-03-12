@@ -17,6 +17,7 @@ interface UseCaseDocumentsResult {
   uploadFile: (file: File) => Promise<void>
   deleteSource: (sourceId: string) => Promise<void>
   linkContent: (sourceId: string) => Promise<void>
+  renameDocument: (documentId: string, newName: string) => Promise<void>
   batchDelete: (sourceIds: string[]) => Promise<void>
   batchLinkContent: (sourceIds: string[]) => Promise<void>
   refresh: () => Promise<void>
@@ -293,6 +294,23 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
     [startPolling]
   )
 
+  const renameDocument = useCallback(
+    async (documentId: string, newName: string) => {
+      if (!caseId) return
+      try {
+        await workspaceApi.updateDocument(caseId, documentId, { name: newName })
+        setDocuments((prev) =>
+          prev.map((d) => (d.id === documentId ? { ...d, name: newName } : d))
+        )
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to rename document'
+        setError(message)
+        throw err
+      }
+    },
+    [caseId]
+  )
+
   const batchDelete = useCallback(
     async (sourceIds: string[]) => {
       try {
@@ -368,6 +386,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
     uploadFile,
     deleteSource,
     linkContent,
+    renameDocument,
     batchDelete,
     batchLinkContent,
     refresh,

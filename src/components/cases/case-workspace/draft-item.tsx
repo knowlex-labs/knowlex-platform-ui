@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { FileText, Loader2, AlertCircle, MoreVertical, Trash2 } from 'lucide-react'
+import { FileText, Loader2, AlertCircle, MoreVertical, Trash2, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { renderDraftToHtml } from '@/lib/draft-renderer'
 import type { Draft } from '@/types'
 
 interface DraftItemProps {
@@ -22,6 +23,15 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
       setIsDeleting(false)
       setShowMenu(false)
     }
+  }
+
+  const handleOpenInNewTab = () => {
+    if (!draft.content || draft.status !== 'completed') return
+    const html = renderDraftToHtml(draft.content)
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    window.open(url, '_blank')
+    setShowMenu(false)
   }
 
   return (
@@ -67,7 +77,15 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
         {showMenu && (
           <div className="absolute right-0 top-full mt-1 w-44 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-lg disabled:opacity-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors rounded-t-lg disabled:opacity-50"
+              onClick={(e) => { e.stopPropagation(); handleOpenInNewTab() }}
+              disabled={draft.status !== 'completed' || !draft.content}
+            >
+              <ExternalLink className="h-4 w-4" />
+              Open in new tab
+            </button>
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-b-lg disabled:opacity-50"
               onClick={(e) => { e.stopPropagation(); handleDelete() }}
               disabled={isDeleting}
             >

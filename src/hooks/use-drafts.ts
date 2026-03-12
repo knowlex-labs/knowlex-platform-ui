@@ -226,7 +226,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         try {
           // Skip S3 upload for empty content
           if (!draft.content.trim()) {
-            await workspaceApi.updateDocument(caseIdRef.current, id, { title: draft.title })
+            await workspaceApi.updateDocument(caseIdRef.current, id, { name: draft.title })
             dirtyIds.delete(id)
             continue
           }
@@ -243,7 +243,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
 
           // Update with storage key
           await workspaceApi.updateDocument(caseIdRef.current, id, {
-            title: draft.title,
+            name: draft.title,
             storage_key: storageKey,
           })
 
@@ -452,7 +452,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     try {
       // Skip S3 upload for empty content - just update title
       if (!resolvedContent.trim()) {
-        await workspaceApi.updateDocument(caseId, id, { title: resolvedTitle })
+        await workspaceApi.updateDocument(caseId, id, { name: resolvedTitle })
         return
       }
 
@@ -469,7 +469,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
 
       // Update draft with storage key
       await workspaceApi.updateDocument(caseId, id, {
-        title: resolvedTitle,
+        name: resolvedTitle,
         storage_key: storageKey,
       })
     } catch (error) {

@@ -10,19 +10,13 @@ import { useCaseTypes } from '@/hooks/use-case-types'
 import { CaseFolderGrid, CaseFolderGridSkeleton } from './case-folder-grid'
 import { CaseFilters } from './case-filters'
 import { AddCaseModal } from './add-case-modal'
-import { clientApi } from '@/services/api'
-import { mapBackendClient } from '@/services/mappers'
-
-interface ClientOption {
-  id: string
-  name: string
-}
 
 export function CaseList() {
   const navigate = useNavigate()
   const { setSidebarCollapsed, showAddCaseModal: showAddCaseModalFromNav, setShowAddCaseModal: setShowAddCaseModalFromNav } = useUIState()
   const {
     cases,
+    clients,
     isLoading,
     error,
     totalPages,
@@ -43,7 +37,6 @@ export function CaseList() {
   } = useCaseFilters()
 
   const { caseTypes } = useCaseTypes()
-  const [clients, setClients] = useState<ClientOption[]>([])
   const [showAddCaseModal, setShowAddCaseModal] = useState(false)
 
   // Consume showAddCaseModal flag from navigation context (set by dashboard)
@@ -53,25 +46,6 @@ export function CaseList() {
       setShowAddCaseModalFromNav(false)
     }
   }, [showAddCaseModalFromNav, setShowAddCaseModalFromNav])
-
-  // Fetch clients for filter dropdown
-  useEffect(() => {
-    const fetchClients = async () => {
-      try {
-        const response = await clientApi.getAll({ page: 0, size: 100 })
-        if (response.status === 'success') {
-          const mappedClients = response.data.content.map((c) => {
-            const client = mapBackendClient(c)
-            return { id: client.id, name: client.name }
-          })
-          setClients(mappedClients)
-        }
-      } catch {
-        // Silently fail - filters will just show empty client list
-      }
-    }
-    fetchClients()
-  }, [])
 
   const filteredCases = filterCases(cases)
 
