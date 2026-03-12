@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, Scale, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,7 @@ const iconMap = {
   home: Home,
   briefcase: Briefcase,
   users: Users,
+  'clipboard-list': ClipboardList,
   scale: Scale,
   brain: Brain,
 }

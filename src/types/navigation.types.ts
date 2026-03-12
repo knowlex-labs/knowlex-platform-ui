@@ -1,6 +1,7 @@
 export type DashboardTab =
   | 'dashboard'
   | 'cases'
+  | 'cause-lists'
   | 'clients'
   | 'judgments'
   | 'ai-research'
