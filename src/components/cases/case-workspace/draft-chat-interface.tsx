@@ -246,7 +246,7 @@ export function DraftChatInterface({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about your case..."
-              className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-gray-800 dark:text-ledger-gray-200 placeholder:text-ledger-gray-400 dark:placeholder:text-ledger-gray-500 resize-none overflow-y-auto p-0 m-0 align-middle"
+              className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-gray-800 placeholder:text-ledger-gray-400 resize-none overflow-y-auto p-0 m-0 align-middle"
               style={{ height: '20px', maxHeight: '150px', lineHeight: '20px', verticalAlign: 'middle' }}
               rows={1}
               disabled={isStreaming}
