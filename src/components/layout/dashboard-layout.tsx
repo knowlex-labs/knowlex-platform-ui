@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useLocation } from 'react-router-dom'
 import { Sidebar, SidebarContent } from './sidebar'
 import { MobileHeader } from './mobile-header'
+import { MobileBottomNav } from './mobile-bottom-nav'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { APP_NAME } from '@/lib/constants'
 import { useUIState } from '@/contexts/ui-context'
@@ -36,6 +37,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setMobileMenuOpen(true)
   }
 
+  // Show bottom nav on mobile except on workspace pages (which have their own toolbar)
+  const showMobileBottomNav = !isWorkspaceView
+
   return (
     <div className="min-h-screen bg-kx-surface">
       {/* Desktop Sidebar */}
@@ -64,10 +68,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Mobile top padding to account for fixed header */}
         <div className="pt-14 md:pt-0">
           <div className={isFullBleed ? 'md:pt-2' : 'p-4 md:p-8'}>
-            {children}
+            <div className={showMobileBottomNav ? 'pb-16 md:pb-0' : ''}>
+              {children}
+            </div>
           </div>
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      {showMobileBottomNav && <MobileBottomNav />}
     </div>
   )
 }

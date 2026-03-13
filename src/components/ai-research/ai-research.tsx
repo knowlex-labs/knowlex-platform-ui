@@ -8,6 +8,8 @@ import {
   MobileSidebarToggle,
 } from './research-session-sidebar'
 import { ResearchSettingsPanel } from './research-settings-panel'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { useIsMobile } from '@/hooks/use-is-mobile'
 
 export function AIResearch() {
   const {
@@ -26,7 +28,9 @@ export function AIResearch() {
     updateSettings,
   } = useResearchChat()
 
+  const isMobile = useIsMobile()
   const [settingsOpen, setSettingsOpen] = useState(true)
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 

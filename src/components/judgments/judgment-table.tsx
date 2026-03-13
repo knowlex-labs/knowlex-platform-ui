@@ -35,111 +35,163 @@ export function JudgmentTable({ judgments, isLoading, sort, toggleSort }: Judgme
     }
 
     return (
-        <div className="border border-kx-card-border rounded-lg overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
-                                Citation
-                            </th>
-                            <SortableHeader
-                                label="Title"
-                                field="title"
-                                sort={sort}
-                                onToggle={toggleSort}
-                            />
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
-                                Court
-                            </th>
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
-                                Judge(s)
-                            </th>
-                            <SortableHeader
-                                label="Decision Date"
-                                field="decisionDate"
-                                sort={sort}
-                                onToggle={toggleSort}
-                            />
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden xl:table-cell">
-                                Verdict
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-kx-card-border">
-                        {judgments.map((judgment) => (
-                            <tr
-                                key={judgment.id}
-                                onClick={() => navigate(`/judgments/${judgment.id}`)}
-                                className={cn(
-                                    'bg-kx-card cursor-pointer transition-all duration-150 group',
-                                    'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-50',
-                                    'border-l-2 border-l-transparent hover:border-l-kx-primary-500'
-                                )}
-                            >
-                                {/* Citation */}
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    <span className="inline-flex items-center gap-1 text-xs font-mono font-medium text-kx-primary-600 bg-kx-primary-50 dark:bg-kx-primary-100 px-2 py-1 rounded">
-                                        <FileText className="h-3 w-3" />
-                                        {judgment.citation || '—'}
-                                    </span>
-                                </td>
+        <>
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-2">
+                {judgments.map((judgment) => (
+                    <div
+                        key={judgment.id}
+                        onClick={() => navigate(`/judgments/${judgment.id}`)}
+                        className="bg-kx-card border border-kx-card-border rounded-lg p-3 active:bg-kx-primary-50/50 transition-colors cursor-pointer"
+                    >
+                        {/* Citation badge */}
+                        <div className="mb-2">
+                            <span className="inline-flex items-center gap-1 text-xs font-mono font-medium text-kx-primary-600 bg-kx-primary-50 dark:bg-kx-primary-100 px-2 py-1 rounded">
+                                <FileText className="h-3 w-3" />
+                                {judgment.citation || '—'}
+                            </span>
+                        </div>
 
-                                {/* Title */}
-                                <td className="px-4 py-3 max-w-xs">
-                                    <div className="space-y-0.5">
-                                        <p className="text-sm font-medium text-kx-text-primary line-clamp-1">
-                                            {judgment.petitioner || 'Unknown'}
-                                        </p>
-                                        <p className="text-xs text-ledger-gray-500 italic">
-                                            v. {judgment.respondent || 'Unknown'}
-                                        </p>
-                                    </div>
-                                </td>
+                        {/* Petitioner v. Respondent */}
+                        <div className="mb-2">
+                            <p className="text-sm font-medium text-kx-text-primary line-clamp-1">
+                                {judgment.petitioner || 'Unknown'}
+                            </p>
+                            <p className="text-xs text-ledger-gray-500 italic">
+                                v. {judgment.respondent || 'Unknown'}
+                            </p>
+                        </div>
 
-                                {/* Court */}
-                                <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
-                                    <span className="text-xs text-ledger-gray-600">
-                                        {judgment.court}
-                                    </span>
-                                </td>
-
-                                {/* Judge(s) */}
-                                <td className="px-4 py-3 hidden md:table-cell">
-                                    <div className="flex items-center gap-1 max-w-[180px]">
-                                        <Users className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
-                                        <span className="text-xs text-ledger-gray-600 truncate">
-                                            {judgment.judges?.join(', ') || '—'}
-                                        </span>
-                                    </div>
-                                </td>
-
-                                {/* Judgment Date */}
-                                <td className="px-4 py-3 whitespace-nowrap">
-                                    <span className="text-xs text-ledger-gray-600">
-                                        {formatJudgmentDate(judgment.decisionDate)}
-                                    </span>
-                                </td>
-
-                                {/* Disposal Nature */}
-                                <td className="px-4 py-3 whitespace-nowrap hidden xl:table-cell">
-                                    {judgment.disposalNature ? (
-                                        <span className={cn(
-                                            'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full',
-                                            getDisposalColor(judgment.disposalNature)
-                                        )}>
-                                            {judgment.disposalNature}
-                                        </span>
-                                    ) : (
-                                        <span className="text-xs text-ledger-gray-400">—</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        {/* Date + Court/Judges tags */}
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="text-ledger-gray-600">
+                                {formatJudgmentDate(judgment.decisionDate)}
+                            </span>
+                            {judgment.court && (
+                                <span className="px-2 py-0.5 rounded bg-ledger-gray-50 dark:bg-ledger-gray-100 text-ledger-gray-600">
+                                    {judgment.court}
+                                </span>
+                            )}
+                            {judgment.disposalNature && (
+                                <span className={cn(
+                                    'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full',
+                                    getDisposalColor(judgment.disposalNature)
+                                )}>
+                                    {judgment.disposalNature}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                ))}
             </div>
-        </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block border border-kx-card-border rounded-lg overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                                <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                                    Citation
+                                </th>
+                                <SortableHeader
+                                    label="Title"
+                                    field="title"
+                                    sort={sort}
+                                    onToggle={toggleSort}
+                                />
+                                <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
+                                    Court
+                                </th>
+                                <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
+                                    Judge(s)
+                                </th>
+                                <SortableHeader
+                                    label="Decision Date"
+                                    field="decisionDate"
+                                    sort={sort}
+                                    onToggle={toggleSort}
+                                />
+                                <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden xl:table-cell">
+                                    Verdict
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-kx-card-border">
+                            {judgments.map((judgment) => (
+                                <tr
+                                    key={judgment.id}
+                                    onClick={() => navigate(`/judgments/${judgment.id}`)}
+                                    className={cn(
+                                        'bg-kx-card cursor-pointer transition-all duration-150 group',
+                                        'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-50',
+                                        'border-l-2 border-l-transparent hover:border-l-kx-primary-500'
+                                    )}
+                                >
+                                    {/* Citation */}
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className="inline-flex items-center gap-1 text-xs font-mono font-medium text-kx-primary-600 bg-kx-primary-50 dark:bg-kx-primary-100 px-2 py-1 rounded">
+                                            <FileText className="h-3 w-3" />
+                                            {judgment.citation || '—'}
+                                        </span>
+                                    </td>
+
+                                    {/* Title */}
+                                    <td className="px-4 py-3 max-w-xs">
+                                        <div className="space-y-0.5">
+                                            <p className="text-sm font-medium text-kx-text-primary line-clamp-1">
+                                                {judgment.petitioner || 'Unknown'}
+                                            </p>
+                                            <p className="text-xs text-ledger-gray-500 italic">
+                                                v. {judgment.respondent || 'Unknown'}
+                                            </p>
+                                        </div>
+                                    </td>
+
+                                    {/* Court */}
+                                    <td className="px-4 py-3 whitespace-nowrap hidden lg:table-cell">
+                                        <span className="text-xs text-ledger-gray-600">
+                                            {judgment.court}
+                                        </span>
+                                    </td>
+
+                                    {/* Judge(s) */}
+                                    <td className="px-4 py-3 hidden md:table-cell">
+                                        <div className="flex items-center gap-1 max-w-[180px]">
+                                            <Users className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
+                                            <span className="text-xs text-ledger-gray-600 truncate">
+                                                {judgment.judges?.join(', ') || '—'}
+                                            </span>
+                                        </div>
+                                    </td>
+
+                                    {/* Judgment Date */}
+                                    <td className="px-4 py-3 whitespace-nowrap">
+                                        <span className="text-xs text-ledger-gray-600">
+                                            {formatJudgmentDate(judgment.decisionDate)}
+                                        </span>
+                                    </td>
+
+                                    {/* Disposal Nature */}
+                                    <td className="px-4 py-3 whitespace-nowrap hidden xl:table-cell">
+                                        {judgment.disposalNature ? (
+                                            <span className={cn(
+                                                'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full',
+                                                getDisposalColor(judgment.disposalNature)
+                                            )}>
+                                                {judgment.disposalNature}
+                                            </span>
+                                        ) : (
+                                            <span className="text-xs text-ledger-gray-400">—</span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </>
     )
 }
 

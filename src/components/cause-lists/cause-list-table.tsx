@@ -2,6 +2,7 @@ import * as React from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import { CauseListCardList } from './cause-list-card'
 import type { CauseListItem } from '@/types'
 
 interface CauseListTableProps {
@@ -285,8 +286,8 @@ export function CauseListTable({ items, isLoading }: CauseListTableProps) {
                 )}
               </div>
 
-              {/* Table */}
-              <div className="overflow-x-auto">
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full">
                   <thead>
                     <tr className="border-b border-ledger-gray-200">
@@ -305,6 +306,11 @@ export function CauseListTable({ items, isLoading }: CauseListTableProps) {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="md:hidden">
+                <CauseListCardList items={sub.items} />
               </div>
             </div>
           ))}

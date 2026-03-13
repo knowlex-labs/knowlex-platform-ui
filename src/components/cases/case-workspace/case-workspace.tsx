@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, Bot } from 'lucide-react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, Bot, MoreVertical, PenLine, FileText, Upload, Scale } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
+import { useIsMobile } from '@/hooks/use-is-mobile'
 import { caseApi } from '@/services/api/case-api'
 import { useCaseDocuments } from '@/hooks/use-case-sources'
 import { useDraftChat } from '@/hooks/use-draft-chat'
@@ -14,6 +16,7 @@ import { CenterPanel } from './center-panel'
 import { DraftChatPanel } from './draft-chat-panel'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
+import { MobileWorkspaceToolbar } from './mobile-workspace-toolbar'
 import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
 import type { Draft, CaseDocument } from '@/types'
@@ -23,11 +26,31 @@ export function CaseWorkspace() {
   const caseId = caseIdParam!
   const navigate = useNavigate()
   const { setSidebarCollapsed } = useUIState()
+  const isMobile = useIsMobile()
   const [caseName, setCaseName] = useState('Case Workspace')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [showDraftWizard, setShowDraftWizard] = useState(false)
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
+
+  // Mobile state
+  const [mobileActivePanel, setMobileActivePanel] = useState<'documents' | 'editor' | 'chat'>('editor')
+  const [mobileLeftOpen, setMobileLeftOpen] = useState(false)
+  const [mobileChatOpen, setMobileChatOpen] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const mobileMenuRef = useRef<HTMLDivElement>(null)
+
+  // Close mobile menu on outside click
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    function handleClick(e: MouseEvent) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [mobileMenuOpen])
 
   // Resizable chat panel
   const MIN_CHAT_WIDTH = 320
@@ -153,7 +176,11 @@ export function CaseWorkspace() {
   }
 
   const handleSendToChat = (text: string) => {
-    setRightPanelOpen(true)
+    if (isMobile) {
+      setMobileChatOpen(true)
+    } else {
+      setRightPanelOpen(true)
+    }
     handleSendMessage(text)
   }
 
@@ -262,148 +289,256 @@ export function CaseWorkspace() {
     setShowDraftWizard(false)
   }
 
+  // Mobile panel change handler
+  const handleMobilePanelChange = (panel: 'documents' | 'editor' | 'chat') => {
+    if (panel === 'documents') {
+      setMobileLeftOpen(true)
+    } else if (panel === 'chat') {
+      setMobileChatOpen(true)
+    }
+    setMobileActivePanel(panel)
+  }
+
+  const leftSidebarContent = (
+    <LeftSidebar
+      sources={sources}
+      apiDraftDocuments={draftDocuments}
+      judgments={judgments}
+      isJudgmentsLoading={sourcesLoading}
+      selectedSourceIds={selectedSourceIds}
+      isSourcesLoading={sourcesLoading}
+      drafts={drafts}
+      summary={summary}
+      isSummaryLoading={isSummaryLoading}
+      onToggleSourceSelection={toggleSourceSelection}
+      onSelectAllSources={selectAllSources}
+      onDeselectAllSources={deselectAllSources}
+      onDeleteSource={deleteSource}
+      onLinkContent={linkContent}
+      onDraftClick={handleDraftClick}
+      onDeleteDraft={handleDeleteDraft}
+      onSummaryClick={handleSummaryClick}
+      onDeleteSummary={handleDeleteSummary}
+      onOpenSourceInTab={openSourceTab}
+      onOpenJudgmentInTab={handleOpenJudgmentInTab}
+      onDeleteJudgment={handleDeleteJudgment}
+      onReindexJudgment={handleReindexJudgment}
+      onRenameDocument={renameDocument}
+    />
+  )
+
+  const chatPanelContent = (
+    <DraftChatPanel
+      messages={messages}
+      isStreaming={chatStreaming}
+      isLoadingHistory={chatLoadingHistory}
+      sessions={chatSessions}
+      activeSessionId={activeSessionId}
+      isLoadingSessions={isLoadingSessions}
+      selectedSourceCount={selectedSourceIds.size}
+      settings={chatSettings}
+      onSendMessage={handleSendMessage}
+      onClearChat={clearChat}
+      onDeleteSession={deleteChatSession}
+      onSelectSession={selectSession}
+      onUpdateSettings={updateChatSettings}
+    />
+  )
+
+  const centerPanelContent = (
+    <CenterPanel
+      tabs={tabs}
+      activeTabId={activeTabId}
+      drafts={drafts}
+      summary={summary}
+      isGeneratingSummary={isGeneratingSummary}
+      onTabClick={setActiveTab}
+      onTabClose={closeTab}
+      onSaveDraftLocal={handleSaveDraftLocal}
+      onSaveDraftToBackend={handleSaveDraftToBackend}
+      onDeleteDraft={handleDeleteDraft}
+      onRetryDraft={handleRetryDraft}
+      onTabDirtyChange={setTabDirty}
+      onDraftingClick={handleDraftingClick}
+      onSummaryClick={handleSummaryClick}
+      onUploadDocumentsClick={handleUploadDocumentsClick}
+      onLinkJudgmentClick={handleLinkJudgment}
+      onSendToChat={handleSendToChat}
+      onGenerateSummary={handleGenerateSummary}
+      onDeleteSummary={handleDeleteSummary}
+      showDraftWizard={showDraftWizard}
+      wizardSources={sources}
+      wizardClient={undefined}
+      onWizardGenerate={handleWizardGenerate}
+      onWizardCancel={handleWizardCancel}
+    />
+  )
+
+  // Mobile header actions menu items
+  const mobileActions = [
+    { id: 'drafting', label: 'New Draft', icon: PenLine, onClick: handleDraftingClick },
+    { id: 'summary', label: 'Summary', icon: FileText, onClick: handleSummaryClick },
+    { id: 'upload', label: 'Upload', icon: Upload, onClick: handleUploadDocumentsClick },
+    { id: 'judgment', label: 'Link Judgment', icon: Scale, onClick: handleLinkJudgment },
+  ]
+
   return (
     <div className="h-screen flex flex-col bg-kx-card">
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-kx-card-border bg-kx-card">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-kx-primary-700">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-kx-primary-700 flex-shrink-0">
             <ArrowLeft className="h-4 w-4" />
-            Back
+            <span className="hidden md:inline">Back</span>
           </Button>
-          <div className="h-4 w-px bg-ledger-gray-300" />
-          <h2 className="text-lg font-bold text-kx-primary-900 truncate">
+          <div className="h-4 w-px bg-ledger-gray-300 hidden md:block" />
+          <h2 className="text-lg font-bold text-kx-primary-900 truncate md:max-w-none max-w-[40vw]">
             {caseName}
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          <HeaderToolButtons
-            onDraftingClick={handleDraftingClick}
-            onSummaryClick={handleSummaryClick}
-            onUploadDocumentsClick={handleUploadDocumentsClick}
-            onLinkJudgmentClick={handleLinkJudgment}
-          />
-          <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700"
-            title={leftPanelOpen ? 'Hide left panel' : 'Show left panel'}
-          >
-            {leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className={rightPanelOpen ? 'h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700' : 'h-8 px-3 gap-1.5 text-ledger-gray-500 hover:text-kx-primary-700'}
-            title={rightPanelOpen ? 'Hide AI Chat' : 'Open AI Chat'}
-          >
-            {rightPanelOpen
-              ? <PanelRightClose className="h-4 w-4" />
-              : (
-                <>
-                  <Bot className="h-4 w-4" />
-                  <span className="text-sm font-medium">AI Chat</span>
-                </>
-              )
-            }
-          </Button>
-        </div>
-      </div>
-
-      <div className="flex-1 flex min-h-0 overflow-hidden bg-kx-card">
-        {leftPanelOpen && (
-          <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden">
-            <LeftSidebar
-              sources={sources}
-              apiDraftDocuments={draftDocuments}
-              judgments={judgments}
-              isJudgmentsLoading={sourcesLoading}
-              selectedSourceIds={selectedSourceIds}
-              isSourcesLoading={sourcesLoading}
-              drafts={drafts}
-              summary={summary}
-              isSummaryLoading={isSummaryLoading}
-              onToggleSourceSelection={toggleSourceSelection}
-              onSelectAllSources={selectAllSources}
-              onDeselectAllSources={deselectAllSources}
-              onDeleteSource={deleteSource}
-              onLinkContent={linkContent}
-              onDraftClick={handleDraftClick}
-              onDeleteDraft={handleDeleteDraft}
+          {/* Desktop: full toolbar + panel toggles */}
+          <div className="hidden md:flex items-center gap-2">
+            <HeaderToolButtons
+              onDraftingClick={handleDraftingClick}
               onSummaryClick={handleSummaryClick}
-              onDeleteSummary={handleDeleteSummary}
-              onOpenSourceInTab={openSourceTab}
-              onOpenJudgmentInTab={handleOpenJudgmentInTab}
-              onDeleteJudgment={handleDeleteJudgment}
-              onReindexJudgment={handleReindexJudgment}
-              onRenameDocument={renameDocument}
+              onUploadDocumentsClick={handleUploadDocumentsClick}
+              onLinkJudgmentClick={handleLinkJudgment}
             />
+            <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLeftPanelOpen(!leftPanelOpen)}
+              className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700"
+              title={leftPanelOpen ? 'Hide left panel' : 'Show left panel'}
+            >
+              {leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRightPanelOpen(!rightPanelOpen)}
+              className={rightPanelOpen ? 'h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700' : 'h-8 px-3 gap-1.5 text-ledger-gray-500 hover:text-kx-primary-700'}
+              title={rightPanelOpen ? 'Hide AI Chat' : 'Open AI Chat'}
+            >
+              {rightPanelOpen
+                ? <PanelRightClose className="h-4 w-4" />
+                : (
+                  <>
+                    <Bot className="h-4 w-4" />
+                    <span className="text-sm font-medium">AI Chat</span>
+                  </>
+                )
+              }
+            </Button>
           </div>
-        )}
 
-        <div className="flex-1 min-h-0 min-w-0">
-          <CenterPanel
-            tabs={tabs}
-            activeTabId={activeTabId}
-            drafts={drafts}
-            summary={summary}
-            isGeneratingSummary={isGeneratingSummary}
-            onTabClick={setActiveTab}
-            onTabClose={closeTab}
-            onSaveDraftLocal={handleSaveDraftLocal}
-            onSaveDraftToBackend={handleSaveDraftToBackend}
-            onDeleteDraft={handleDeleteDraft}
-            onRetryDraft={handleRetryDraft}
-            onTabDirtyChange={setTabDirty}
-            onDraftingClick={handleDraftingClick}
-            onSummaryClick={handleSummaryClick}
-            onUploadDocumentsClick={handleUploadDocumentsClick}
-            onLinkJudgmentClick={handleLinkJudgment}
-            onSendToChat={handleSendToChat}
-            onGenerateSummary={handleGenerateSummary}
-            onDeleteSummary={handleDeleteSummary}
-            showDraftWizard={showDraftWizard}
-            wizardSources={sources}
-            wizardClient={undefined}
-            onWizardGenerate={handleWizardGenerate}
-            onWizardCancel={handleWizardCancel}
-          />
+          {/* Mobile: single action menu button */}
+          <div className="md:hidden relative" ref={mobileMenuRef}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="h-8 w-8 p-0 text-ledger-gray-500"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+            {mobileMenuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-kx-card border border-kx-card-border rounded-lg shadow-lg z-50 py-1">
+                {mobileActions.map((action) => {
+                  const Icon = action.icon
+                  return (
+                    <button
+                      key={action.id}
+                      onClick={() => {
+                        setMobileMenuOpen(false)
+                        action.onClick()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-kx-text-primary hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 transition-colors"
+                    >
+                      <Icon className="h-4 w-4 text-kx-primary-700" />
+                      {action.label}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
         </div>
-
-        {rightPanelOpen && (
-          <>
-            {/* Drag handle */}
-            <div
-              onMouseDown={handleResizeStart}
-              className="w-1 flex-shrink-0 cursor-col-resize hover:bg-kx-primary-400/40 active:bg-kx-primary-500/50 transition-colors relative group"
-            >
-              <div className="absolute inset-y-0 -left-1 -right-1" />
-            </div>
-            <div
-              className="flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden"
-              style={{ width: chatWidth }}
-            >
-              <DraftChatPanel
-                messages={messages}
-                isStreaming={chatStreaming}
-                isLoadingHistory={chatLoadingHistory}
-                sessions={chatSessions}
-                activeSessionId={activeSessionId}
-                isLoadingSessions={isLoadingSessions}
-                selectedSourceCount={selectedSourceIds.size}
-                settings={chatSettings}
-                onSendMessage={handleSendMessage}
-                onClearChat={clearChat}
-                onDeleteSession={deleteChatSession}
-                onSelectSession={selectSession}
-                onUpdateSettings={updateChatSettings}
-              />
-            </div>
-          </>
-        )}
       </div>
+
+      {/* Main content area */}
+      {isMobile ? (
+        <>
+          {/* Mobile: full-width center panel with bottom padding for toolbar */}
+          <div className="flex-1 min-h-0 pb-14">
+            {centerPanelContent}
+          </div>
+
+          {/* Mobile: Left sidebar as Sheet */}
+          <Sheet open={mobileLeftOpen} onOpenChange={setMobileLeftOpen}>
+            <SheetContent side="left" className="w-[300px] p-0 flex flex-col">
+              <SheetHeader className="px-4 py-3 border-b border-kx-card-border">
+                <SheetTitle className="text-base">Documents & Drafts</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden">
+                {leftSidebarContent}
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Mobile: Chat panel as Sheet */}
+          <Sheet open={mobileChatOpen} onOpenChange={setMobileChatOpen}>
+            <SheetContent side="right" className="w-[calc(100vw-40px)] max-w-[400px] p-0 flex flex-col">
+              <SheetHeader className="sr-only">
+                <SheetTitle>AI Chat</SheetTitle>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden">
+                {chatPanelContent}
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Mobile bottom toolbar */}
+          <MobileWorkspaceToolbar
+            activePanel={mobileActivePanel}
+            onPanelChange={handleMobilePanelChange}
+            onDraftingClick={handleDraftingClick}
+          />
+        </>
+      ) : (
+        /* Desktop: 3-panel layout (unchanged) */
+        <div className="flex-1 flex min-h-0 overflow-hidden bg-kx-card">
+          {leftPanelOpen && (
+            <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden">
+              {leftSidebarContent}
+            </div>
+          )}
+
+          <div className="flex-1 min-h-0 min-w-0">
+            {centerPanelContent}
+          </div>
+
+          {rightPanelOpen && (
+            <>
+              {/* Drag handle */}
+              <div
+                onMouseDown={handleResizeStart}
+                className="w-1 flex-shrink-0 cursor-col-resize hover:bg-kx-primary-400/40 active:bg-kx-primary-500/50 transition-colors relative group"
+              >
+                <div className="absolute inset-y-0 -left-1 -right-1" />
+              </div>
+              <div
+                className="flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden"
+                style={{ width: chatWidth }}
+              >
+                {chatPanelContent}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       <AddSourceModal
         open={addSourceModalOpen}
