@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { judgmentsApi } from '@/services/api/judgments-api'
 import type { Judgment, JudgmentFilters, JudgmentSort, SortField } from '@/types'
 
@@ -25,14 +26,70 @@ interface UseJudgmentsResult {
     refresh: () => void
 }
 
+function parseFiltersFromParams(params: URLSearchParams): JudgmentFilters {
+    const filters: JudgmentFilters = {}
+    const search = params.get('search')
+    if (search) filters.search = search
+    const court = params.get('court')
+    if (court) filters.court = court
+    const judge = params.get('judge')
+    if (judge) filters.judge = judge
+    const year = params.get('year')
+    if (year) filters.year = Number(year)
+    const month = params.get('month')
+    if (month) filters.month = Number(month)
+    const disposalNature = params.get('disposalNature')
+    if (disposalNature) filters.disposalNature = disposalNature.split(',')
+    const dateFrom = params.get('dateFrom')
+    if (dateFrom) filters.dateFrom = dateFrom
+    const dateTo = params.get('dateTo')
+    if (dateTo) filters.dateTo = dateTo
+    return filters
+}
+
+function parseSortFromParams(params: URLSearchParams): JudgmentSort | null {
+    const sortField = params.get('sortField') as SortField | null
+    const sortDir = params.get('sortDir') as 'asc' | 'desc' | null
+    if (sortField && sortDir) return { field: sortField, direction: sortDir }
+    return { field: 'decisionDate', direction: 'desc' }
+}
+
+function buildSearchParams(
+    filters: JudgmentFilters,
+    page: number,
+    sort: JudgmentSort | null
+): URLSearchParams {
+    const params = new URLSearchParams()
+    if (filters.search) params.set('search', filters.search)
+    if (filters.court) params.set('court', filters.court)
+    if (filters.judge) params.set('judge', filters.judge)
+    if (filters.year) params.set('year', String(filters.year))
+    if (filters.month) params.set('month', String(filters.month))
+    if (filters.disposalNature?.length) params.set('disposalNature', filters.disposalNature.join(','))
+    if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
+    if (filters.dateTo) params.set('dateTo', filters.dateTo)
+    if (page > 0) params.set('page', String(page))
+    if (sort && (sort.field !== 'decisionDate' || sort.direction !== 'desc')) {
+        params.set('sortField', sort.field)
+        params.set('sortDir', sort.direction)
+    }
+    return params
+}
+
 export function useJudgments(): UseJudgmentsResult {
+    const [searchParams, setSearchParams] = useSearchParams()
+
+    const initialFilters = parseFiltersFromParams(searchParams)
+    const initialPage = Number(searchParams.get('page') || '0')
+    const initialSort = parseSortFromParams(searchParams)
+
     const [judgments, setJudgments] = useState<Judgment[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [filters, setFiltersState] = useState<JudgmentFilters>({})
-    const [sort, setSortState] = useState<JudgmentSort | null>({ field: 'decisionDate', direction: 'desc' })
+    const [filters, setFiltersState] = useState<JudgmentFilters>(initialFilters)
+    const [sort, setSortState] = useState<JudgmentSort | null>(initialSort)
     const [pagination, setPagination] = useState<Pagination>({
-        page: 0,
+        page: initialPage,
         size: DEFAULT_PAGE_SIZE,
         totalElements: 0,
         totalPages: 0,
@@ -44,6 +101,11 @@ export function useJudgments(): UseJudgmentsResult {
     paginationRef.current = pagination
     const sortRef = useRef(sort)
     sortRef.current = sort
+
+    const updateUrl = useCallback((f: JudgmentFilters, page: number, s: JudgmentSort | null) => {
+        const params = buildSearchParams(f, page, s)
+        setSearchParams(params, { replace: true })
+    }, [setSearchParams])
 
     const formatSort = (s: JudgmentSort | null): string | undefined => {
         if (!s) return undefined
@@ -88,18 +150,21 @@ export function useJudgments(): UseJudgmentsResult {
 
     const setFilters = useCallback((newFilters: JudgmentFilters) => {
         setFiltersState(newFilters)
+        updateUrl(newFilters, 0, sortRef.current)
         fetchJudgments(newFilters, 0, sortRef.current)
-    }, [fetchJudgments])
+    }, [fetchJudgments, updateUrl])
 
     const setPage = useCallback((page: number) => {
         setPagination((prev) => ({ ...prev, page }))
+        updateUrl(filtersRef.current, page, sortRef.current)
         fetchJudgments(filtersRef.current, page, sortRef.current)
-    }, [fetchJudgments])
+    }, [fetchJudgments, updateUrl])
 
     const setSort = useCallback((newSort: JudgmentSort | null) => {
         setSortState(newSort)
+        updateUrl(filtersRef.current, 0, newSort)
         fetchJudgments(filtersRef.current, 0, newSort)
-    }, [fetchJudgments])
+    }, [fetchJudgments, updateUrl])
 
     const toggleSort = useCallback((field: SortField) => {
         setSortState((prev) => {
@@ -109,10 +174,11 @@ export function useJudgments(): UseJudgmentsResult {
             } else {
                 next = { field, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
             }
+            updateUrl(filtersRef.current, 0, next)
             fetchJudgments(filtersRef.current, 0, next)
             return next
         })
-    }, [fetchJudgments])
+    }, [fetchJudgments, updateUrl])
 
     const refresh = useCallback(() => {
         fetchJudgments(filtersRef.current, paginationRef.current.page, sortRef.current)

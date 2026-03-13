@@ -63,7 +63,7 @@ function groupByJudge(items: CauseListItem[]): JudgeGroup[] {
     groups.push({
       judgeName,
       benchType,
-      courtHallNo: groupItems[0]?.metadata.court_hall_no ?? null,
+      courtHallNo: groupItems[0]?.courtHallNo ?? groupItems[0]?.metadata.court_hall_no ?? null,
       date: groupItems[0]?.causeListDate ?? '',
       subGroups,
     })

@@ -21,6 +21,7 @@ export interface CauseListItem {
   hearingType: string
   lawyerName: string
   serialNumber: number
+  courtHallNo: string | null
   metadata: CauseListMetadata
   createdAt: string
 }

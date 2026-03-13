@@ -213,7 +213,7 @@ export function JudgmentDetail() {
     const navigate = useNavigate()
     const { judgment, pdfUrl, isLoading, isPdfLoading, error, refresh } = useJudgmentDetail(judgmentId ?? null)
 
-    const goBack = () => navigate('/judgments')
+    const goBack = () => navigate(-1)
 
     if (isLoading) {
         return (
