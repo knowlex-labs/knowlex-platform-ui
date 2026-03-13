@@ -30,7 +30,6 @@ export function AIResearch() {
 
   const isMobile = useIsMobile()
   const [settingsOpen, setSettingsOpen] = useState(true)
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
   const [sidebarVisible, setSidebarVisible] = useState(true)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
 
@@ -97,8 +96,8 @@ export function AIResearch() {
         />
       </div>
 
-      {/* Right settings panel (inline, no overlay) */}
-      {settingsOpen && (
+      {/* Right settings panel — desktop inline, mobile Sheet */}
+      {settingsOpen && !isMobile && (
         <div className="hidden md:flex">
           <ResearchSettingsPanel
             settings={settings}
@@ -106,6 +105,21 @@ export function AIResearch() {
           />
         </div>
       )}
+
+      {/* Mobile settings Sheet */}
+      <Sheet open={settingsOpen && isMobile} onOpenChange={(open) => { if (!open) setSettingsOpen(false) }}>
+        <SheetContent side="right" className="w-[280px] p-0 flex flex-col">
+          <SheetHeader className="px-4 py-3 border-b border-kx-card-border">
+            <SheetTitle className="text-base">Settings</SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-auto">
+            <ResearchSettingsPanel
+              settings={settings}
+              onUpdateSettings={updateSettings}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

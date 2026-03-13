@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { CauseListItem } from '@/types'
 
 interface CauseListCardProps {
