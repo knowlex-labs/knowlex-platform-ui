@@ -128,6 +128,9 @@ function ExpandableRow({ item }: { item: CauseListItem }) {
             )}
           </div>
         </td>
+        <td className="px-3 py-2.5 text-sm font-bold text-kx-text-primary text-center w-[80px]">
+          {item.courtHallNo ?? item.metadata.court_hall_no ?? '—'}
+        </td>
         <td className="px-3 py-2.5 w-[30px]">
           {expanded
             ? <ChevronDown className="h-4 w-4 text-ledger-gray-400" />
@@ -138,7 +141,7 @@ function ExpandableRow({ item }: { item: CauseListItem }) {
 
       {expanded && (
         <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100/50">
-          <td colSpan={6} className="px-6 py-4">
+          <td colSpan={7} className="px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
               {/* Petitioner Advocates */}
               <div>
@@ -260,9 +263,6 @@ export function CauseListTable({ items, isLoading }: CauseListTableProps) {
                 )}
               </div>
               <div className="flex items-center gap-4 text-xs text-ledger-gray-500">
-                {group.courtHallNo && (
-                  <span>Court Hall No.: <span className="font-medium text-kx-text-primary">{group.courtHallNo}</span></span>
-                )}
                 {group.date && (
                   <span>Date: <span className="font-medium text-kx-text-primary">{formatDate(group.date)}</span></span>
                 )}
@@ -295,6 +295,7 @@ export function CauseListTable({ items, isLoading }: CauseListTableProps) {
                       <th className={cn(thClass, 'w-[180px]')}>Case No.</th>
                       <th className={cn(thClass, 'w-[250px]')}>Pet. vs Res.</th>
                       <th className={cn(thClass)}>Advocates</th>
+                      <th className={cn(thClass, 'w-[80px] text-center')}>Court No.</th>
                       <th className={cn(thClass, 'w-[30px]')} />
                     </tr>
                   </thead>
@@ -313,4 +314,4 @@ export function CauseListTable({ items, isLoading }: CauseListTableProps) {
   )
 }
 
-const thClass = 'px-3 py-2 text-xs font-semibold text-ledger-gray-500 uppercase tracking-wide text-left'
+const thClass = 'px-3 py-2 text-xs font-bold text-ledger-gray-500 uppercase tracking-wide text-left'
