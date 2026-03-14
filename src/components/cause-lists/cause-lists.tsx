@@ -1,9 +1,8 @@
-import { RefreshCw } from 'lucide-react'
 import { useCauseLists } from '@/hooks/use-cause-lists'
 import { CauseListTable } from './cause-list-table'
 import { CauseListPagination } from './cause-list-pagination'
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { RefreshButton } from '@/components/ui/refresh-button'
 
 export function CauseLists() {
   const {
@@ -46,16 +45,7 @@ export function CauseLists() {
                 className="h-9 text-sm cursor-pointer w-[160px]"
               />
             </button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refresh}
-              disabled={isLoading}
-              className="gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <RefreshButton onClick={refresh} isLoading={isLoading} />
           </div>
         </div>
 

@@ -1,9 +1,8 @@
-import { RefreshCw } from 'lucide-react'
 import { useJudgments } from '@/hooks/use-judgments'
 import { JudgmentFiltersBar } from './judgment-filters'
 import { JudgmentTable } from './judgment-table'
 import { JudgmentPagination } from './judgment-pagination'
-import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 
 export function Judgments() {
     const {
@@ -32,16 +31,7 @@ export function Judgments() {
                             Browse Supreme Court judgments
                         </p>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={refresh}
-                        disabled={isLoading}
-                        className="gap-2 w-full sm:w-auto"
-                    >
-                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                        Refresh
-                    </Button>
+                    <RefreshButton onClick={refresh} isLoading={isLoading} className="w-full sm:w-auto" />
                 </div>
 
                 {/* Error banner */}
