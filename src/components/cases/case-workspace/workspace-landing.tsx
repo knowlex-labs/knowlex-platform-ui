@@ -5,6 +5,7 @@ interface WorkspaceLandingProps {
   onSummaryClick: () => void
   onUploadDocumentsClick: () => void
   onLinkJudgmentClick: () => void
+  compact?: boolean
 }
 
 function getGreeting() {
@@ -21,7 +22,7 @@ const suggestions = [
   { icon: FileText, label: 'Generate summary', action: 'summary'  },
 ]
 
-export function WorkspaceLanding({ onDraftingClick, onSummaryClick, onUploadDocumentsClick, onLinkJudgmentClick }: WorkspaceLandingProps) {
+export function WorkspaceLanding({ onDraftingClick, onSummaryClick, onUploadDocumentsClick, onLinkJudgmentClick, compact = false }: WorkspaceLandingProps) {
   const handleAction = (action: string) => {
     if (action === 'drafting') onDraftingClick()
     else if (action === 'upload') onUploadDocumentsClick()
@@ -32,15 +33,17 @@ export function WorkspaceLanding({ onDraftingClick, onSummaryClick, onUploadDocu
   return (
     <div className="flex flex-col items-center justify-center h-full px-8 gap-8">
 
-      {/* Greeting */}
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold text-kx-primary-900">
-          {getGreeting()}, Advocate
-        </h2>
-        <p className="text-sm text-ledger-gray-400 mt-2">
-          What would you like to work on today?
-        </p>
-      </div>
+      {/* Greeting — only in main center position */}
+      {!compact && (
+        <div className="text-center">
+          <h2 className="text-2xl font-semibold text-kx-primary-900">
+            {getGreeting()}, Advocate
+          </h2>
+          <p className="text-sm text-ledger-gray-400 mt-2">
+            What would you like to work on today?
+          </p>
+        </div>
+      )}
 
       {/* Quick actions */}
       <div className="flex items-center gap-3 flex-wrap justify-center">

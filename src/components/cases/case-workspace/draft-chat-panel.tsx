@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
-import { Bot, Settings2, Trash2, ChevronDown, MessageSquare, Eraser } from 'lucide-react'
+import { Bot, Settings2, Trash2, ChevronDown, MessageSquare, Eraser, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { isToday, isYesterday, isThisWeek } from 'date-fns'
 import { DraftChatInterface } from './draft-chat-interface'
 import type { DraftChatMessage, DraftChatSettings, DraftChatSession } from '@/types'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,8 @@ interface DraftChatPanelProps {
   onDeleteSession: (id: string) => void
   onSelectSession: (id: string) => void
   onUpdateSettings: (updates: Partial<DraftChatSettings>) => void
+  onStartNewChat?: () => void
+  showGreeting?: boolean
 }
 
 function SegmentedControl<T extends string>({
@@ -79,6 +82,25 @@ function formatSessionDate(date: Date): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+function groupSessionsByDate(sessions: DraftChatSession[]) {
+  const groups: Record<string, DraftChatSession[]> = {
+    Today: [],
+    Yesterday: [],
+    'This Week': [],
+    Older: [],
+  }
+  for (const session of sessions) {
+    const date = session.createdAt
+    if (isToday(date)) groups['Today'].push(session)
+    else if (isYesterday(date)) groups['Yesterday'].push(session)
+    else if (isThisWeek(date)) groups['This Week'].push(session)
+    else groups['Older'].push(session)
+  }
+  return Object.entries(groups)
+    .filter(([, items]) => items.length > 0)
+    .map(([label, sessions]) => ({ label, sessions }))
+}
+
 export function DraftChatPanel({
   messages,
   isStreaming,
@@ -93,6 +115,8 @@ export function DraftChatPanel({
   onDeleteSession,
   onSelectSession,
   onUpdateSettings,
+  onStartNewChat,
+  showGreeting = false,
 }: DraftChatPanelProps) {
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -153,42 +177,63 @@ export function DraftChatPanel({
                 side="bottom"
                 align="start"
                 sideOffset={6}
-                className="z-50 w-72 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95"
+                className="z-50 w-80 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95"
               >
-                {/* Session list */}
-                <ScrollArea className="max-h-64">
+                {/* New Chat button — only when current chat has messages */}
+                {onStartNewChat && messages.length > 0 && (
+                  <div className="p-2 border-b border-ledger-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => { onStartNewChat(); setSessionSwitcherOpen(false) }}
+                      className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium text-kx-primary-700 hover:bg-kx-primary-50 transition-colors"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      New Chat
+                    </button>
+                  </div>
+                )}
+
+                {/* Date-grouped session list */}
+                <ScrollArea className="max-h-72">
                   <div className="p-1.5">
                     {sessions.length === 0 && !isLoadingSessions && (
                       <p className="text-xs text-ledger-gray-400 text-center py-4">No sessions</p>
                     )}
-                    {sessions.map((session) => (
-                      <div
-                        key={session.id}
-                        onClick={() => handleSelectSession(session.id)}
-                        className={cn(
-                          'flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group',
-                          session.id === activeSessionId
-                            ? 'bg-kx-primary-50 text-kx-primary-900'
-                            : 'hover:bg-ledger-gray-50 text-ledger-gray-700'
-                        )}
-                      >
-                        <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium truncate">{session.title}</p>
-                          <p className="text-[10px] text-ledger-gray-400">
-                            {formatSessionDate(session.createdAt)}
-                          </p>
-                        </div>
-                        {sessions.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteClick(e, session.id)}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-ledger-gray-400 hover:text-red-500 transition-all"
-                            title="Delete session"
+                    {groupSessionsByDate(sessions).map((group) => (
+                      <div key={group.label} className="mb-2">
+                        <p className="text-[10px] font-medium text-ledger-gray-400 uppercase tracking-wider px-3 mb-1 mt-1">
+                          {group.label}
+                        </p>
+                        {group.sessions.map((session) => (
+                          <div
+                            key={session.id}
+                            onClick={() => handleSelectSession(session.id)}
+                            className={cn(
+                              'flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group',
+                              session.id === activeSessionId
+                                ? 'bg-kx-primary-50 text-kx-primary-900'
+                                : 'hover:bg-ledger-gray-50 text-ledger-gray-700'
+                            )}
                           >
-                            <Trash2 className="h-3 w-3" />
-                          </button>
-                        )}
+                            <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium truncate">{session.title}</p>
+                              <p className="text-[10px] text-ledger-gray-400">
+                                {formatSessionDate(session.createdAt)}
+                              </p>
+                            </div>
+                            {sessions.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteClick(e, session.id)}
+                                className="opacity-0 group-hover:opacity-100 p-1 text-ledger-gray-400 hover:text-red-500 transition-all"
+                                title="Delete session"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     ))}
                   </div>
@@ -282,6 +327,7 @@ export function DraftChatPanel({
           isLoadingHistory={isLoadingHistory}
           selectedSourceCount={selectedSourceCount}
           onSendMessage={onSendMessage}
+          showGreeting={showGreeting}
         />
       </div>
 

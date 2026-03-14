@@ -12,6 +12,8 @@ import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
 import { DraftChatPanel } from './draft-chat-panel'
+import { ModeToggle } from './mode-toggle'
+import type { WorkspaceMode } from './mode-toggle'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
 import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
@@ -24,6 +26,7 @@ export function CaseWorkspace() {
   const navigate = useNavigate()
   const { setSidebarCollapsed } = useUIState()
   const [caseName, setCaseName] = useState('Case Workspace')
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('draft')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [showDraftWizard, setShowDraftWizard] = useState(false)
@@ -95,6 +98,7 @@ export function CaseWorkspace() {
     clearChat,
     deleteSession: deleteChatSession,
     selectSession,
+    startNewChat,
     updateSettings: updateChatSettings,
   } = useDraftChat(caseId)
 
@@ -152,6 +156,10 @@ export function CaseWorkspace() {
     await draftSendMessage(query, Array.from(selectedSourceIds))
   }
 
+  const handleModeChange = (mode: WorkspaceMode) => {
+    setWorkspaceMode(mode)
+  }
+
   const handleSendToChat = (text: string) => {
     setRightPanelOpen(true)
     handleSendMessage(text)
@@ -162,6 +170,7 @@ export function CaseWorkspace() {
       await fetchDraftContent(draft.id)
     }
     openTab(draft)
+    setWorkspaceMode('draft')
   }
 
   const handleSaveDraftLocal = (id: string, title: string, content: string) => {
@@ -182,6 +191,7 @@ export function CaseWorkspace() {
   // Called from header/landing Summary button — fetch first, generate only if nothing exists
   const handleSummaryClick = async () => {
     openSummaryTab()
+    setWorkspaceMode('draft')
     if (summary && summary.status !== 'failed') return
     const existing = await fetchSummary()
     if (!existing || existing.status === 'failed') {
@@ -236,6 +246,7 @@ export function CaseWorkspace() {
 
   const handleOpenJudgmentInTab = (judgment: CaseDocument, url: string) => {
     openSourceTab(judgment, url)
+    setWorkspaceMode('draft')
   }
 
   const handleDeleteJudgment = async (judgmentId: string) => {
@@ -250,12 +261,14 @@ export function CaseWorkspace() {
 
   const handleDraftingClick = () => {
     setShowDraftWizard(true)
+    setWorkspaceMode('draft')
   }
 
   const handleWizardGenerate = (request: CreateDraftRequest) => {
     const pendingDraft = createDraft(request)
     setShowDraftWizard(false)
     openTab(pendingDraft)
+    setWorkspaceMode('draft')
   }
 
   const handleWizardCancel = () => {
@@ -265,17 +278,25 @@ export function CaseWorkspace() {
   return (
     <div className="h-screen flex flex-col bg-kx-card">
       <div className="flex items-center justify-between px-4 py-2 border-b border-kx-card-border bg-kx-card">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-kx-primary-700">
+        {/* Left: Back + Case name */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-kx-primary-700 flex-shrink-0">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
-          <div className="h-4 w-px bg-ledger-gray-300" />
+          <div className="h-4 w-px bg-ledger-gray-300 flex-shrink-0" />
           <h2 className="text-lg font-bold text-kx-primary-900 truncate">
             {caseName}
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Center: Mode toggle */}
+        <div className="flex-shrink-0 mx-4">
+          <ModeToggle mode={workspaceMode} onModeChange={handleModeChange} />
+        </div>
+
+        {/* Right: Tools + panel toggles */}
+        <div className="flex items-center gap-1 flex-1 justify-end">
           <HeaderToolButtons
             onDraftingClick={handleDraftingClick}
             onSummaryClick={handleSummaryClick}
@@ -297,14 +318,16 @@ export function CaseWorkspace() {
             size="sm"
             onClick={() => setRightPanelOpen(!rightPanelOpen)}
             className={rightPanelOpen ? 'h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700' : 'h-8 px-3 gap-1.5 text-ledger-gray-500 hover:text-kx-primary-700'}
-            title={rightPanelOpen ? 'Hide AI Chat' : 'Open AI Chat'}
+            title={rightPanelOpen ? 'Hide right panel' : 'Show right panel'}
           >
             {rightPanelOpen
               ? <PanelRightClose className="h-4 w-4" />
               : (
                 <>
                   <Bot className="h-4 w-4" />
-                  <span className="text-sm font-medium">AI Chat</span>
+                  <span className="text-sm font-medium">
+                    {workspaceMode === 'draft' ? 'AI Chat' : 'Workspace'}
+                  </span>
                 </>
               )
             }
@@ -314,7 +337,7 @@ export function CaseWorkspace() {
 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-kx-card">
         {leftPanelOpen && (
-          <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden">
+          <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden transition-all duration-200">
             <LeftSidebar
               sources={sources}
               apiDraftDocuments={draftDocuments}
@@ -343,38 +366,59 @@ export function CaseWorkspace() {
           </div>
         )}
 
+        {/* Center: CenterPanel in draft mode, Chat in research mode */}
         <div className="flex-1 min-h-0 min-w-0">
-          <CenterPanel
-            tabs={tabs}
-            activeTabId={activeTabId}
-            drafts={drafts}
-            summary={summary}
-            isGeneratingSummary={isGeneratingSummary}
-            onTabClick={setActiveTab}
-            onTabClose={closeTab}
-            onSaveDraftLocal={handleSaveDraftLocal}
-            onSaveDraftToBackend={handleSaveDraftToBackend}
-            onDeleteDraft={handleDeleteDraft}
-            onRetryDraft={handleRetryDraft}
-            onTabDirtyChange={setTabDirty}
-            onDraftingClick={handleDraftingClick}
-            onSummaryClick={handleSummaryClick}
-            onUploadDocumentsClick={handleUploadDocumentsClick}
-            onLinkJudgmentClick={handleLinkJudgment}
-            onSendToChat={handleSendToChat}
-            onGenerateSummary={handleGenerateSummary}
-            onDeleteSummary={handleDeleteSummary}
-            showDraftWizard={showDraftWizard}
-            wizardSources={sources}
-            wizardClient={undefined}
-            onWizardGenerate={handleWizardGenerate}
-            onWizardCancel={handleWizardCancel}
-          />
+          {workspaceMode === 'draft' ? (
+            <CenterPanel
+              tabs={tabs}
+              activeTabId={activeTabId}
+              drafts={drafts}
+              summary={summary}
+              isGeneratingSummary={isGeneratingSummary}
+              onTabClick={setActiveTab}
+              onTabClose={closeTab}
+              onSaveDraftLocal={handleSaveDraftLocal}
+              onSaveDraftToBackend={handleSaveDraftToBackend}
+              onDeleteDraft={handleDeleteDraft}
+              onRetryDraft={handleRetryDraft}
+              onTabDirtyChange={setTabDirty}
+              onDraftingClick={handleDraftingClick}
+              onSummaryClick={handleSummaryClick}
+              onUploadDocumentsClick={handleUploadDocumentsClick}
+              onLinkJudgmentClick={handleLinkJudgment}
+              onSendToChat={handleSendToChat}
+              onGenerateSummary={handleGenerateSummary}
+              onDeleteSummary={handleDeleteSummary}
+              showDraftWizard={showDraftWizard}
+              wizardSources={sources}
+              wizardClient={undefined}
+              onWizardGenerate={handleWizardGenerate}
+              onWizardCancel={handleWizardCancel}
+            />
+          ) : (
+            <DraftChatPanel
+              messages={messages}
+              isStreaming={chatStreaming}
+              isLoadingHistory={chatLoadingHistory}
+              sessions={chatSessions}
+              activeSessionId={activeSessionId}
+              isLoadingSessions={isLoadingSessions}
+              selectedSourceCount={selectedSourceIds.size}
+              settings={chatSettings}
+              onSendMessage={handleSendMessage}
+              onClearChat={clearChat}
+              onDeleteSession={deleteChatSession}
+              onSelectSession={selectSession}
+              onUpdateSettings={updateChatSettings}
+              onStartNewChat={startNewChat}
+              showGreeting
+            />
+          )}
         </div>
 
+        {/* Right: Chat in draft mode, CenterPanel in research mode */}
         {rightPanelOpen && (
           <>
-            {/* Drag handle */}
             <div
               onMouseDown={handleResizeStart}
               className="w-1 flex-shrink-0 cursor-col-resize hover:bg-kx-primary-400/40 active:bg-kx-primary-500/50 transition-colors relative group"
@@ -385,21 +429,47 @@ export function CaseWorkspace() {
               className="flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden"
               style={{ width: chatWidth }}
             >
-              <DraftChatPanel
-                messages={messages}
-                isStreaming={chatStreaming}
-                isLoadingHistory={chatLoadingHistory}
-                sessions={chatSessions}
-                activeSessionId={activeSessionId}
-                isLoadingSessions={isLoadingSessions}
-                selectedSourceCount={selectedSourceIds.size}
-                settings={chatSettings}
-                onSendMessage={handleSendMessage}
-                onClearChat={clearChat}
-                onDeleteSession={deleteChatSession}
-                onSelectSession={selectSession}
-                onUpdateSettings={updateChatSettings}
-              />
+              {workspaceMode === 'draft' ? (
+                <DraftChatPanel
+                  messages={messages}
+                  isStreaming={chatStreaming}
+                  isLoadingHistory={chatLoadingHistory}
+                  sessions={chatSessions}
+                  activeSessionId={activeSessionId}
+                  isLoadingSessions={isLoadingSessions}
+                  selectedSourceCount={selectedSourceIds.size}
+                  settings={chatSettings}
+                  onSendMessage={handleSendMessage}
+                  onClearChat={clearChat}
+                  onDeleteSession={deleteChatSession}
+                  onSelectSession={selectSession}
+                  onUpdateSettings={updateChatSettings}
+                  onStartNewChat={startNewChat}
+                />
+              ) : (
+                <CenterPanel
+                  compact
+                  tabs={tabs}
+                  activeTabId={activeTabId}
+                  drafts={drafts}
+                  summary={summary}
+                  isGeneratingSummary={isGeneratingSummary}
+                  onTabClick={setActiveTab}
+                  onTabClose={closeTab}
+                  onSaveDraftLocal={handleSaveDraftLocal}
+                  onSaveDraftToBackend={handleSaveDraftToBackend}
+                  onDeleteDraft={handleDeleteDraft}
+                  onRetryDraft={handleRetryDraft}
+                  onTabDirtyChange={setTabDirty}
+                  onDraftingClick={handleDraftingClick}
+                  onSummaryClick={handleSummaryClick}
+                  onUploadDocumentsClick={handleUploadDocumentsClick}
+                  onLinkJudgmentClick={handleLinkJudgment}
+                  onSendToChat={handleSendToChat}
+                  onGenerateSummary={handleGenerateSummary}
+                  onDeleteSummary={handleDeleteSummary}
+                />
+              )}
             </div>
           </>
         )}

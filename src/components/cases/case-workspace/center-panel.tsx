@@ -42,6 +42,8 @@ interface CenterPanelProps {
   wizardClient?: Client | null
   onWizardGenerate?: (request: CreateDraftRequest) => void
   onWizardCancel?: () => void
+  /** When true, skips landing page and wizard — used when rendered in the right panel */
+  compact?: boolean
 }
 
 export function CenterPanel({
@@ -69,6 +71,7 @@ export function CenterPanel({
   wizardClient = null,
   onWizardGenerate,
   onWizardCancel,
+  compact = false,
 }: CenterPanelProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId)
   const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null)
@@ -115,8 +118,8 @@ export function CenterPanel({
     setPendingCloseTabId(null)
   }, [pendingCloseTabId, onTabClose])
 
-  // Full-panel wizard — replaces all other content when active
-  if (showDraftWizard && onWizardGenerate && onWizardCancel) {
+  // Full-panel wizard — only in main center position
+  if (!compact && showDraftWizard && onWizardGenerate && onWizardCancel) {
     return (
       <div className="flex flex-col h-full bg-kx-card overflow-hidden">
         <DraftCreationWizard
@@ -138,6 +141,7 @@ export function CenterPanel({
           onSummaryClick={onSummaryClick}
           onUploadDocumentsClick={onUploadDocumentsClick}
           onLinkJudgmentClick={onLinkJudgmentClick}
+          compact={compact}
         />
       </div>
     )

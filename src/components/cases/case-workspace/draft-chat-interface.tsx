@@ -118,6 +118,28 @@ interface DraftChatInterfaceProps {
   isLoadingHistory: boolean
   selectedSourceCount: number
   onSendMessage: (message: string) => Promise<void>
+  showGreeting?: boolean
+}
+
+function getTimeGreeting() {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+const greetingTemplates = [
+  { heading: (t: string) => `${t}, Advocate`, subtitle: 'Ask about your case documents, research case law, or get legal writing help' },
+  { heading: (t: string) => `${t}, Advocate`, subtitle: 'Draft arguments, summarize judgments, or explore legal precedents' },
+  { heading: (_t: string) => 'How can I assist you today?', subtitle: 'I can help with case research, document analysis, and legal drafting' },
+  { heading: (t: string) => `${t}! Ready to work?`, subtitle: 'Upload documents, link judgments, or start a new draft' },
+]
+
+let greetingIndex = 0
+function getNextGreeting() {
+  const template = greetingTemplates[greetingIndex % greetingTemplates.length]
+  greetingIndex++
+  return template
 }
 
 export function DraftChatInterface({
@@ -126,12 +148,14 @@ export function DraftChatInterface({
   isLoadingHistory,
   selectedSourceCount,
   onSendMessage,
+  showGreeting = false,
 }: DraftChatInterfaceProps) {
   const [input, setInput] = useState('')
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isNearBottomRef = useRef(true)
+  const greetingRef = useRef(getNextGreeting())
 
   const adjustTextareaHeight = useCallback(() => {
     const textarea = textareaRef.current
@@ -170,6 +194,13 @@ export function DraftChatInterface({
     scrollToBottom()
   }, [messages.length, scrollToBottom])
 
+  // Rotate greeting template when chat is cleared / new session starts
+  useEffect(() => {
+    if (messages.length === 0) {
+      greetingRef.current = getNextGreeting()
+    }
+  }, [messages.length])
+
   useEffect(() => {
     adjustTextareaHeight()
   }, [input, adjustTextareaHeight])
@@ -201,15 +232,28 @@ export function DraftChatInterface({
         </div>
       ) : messages.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-          <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 flex items-center justify-center mb-4 shadow-lg">
-            <MessageSquareDot className="h-6 w-6 text-white" />
-          </div>
-          <p className="text-base text-ledger-gray-700 dark:text-ledger-gray-300 font-semibold mb-2">
-            Chat
-          </p>
-          <p className="text-sm text-ledger-gray-400 dark:text-ledger-gray-500 max-w-[280px] leading-relaxed">
-            Ask about your documents, refine drafts, or get legal writing help
-          </p>
+          {showGreeting ? (
+            <>
+              <h2 className="text-2xl font-semibold text-kx-primary-900 mb-2">
+                {greetingRef.current.heading(getTimeGreeting())}
+              </h2>
+              <p className="text-sm text-ledger-gray-400 max-w-[320px] leading-relaxed">
+                {greetingRef.current.subtitle}
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 flex items-center justify-center mb-4 shadow-lg">
+                <MessageSquareDot className="h-6 w-6 text-white" />
+              </div>
+              <p className="text-base text-ledger-gray-700 dark:text-ledger-gray-300 font-semibold mb-2">
+                Chat
+              </p>
+              <p className="text-sm text-ledger-gray-400 dark:text-ledger-gray-500 max-w-[280px] leading-relaxed">
+                Ask about your documents, refine drafts, or get legal writing help
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div
