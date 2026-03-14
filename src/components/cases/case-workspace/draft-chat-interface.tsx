@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useAuth } from '@/contexts/auth-context'
 import { ArrowUp, Loader2, FileCheck, MessageSquareDot, Search, ChevronDown, ChevronRight, Wrench } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MarkdownRenderer } from '@/components/ai-research/markdown-renderer'
@@ -117,6 +118,7 @@ interface DraftChatInterfaceProps {
   isStreaming: boolean
   isLoadingHistory: boolean
   selectedSourceCount: number
+  indexingCount?: number
   onSendMessage: (message: string) => Promise<void>
   showGreeting?: boolean
 }
@@ -129,10 +131,10 @@ function getTimeGreeting() {
 }
 
 const greetingTemplates = [
-  { heading: (t: string) => `${t}, Advocate`, subtitle: 'Ask about your case documents, research case law, or get legal writing help' },
-  { heading: (t: string) => `${t}, Advocate`, subtitle: 'Draft arguments, summarize judgments, or explore legal precedents' },
-  { heading: (_t: string) => 'How can I assist you today?', subtitle: 'I can help with case research, document analysis, and legal drafting' },
-  { heading: (t: string) => `${t}! Ready to work?`, subtitle: 'Upload documents, link judgments, or start a new draft' },
+  { heading: (t: string, name: string) => `${t}, ${name}`, subtitle: 'Ask about your case documents, research case law, or get legal writing help' },
+  { heading: (t: string, name: string) => `${t}, ${name}`, subtitle: 'Draft arguments, summarize judgments, or explore legal precedents' },
+  { heading: (_t: string, _name: string) => 'How can I assist you today?', subtitle: 'I can help with case research, document analysis, and legal drafting' },
+  { heading: (t: string, name: string) => `${t}, ${name}! Ready to work?`, subtitle: 'Upload documents, link judgments, or start a new draft' },
 ]
 
 let greetingIndex = 0
@@ -147,9 +149,12 @@ export function DraftChatInterface({
   isStreaming,
   isLoadingHistory,
   selectedSourceCount,
+  indexingCount = 0,
   onSendMessage,
   showGreeting = false,
 }: DraftChatInterfaceProps) {
+  const { user } = useAuth()
+  const displayName = user?.firstName || user?.username || 'Advocate'
   const [input, setInput] = useState('')
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -235,7 +240,7 @@ export function DraftChatInterface({
           {showGreeting ? (
             <>
               <h2 className="text-2xl font-semibold text-kx-primary-900 mb-2">
-                {greetingRef.current.heading(getTimeGreeting())}
+                {greetingRef.current.heading(getTimeGreeting(), displayName)}
               </h2>
               <p className="text-sm text-ledger-gray-400 max-w-[320px] leading-relaxed">
                 {greetingRef.current.subtitle}
@@ -270,6 +275,18 @@ export function DraftChatInterface({
               )
             )}
           </div>
+        </div>
+      )}
+
+      {/* Indexing notice */}
+      {indexingCount > 0 && (
+        <div className="mx-4 mb-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 text-xs text-amber-700 dark:text-amber-400">
+          <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />
+          <span>
+            {indexingCount === 1
+              ? '1 document is being indexed — answers may be incomplete until ready'
+              : `${indexingCount} documents are being indexed — answers may be incomplete until ready`}
+          </span>
         </div>
       )}
 

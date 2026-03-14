@@ -1,4 +1,5 @@
 import { PenLine, Upload, FileText, Scale } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
 
 interface WorkspaceLandingProps {
   onDraftingClick: () => void
@@ -23,6 +24,9 @@ const suggestions = [
 ]
 
 export function WorkspaceLanding({ onDraftingClick, onSummaryClick, onUploadDocumentsClick, onLinkJudgmentClick, compact = false }: WorkspaceLandingProps) {
+  const { user } = useAuth()
+  const displayName = user?.firstName || user?.username || 'Advocate'
+
   const handleAction = (action: string) => {
     if (action === 'drafting') onDraftingClick()
     else if (action === 'upload') onUploadDocumentsClick()
@@ -37,7 +41,7 @@ export function WorkspaceLanding({ onDraftingClick, onSummaryClick, onUploadDocu
       {!compact && (
         <div className="text-center">
           <h2 className="text-2xl font-semibold text-kx-primary-900">
-            {getGreeting()}, Advocate
+            {getGreeting()}, {displayName}
           </h2>
           <p className="text-sm text-ledger-gray-400 mt-2">
             What would you like to work on today?

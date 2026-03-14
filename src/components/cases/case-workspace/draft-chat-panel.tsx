@@ -13,8 +13,16 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { isToday, isYesterday, isThisWeek } from 'date-fns'
 import { DraftChatInterface } from './draft-chat-interface'
-import type { DraftChatMessage, DraftChatSettings, DraftChatSession } from '@/types'
+import type { DraftChatMessage, DraftChatSettings, DraftChatSession, DraftChatModel } from '@/types'
+import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+
+const MODEL_OPTIONS: { value: DraftChatModel; label: string }[] = [
+  { value: 'gemini_flash', label: 'Gemini 3.1 Flash' },
+  { value: 'gemini_pro', label: 'Gemini 3.1 Pro' },
+  { value: 'gpt_5_mini', label: 'GPT 5 Mini' },
+  { value: 'gpt_5', label: 'GPT 5 Pro' },
+]
 
 interface DraftChatPanelProps {
   messages: DraftChatMessage[]
@@ -24,6 +32,7 @@ interface DraftChatPanelProps {
   activeSessionId: string | null
   isLoadingSessions: boolean
   selectedSourceCount: number
+  indexingCount?: number
   settings: DraftChatSettings
   onSendMessage: (message: string) => Promise<void>
   onClearChat: () => void
@@ -109,6 +118,7 @@ export function DraftChatPanel({
   activeSessionId,
   isLoadingSessions,
   selectedSourceCount,
+  indexingCount = 0,
   settings,
   onSendMessage,
   onClearChat,
@@ -291,15 +301,20 @@ export function DraftChatPanel({
                   ]}
                 />
 
-                <SegmentedControl
-                  label="Model"
-                  value={settings.model}
-                  onChange={(val) => onUpdateSettings({ model: val })}
-                  options={[
-                    { label: 'OpenAI', value: 'openai' },
-                    { label: 'Gemini', value: 'gemini' },
-                  ]}
-                />
+                <div>
+                  <p className="text-xs font-medium text-ledger-gray-500 mb-1.5">Model</p>
+                  <Select
+                    value={settings.model}
+                    onChange={(e) => onUpdateSettings({ model: e.target.value as DraftChatModel })}
+                    className="h-8 text-xs border-ledger-gray-200"
+                  >
+                    {MODEL_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
 
                 <PopoverPrimitive.Arrow className="fill-kx-card" />
               </PopoverPrimitive.Content>
@@ -326,6 +341,7 @@ export function DraftChatPanel({
           isStreaming={isStreaming}
           isLoadingHistory={isLoadingHistory}
           selectedSourceCount={selectedSourceCount}
+          indexingCount={indexingCount}
           onSendMessage={onSendMessage}
           showGreeting={showGreeting}
         />

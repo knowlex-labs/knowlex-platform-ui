@@ -19,6 +19,7 @@ import { AddSourceModal } from './add-source-modal'
 import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
 import type { Draft, CaseDocument } from '@/types'
+import { IndexingStatus } from '@/types'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -79,12 +80,19 @@ export function CaseWorkspace() {
     deleteSource,
     linkContent,
     renameDocument,
+    refresh,
   } = useCaseDocuments(caseId)
 
   // Filter documents by type for display
   const sources = documents.filter(d => d.type === 'USER_UPLOADED')
   const judgments = documents.filter(d => d.type === 'JUDGMENT')
   const draftDocuments = documents.filter(d => d.type === 'DRAFT')
+
+  // Count docs/judgments currently being indexed
+  const indexingCount = documents.filter(d =>
+    d.indexingStatus === IndexingStatus.PENDING ||
+    d.indexingStatus === IndexingStatus.RUNNING
+  ).length
 
   const {
     messages,
@@ -404,6 +412,7 @@ export function CaseWorkspace() {
               activeSessionId={activeSessionId}
               isLoadingSessions={isLoadingSessions}
               selectedSourceCount={selectedSourceIds.size}
+              indexingCount={indexingCount}
               settings={chatSettings}
               onSendMessage={handleSendMessage}
               onClearChat={clearChat}
@@ -438,6 +447,7 @@ export function CaseWorkspace() {
                   activeSessionId={activeSessionId}
                   isLoadingSessions={isLoadingSessions}
                   selectedSourceCount={selectedSourceIds.size}
+                  indexingCount={indexingCount}
                   settings={chatSettings}
                   onSendMessage={handleSendMessage}
                   onClearChat={clearChat}
@@ -479,6 +489,7 @@ export function CaseWorkspace() {
         open={addSourceModalOpen}
         onOpenChange={setAddSourceModalOpen}
         onUpload={uploadFile}
+        onRefresh={refresh}
         isUploading={isUploading}
       />
     </div>

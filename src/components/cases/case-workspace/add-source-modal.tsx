@@ -14,6 +14,7 @@ interface AddSourceModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onUpload: (file: File) => Promise<void>
+  onRefresh?: () => Promise<void>
   isUploading: boolean
 }
 
@@ -27,6 +28,7 @@ export function AddSourceModal({
   open,
   onOpenChange,
   onUpload,
+  onRefresh,
   isUploading,
 }: AddSourceModalProps) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
@@ -94,7 +96,8 @@ export function AddSourceModal({
       }
     }
 
-    // Close modal after all uploads
+    // Refresh document list in background, close modal immediately
+    onRefresh?.()
     setTimeout(() => {
       setSelectedFiles([])
       setUploadProgress(new Map())

@@ -191,10 +191,13 @@ export interface DraftChatMessage {
   toolCalls?: Array<{ name: string; args: Record<string, unknown>; result?: string }>
 }
 
+/** UI model option keys; backend maps these to legal-agent model names (flash, pro, openai, openai-pro). */
+export type DraftChatModel = 'gemini_flash' | 'gemini_pro' | 'gpt_5_mini' | 'gpt_5'
+
 export interface DraftChatSettings {
   tone: 'formal' | 'conversational' | 'neutral'
   style: 'precise' | 'balanced' | 'detailed'
-  model: 'openai' | 'gemini'
+  model: DraftChatModel
 }
 
 export interface DraftChatSession {

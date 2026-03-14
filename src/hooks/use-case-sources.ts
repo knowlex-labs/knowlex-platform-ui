@@ -213,27 +213,11 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
         // Step 2: Upload to S3
         await workspaceApi.uploadFileToS3(uploadUrl, file)
 
-        // Step 3: Refresh documents to get the newly created document
-        const docs = await workspaceApi.getCaseDocuments(caseId)
-        setDocuments(docs)
-
-        // Step 4: Select the newly uploaded document
+        // Step 3: Fetch the newly created document and add to state
+        const newDoc = await workspaceApi.getDocument(caseId, documentId)
+        setDocuments((prev) => [...prev, newDoc as unknown as CaseDocument])
         setSelectedSourceIds((prev) => new Set([...prev, documentId]))
-
-        // Step 5: Start polling if status needs it
-        const newDoc = docs.find(d => d.id === documentId)
-        const isDraftOrSummary = newDoc?.type === 'DRAFT' || newDoc?.type === 'SUMMARY'
-        const status = isDraftOrSummary ? newDoc?.jobStatus : newDoc?.indexingStatus
-        // For USER_UPLOADED docs, also start polling if status is undefined (backend may not return initial status)
-        const shouldPoll = newDoc && (
-          status === IndexingStatus.RUNNING ||
-          status === IndexingStatus.PENDING ||
-          status === JobStatus.PROCESSING ||
-          (!isDraftOrSummary && !status) // Start polling for USER_UPLOADED when status is undefined
-        )
-        if (shouldPoll) {
-          startPolling(documentId)
-        }
+        startPolling(documentId)
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to upload file'
         setError(message)
@@ -360,17 +344,12 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   const refresh = useCallback(async () => {
     if (!caseId) return
 
-    setIsLoading(true)
-    setError(null)
     try {
       const docs = await workspaceApi.getCaseDocuments(caseId)
       setDocuments(docs)
-      // Keep current selection, just refresh data
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch documents'
       setError(message)
-    } finally {
-      setIsLoading(false)
     }
   }, [caseId])
 

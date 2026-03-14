@@ -7,7 +7,7 @@ type ToolCall = DraftChatMessage['toolCalls'] extends Array<infer T> | undefined
 const DEFAULT_SETTINGS: DraftChatSettings = {
   tone: 'formal',
   style: 'balanced',
-  model: 'openai',
+  model: 'gemini_flash',
 }
 
 export function useDraftChat(caseId: string) {
