@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { ResearchMessage, ResearchSession, ResearchSettings, StreamingPhase, ToolCall } from '@/types'
+import type { ResearchMessage, ResearchSession, ResearchSettings, StreamingPhase, ToolCall, Citation } from '@/types'
 import { researchApi } from '@/services/api/research-api'
 
 const SETTINGS_STORAGE_KEY = 'knowlex_chat_settings'
@@ -57,6 +57,7 @@ export function useResearchChat() {
   const thinkingContentRef = useRef('')
   const answerContentRef = useRef('')
   const toolCallsRef = useRef<ToolCall[]>([])
+  const citationsRef = useRef<Citation[]>([])
   const phaseRef = useRef<StreamingPhase>('waiting')
   const streamingMsgIdRef = useRef<string | null>(null)
   const rafIdRef = useRef<number | null>(null)
@@ -214,6 +215,7 @@ export function useResearchChat() {
     thinkingContentRef.current = ''
     answerContentRef.current = ''
     toolCallsRef.current = []
+    citationsRef.current = []
     phaseRef.current = 'waiting'
     streamingMsgIdRef.current = assistantId
 
@@ -286,6 +288,9 @@ export function useResearchChat() {
         answerContentRef.current += unescapeToken(token)
         scheduleFlush()
       },
+      onCitations: (citations) => {
+        citationsRef.current = citations
+      },
       onEnd: () => {
         if (rafIdRef.current !== null) {
           cancelAnimationFrame(rafIdRef.current)
@@ -293,11 +298,12 @@ export function useResearchChat() {
         }
         const finalContent = answerContentRef.current || thinkingContentRef.current
         const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+        const finalCitations = citationsRef.current.length > 0 ? [...citationsRef.current] : undefined
         const msgId = streamingMsgIdRef.current
         setMessages((prev) =>
           prev.map((msg) =>
             msg.id === msgId
-              ? { ...msg, content: finalContent, toolCalls: finalToolCalls, isStreaming: false, streamingPhase: undefined }
+              ? { ...msg, content: finalContent, toolCalls: finalToolCalls, citations: finalCitations, isStreaming: false, streamingPhase: undefined }
               : msg
           )
         )

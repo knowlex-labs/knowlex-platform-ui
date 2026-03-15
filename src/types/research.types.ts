@@ -4,6 +4,13 @@ export interface ToolCall {
   result?: string
 }
 
+export interface Citation {
+  id?: number
+  case_name: string
+  source?: string
+  url: string
+}
+
 export type StreamingPhase = 'waiting' | 'thinking' | 'tools' | 'answering'
 
 export interface ResearchMessage {
@@ -14,6 +21,7 @@ export interface ResearchMessage {
   isStreaming?: boolean
   streamingPhase?: StreamingPhase
   toolCalls?: ToolCall[]
+  citations?: Citation[]
 }
 
 export interface ResearchSession {

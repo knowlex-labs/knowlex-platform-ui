@@ -1,5 +1,6 @@
 import { config } from '@/config/env'
 import { apiClient } from './api-client'
+import type { Citation } from '@/types'
 
 const API_BASE_URL = config.apiBaseUrl
 
@@ -49,6 +50,7 @@ export interface SSECallbacks {
   onToolCall: (data: string) => void
   onToolResult: (data: string) => void
   onAnswer: (token: string) => void
+  onCitations?: (citations: Citation[]) => void
   onEnd: () => void
   onError: (error: string) => void
 }
@@ -123,18 +125,23 @@ export const researchApi = {
         let currentEvent: string | null = null
         let currentData: string | null = null
         let buffer = ''
+        let pendingCitations: Citation[] | null = null
 
         const dispatchEvent = () => {
           if (currentEvent && currentData !== null) {
             if (currentEvent === 'end') {
-              callbacks.onEnd()
+              // Buffer end — fire after citations if any
               return 'end'
             }
             if (currentEvent === 'error') {
               callbacks.onError(currentData.trim())
               return 'error'
             }
-            if (currentEvent === 'thinking') {
+            if (currentEvent === 'citations') {
+              try {
+                pendingCitations = JSON.parse(currentData) as Citation[]
+              } catch { /* ignore malformed */ }
+            } else if (currentEvent === 'thinking') {
               callbacks.onThinking(currentData)
             } else if (currentEvent === 'tool_call') {
               callbacks.onToolCall(currentData)
@@ -164,7 +171,7 @@ export const researchApi = {
             if (line === '') {
               // Blank line = dispatch buffered event
               const result = dispatchEvent()
-              if (result === 'end' || result === 'error') return
+              if (result === 'error') return
               continue
             }
 
@@ -185,10 +192,13 @@ export const researchApi = {
         }
 
         // Dispatch any remaining buffered event (stream may end without trailing blank line)
-        const result = dispatchEvent()
-        if (result !== 'end') {
-          callbacks.onEnd()
+        dispatchEvent()
+
+        // Fire citations before end so hook can finalize message with them
+        if (pendingCitations && callbacks.onCitations) {
+          callbacks.onCitations(pendingCitations)
         }
+        callbacks.onEnd()
       })
       .catch((err) => {
         if (err.name === 'AbortError') return

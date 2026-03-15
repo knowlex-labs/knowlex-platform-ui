@@ -2,7 +2,46 @@ import { useState } from 'react'
 import { ChevronDown, ChevronRight, Wrench, Bot, User, Search } from 'lucide-react'
 import { MarkdownRenderer } from './markdown-renderer'
 import { StreamingIndicator } from './streaming-indicator'
-import type { ResearchMessage, ToolCall } from '@/types'
+import type { Citation, ResearchMessage, ToolCall } from '@/types'
+
+function enrichContentWithCitations(content: string, citations: Citation[]): string {
+  // Match adjacent citation groups: [1][2][3] or [1, 2, 3] or [1][2, 3]
+  return content.replace(/\[(\d+(?:,\s*\d+)*)\](?:\[(\d+(?:,\s*\d+)*)\])*/g, (match) => {
+    // Extract all numbers from the full match
+    const allNums = [...match.matchAll(/\d+/g)].map((m) => parseInt(m[0], 10) - 1)
+    const valid = allNums.filter((i) => i >= 0 && i < citations.length)
+    if (valid.length === 0) return match
+    // Use unique indices only
+    const unique = [...new Set(valid)]
+    return `[${match}](citation:${unique.join(',')})`
+  })
+}
+
+function CitationsFooter({ citations }: { citations: Citation[] }) {
+  return (
+    <div className="mt-4 pt-3 border-t border-ledger-gray-200">
+      <p className="text-xs font-medium text-ledger-gray-500 mb-1.5">Sources</p>
+      <ol className="space-y-1">
+        {citations.map((c, i) => (
+          <li key={i} className="flex items-baseline gap-1.5 text-xs text-ledger-gray-500">
+            <span className="shrink-0 text-ledger-gray-400">[{i + 1}]</span>
+            <a
+              href={c.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-kx-primary-600 hover:text-kx-primary-800 hover:underline truncate"
+            >
+              {c.case_name && !c.case_name.startsWith('http') ? c.case_name : c.url}
+            </a>
+            {c.source && (
+              <span className="text-ledger-gray-400 shrink-0">· {c.source}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
 
 function ToolCallsCollapsible({ toolCalls }: { toolCalls: ToolCall[] }) {
   const [isOpen, setIsOpen] = useState(false)
@@ -60,9 +99,10 @@ function UserBubble({ message }: { message: ResearchMessage }) {
 }
 
 function AgentBubble({ message }: { message: ResearchMessage }) {
-  const { isStreaming, streamingPhase, content, toolCalls } = message
+  const { isStreaming, streamingPhase, content, toolCalls, citations } = message
   const isDone = !isStreaming
   const hasContent = !!content
+  const enrichedContent = isDone && citations?.length ? enrichContentWithCitations(content, citations) : content
 
   // Show thinking dots only when streaming with no content yet
   const showThinkingDots = isStreaming && !hasContent &&
@@ -97,9 +137,12 @@ function AgentBubble({ message }: { message: ResearchMessage }) {
         {/* Content — render formatted markdown whenever content exists */}
         {hasContent && (
           <div className="text-sm text-kx-primary-900">
-            <MarkdownRenderer content={content} />
+            <MarkdownRenderer content={enrichedContent} citations={isDone ? citations : undefined} />
             {isStreaming && (
               <span className="inline-block w-0.5 h-4 bg-kx-primary-400 animate-pulse ml-0.5 align-text-bottom" />
+            )}
+            {isDone && citations && citations.length > 0 && (
+              <CitationsFooter citations={citations} />
             )}
           </div>
         )}
