@@ -4,6 +4,31 @@ import { researchApi } from '@/services/api/research-api'
 
 const SETTINGS_STORAGE_KEY = 'knowlex_chat_settings'
 
+/**
+ * Parse citations from tool result text when no explicit citations SSE event arrives.
+ * Matches the pattern: [N] Title\nSource: X\nURL: Y
+ */
+function parseCitationsFromToolResults(toolCalls: ToolCall[]): Citation[] {
+  const citations: Citation[] = []
+  for (const tc of toolCalls) {
+    if (!tc.result) continue
+    // Unescape literal \n from SSE encoding, also handle content='...' wrapper
+    const text = tc.result.replace(/\\n/g, '\n')
+    const pattern = /\[(\d+)\]\s*(.+?)\nSource:\s*(.+?)\nURL:\s*(\S+)/g
+    let m
+    while ((m = pattern.exec(text)) !== null) {
+      citations.push({
+        id: parseInt(m[1], 10),
+        case_name: m[2].trim(),
+        source: m[3].trim(),
+        url: m[4].trim(),
+      })
+    }
+  }
+  citations.sort((a, b) => (a.id ?? 0) - (b.id ?? 0))
+  return citations
+}
+
 const VALID_MODELS = ['openai', 'gemini'] as const
 const DEFAULT_MODEL = 'openai'
 
@@ -298,7 +323,12 @@ export function useResearchChat() {
         }
         const finalContent = answerContentRef.current || thinkingContentRef.current
         const finalToolCalls = toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
-        const finalCitations = citationsRef.current.length > 0 ? [...citationsRef.current] : undefined
+        // Use explicit citations event if available, otherwise parse from tool results
+        let finalCitations: Citation[] | undefined = citationsRef.current.length > 0 ? [...citationsRef.current] : undefined
+        if (!finalCitations && finalToolCalls) {
+          const parsed = parseCitationsFromToolResults(finalToolCalls)
+          if (parsed.length > 0) finalCitations = parsed
+        }
         const msgId = streamingMsgIdRef.current
         setMessages((prev) =>
           prev.map((msg) =>
