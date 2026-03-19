@@ -1,23 +1,26 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
+import { useSubscription } from '@/hooks/use-subscription'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 
 export function ProtectedLayout() {
   const { isAuthenticated, isRestoringSession } = useAuth()
+  const { subscription, isLoading: isLoadingSubscription } = useSubscription()
   const location = useLocation()
   const navigate = useNavigate()
+  const [subscriptionRequired, setSubscriptionRequired] = useState(false)
 
-  // Listen for subscription:required events and redirect to plans page
+  // Listen for subscription:required events and redirect to pricing
   useEffect(() => {
     const handler = () => {
-      navigate('/plans', { state: { from: location }, replace: true })
+      setSubscriptionRequired(true)
     }
     window.addEventListener('subscription:required', handler)
     return () => window.removeEventListener('subscription:required', handler)
-  }, [navigate, location])
+  }, [])
 
-  if (isRestoringSession) {
+  if (isRestoringSession || (isAuthenticated && isLoadingSubscription)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-kx-surface">
         <div className="text-center">
@@ -30,6 +33,13 @@ export function ProtectedLayout() {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  const hasActiveSubscription =
+    subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING'
+
+  if (!hasActiveSubscription || subscriptionRequired) {
+    return <Navigate to="/" replace />
   }
 
   return (

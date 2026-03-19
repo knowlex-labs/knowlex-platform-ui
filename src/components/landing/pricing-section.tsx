@@ -1,14 +1,18 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Check, Sparkles } from 'lucide-react'
 import { useScrollReveal } from '@/hooks/use-scroll-reveal'
-
-const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
+import { useAuth } from '@/contexts/auth-context'
+import { config } from '@/config/env'
+import { usePlans } from '@/hooks/use-plans'
+import type { PlanType, BillingCycle } from '@/types'
 
 type BillingPeriod = 'monthly' | 'annual'
 
 interface Plan {
   name: string
+  planType: PlanType
   monthly?: { price: string; period: string }
   annual?: { price: string; period: string; savings: string }
   isCustom?: boolean
@@ -21,6 +25,7 @@ interface Plan {
 const plans: Plan[] = [
   {
     name: 'Pro',
+    planType: 'STARTER',
     monthly: { price: '1,499', period: '/month' },
     annual: { price: '14,990', period: '/year', savings: 'Save ₹2,998/year' },
     description: 'For solo practitioners getting started.',
@@ -37,6 +42,7 @@ const plans: Plan[] = [
   },
   {
     name: 'Premium',
+    planType: 'PROFESSIONAL',
     monthly: { price: '4,999', period: '/month' },
     annual: { price: '49,990', period: '/year', savings: 'Save ₹9,998/year' },
     description: 'For growing practices that need more power.',
@@ -53,6 +59,7 @@ const plans: Plan[] = [
   },
   {
     name: 'Enterprise',
+    planType: 'ENTERPRISE',
     isCustom: true,
     description: 'For law firms with specific requirements.',
     features: [
@@ -69,9 +76,24 @@ const plans: Plan[] = [
 export function PricingSection() {
   const { ref, isVisible } = useScrollReveal()
   const [billing, setBilling] = useState<BillingPeriod>('monthly')
+  const { isAuthenticated } = useAuth()
+  const { subscribe, isSubscribing } = usePlans()
+  const navigate = useNavigate()
 
   const handleContactUs = () => {
     window.location.href = 'mailto:nakul.jain@getknowlex.com?subject=Enterprise Plan Inquiry'
+  }
+
+  const handleSubscribe = async (plan: Plan) => {
+    if (!isAuthenticated) {
+      navigate(config.signupEnabled ? '/signup' : '/login', { state: { from: { pathname: '/', hash: '#pricing' } } })
+      return
+    }
+    const billingCycle: BillingCycle = billing === 'monthly' ? 'MONTHLY' : 'YEARLY'
+    const success = await subscribe(plan.planType, billingCycle)
+    if (success) {
+      navigate('/home')
+    }
   }
 
   return (
@@ -177,9 +199,10 @@ export function PricingSection() {
                     : 'border-[#7a2e2e] text-[#7a2e2e] hover:bg-red-50 bg-transparent'
                 }`}
                 variant={plan.highlighted ? 'primary' : 'outline'}
-                onClick={plan.name === 'Enterprise' ? handleContactUs : () => window.open(CALENDLY_URL, '_blank')}
+                disabled={!plan.isCustom && isSubscribing}
+                onClick={plan.isCustom ? handleContactUs : () => handleSubscribe(plan)}
               >
-                {plan.cta}
+                {!plan.isCustom && isSubscribing ? 'Processing...' : plan.cta}
               </Button>
 
               <ul className="space-y-2 sm:space-y-3 flex-1">

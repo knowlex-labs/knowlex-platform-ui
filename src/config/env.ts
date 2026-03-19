@@ -9,6 +9,9 @@ export const config = {
 
   // Google OAuth
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
+
+  // Feature flags
+  signupEnabled: import.meta.env.VITE_SIGNUP_ENABLED !== 'false',
 } as const
 
 // Type for the config object

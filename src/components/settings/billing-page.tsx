@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,11 +30,6 @@ function formatDate(dateStr: string): string {
     month: 'long',
     day: 'numeric',
   })
-}
-
-function formatLimit(used: number, limit: number): string {
-  if (limit === -1) return `${used} / Unlimited`
-  return `${used} / ${limit}`
 }
 
 function getUsagePercent(used: number, limit: number): number {
@@ -80,7 +74,6 @@ function UsageBar({ label, used, limit, unit }: UsageBarProps) {
 
 export function BillingPage() {
   const { subscription, usage, isLoading, cancelSubscription } = useSubscription()
-  const navigate = useNavigate()
   const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [cancelReason, setCancelReason] = useState('')
   const [isCancelling, setIsCancelling] = useState(false)
@@ -113,7 +106,7 @@ export function BillingPage() {
           <Info className="h-8 w-8 text-ledger-gray-400 mx-auto mb-3" />
           <h3 className="text-lg font-semibold text-kx-primary-900 mb-2">No active subscription</h3>
           <p className="text-sm text-ledger-gray-500 mb-4">Choose a plan to get started with Knowlex.</p>
-          <Button onClick={() => navigate('/plans')}>View Plans</Button>
+          <Button onClick={() => window.location.href = '/#pricing'}>View Plans</Button>
         </div>
       </div>
     )
@@ -169,7 +162,7 @@ export function BillingPage() {
         </div>
 
         <div className="flex gap-3">
-          <Button variant="outline" onClick={() => navigate('/plans')}>Change Plan</Button>
+          <Button variant="outline" onClick={() => window.location.href = '/#pricing'}>Change Plan</Button>
           {canCancel && (
             <Button
               variant="outline"

@@ -10,7 +10,6 @@ import { ActivityFeed } from './activity-feed'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
 import { RecentClientsWidget } from './recent-clients-widget'
 import { ContinueWhereLeftOff } from './continue-where-left-off'
-import { UsageWidget } from './usage-widget'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -190,11 +189,6 @@ export function DashboardHome() {
                 <h2 className="text-sm font-semibold text-kx-primary-900">Upcoming Hearings</h2>
               </div>
               <UpcomingHearingsWidget />
-            </div>
-
-            {/* Usage Widget */}
-            <div className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
-              <UsageWidget />
             </div>
 
             {/* Recent Activity Feed */}

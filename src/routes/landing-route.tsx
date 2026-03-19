@@ -1,20 +1,26 @@
 import * as React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
+import { useSubscription } from '@/hooks/use-subscription'
 import { LandingPage } from '@/components/landing/landing-page'
 import { useToast } from '@/hooks/use-toast'
 
 export function LandingRoute() {
   const { isAuthenticated, isRestoringSession } = useAuth()
+  const { subscription, isLoading: isLoadingSubscription } = useSubscription()
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  // Redirect authenticated users to home
+  // Redirect authenticated users to home only if they have an active subscription
   React.useEffect(() => {
-    if (isAuthenticated && !isRestoringSession) {
-      navigate('/home', { replace: true })
+    if (isAuthenticated && !isRestoringSession && !isLoadingSubscription) {
+      const hasActiveSubscription =
+        subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING'
+      if (hasActiveSubscription) {
+        navigate('/home', { replace: true })
+      }
     }
-  }, [isAuthenticated, isRestoringSession, navigate])
+  }, [isAuthenticated, isRestoringSession, isLoadingSubscription, subscription, navigate])
 
   // Listen for toast events
   React.useEffect(() => {

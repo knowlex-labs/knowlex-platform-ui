@@ -14,9 +14,10 @@ import { AccountSettings } from '@/components/settings/account-settings'
 import { SettingsLayout } from '@/components/settings/settings-layout'
 import { BillingPage } from '@/components/settings/billing-page'
 import { WalletPage } from '@/components/settings/wallet-page'
-import { PlanSelectionPage } from '@/components/plans/plan-selection-page'
 import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
+import { SignupPage } from '@/components/auth/signup-page'
+import { config } from '@/config/env'
 import { BlogLayout } from '@/components/blog/blog-layout'
 import { BlogListPage } from '@/components/blog/blog-list-page'
 import { BlogDetailPage } from '@/components/blog/blog-detail-page'
@@ -37,6 +38,10 @@ export const router = createBrowserRouter([
     path: '/login',
     element: <LoginPage />,
   },
+  {
+    path: '/signup',
+    element: config.signupEnabled ? <SignupPage /> : <Navigate to="/login" replace />,
+  },
   // Public blog (no auth required)
   {
     element: <BlogLayout />,
@@ -44,11 +49,6 @@ export const router = createBrowserRouter([
       { path: '/blogs', element: <BlogListPage /> },
       { path: '/blogs/:slug', element: <BlogDetailPage /> },
     ],
-  },
-  // Plans page (accessible both authenticated and unauthenticated)
-  {
-    path: '/plans',
-    element: <PlanSelectionPage />,
   },
   // Admin login (no auth required)
   {

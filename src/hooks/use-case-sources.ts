@@ -208,7 +208,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
       try {
         // Step 1: Get presigned URL (backend creates document automatically)
         const { documentId, uploadUrl } =
-          await workspaceApi.getPresignedUploadUrl(caseId, file.name)
+          await workspaceApi.getPresignedUploadUrl(caseId, file.name, file.size)
 
         // Step 2: Upload to S3
         await workspaceApi.uploadFileToS3(uploadUrl, file)

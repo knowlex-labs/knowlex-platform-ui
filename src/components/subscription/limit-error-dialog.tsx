@@ -48,7 +48,7 @@ export function LimitErrorDialog({ open, onOpenChange, message }: LimitErrorDial
             <Button
               onClick={() => {
                 onOpenChange(false)
-                navigate('/plans')
+                window.location.href = '/#pricing'
               }}
             >
               Upgrade Plan
