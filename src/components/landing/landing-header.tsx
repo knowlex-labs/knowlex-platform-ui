@@ -12,10 +12,11 @@ interface LandingHeaderProps {
   onSignIn: () => void
 }
 
-const navLinks = [
+const navLinks: { label: string; sectionId?: string; href?: string }[] = [
   { label: 'Features', sectionId: 'features' },
   { label: 'Pricing', sectionId: 'pricing' },
   { label: 'About Us', sectionId: 'about' },
+  { label: 'Blogs', href: '/blogs' },
 ]
 
 export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
@@ -49,16 +50,26 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
 
             {/* Desktop Navigation — centered */}
             <nav className="hidden md:flex items-center gap-8">
-              {navLinks.map((link) => (
-                <button
-                  key={link.sectionId}
-                  type="button"
-                  onClick={() => scrollToSection(link.sectionId)}
-                  className="text-base font-medium text-white/90 hover:text-white transition-colors"
-                >
-                  {link.label}
-                </button>
-              ))}
+              {navLinks.map((link) =>
+                link.href ? (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    className="text-base font-medium text-white/90 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <button
+                    key={link.sectionId}
+                    type="button"
+                    onClick={() => scrollToSection(link.sectionId!)}
+                    className="text-base font-medium text-white/90 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </button>
+                )
+              )}
             </nav>
 
             {/* Book a Demo — right */}
@@ -86,16 +97,26 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
           {mobileMenuOpen && (
             <nav className="md:hidden py-4 border-t border-white/10">
               <div className="flex flex-col gap-4">
-                {navLinks.map((link) => (
-                  <button
-                    key={link.sectionId}
-                    type="button"
-                    onClick={() => scrollToSection(link.sectionId)}
-                    className="text-sm font-medium text-white/90 hover:text-white transition-colors text-left py-2"
-                  >
-                    {link.label}
-                  </button>
-                ))}
+                {navLinks.map((link) =>
+                  link.href ? (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className="text-sm font-medium text-white/90 hover:text-white transition-colors text-left py-2"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <button
+                      key={link.sectionId}
+                      type="button"
+                      onClick={() => scrollToSection(link.sectionId!)}
+                      className="text-sm font-medium text-white/90 hover:text-white transition-colors text-left py-2"
+                    >
+                      {link.label}
+                    </button>
+                  )
+                )}
                 <button
                   onClick={() => {
                     setCalendlyOpen(true)

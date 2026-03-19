@@ -12,6 +12,7 @@ export interface BackendUser {
   firstName: string
   lastName: string
   mobileNumber?: string
+  admin?: boolean
   createdAt: string
 }
 

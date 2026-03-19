@@ -13,6 +13,14 @@ import { JudgmentDetail } from '@/components/judgments/judgment-detail'
 import { AccountSettings } from '@/components/settings/account-settings'
 import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
+import { BlogLayout } from '@/components/blog/blog-layout'
+import { BlogListPage } from '@/components/blog/blog-list-page'
+import { BlogDetailPage } from '@/components/blog/blog-detail-page'
+import { AdminLoginPage } from '@/components/admin/admin-login-page'
+import { AdminLayout } from '@/components/admin/admin-layout'
+import { AdminDashboard } from '@/components/admin/admin-dashboard'
+import { BlogAdminList } from '@/components/admin/blog/blog-admin-list'
+import { BlogFormPage } from '@/components/admin/blog/blog-form-page'
 
 const isDashboardSubdomain = window.location.hostname.startsWith('dashboard.')
 
@@ -24,6 +32,29 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  // Public blog (no auth required)
+  {
+    element: <BlogLayout />,
+    children: [
+      { path: '/blogs', element: <BlogListPage /> },
+      { path: '/blogs/:slug', element: <BlogDetailPage /> },
+    ],
+  },
+  // Admin login (no auth required)
+  {
+    path: '/admin/login',
+    element: <AdminLoginPage />,
+  },
+  // Admin protected (admin auth required)
+  {
+    element: <AdminLayout />,
+    children: [
+      { path: '/admin', element: <AdminDashboard /> },
+      { path: '/admin/blog', element: <BlogAdminList /> },
+      { path: '/admin/blog/new', element: <BlogFormPage /> },
+      { path: '/admin/blog/:id/edit', element: <BlogFormPage /> },
+    ],
   },
   {
     element: <ProtectedLayout />,
