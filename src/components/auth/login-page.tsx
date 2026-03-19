@@ -111,7 +111,7 @@ export function LoginPage() {
           </Button>
         </form>
 
-        {config.signupEnabled && (
+        {config.enablePayment && (
           <div className="mt-6 text-center text-sm">
             <span className="text-kx-text-secondary">Don't have an account? </span>
             <Link to="/signup" className="text-kx-primary-600 font-medium hover:text-kx-primary-700 underline underline-offset-2">

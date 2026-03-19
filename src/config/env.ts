@@ -11,7 +11,7 @@ export const config = {
   googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || '',
 
   // Feature flags
-  signupEnabled: import.meta.env.VITE_SIGNUP_ENABLED !== 'false',
+  enablePayment: import.meta.env.VITE_ENABLE_PAYMENT === 'true',
 } as const
 
 // Type for the config object

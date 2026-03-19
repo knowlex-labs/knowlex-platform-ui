@@ -85,8 +85,12 @@ export function PricingSection() {
   }
 
   const handleSubscribe = async (plan: Plan) => {
+    if (!config.enablePayment) {
+      handleContactUs()
+      return
+    }
     if (!isAuthenticated) {
-      navigate(config.signupEnabled ? '/signup' : '/login', { state: { from: { pathname: '/', hash: '#pricing' } } })
+      navigate('/signup', { state: { from: { pathname: '/', hash: '#pricing' } } })
       return
     }
     const billingCycle: BillingCycle = billing === 'monthly' ? 'MONTHLY' : 'YEARLY'
@@ -199,10 +203,14 @@ export function PricingSection() {
                     : 'border-[#7a2e2e] text-[#7a2e2e] hover:bg-red-50 bg-transparent'
                 }`}
                 variant={plan.highlighted ? 'primary' : 'outline'}
-                disabled={!plan.isCustom && isSubscribing}
+                disabled={config.enablePayment && !plan.isCustom && isSubscribing}
                 onClick={plan.isCustom ? handleContactUs : () => handleSubscribe(plan)}
               >
-                {!plan.isCustom && isSubscribing ? 'Processing...' : plan.cta}
+                {!config.enablePayment
+                  ? 'Contact Sales'
+                  : !plan.isCustom && isSubscribing
+                    ? 'Processing...'
+                    : plan.cta}
               </Button>
 
               <ul className="space-y-2 sm:space-y-3 flex-1">

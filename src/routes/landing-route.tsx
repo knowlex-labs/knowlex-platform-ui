@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { useSubscription } from '@/hooks/use-subscription'
 import { LandingPage } from '@/components/landing/landing-page'
 import { useToast } from '@/hooks/use-toast'
+import { config } from '@/config/env'
 
 export function LandingRoute() {
   const { isAuthenticated, isRestoringSession } = useAuth()
@@ -11,14 +12,21 @@ export function LandingRoute() {
   const navigate = useNavigate()
   const { toast } = useToast()
 
-  // Redirect authenticated users to home only if they have an active subscription
+  // Redirect authenticated users to home
+  // When payment is enabled, only redirect if they have an active subscription
   React.useEffect(() => {
-    if (isAuthenticated && !isRestoringSession && !isLoadingSubscription) {
-      const hasActiveSubscription =
-        subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING'
-      if (hasActiveSubscription) {
-        navigate('/home', { replace: true })
+    if (!isAuthenticated || isRestoringSession) return
+
+    if (config.enablePayment) {
+      if (!isLoadingSubscription) {
+        const hasActiveSubscription =
+          subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING'
+        if (hasActiveSubscription) {
+          navigate('/home', { replace: true })
+        }
       }
+    } else {
+      navigate('/home', { replace: true })
     }
   }, [isAuthenticated, isRestoringSession, isLoadingSubscription, subscription, navigate])
 

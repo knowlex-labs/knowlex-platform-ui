@@ -40,7 +40,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/signup',
-    element: config.signupEnabled ? <SignupPage /> : <Navigate to="/login" replace />,
+    element: config.enablePayment ? <SignupPage /> : <Navigate to="/login" replace />,
   },
   // Public blog (no auth required)
   {
