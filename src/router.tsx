@@ -11,6 +11,10 @@ import { Judgments } from '@/components/judgments/judgments'
 import { CauseLists } from '@/components/cause-lists/cause-lists'
 import { JudgmentDetail } from '@/components/judgments/judgment-detail'
 import { AccountSettings } from '@/components/settings/account-settings'
+import { SettingsLayout } from '@/components/settings/settings-layout'
+import { BillingPage } from '@/components/settings/billing-page'
+import { WalletPage } from '@/components/settings/wallet-page'
+import { PlanSelectionPage } from '@/components/plans/plan-selection-page'
 import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
 import { BlogLayout } from '@/components/blog/blog-layout'
@@ -41,6 +45,11 @@ export const router = createBrowserRouter([
       { path: '/blogs/:slug', element: <BlogDetailPage /> },
     ],
   },
+  // Plans page (accessible both authenticated and unauthenticated)
+  {
+    path: '/plans',
+    element: <PlanSelectionPage />,
+  },
   // Admin login (no auth required)
   {
     path: '/admin/login',
@@ -68,7 +77,15 @@ export const router = createBrowserRouter([
       { path: '/judgments', element: <Judgments /> },
       { path: '/judgments/:judgmentId', element: <JudgmentDetail /> },
       { path: '/ai-research', element: <AIResearch /> },
-      { path: '/settings', element: <AccountSettings /> },
+      {
+        path: '/settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <AccountSettings /> },
+          { path: 'billing', element: <BillingPage /> },
+          { path: 'wallet', element: <WalletPage /> },
+        ],
+      },
     ],
   },
   {

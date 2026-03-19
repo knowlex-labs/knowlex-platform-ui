@@ -64,16 +64,7 @@ export function AccountSettings() {
     }
 
     return (
-        <div className="p-8 max-w-2xl">
-            <div className="mb-8">
-                <h1 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
-                    Account Settings
-                </h1>
-                <p className="text-sm text-ledger-gray-500 mt-1">
-                    Manage your account information and preferences
-                </p>
-            </div>
-
+        <div className="max-w-2xl">
             <div className="space-y-6 bg-kx-card border border-kx-card-border rounded-lg p-6">
                 {/* Username */}
                 <div className="space-y-2">

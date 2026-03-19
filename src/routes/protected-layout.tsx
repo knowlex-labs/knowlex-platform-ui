@@ -1,10 +1,21 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { useEffect } from 'react'
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
 
 export function ProtectedLayout() {
   const { isAuthenticated, isRestoringSession } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // Listen for subscription:required events and redirect to plans page
+  useEffect(() => {
+    const handler = () => {
+      navigate('/plans', { state: { from: location }, replace: true })
+    }
+    window.addEventListener('subscription:required', handler)
+    return () => window.removeEventListener('subscription:required', handler)
+  }, [navigate, location])
 
   if (isRestoringSession) {
     return (
