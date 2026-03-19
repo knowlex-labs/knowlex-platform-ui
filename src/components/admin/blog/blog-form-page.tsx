@@ -63,7 +63,7 @@ export function BlogFormPage() {
       </h1>
 
       {error && (
-        <div className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950 p-3 text-sm text-red-900 dark:text-red-400 mb-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900 mb-6">
           {error}
         </div>
       )}
@@ -123,7 +123,7 @@ export function BlogFormPage() {
                   />
                 </TabsContent>
                 <TabsContent value="preview">
-                  <div className="rounded-lg border border-ledger-200 dark:border-ledger-800 p-6 min-h-[300px] prose dark:prose-invert max-w-none">
+                  <div className="rounded-lg border border-ledger-200 p-6 min-h-[300px] prose max-w-none">
                     {formData.content ? (
                       <MarkdownRenderer content={formData.content} />
                     ) : (
@@ -137,7 +137,7 @@ export function BlogFormPage() {
 
           {/* Sidebar - right column */}
           <div className="space-y-6">
-            <div className="rounded-xl border border-ledger-200 dark:border-ledger-800 bg-white dark:bg-ledger-900 p-4 space-y-4">
+            <div className="rounded-xl border border-ledger-200 bg-white p-4 space-y-4">
               <div className="space-y-2">
                 <Label>Status</Label>
                 <div className="flex gap-2">
@@ -146,8 +146,8 @@ export function BlogFormPage() {
                     onClick={() => updateField('status', 'DRAFT')}
                     className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                       formData.status === 'DRAFT'
-                        ? 'bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-700'
-                        : 'bg-ledger-100 dark:bg-ledger-800 text-kx-text-secondary hover:bg-ledger-200 dark:hover:bg-ledger-700'
+                        ? 'bg-amber-100 text-amber-700 border border-amber-300'
+                        : 'bg-ledger-100 text-kx-text-secondary hover:bg-ledger-200'
                     }`}
                   >
                     Draft
@@ -157,8 +157,8 @@ export function BlogFormPage() {
                     onClick={() => updateField('status', 'PUBLISHED')}
                     className={`flex-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                       formData.status === 'PUBLISHED'
-                        ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-300 dark:border-green-700'
-                        : 'bg-ledger-100 dark:bg-ledger-800 text-kx-text-secondary hover:bg-ledger-200 dark:hover:bg-ledger-700'
+                        ? 'bg-green-100 text-green-700 border border-green-300'
+                        : 'bg-ledger-100 text-kx-text-secondary hover:bg-ledger-200'
                     }`}
                   >
                     Published
@@ -185,7 +185,7 @@ export function BlogFormPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-ledger-200 dark:border-ledger-800 bg-white dark:bg-ledger-900 p-4 space-y-2">
+            <div className="rounded-xl border border-ledger-200 bg-white p-4 space-y-2">
               <Label>Cover Image</Label>
               <CoverImageUpload
                 previewUrl={coverPreviewUrl}

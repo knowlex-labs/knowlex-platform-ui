@@ -37,13 +37,13 @@ export function TagInput({ tags, onChange }: TagInputProps) {
         {tags.map((tag, index) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-kx-primary-100 dark:bg-kx-primary-900 text-kx-primary-700 dark:text-kx-primary-300"
+            className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-kx-primary-100 text-kx-primary-700"
           >
             {tag}
             <button
               type="button"
               onClick={() => removeTag(index)}
-              className="hover:text-kx-primary-900 dark:hover:text-kx-primary-100"
+              className="hover:text-kx-primary-900"
             >
               <X className="h-3 w-3" />
             </button>

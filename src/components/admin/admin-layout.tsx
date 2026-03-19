@@ -23,13 +23,13 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-ledger-50 dark:bg-ledger-950">
-      <header className="border-b border-ledger-200 dark:border-ledger-800 bg-white dark:bg-ledger-900">
+    <div className="force-light min-h-screen bg-ledger-50">
+      <header className="border-b border-ledger-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
+            <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto" />
             <span className="text-lg font-serif font-bold text-kx-text-primary tracking-tight">Knowlex</span>
-            <span className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider bg-kx-primary-100 dark:bg-kx-primary-900 text-kx-primary-700 dark:text-kx-primary-300 rounded">
+            <span className="px-2 py-0.5 text-xs font-semibold uppercase tracking-wider bg-kx-primary-100 text-kx-primary-700 rounded">
               Admin
             </span>
           </div>

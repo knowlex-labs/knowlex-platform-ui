@@ -32,7 +32,7 @@ export function CoverImageUpload({ previewUrl, onUpload, onRemove }: CoverImageU
       />
 
       {previewUrl ? (
-        <div className="relative rounded-lg overflow-hidden border border-ledger-200 dark:border-ledger-800">
+        <div className="relative rounded-lg overflow-hidden border border-ledger-200">
           <img src={previewUrl} alt="Cover preview" className="w-full aspect-[16/9] object-cover" />
           <button
             type="button"
@@ -46,7 +46,7 @@ export function CoverImageUpload({ previewUrl, onUpload, onRemove }: CoverImageU
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          className="w-full aspect-[16/9] rounded-lg border-2 border-dashed border-ledger-300 dark:border-ledger-700 flex flex-col items-center justify-center gap-2 text-kx-text-secondary hover:border-kx-primary-400 hover:text-kx-primary-600 transition-colors"
+          className="w-full aspect-[16/9] rounded-lg border-2 border-dashed border-ledger-300 flex flex-col items-center justify-center gap-2 text-kx-text-secondary hover:border-kx-primary-400 hover:text-kx-primary-600 transition-colors"
         >
           <ImagePlus className="h-8 w-8" />
           <span className="text-sm font-medium">Upload cover image</span>
