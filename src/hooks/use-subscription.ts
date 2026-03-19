@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { subscriptionApi } from '@/services/api/subscription-api'
 import type { Subscription, SubscriptionUsage, CancelSubscriptionRequest } from '@/types'
 
+const AUTH_TOKEN_KEY = 'auth_token'
+
 export function useSubscription() {
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [usage, setUsage] = useState<SubscriptionUsage | null>(null)
@@ -9,6 +11,12 @@ export function useSubscription() {
   const [error, setError] = useState<string | null>(null)
 
   const fetchSubscription = useCallback(async () => {
+    const token = localStorage.getItem(AUTH_TOKEN_KEY)
+    if (!token) {
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
       setError(null)

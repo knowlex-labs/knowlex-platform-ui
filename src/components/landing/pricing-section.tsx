@@ -86,7 +86,12 @@ export function PricingSection() {
 
   const handleSubscribe = async (plan: Plan) => {
     if (!config.enablePayment) {
-      handleContactUs()
+      // Payments disabled: let users start the trial flow via login (no signup).
+      if (!plan.isCustom) {
+        navigate('/login')
+      } else {
+        handleContactUs()
+      }
       return
     }
     if (!isAuthenticated) {
@@ -207,7 +212,9 @@ export function PricingSection() {
                 onClick={plan.isCustom ? handleContactUs : () => handleSubscribe(plan)}
               >
                 {!config.enablePayment
-                  ? 'Contact Sales'
+                  ? plan.isCustom
+                    ? 'Contact Sales'
+                    : plan.cta
                   : !plan.isCustom && isSubscribing
                     ? 'Processing...'
                     : plan.cta}
