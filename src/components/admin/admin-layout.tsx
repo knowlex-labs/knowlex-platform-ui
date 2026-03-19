@@ -23,7 +23,7 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="force-light min-h-screen bg-ledger-50">
+    <div className="force-light min-h-screen bg-ledger-gray-50">
       <header className="border-b border-ledger-200 bg-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">

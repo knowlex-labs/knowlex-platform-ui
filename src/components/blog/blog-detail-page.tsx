@@ -84,7 +84,7 @@ export function BlogDetailPage() {
         <div className="mt-8 rounded-xl overflow-hidden aspect-[16/9] bg-gradient-to-br from-kx-primary-100 to-kx-primary-200" />
       )}
 
-      <div className="mt-8 prose prose-lg max-w-none">
+      <div className="mt-8 prose prose-lg max-w-none text-ledger-black">
         <MarkdownRenderer content={blog.content} />
       </div>
 
