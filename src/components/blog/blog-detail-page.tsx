@@ -26,7 +26,7 @@ export function BlogDetailPage() {
   if (error || !blog) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-        <p className="text-red-600 dark:text-red-400">{error || 'Blog post not found.'}</p>
+        <p className="text-red-600">{error || 'Blog post not found.'}</p>
         <Link to="/blogs" className="mt-4 inline-block text-kx-primary-600 hover:underline">
           Back to Blogs
         </Link>
@@ -81,20 +81,20 @@ export function BlogDetailPage() {
           />
         </div>
       ) : (
-        <div className="mt-8 rounded-xl overflow-hidden aspect-[16/9] bg-gradient-to-br from-kx-primary-100 to-kx-primary-200 dark:from-kx-primary-900 dark:to-kx-primary-800" />
+        <div className="mt-8 rounded-xl overflow-hidden aspect-[16/9] bg-gradient-to-br from-kx-primary-100 to-kx-primary-200" />
       )}
 
-      <div className="mt-8 prose prose-lg dark:prose-invert max-w-none">
+      <div className="mt-8 prose prose-lg max-w-none">
         <MarkdownRenderer content={blog.content} />
       </div>
 
       {blog.tags.length > 0 && (
-        <div className="mt-10 pt-6 border-t border-ledger-200 dark:border-ledger-800">
+        <div className="mt-10 pt-6 border-t border-ledger-200">
           <div className="flex flex-wrap gap-2">
             {blog.tags.map(tag => (
               <span
                 key={tag}
-                className="px-3 py-1 text-xs font-medium rounded-full bg-ledger-100 dark:bg-ledger-800 text-kx-text-secondary"
+                className="px-3 py-1 text-xs font-medium rounded-full bg-ledger-100 text-kx-text-secondary"
               >
                 {tag}
               </span>

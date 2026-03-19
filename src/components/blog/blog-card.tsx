@@ -18,7 +18,7 @@ export function BlogCard({ blog }: BlogCardProps) {
   return (
     <Link
       to={`/blogs/${blog.slug}`}
-      className="group block rounded-xl border border-ledger-200 dark:border-ledger-800 bg-white dark:bg-ledger-900 overflow-hidden hover:shadow-lg transition-shadow"
+      className="group block rounded-xl border border-ledger-200 bg-white overflow-hidden hover:shadow-lg transition-shadow"
     >
       {blog.coverImageUrl ? (
         <div className="aspect-[16/9] overflow-hidden">
@@ -29,7 +29,7 @@ export function BlogCard({ blog }: BlogCardProps) {
           />
         </div>
       ) : (
-        <div className="aspect-[16/9] bg-gradient-to-br from-kx-primary-100 to-kx-primary-200 dark:from-kx-primary-900 dark:to-kx-primary-800" />
+        <div className="aspect-[16/9] bg-gradient-to-br from-kx-primary-100 to-kx-primary-200" />
       )}
       <div className="p-5">
         <h3 className="text-lg font-serif font-semibold text-kx-text-primary group-hover:text-kx-primary-600 transition-colors line-clamp-2">

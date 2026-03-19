@@ -25,7 +25,7 @@ export function BlogListPage() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="rounded-xl border border-ledger-200 dark:border-ledger-800 overflow-hidden">
+            <div key={i} className="rounded-xl border border-ledger-200 overflow-hidden">
               <Skeleton className="aspect-[16/9]" />
               <div className="p-5 space-y-3">
                 <Skeleton className="h-4 w-20" />
