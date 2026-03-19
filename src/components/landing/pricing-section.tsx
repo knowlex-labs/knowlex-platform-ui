@@ -25,7 +25,7 @@ interface Plan {
 const plans: Plan[] = [
   {
     name: 'Pro',
-    planType: 'STARTER',
+    planType: 'PRO',
     monthly: { price: '1,499', period: '/month' },
     annual: { price: '14,990', period: '/year', savings: 'Save ₹2,998/year' },
     description: 'For solo practitioners getting started.',
@@ -42,7 +42,7 @@ const plans: Plan[] = [
   },
   {
     name: 'Premium',
-    planType: 'PROFESSIONAL',
+    planType: 'PREMIUM',
     monthly: { price: '4,999', period: '/month' },
     annual: { price: '49,990', period: '/year', savings: 'Save ₹9,998/year' },
     description: 'For growing practices that need more power.',
