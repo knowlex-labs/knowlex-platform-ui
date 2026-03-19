@@ -56,15 +56,15 @@ export function SignupPage() {
   // Redirect if already authenticated
   React.useEffect(() => {
     if (isAuthenticated && !isRestoringSession) {
-      navigate('/home', { replace: true })
+      navigate('/', { replace: true })
     }
-  }, [isAuthenticated, isRestoringSession, navigate])
+  }, [isAuthenticated, isRestoringSession])
 
   const handleGoogleCallback = React.useCallback(async (response: { credential: string }) => {
     setError('')
     try {
       await googleLogin(response.credential)
-      navigate('/home')
+      navigate('/', { replace: true })
     } catch (err) {
       console.error('Google signup failed:', err)
       setError(err instanceof Error ? err.message : 'Google sign-up failed. Please try again.')
@@ -165,7 +165,7 @@ export function SignupPage() {
 
     try {
       await signup(formData)
-      navigate('/home')
+      navigate('/', { replace: true })
     } catch (err) {
       console.error('Signup failed:', err)
       setError(err instanceof Error ? err.message : 'Failed to create account. Please try again.')

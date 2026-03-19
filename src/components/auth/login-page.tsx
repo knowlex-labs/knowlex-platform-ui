@@ -1,10 +1,11 @@
 import * as React from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth-context'
 import { AuthLayout } from './auth-layout'
+import { config } from '@/config/env'
 import { AlertCircle } from 'lucide-react'
 
 export function LoginPage() {
@@ -109,6 +110,15 @@ export function LoginPage() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </Button>
         </form>
+
+        {config.enablePayment && (
+          <div className="mt-6 text-center text-sm">
+            <span className="text-kx-text-secondary">Don't have an account? </span>
+            <Link to="/signup" className="text-kx-primary-600 font-medium hover:text-kx-primary-700 underline underline-offset-2">
+              Create an account
+            </Link>
+          </div>
+        )}
       </div>
     </AuthLayout>
   )

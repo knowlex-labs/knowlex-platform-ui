@@ -11,8 +11,13 @@ import { Judgments } from '@/components/judgments/judgments'
 import { CauseLists } from '@/components/cause-lists/cause-lists'
 import { JudgmentDetail } from '@/components/judgments/judgment-detail'
 import { AccountSettings } from '@/components/settings/account-settings'
+import { SettingsLayout } from '@/components/settings/settings-layout'
+import { BillingPage } from '@/components/settings/billing-page'
+import { WalletPage } from '@/components/settings/wallet-page'
 import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
+import { SignupPage } from '@/components/auth/signup-page'
+import { config } from '@/config/env'
 import { BlogLayout } from '@/components/blog/blog-layout'
 import { BlogListPage } from '@/components/blog/blog-list-page'
 import { BlogDetailPage } from '@/components/blog/blog-detail-page'
@@ -32,6 +37,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/signup',
+    element: config.enablePayment ? <SignupPage /> : <Navigate to="/login" replace />,
   },
   // Public blog (no auth required)
   {
@@ -68,7 +77,15 @@ export const router = createBrowserRouter([
       { path: '/judgments', element: <Judgments /> },
       { path: '/judgments/:judgmentId', element: <JudgmentDetail /> },
       { path: '/ai-research', element: <AIResearch /> },
-      { path: '/settings', element: <AccountSettings /> },
+      {
+        path: '/settings',
+        element: <SettingsLayout />,
+        children: [
+          { index: true, element: <AccountSettings /> },
+          { path: 'billing', element: <BillingPage /> },
+          { path: 'wallet', element: <WalletPage /> },
+        ],
+      },
     ],
   },
   {

@@ -94,11 +94,12 @@ export const workspaceApi = {
    */
   async getPresignedUploadUrl(
     caseId: string,
-    fileName: string
+    fileName: string,
+    fileSize: number
   ): Promise<PresignedUrlData> {
     const response = await apiClient.post<ApiResponse<PresignedUrlData>>(
       '/api/v1/presigned-url/upload',
-      { caseId, fileName }
+      { caseId, fileName, fileSize }
     )
     return response.data
   },
@@ -110,11 +111,12 @@ export const workspaceApi = {
    */
   async getPresignedUploadUrlForExisting(
     documentId: string,
-    fileName: string
+    fileName: string,
+    fileSize: number
   ): Promise<PresignedUrlData> {
     const response = await apiClient.post<ApiResponse<PresignedUrlData>>(
       '/api/v1/presigned-url/upload',
-      { documentId, fileName }
+      { documentId, fileName, fileSize }
     )
     return response.data
   },

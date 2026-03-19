@@ -67,6 +67,11 @@ async function handleResponse<T>(response: Response): Promise<T> {
         ? String((errorData as { message: string }).message)
         : `HTTP error ${response.status}`
 
+    // Check for 403 - subscription required
+    if (response.status === 403 && message.toLowerCase().includes('no active subscription')) {
+      window.dispatchEvent(new CustomEvent('subscription:required'))
+    }
+
     throw new ApiError(message, response.status, errorData)
   }
 
