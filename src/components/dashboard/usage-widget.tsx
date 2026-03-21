@@ -25,14 +25,20 @@ interface MiniBarProps {
   label: string
   used: number
   limit: number
+  period?: string
 }
 
-function MiniBar({ label, used, limit }: MiniBarProps) {
+function MiniBar({ label, used, limit, period }: MiniBarProps) {
   const percent = getUsagePercent(used, limit)
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-ledger-gray-500">{label}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-ledger-gray-500">{label}</span>
+          {period && (
+            <span className="text-[9px] text-ledger-gray-400">{period}</span>
+          )}
+        </div>
         <span className="text-kx-primary-900 font-medium">{formatLimit(used, limit)}</span>
       </div>
       <div className="h-1.5 rounded-full bg-ledger-gray-100 dark:bg-white/10 overflow-hidden">
@@ -71,7 +77,8 @@ export function UsageWidget() {
         </Link>
       </div>
       <div className="space-y-3">
-        <MiniBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} />
+        <MiniBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="weekly" />
+        <MiniBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="weekly" />
         <MiniBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} />
         <MiniBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} />
         <MiniBar label="Storage" used={usage.storageMbUsed} limit={usage.storageMbLimit} />

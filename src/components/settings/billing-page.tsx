@@ -63,9 +63,11 @@ interface UsageBarProps {
   used: number
   limit: number
   unit?: string
+  /** e.g. "Resets weekly", "Plan limit" — shown as a subtle hint */
+  period?: string
 }
 
-function UsageBar({ label, used, limit, unit }: UsageBarProps) {
+function UsageBar({ label, used, limit, unit, period }: UsageBarProps) {
   const safeUsed = used ?? 0
   const safeLimit = limit ?? 0
   const percent = getUsagePercent(safeUsed, safeLimit)
@@ -83,7 +85,12 @@ function UsageBar({ label, used, limit, unit }: UsageBarProps) {
   return (
     <div>
       <div className="flex justify-between text-sm mb-1">
-        <span className="text-ledger-gray-600">{label}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-ledger-gray-600">{label}</span>
+          {period && (
+            <span className="text-[10px] text-ledger-gray-400 font-medium">{period}</span>
+          )}
+        </div>
         <span className="text-kx-primary-900 font-medium">
           {displayUsed} / {displayLimit}
         </span>
@@ -412,9 +419,10 @@ export function BillingPage() {
         <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
           <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Usage</h3>
           <div className="space-y-4">
-            <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} />
-            <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} />
-            <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} />
+            <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="Resets weekly" />
+            <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="Resets weekly" />
+            <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} period="Plan limit" />
+            <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} period="Plan limit" />
             <UsageBar
               label="Storage"
               // API returns bytes; fall back to MB fields if backend is normalised

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, LayoutGrid, List } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
@@ -8,8 +8,12 @@ import { useCasesWithClients, type CaseWithClient } from '@/hooks/use-cases-with
 import { useCaseFilters } from '@/hooks/use-case-filters'
 import { useCaseTypes } from '@/hooks/use-case-types'
 import { CaseFolderGrid, CaseFolderGridSkeleton } from './case-folder-grid'
+import { CaseTableRow } from './case-table-row'
 import { CaseFilters } from './case-filters'
 import { AddCaseModal } from './add-case-modal'
+import { cn } from '@/lib/utils'
+
+type ViewMode = 'grid' | 'list'
 
 export function CaseList() {
   const navigate = useNavigate()
@@ -38,6 +42,14 @@ export function CaseList() {
 
   const { caseTypes } = useCaseTypes()
   const [showAddCaseModal, setShowAddCaseModal] = useState(false)
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (localStorage.getItem('knowlex_cases_view') as ViewMode) || 'grid'
+  })
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode)
+    localStorage.setItem('knowlex_cases_view', mode)
+  }
 
   // Consume showAddCaseModal flag from navigation context (set by dashboard)
   useEffect(() => {
@@ -98,10 +110,39 @@ export function CaseList() {
             Manage your case files and proceedings
           </p>
         </div>
-        <Button onClick={() => setShowAddCaseModal(true)} className="w-full sm:w-auto">
-          <Plus className="h-4 w-4 mr-2" />
-          Add Case
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* View mode toggle */}
+          <div className="flex h-9 rounded-lg border border-ledger-gray-200 overflow-hidden">
+            <button
+              onClick={() => handleViewModeChange('grid')}
+              className={cn(
+                'flex items-center justify-center w-9 h-full transition-colors',
+                viewMode === 'grid'
+                  ? 'bg-kx-primary-600 text-white'
+                  : 'text-ledger-gray-500 hover:bg-ledger-gray-50'
+              )}
+              title="Card view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => handleViewModeChange('list')}
+              className={cn(
+                'flex items-center justify-center w-9 h-full transition-colors',
+                viewMode === 'list'
+                  ? 'bg-kx-primary-600 text-white'
+                  : 'text-ledger-gray-500 hover:bg-ledger-gray-50'
+              )}
+              title="List view"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+          <Button onClick={() => setShowAddCaseModal(true)} className="w-full sm:w-auto">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Case
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -119,13 +160,39 @@ export function CaseList() {
         />
       </div>
 
-      {/* Case Grid */}
+      {/* Case Grid / List */}
       <div className="p-4 rounded-lg border border-kx-card-border">
         {isLoading ? (
           <CaseFolderGridSkeleton />
         ) : (
-          <ScrollArea className="h-[calc(100vh-320px)]">
-            <CaseFolderGrid cases={filteredCases} onCaseClick={handleCaseClick} onRefresh={refresh} />
+          <ScrollArea className="h-[calc(100vh-280px)]">
+            {viewMode === 'grid' ? (
+              <CaseFolderGrid cases={filteredCases} onCaseClick={handleCaseClick} onRefresh={refresh} />
+            ) : (
+              filteredCases.length === 0 ? (
+                <div className="py-12 text-center">
+                  <p className="text-sm text-ledger-gray-500">No cases found</p>
+                </div>
+              ) : (
+                <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
+                  {/* Table header */}
+                  <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-ledger-gray-50 dark:bg-ledger-gray-800 border-b border-ledger-gray-200 text-xs font-semibold text-ledger-gray-500 uppercase tracking-wide">
+                    <div className="col-span-4">Case</div>
+                    <div className="col-span-2">Client</div>
+                    <div className="col-span-2">Status</div>
+                    <div className="col-span-2">Court</div>
+                    <div className="col-span-2">Next Hearing</div>
+                  </div>
+                  {filteredCases.map((caseItem) => (
+                    <CaseTableRow
+                      key={caseItem.id}
+                      caseItem={caseItem}
+                      onClick={() => handleCaseClick(caseItem)}
+                    />
+                  ))}
+                </div>
+              )
+            )}
           </ScrollArea>
         )}
 

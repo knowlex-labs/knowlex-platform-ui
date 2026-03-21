@@ -37,6 +37,7 @@ interface FormattingToolbarProps {
   onDownloadPdf?: () => void
   isSaving?: boolean
   hasChanges?: boolean
+  documentTitle?: string
   className?: string
 }
 
@@ -61,6 +62,7 @@ export function FormattingToolbar({
   onDownloadPdf,
   isSaving,
   hasChanges,
+  documentTitle,
   className,
 }: FormattingToolbarProps) {
   const [exportOpen, setExportOpen] = useState(false)
@@ -89,7 +91,13 @@ export function FormattingToolbar({
           className
         )}
       >
-        <div className="flex-1" />
+        <div className="flex-1 min-w-0">
+          {documentTitle && (
+            <h3 className="text-sm font-medium text-kx-primary-900 dark:text-kx-primary-100 truncate">
+              {documentTitle}
+            </h3>
+          )}
+        </div>
         {onEdit && (
           <button
             onClick={onEdit}

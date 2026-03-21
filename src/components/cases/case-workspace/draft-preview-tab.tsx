@@ -466,6 +466,7 @@ function CompletedDraftEditor({
         onDownloadPdf={handleDownloadPdf}
         isSaving={isSaving}
         hasChanges={hasChanges}
+        documentTitle={title}
         className="bg-ledger-white dark:bg-ledger-gray-900"
       />
 

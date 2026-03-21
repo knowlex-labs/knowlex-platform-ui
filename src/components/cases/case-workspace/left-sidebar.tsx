@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { ChevronDown, ChevronRight, Loader2, FileText, Trash2, AlertCircle, MoreVertical, ExternalLink } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { ChevronDown, ChevronRight, Loader2, FileText, Trash2, AlertCircle, MoreVertical, ExternalLink, FolderOpen, Scale, PenLine, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CaseDocument, Draft, CaseSummary } from '@/types'
+import { cn } from '@/lib/utils'
 import { SourceItem } from './source-item'
 import { JudgmentItem } from './judgment-item'
 import { DraftItem } from './draft-item'
@@ -68,9 +69,37 @@ export function LeftSidebar({
 
   const allSourcesSelected = uploadedSources.length > 0 && selectedSourceIds.size === uploadedSources.length
 
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollUp, setCanScrollUp] = useState(false)
+  const [canScrollDown, setCanScrollDown] = useState(false)
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const check = () => {
+      setCanScrollUp(el.scrollTop > 4)
+      setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 4)
+    }
+    check()
+    el.addEventListener('scroll', check, { passive: true })
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => { el.removeEventListener('scroll', check); ro.disconnect() }
+  }, [sources, judgments, drafts, summary])
+
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-kx-card">
-      <div className="flex-1 overflow-y-auto">
+    <div className="flex flex-col h-full overflow-hidden bg-kx-card relative">
+      {/* Top fade when scrolled down */}
+      <div className={cn(
+        'absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-kx-card to-transparent z-10 pointer-events-none transition-opacity duration-200',
+        canScrollUp ? 'opacity-100' : 'opacity-0'
+      )} />
+      {/* Bottom fade when more content below */}
+      <div className={cn(
+        'absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-kx-card to-transparent z-10 pointer-events-none transition-opacity duration-200',
+        canScrollDown ? 'opacity-100' : 'opacity-0'
+      )} />
+      <div ref={scrollRef} className="flex-1 overflow-y-auto scrollbar-thin">
         {/* User Uploaded Section */}
         <div className="pb-2">
           <button
@@ -78,13 +107,14 @@ export function LeftSidebar({
             onClick={() => setSourcesExpanded(!sourcesExpanded)}
           >
             {sourcesExpanded ? (
-              <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronDown className="h-3.5 w-3.5 text-ledger-gray-400" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronRight className="h-3.5 w-3.5 text-ledger-gray-400" />
             )}
-            <span className="text-sm font-semibold text-kx-primary-900">Sources</span>
+            <FolderOpen className="h-4 w-4 text-kx-primary-500" />
+            <span className="text-sm font-semibold text-kx-primary-900 flex-1 text-left">Sources</span>
             {uploadedSources.length > 0 && (
-              <span className="text-xs text-ledger-gray-400 px-1.5">
+              <span className="text-[10px] font-medium bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/30 dark:text-kx-primary-400 rounded-full px-2 py-0.5 min-w-[20px] text-center">
                 {uploadedSources.length}
               </span>
             )}
@@ -141,13 +171,14 @@ export function LeftSidebar({
             onClick={() => setJudgmentsExpanded(!judgmentsExpanded)}
           >
             {judgmentsExpanded ? (
-              <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronDown className="h-3.5 w-3.5 text-ledger-gray-400" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronRight className="h-3.5 w-3.5 text-ledger-gray-400" />
             )}
-            <span className="text-sm font-semibold text-kx-primary-900">Judgments</span>
+            <Scale className="h-4 w-4 text-kx-primary-500" />
+            <span className="text-sm font-semibold text-kx-primary-900 flex-1 text-left">Judgments</span>
             {judgments.length > 0 && (
-              <span className="text-xs text-ledger-gray-400 px-1.5">
+              <span className="text-[10px] font-medium bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/30 dark:text-kx-primary-400 rounded-full px-2 py-0.5 min-w-[20px] text-center">
                 {judgments.length}
               </span>
             )}
@@ -191,13 +222,14 @@ export function LeftSidebar({
             onClick={() => setDraftsExpanded(!draftsExpanded)}
           >
             {draftsExpanded ? (
-              <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronDown className="h-3.5 w-3.5 text-ledger-gray-400" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronRight className="h-3.5 w-3.5 text-ledger-gray-400" />
             )}
-            <span className="text-sm font-semibold text-kx-primary-900">Drafts</span>
+            <PenLine className="h-4 w-4 text-kx-primary-500" />
+            <span className="text-sm font-semibold text-kx-primary-900 flex-1 text-left">Drafts</span>
             {drafts.length > 0 && (
-              <span className="text-xs text-ledger-gray-400 px-1.5">
+              <span className="text-[10px] font-medium bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/30 dark:text-kx-primary-400 rounded-full px-2 py-0.5 min-w-[20px] text-center">
                 {drafts.length}
               </span>
             )}
@@ -236,13 +268,14 @@ export function LeftSidebar({
             onClick={() => setSummaryExpanded(!summaryExpanded)}
           >
             {summaryExpanded ? (
-              <ChevronDown className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronDown className="h-3.5 w-3.5 text-ledger-gray-400" />
             ) : (
-              <ChevronRight className="h-4 w-4 text-ledger-gray-500" />
+              <ChevronRight className="h-3.5 w-3.5 text-ledger-gray-400" />
             )}
-            <span className="text-sm font-semibold text-kx-primary-900">Summary</span>
+            <BookOpen className="h-4 w-4 text-kx-primary-500" />
+            <span className="text-sm font-semibold text-kx-primary-900 flex-1 text-left">Summary</span>
             {summary?.status === 'completed' && (
-              <span className="text-xs text-ledger-gray-400 px-1.5">1</span>
+              <span className="text-[10px] font-medium bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/30 dark:text-kx-primary-400 rounded-full px-2 py-0.5 min-w-[20px] text-center">1</span>
             )}
           </button>
 

@@ -15,20 +15,20 @@ const modes = [
 
 export function ModeToggle({ mode, onModeChange }: ModeToggleProps) {
   return (
-    <div className="flex h-8 rounded-lg border border-ledger-gray-200 overflow-hidden">
+    <div className="flex h-9 rounded-lg border border-ledger-gray-200 overflow-hidden shadow-sm">
       {modes.map(({ value, label, icon: Icon }) => (
         <button
           key={value}
           type="button"
           onClick={() => onModeChange(value)}
           className={cn(
-            'flex items-center gap-1.5 px-3 text-xs font-medium transition-colors',
+            'flex items-center gap-1.5 px-4 text-sm font-medium transition-colors',
             mode === value
               ? 'bg-kx-primary-600 text-white'
               : 'text-ledger-gray-600 hover:bg-ledger-gray-50'
           )}
         >
-          <Icon className="h-3.5 w-3.5" />
+          <Icon className="h-4 w-4" />
           {label}
         </button>
       ))}

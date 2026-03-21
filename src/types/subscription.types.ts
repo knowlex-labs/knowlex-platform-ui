@@ -58,6 +58,8 @@ export interface SubscriptionUsage {
   casesLimit: number        // -1 = unlimited
   storageMbUsed: number
   storageMbLimit: number    // -1 = unlimited
+  chatMessagesUsed: number
+  chatMessagesLimit: number // -1 = unlimited; FREE=20/week, PRO=100/month, PREMIUM=300/month
 }
 
 export interface PaymentRecord {

@@ -245,6 +245,17 @@ export function DraftChatInterface({
               <p className="text-sm text-ledger-gray-400 max-w-[320px] leading-relaxed">
                 {greetingRef.current.subtitle}
               </p>
+              <div className="flex flex-col gap-2 mt-5 w-full max-w-[320px]">
+                {['Summarize the key facts of this case', 'What are the relevant legal provisions?', 'Compare arguments from both sides'].map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => setInput(prompt)}
+                    className="text-left text-xs px-3 py-2.5 rounded-lg border border-ledger-gray-200 text-ledger-gray-600 hover:border-kx-primary-300 hover:bg-kx-primary-50 hover:text-kx-primary-700 transition-all"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
             </>
           ) : (
             <>
@@ -257,6 +268,17 @@ export function DraftChatInterface({
               <p className="text-sm text-ledger-gray-400 dark:text-ledger-gray-500 max-w-[280px] leading-relaxed">
                 Ask about your documents, refine drafts, or get legal writing help
               </p>
+              <div className="flex flex-col gap-2 mt-5 w-full max-w-[280px]">
+                {['Summarize the key facts', 'Find relevant legal provisions', 'Help refine my draft'].map((prompt) => (
+                  <button
+                    key={prompt}
+                    onClick={() => setInput(prompt)}
+                    className="text-left text-xs px-3 py-2.5 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-600 text-ledger-gray-600 dark:text-ledger-gray-400 hover:border-kx-primary-300 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-900/20 hover:text-kx-primary-700 dark:hover:text-kx-primary-400 transition-all"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
             </>
           )}
         </div>

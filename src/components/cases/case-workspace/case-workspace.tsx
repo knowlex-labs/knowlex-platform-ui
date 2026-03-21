@@ -20,6 +20,7 @@ import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
 import type { Draft, CaseDocument } from '@/types'
 import { IndexingStatus } from '@/types'
+import { toast } from '@/hooks/use-toast'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -187,13 +188,23 @@ export function CaseWorkspace() {
 
   const handleSaveDraftToBackend = async (id: string, title: string, content: string) => {
     updateDraftLocal(id, { title, content })
-    await saveDraftToBackend(id, title, content)
+    try {
+      await saveDraftToBackend(id, title, content)
+      toast({ title: 'Draft saved', variant: 'success' })
+    } catch {
+      toast({ title: 'Failed to save draft', variant: 'destructive' })
+    }
   }
 
   const handleDeleteDraft = async (id: string) => {
     const tabId = `draft-${id}`
     closeTab(tabId)
-    await deleteDraft(id)
+    try {
+      await deleteDraft(id)
+      toast({ title: 'Draft deleted' })
+    } catch {
+      toast({ title: 'Failed to delete draft', variant: 'destructive' })
+    }
   }
 
   // Called from header/landing Summary button — fetch first, generate only if nothing exists
@@ -214,8 +225,13 @@ export function CaseWorkspace() {
   }
 
   const handleDeleteSummary = async () => {
-    await deleteSummary()
-    closeSummaryTab()
+    try {
+      await deleteSummary()
+      closeSummaryTab()
+      toast({ title: 'Summary deleted' })
+    } catch {
+      toast({ title: 'Failed to delete summary', variant: 'destructive' })
+    }
   }
 
   const handleRetryDraft = (draftId: string) => {
@@ -260,7 +276,12 @@ export function CaseWorkspace() {
   const handleDeleteJudgment = async (judgmentId: string) => {
     const tabId = `source-${judgmentId}`
     closeTab(tabId)
-    await deleteSource(judgmentId)
+    try {
+      await deleteSource(judgmentId)
+      toast({ title: 'Judgment removed' })
+    } catch {
+      toast({ title: 'Failed to remove judgment', variant: 'destructive' })
+    }
   }
 
   const handleReindexJudgment = async (judgmentId: string) => {
@@ -316,10 +337,18 @@ export function CaseWorkspace() {
             variant="ghost"
             size="sm"
             onClick={() => setLeftPanelOpen(!leftPanelOpen)}
-            className="h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700"
+            className={leftPanelOpen ? 'h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700' : 'h-8 px-3 gap-1.5 text-ledger-gray-500 hover:text-kx-primary-700'}
             title={leftPanelOpen ? 'Hide left panel' : 'Show left panel'}
           >
-            {leftPanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
+            {leftPanelOpen
+              ? <PanelLeftClose className="h-4 w-4" />
+              : (
+                <>
+                  <PanelLeftOpen className="h-4 w-4" />
+                  <span className="text-sm font-medium">Files</span>
+                </>
+              )
+            }
           </Button>
           <Button
             variant="ghost"

@@ -19,8 +19,8 @@ export function Judgments() {
     } = useJudgments()
 
     return (
-        <div className="flex flex-col h-[calc(100vh-56px)] md:h-[calc(100vh-16px)]">
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div>
+            <div className="px-2 py-4 space-y-4">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
                     <div>
