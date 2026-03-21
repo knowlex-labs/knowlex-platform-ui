@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Menu, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,7 @@ const navLinks: { label: string; sectionId?: string; href?: string }[] = [
 export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [calendlyOpen, setCalendlyOpen] = React.useState(false)
+  const navigate = useNavigate()
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
@@ -72,11 +74,17 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
               )}
             </nav>
 
-            {/* Book a Demo — right */}
-            <div className="hidden md:block absolute right-0">
+            {/* CTAs — right */}
+            <div className="hidden md:flex items-center gap-2 absolute right-0">
+              <button
+                onClick={() => navigate('/login')}
+                className="text-base font-semibold bg-white text-[#7a2e2e] rounded-full px-5 py-2 hover:bg-gray-100 transition-all"
+              >
+                Try for Free
+              </button>
               <button
                 onClick={() => setCalendlyOpen(true)}
-                className="text-base font-semibold text-white border-2 border-white rounded-full px-6 py-2 hover:bg-white hover:text-[#7a2e2e] transition-all"
+                className="text-base font-semibold text-white border-2 border-white rounded-full px-5 py-2 hover:bg-white hover:text-[#7a2e2e] transition-all"
               >
                 Book a Demo
               </button>
@@ -117,6 +125,15 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
                     </button>
                   )
                 )}
+                <button
+                  onClick={() => {
+                    navigate('/login')
+                    setMobileMenuOpen(false)
+                  }}
+                  className="text-sm font-semibold bg-white text-[#7a2e2e] rounded-full px-5 py-2.5 transition-all w-full"
+                >
+                  Try for Free
+                </button>
                 <button
                   onClick={() => {
                     setCalendlyOpen(true)

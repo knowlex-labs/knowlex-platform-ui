@@ -10,7 +10,7 @@ export type SubscriptionStatus =
 
 export type BillingCycle = 'MONTHLY' | 'YEARLY'
 
-export type PlanType = 'PRO' | 'PREMIUM' | 'ENTERPRISE'
+export type PlanType = 'FREE' | 'PRO' | 'PREMIUM'
 
 export interface PlanFeatures {
   maxDrafts: number       // -1 = unlimited

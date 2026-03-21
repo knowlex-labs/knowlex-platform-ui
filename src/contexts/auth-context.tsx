@@ -189,6 +189,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       firstName: data.firstName,
       lastName: data.lastName,
       mobileNumber: data.mobileNumber,
+      city: data.city,
     })
 
     // After successful registration, automatically log the user in

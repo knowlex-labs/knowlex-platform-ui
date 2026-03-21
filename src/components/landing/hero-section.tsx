@@ -1,6 +1,11 @@
+import { useNavigate } from 'react-router-dom'
 import { HeroSlideshow } from './hero-slideshow'
 
+const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
+
 export function HeroSection() {
+  const navigate = useNavigate()
+
   return (
     <section className="relative py-16 sm:py-20 md:py-24 lg:py-32 bg-[#2d1518] overflow-hidden">
       {/* Subtle dot grid */}
@@ -42,6 +47,22 @@ export function HeroSection() {
                 </span>
                 <span className="text-xs text-white/50 font-medium">50,000+ Indian judgements indexed</span>
               </div>
+            </div>
+
+            {/* CTA buttons */}
+            <div className="flex flex-wrap gap-3 mt-6 justify-center lg:justify-start">
+              <button
+                onClick={() => navigate('/login')}
+                className="text-base font-semibold bg-white text-[#7a2e2e] rounded-full px-6 py-2.5 hover:bg-gray-100 transition-all"
+              >
+                Try for Free
+              </button>
+              <button
+                onClick={() => window.open(CALENDLY_URL, '_blank')}
+                className="text-base font-semibold text-white border-2 border-white/60 rounded-full px-6 py-2.5 hover:bg-white/10 transition-all"
+              >
+                Book a Demo
+              </button>
             </div>
           </div>
 
