@@ -228,7 +228,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
                   <p className="text-sm font-medium text-kx-primary-900 truncate flex-1">
                     {getUserDisplayName()}
                   </p>
-                  <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? '' : 'rotate-180'}`} />
                 </>
               )}
             </button>
