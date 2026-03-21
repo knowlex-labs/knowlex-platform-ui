@@ -220,7 +220,7 @@ function PlanSelector({ currentPlanName, currentBillingCycle, onSuccess }: PlanS
 
               <Button
                 size="sm"
-                variant={isCurrent ? 'outline' : 'default'}
+                variant={isCurrent ? 'outline' : 'primary'}
                 disabled={isCurrent || isSubscribing}
                 onClick={() => handleSubscribe(plan)}
                 className={cn('w-full', !isCurrent && 'bg-kx-primary-600 hover:bg-kx-primary-700 text-white')}
