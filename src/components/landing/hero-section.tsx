@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { ArrowRight } from 'lucide-react'
 import { HeroSlideshow } from './hero-slideshow'
 
 const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
@@ -50,16 +51,16 @@ export function HeroSection() {
             </div>
 
             {/* CTA buttons */}
-            <div className="flex flex-wrap gap-3 mt-6 justify-center lg:justify-start">
+            <div className="flex flex-wrap gap-3 mt-8 justify-center lg:justify-start">
               <button
                 onClick={() => navigate('/login')}
-                className="text-base font-semibold bg-white text-[#7a2e2e] rounded-full px-6 py-2.5 hover:bg-gray-100 transition-all"
+                className="inline-flex items-center gap-2 text-base font-semibold bg-white text-[#7a2e2e] rounded-full px-6 py-2.5 hover:bg-gray-100 transition-all"
               >
-                Try for Free
+                Try for Free <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => window.open(CALENDLY_URL, '_blank')}
-                className="text-base font-semibold text-white border-2 border-white/60 rounded-full px-6 py-2.5 hover:bg-white/10 transition-all"
+                className="text-base font-semibold text-white border border-white/40 rounded-full px-6 py-2.5 hover:bg-white/10 transition-all"
               >
                 Book a Demo
               </button>

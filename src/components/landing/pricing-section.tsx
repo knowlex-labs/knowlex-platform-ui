@@ -29,12 +29,10 @@ const plans: Plan[] = [
     annual: { price: '0', period: '/year', savings: '' },
     description: 'Get started with drafting and client management.',
     features: [
-      '5 drafts monthly',
-      '5 Clients',
-      '20 Cases',
-      'Limited AI Chat',
-      '100 MB Document Storage',
-      'Community Support',
+      'Draft up to 5 documents a month',
+      'Manage 5 clients and 20 cases',
+      'Ask the AI — limited queries',
+      'Store up to 100 MB of documents',
     ],
     cta: 'Sign Up Free',
     highlighted: false,
@@ -46,12 +44,13 @@ const plans: Plan[] = [
     annual: { price: '14,990', period: '/year', savings: 'Save ₹2,998/year' },
     description: 'For solo practitioners getting started.',
     features: [
-      '100 drafts monthly',
+      '100 AI-powered drafts per month',
       '₹10 per additional draft',
-      '20 Clients',
-      'Up to 40 Cases',
-      '2 GB Document Storage',
-      'Email Support',
+      'Manage 20 clients and 40 cases',
+      'More AI Usage',
+      'Upload and search your documents',
+      '2 GB document storage',
+      'Email support',
     ],
     cta: 'Start 7-Day Free Trial',
     highlighted: false,
@@ -63,12 +62,14 @@ const plans: Plan[] = [
     annual: { price: '49,990', period: '/year', savings: 'Save ₹9,998/year' },
     description: 'For growing practices that need more power.',
     features: [
-      '500 drafts monthly',
+      '500 AI-powered drafts per month',
       '₹10 per additional draft',
-      'Unlimited Clients',
-      'Unlimited Cases',
-      '10 GB Document Storage',
-      'Priority Support',
+      'Unlimited clients and cases',
+      '3× more AI usage than Pro',
+      'Full AI legal research and analysis',
+      'Upload, search and cite documents',
+      '10 GB document storage',
+      'Priority support',
     ],
     cta: 'Start 7-Day Free Trial',
     highlighted: true,
@@ -148,7 +149,7 @@ export function PricingSection() {
 
         <div
           ref={ref}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 scroll-reveal-stagger items-start"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 scroll-reveal-stagger items-stretch"
         >
           {plans.map((plan) => (
             <div

@@ -34,7 +34,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             AI-powered drafting, legal research, and client management — built for Indian law firms.
           </p>
           <a
-            href="https://getknowlex.com"
+            href="/"
             className="inline-flex items-center gap-2 mt-8 text-sm text-white/70 hover:text-white font-medium transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
