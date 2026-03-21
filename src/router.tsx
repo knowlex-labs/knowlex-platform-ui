@@ -17,7 +17,6 @@ import { WalletPage } from '@/components/settings/wallet-page'
 import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
 import { SignupPage } from '@/components/auth/signup-page'
-import { config } from '@/config/env'
 import { BlogLayout } from '@/components/blog/blog-layout'
 import { BlogListPage } from '@/components/blog/blog-list-page'
 import { BlogDetailPage } from '@/components/blog/blog-detail-page'
@@ -40,7 +39,7 @@ export const router = createBrowserRouter([
   },
   {
     path: '/signup',
-    element: config.enablePayment ? <SignupPage /> : <Navigate to="/login" replace />,
+    element: <SignupPage />,
   },
   // Public blog (no auth required)
   {

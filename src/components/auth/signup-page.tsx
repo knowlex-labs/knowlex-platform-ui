@@ -38,6 +38,7 @@ export function SignupPage() {
     email: '',
     firstName: '',
     lastName: '',
+    city: '',
     password: '',
     confirmPassword: '',
   })
@@ -200,7 +201,7 @@ export function SignupPage() {
               <Input
                 id="firstName"
                 name="firstName"
-                placeholder="Rajesh"
+                placeholder=""
                 value={formData.firstName}
                 onChange={handleChange}
                 required
@@ -211,7 +212,7 @@ export function SignupPage() {
               <Input
                 id="lastName"
                 name="lastName"
-                placeholder="Sharma"
+                placeholder=""
                 value={formData.lastName}
                 onChange={handleChange}
                 required
@@ -226,7 +227,7 @@ export function SignupPage() {
                 id="signupEmail"
                 name="email"
                 type="email"
-                placeholder="advocate@lawfirm.com"
+                placeholder=""
                 value={formData.email}
                 onChange={handleChange}
                 required
@@ -248,16 +249,28 @@ export function SignupPage() {
             )}
           </div>
 
-          <div className="space-y-1">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              id="username"
-              name="username"
-              placeholder="advocate.sharma"
-              value={formData.username}
-              onChange={handleChange}
-              required
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                placeholder=""
+                value={formData.username}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="city">City</Label>
+              <Input
+                id="city"
+                name="city"
+                placeholder=""
+                value={formData.city}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -267,7 +280,7 @@ export function SignupPage() {
                 id="signupPassword"
                 name="password"
                 type="password"
-                placeholder="Create password"
+                placeholder=""
                 value={formData.password}
                 onChange={handleChange}
                 required
@@ -281,7 +294,7 @@ export function SignupPage() {
                   id="confirmPassword"
                   name="confirmPassword"
                   type="password"
-                  placeholder="Confirm password"
+                  placeholder=""
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required

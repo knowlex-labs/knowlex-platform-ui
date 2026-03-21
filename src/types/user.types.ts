@@ -27,6 +27,7 @@ export interface SignupData {
   password: string
   confirmPassword: string
   mobileNumber?: string
+  city?: string
 }
 
 export interface AuthContextValue extends AuthState {

@@ -14,6 +14,7 @@ export interface RegisterRequest {
   firstName?: string
   lastName?: string
   mobileNumber?: string
+  city?: string
 }
 
 export interface LoginRequest {

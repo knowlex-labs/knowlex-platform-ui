@@ -13,9 +13,8 @@ type BillingPeriod = 'monthly' | 'annual'
 interface Plan {
   name: string
   planType: PlanType
-  monthly?: { price: string; period: string }
-  annual?: { price: string; period: string; savings: string }
-  isCustom?: boolean
+  monthly: { price: string; period: string }
+  annual: { price: string; period: string; savings: string }
   description: string
   features: string[]
   cta: string
@@ -23,6 +22,23 @@ interface Plan {
 }
 
 const plans: Plan[] = [
+  {
+    name: 'Basic',
+    planType: 'FREE',
+    monthly: { price: '0', period: '/month' },
+    annual: { price: '0', period: '/year', savings: '' },
+    description: 'Get started with drafting and client management.',
+    features: [
+      '5 drafts monthly',
+      '5 Clients',
+      '20 Cases',
+      'Limited AI Chat',
+      '100 MB Document Storage',
+      'Community Support',
+    ],
+    cta: 'Sign Up Free',
+    highlighted: false,
+  },
   {
     name: 'Pro',
     planType: 'PRO',
@@ -32,8 +48,8 @@ const plans: Plan[] = [
     features: [
       '100 drafts monthly',
       '₹10 per additional draft',
-      '10 Clients',
-      '20 Cases',
+      '20 Clients',
+      'Up to 40 Cases',
       '2 GB Document Storage',
       'Email Support',
     ],
@@ -57,20 +73,6 @@ const plans: Plan[] = [
     cta: 'Start 7-Day Free Trial',
     highlighted: true,
   },
-  {
-    name: 'Enterprise',
-    planType: 'ENTERPRISE',
-    isCustom: true,
-    description: 'For law firms with specific requirements.',
-    features: [
-      'Custom annual contracts',
-      'Volume draft bundles',
-      'Negotiated per-draft pricing',
-      'Dedicated support',
-    ],
-    cta: 'Talk to Sales',
-    highlighted: false,
-  },
 ]
 
 export function PricingSection() {
@@ -80,18 +82,14 @@ export function PricingSection() {
   const { subscribe, isSubscribing } = usePlans()
   const navigate = useNavigate()
 
-  const handleContactUs = () => {
-    window.location.href = 'mailto:nakul.jain@getknowlex.com?subject=Enterprise Plan Inquiry'
-  }
-
   const handleSubscribe = async (plan: Plan) => {
+    if (plan.planType === 'FREE') {
+      navigate('/signup')
+      return
+    }
     if (!config.enablePayment) {
       // Payments disabled: let users start the trial flow via login (no signup).
-      if (!plan.isCustom) {
-        navigate('/login')
-      } else {
-        handleContactUs()
-      }
+      navigate('/login')
       return
     }
     if (!isAuthenticated) {
@@ -150,23 +148,15 @@ export function PricingSection() {
 
         <div
           ref={ref}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 scroll-reveal-stagger"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 scroll-reveal-stagger items-start"
         >
           {plans.map((plan) => (
             <div
               key={plan.name}
               className={`scroll-reveal bg-white rounded-2xl p-5 sm:p-6 md:p-8 border flex flex-col relative ${isVisible ? 'is-visible' : ''} ${
-                plan.highlighted
-                  ? 'border-[#7a2e2e] ring-2 ring-[#7a2e2e]'
-                  : 'border-gray-200'
+                'border-gray-200'
               }`}
             >
-              {plan.highlighted && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#7a2e2e] text-white text-xs font-medium px-3 py-1 rounded-full">
-                  Most Popular
-                </span>
-              )}
-
               {billing === 'annual' && plan.annual?.savings && (
                 <div className="flex items-center gap-1.5 mb-3 bg-emerald-50 text-emerald-700 text-xs sm:text-sm font-medium px-3 py-1.5 rounded-full w-fit">
                   <Sparkles className="w-3.5 h-3.5" />
@@ -183,41 +173,31 @@ export function PricingSection() {
               </p>
 
               <div className="mb-4 sm:mb-6">
-                {plan.isCustom ? (
-                  <span className="text-2xl sm:text-3xl font-serif font-semibold text-kx-text-primary">
-                    Custom
+                <div>
+                  <span className="text-2xl sm:text-3xl font-sans font-semibold text-kx-text-primary">
+                    {plan.planType === 'FREE' ? 'Free' : `₹${billing === 'monthly' ? plan.monthly.price : plan.annual.price}`}
                   </span>
-                ) : (
-                  <div>
-                    <div>
-                      <span className="text-2xl sm:text-3xl font-sans font-semibold text-kx-text-primary">
-                        ₹{billing === 'monthly' ? plan.monthly!.price : plan.annual!.price}
-                      </span>
-                      <span className="text-sm sm:text-base text-kx-text-secondary">
-                        {billing === 'monthly' ? plan.monthly!.period : plan.annual!.period} + GST
-                      </span>
-                    </div>
-                  </div>
-                )}
+                  {plan.planType !== 'FREE' && (
+                    <span className="text-sm sm:text-base text-kx-text-secondary">
+                      {billing === 'monthly' ? plan.monthly.period : plan.annual.period} + GST
+                    </span>
+                  )}
+                </div>
               </div>
 
               <Button
                 className={`w-full mb-6 sm:mb-8 ${
-                  plan.highlighted
-                    ? 'bg-[#7a2e2e] text-white hover:bg-[#5e2323]'
-                    : 'border-[#7a2e2e] text-[#7a2e2e] hover:bg-red-50 bg-transparent'
+                  plan.planType === 'FREE'
+                    ? 'border-[#7a2e2e] text-[#7a2e2e] hover:bg-red-50 bg-transparent'
+                    : 'bg-[#7a2e2e] text-white hover:bg-[#5e2323]'
                 }`}
-                variant={plan.highlighted ? 'primary' : 'outline'}
-                disabled={config.enablePayment && !plan.isCustom && isSubscribing}
-                onClick={plan.isCustom ? handleContactUs : () => handleSubscribe(plan)}
+                variant={plan.planType === 'FREE' ? 'outline' : 'primary'}
+                disabled={config.enablePayment && plan.planType !== 'FREE' && isSubscribing}
+                onClick={() => handleSubscribe(plan)}
               >
-                {!config.enablePayment
-                  ? plan.isCustom
-                    ? 'Contact Sales'
-                    : plan.cta
-                  : !plan.isCustom && isSubscribing
-                    ? 'Processing...'
-                    : plan.cta}
+                {config.enablePayment && plan.planType !== 'FREE' && isSubscribing
+                  ? 'Processing...'
+                  : plan.cta}
               </Button>
 
               <ul className="space-y-2 sm:space-y-3 flex-1">
