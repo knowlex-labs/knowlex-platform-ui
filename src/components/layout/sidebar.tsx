@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, ChevronLeft, ChevronRight, Sun, Moon, CreditCard, Wallet, ArrowLeft } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -10,12 +10,19 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
+import { useSubscription } from '@/hooks/use-subscription'
 import { SIDEBAR_TABS, APP_NAME, DEMO_USER_USERNAME } from '@/lib/constants'
 import * as React from 'react'
+
+const SETTINGS_TABS = [
+  { path: '/settings', label: 'Account', icon: UserIcon, end: true },
+  { path: '/settings/billing', label: 'Billing', icon: CreditCard },
+  { path: '/settings/wallet', label: 'Wallet', icon: Wallet },
+]
 
 const iconMap = {
   home: Home,
@@ -76,57 +83,102 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
     onItemClick?.()
   }
 
+  const isSettings = location.pathname.startsWith('/settings')
+
   return (
     <>
       {/* Navigation */}
       <nav className="flex-1 py-4 overflow-y-auto">
-        <Tabs
-          value={activeTab}
-          onValueChange={handleTabChange}
-          orientation="vertical"
-        >
-          <TabsList>
-            {SIDEBAR_TABS.map((tab) => {
-              const Icon = iconMap[tab.icon as keyof typeof iconMap]
+        {isSettings ? (
+          <div className="flex flex-col">
+            {/* Back to Home */}
+            <button
+              onClick={() => { navigate('/home'); onItemClick?.() }}
+              className={cn(
+                'flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-medium text-ledger-gray-500 hover:text-kx-primary-700 hover:bg-kx-primary-50 dark:hover:bg-white/5 transition-colors min-h-[48px]',
+              )}
+              title={collapsed ? 'Back to Home' : undefined}
+            >
+              <ArrowLeft className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && <span>Back to Home</span>}
+            </button>
 
-              if (tab.locked) {
+            {!collapsed && (
+              <p className="px-4 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-widest text-ledger-gray-400">
+                Settings
+              </p>
+            )}
+
+            {SETTINGS_TABS.map((tab) => (
+              <NavLink
+                key={tab.path}
+                to={tab.path}
+                end={tab.end}
+                onClick={() => onItemClick?.()}
+                title={collapsed ? tab.label : undefined}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-3 w-full px-4 py-3 text-sm font-medium transition-colors min-h-[48px] border-l-2',
+                    isActive
+                      ? 'border-kx-primary-600 bg-kx-primary-50/60 text-kx-primary-700 dark:bg-kx-primary-900/20 dark:text-kx-primary-400'
+                      : 'border-transparent text-ledger-gray-500 hover:text-kx-primary-700 hover:bg-kx-primary-50 dark:hover:bg-white/5'
+                  )
+                }
+              >
+                <tab.icon className="h-4 w-4 flex-shrink-0" />
+                {!collapsed && <span>{tab.label}</span>}
+              </NavLink>
+            ))}
+          </div>
+        ) : (
+          <Tabs
+            value={activeTab}
+            onValueChange={handleTabChange}
+            orientation="vertical"
+          >
+            <TabsList>
+              {SIDEBAR_TABS.map((tab) => {
+                const Icon = iconMap[tab.icon as keyof typeof iconMap]
+
+                if (tab.locked) {
+                  return (
+                    <div
+                      key={tab.id}
+                      className={cn(
+                        'flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-sans font-medium',
+                        'text-ledger-gray-400 cursor-not-allowed opacity-60 select-none',
+                        'min-h-[48px]'
+                      )}
+                      title={collapsed ? `${tab.label} — Coming Soon` : undefined}
+                    >
+                      {Icon && <Icon className="h-4 w-4" />}
+                      {!collapsed && (
+                        <>
+                          <span>{tab.label}</span>
+                          <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider bg-ledger-gray-200 dark:bg-ledger-gray-300 text-ledger-gray-500 dark:text-ledger-gray-600 px-1.5 py-0.5 rounded-full leading-none">
+                            Soon
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  )
+                }
+
                 return (
-                  <div
+                  <TabsTrigger
                     key={tab.id}
-                    className={cn(
-                      'flex items-center gap-3 w-full px-4 py-3 text-left text-sm font-sans font-medium',
-                      'text-ledger-gray-400 cursor-not-allowed opacity-60 select-none',
-                      'min-h-[48px]'
-                    )}
-                    title={collapsed ? `${tab.label} — Coming Soon` : undefined}
+                    value={tab.id}
+                    className="min-h-[48px]"
+                    title={collapsed ? tab.label : undefined}
                   >
                     {Icon && <Icon className="h-4 w-4" />}
-                    {!collapsed && (
-                      <>
-                        <span>{tab.label}</span>
-                        <span className="ml-auto text-[10px] font-semibold uppercase tracking-wider bg-ledger-gray-200 dark:bg-ledger-gray-300 text-ledger-gray-500 dark:text-ledger-gray-600 px-1.5 py-0.5 rounded-full leading-none">
-                          Soon
-                        </span>
-                      </>
-                    )}
-                  </div>
+                    {!collapsed && <span>{tab.label}</span>}
+                  </TabsTrigger>
                 )
-              }
-
-              return (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="min-h-[48px]"
-                  title={collapsed ? tab.label : undefined}
-                >
-                  {Icon && <Icon className="h-4 w-4" />}
-                  {!collapsed && <span>{tab.label}</span>}
-                </TabsTrigger>
-              )
-            })}
-          </TabsList>
-        </Tabs>
+              })}
+            </TabsList>
+          </Tabs>
+        )}
       </nav>
 
       {/* User Section */}
@@ -269,21 +321,61 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   )
 }
 
+function PlanBadge({ planType, collapsed }: { planType?: string; collapsed: boolean }) {
+  if (!planType || planType === 'FREE') return null
+
+  const isPremium = planType === 'PREMIUM'
+  const label = isPremium ? 'Premium' : 'Pro'
+
+  if (collapsed) {
+    return (
+      <div
+        title={label}
+        className={cn(
+          'mx-auto mt-1 w-7 h-4 rounded-full flex items-center justify-center text-[9px] font-bold',
+          isPremium
+            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+            : 'bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/40 dark:text-kx-primary-400'
+        )}
+      >
+        {isPremium ? '✦' : 'P'}
+      </div>
+    )
+  }
+
+  return (
+    <span
+      className={cn(
+        'ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide',
+        isPremium
+          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+          : 'bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/40 dark:text-kx-primary-400'
+      )}
+    >
+      {label}
+    </span>
+  )
+}
+
 export function Sidebar() {
   const { sidebarCollapsed: collapsed } = useUIState()
+  const { subscription } = useSubscription()
+  const planType = subscription?.planType ?? subscription?.planName
 
   return (
     <aside className={`fixed left-0 top-0 h-screen bg-kx-card border-r border-kx-card-border shadow-lg flex-col hidden md:flex transition-all duration-300 ${collapsed ? 'w-16' : 'w-64'}`}>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-ledger-gray-200">
         {collapsed ? (
-          <div className="flex items-center justify-center -ml-4">
+          <div className="flex flex-col items-center -ml-4">
             <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
+            <PlanBadge planType={planType} collapsed />
           </div>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
             <span className="text-xl font-serif font-semibold text-kx-primary-900">{APP_NAME}</span>
+            <PlanBadge planType={planType} collapsed={false} />
           </div>
         )}
       </div>

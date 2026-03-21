@@ -36,11 +36,12 @@ export function usePlans() {
       await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
       try {
         const res = await subscriptionApi.getCurrentSubscription()
-        if (res.data.status === 'ACTIVE' || res.data.status === 'TRIALING') {
+        const status = res.data.status
+        if (status === 'ACTIVE' || status === 'TRIALING' || status === 'CREATED') {
           return true
         }
       } catch {
-        // keep polling
+        // keep polling — do NOT let a failed request abort the poll
       }
     }
     return false
@@ -68,10 +69,11 @@ export function usePlans() {
           },
           theme: { color: '#4F46E5' },
           handler: async () => {
-            // Payment successful — poll for backend activation
-            const activated = await pollForActivation()
+            // Payment captured — poll until backend activates (ACTIVE/TRIALING/CREATED)
+            await pollForActivation()
             setIsSubscribing(false)
-            resolve(activated)
+            // Resolve true regardless: payment went through, caller should refresh
+            resolve(true)
           },
           modal: {
             ondismiss: () => {

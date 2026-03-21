@@ -30,7 +30,7 @@ const plans: Plan[] = [
     description: 'Get started with drafting and client management.',
     features: [
       'Draft up to 5 documents a month',
-      'Manage 5 clients and 20 cases',
+      'Manage 5 clients and 10 cases',
       'Ask the AI — limited queries',
       'Store up to 100 MB of documents',
     ],

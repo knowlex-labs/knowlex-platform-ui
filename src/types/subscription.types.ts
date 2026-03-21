@@ -7,6 +7,7 @@ export type SubscriptionStatus =
   | 'CANCELLED'
   | 'EXPIRED'
   | 'PENDING'
+  | 'CREATED'
 
 export type BillingCycle = 'MONTHLY' | 'YEARLY'
 
@@ -35,6 +36,7 @@ export interface Subscription {
   id: string
   planId: string
   planName: string
+  planDisplayName?: string
   planType: PlanType
   status: SubscriptionStatus
   billingCycle: BillingCycle
@@ -56,6 +58,14 @@ export interface SubscriptionUsage {
   casesLimit: number        // -1 = unlimited
   storageMbUsed: number
   storageMbLimit: number    // -1 = unlimited
+}
+
+export interface PaymentRecord {
+  id: string
+  amount: number
+  currency: string
+  createdAt: string
+  shortUrl?: string
 }
 
 export interface WalletBalance {

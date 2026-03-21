@@ -39,7 +39,9 @@ export function ProtectedLayout() {
 
   if (needsSubscriptionCheck) {
     const hasActiveSubscription =
-      subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING'
+      subscription?.status === 'ACTIVE' ||
+      subscription?.status === 'TRIALING' ||
+      subscription?.status === 'CREATED'
 
     if (!hasActiveSubscription || subscriptionRequired) {
       return <Navigate to="/" replace />

@@ -10,6 +10,7 @@ import type {
   CreateSubscriptionRequest,
   CreateSubscriptionResponse,
   CancelSubscriptionRequest,
+  PaymentRecord,
   WalletBalance,
   WalletTransaction,
   TopUpRequest,
@@ -40,19 +41,37 @@ export const subscriptionApi = {
   cancelSubscription: (data: CancelSubscriptionRequest = {}): Promise<ApiResponse<null>> => {
     return apiClient.post<ApiResponse<null>>(`${SUBSCRIPTION_ENDPOINT}/cancel`, data)
   },
+
+  getPayments: (): Promise<ApiResponse<PaymentRecord[]>> => {
+    return apiClient.get<ApiResponse<PaymentRecord[]>>(`${SUBSCRIPTION_ENDPOINT}/payments`)
+  },
+
+  getInvoiceUrl: async (): Promise<string> => {
+    const token = localStorage.getItem('auth_token')
+    const userId = localStorage.getItem('auth_user_id')
+    const headers: HeadersInit = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    if (userId) headers['x-user-id'] = userId
+
+    // Backend returns 302 → Razorpay receipt page; fetch follows the redirect
+    // and response.url is the final Razorpay URL
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}${SUBSCRIPTION_ENDPOINT}/invoice`, { headers })
+    if (!res.ok) throw new Error(`Failed to get invoice (${res.status})`)
+    return res.url
+  },
 }
 
 export const walletApi = {
   getBalance: (): Promise<ApiResponse<WalletBalance>> => {
-    return apiClient.get<ApiResponse<WalletBalance>>(`${WALLET_ENDPOINT}/balance`)
+    return apiClient.get<ApiResponse<WalletBalance>>(WALLET_ENDPOINT)
   },
 
   topUp: (data: TopUpRequest): Promise<ApiResponse<TopUpResponse>> => {
-    return apiClient.post<ApiResponse<TopUpResponse>>(`${WALLET_ENDPOINT}/top-up`, data)
+    return apiClient.post<ApiResponse<TopUpResponse>>(`${WALLET_ENDPOINT}/topup`, data)
   },
 
   verifyTopUp: (data: VerifyTopUpRequest): Promise<ApiResponse<null>> => {
-    return apiClient.post<ApiResponse<null>>(`${WALLET_ENDPOINT}/verify-top-up`, data)
+    return apiClient.post<ApiResponse<null>>(`${WALLET_ENDPOINT}/topup/verify`, data)
   },
 
   getTransactions: (params: { page?: number; size?: number } = {}): Promise<ApiResponse<PaginatedData<WalletTransaction>>> => {

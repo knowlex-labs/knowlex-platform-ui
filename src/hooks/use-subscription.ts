@@ -20,12 +20,11 @@ export function useSubscription() {
     try {
       setIsLoading(true)
       setError(null)
-      const [subRes, usageRes] = await Promise.all([
-        subscriptionApi.getCurrentSubscription(),
-        subscriptionApi.getUsage(),
-      ])
-      setSubscription(subRes.data)
-      setUsage(usageRes.data)
+      const subRes = await subscriptionApi.getCurrentSubscription()
+      const raw = subRes.data as Subscription & { usage?: SubscriptionUsage }
+      setSubscription(raw)
+      // Usage is embedded in the subscription response — no separate API call needed
+      setUsage(raw.usage ?? null)
     } catch (err) {
       // No subscription is a valid state, not an error for display
       setSubscription(null)
