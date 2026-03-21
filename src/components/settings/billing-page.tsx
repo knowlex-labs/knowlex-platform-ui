@@ -311,7 +311,8 @@ export function BillingPage() {
   )
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
+      <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Billing</h2>
       {/* Trial banner */}
       {isTrialing && subscription.trialEndDate && (
         <div className="flex items-center gap-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
@@ -323,64 +324,88 @@ export function BillingPage() {
         </div>
       )}
 
-      {/* Current plan card */}
-      <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold text-kx-primary-900">
-              {subscription.planDisplayName ?? subscription.planName}
-            </h3>
-            <span
-              className={cn(
-                'inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
-                STATUS_BADGE_COLORS[subscription.status]
-              )}
-            >
-              {STATUS_DISPLAY_LABEL[subscription.status] ?? subscription.status}
+      {/* Bento row: Plan card + Usage side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Current plan card */}
+        <div className="bg-kx-card border border-kx-card-border rounded-lg p-6 flex flex-col">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h3 className="text-lg font-semibold text-kx-primary-900">
+                {subscription.planDisplayName ?? subscription.planName}
+              </h3>
+              <span
+                className={cn(
+                  'inline-block mt-1 px-2.5 py-0.5 rounded-full text-xs font-medium',
+                  STATUS_BADGE_COLORS[subscription.status]
+                )}
+              >
+                {STATUS_DISPLAY_LABEL[subscription.status] ?? subscription.status}
+              </span>
+            </div>
+            <span className="text-sm text-ledger-gray-500 capitalize">
+              {subscription.billingCycle.toLowerCase()} billing
             </span>
           </div>
-          <span className="text-sm text-ledger-gray-500 capitalize">
-            {subscription.billingCycle.toLowerCase()} billing
-          </span>
-        </div>
 
-        {(subscription.currentPeriodStart || subscription.cancelledAt) && (
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            {subscription.currentPeriodStart && (
-              <div>
-                <p className="text-ledger-gray-500">Current period</p>
-                <p className="text-kx-primary-900 font-medium">
-                  {formatDate(subscription.currentPeriodStart)} — {formatDate(subscription.currentPeriodEnd!)}
-                </p>
-              </div>
-            )}
-            {subscription.cancelledAt && (
-              <div>
-                <p className="text-ledger-gray-500">Cancelled on</p>
-                <p className="text-red-600 font-medium">{formatDate(subscription.cancelledAt)}</p>
-              </div>
+          {(subscription.currentPeriodStart || subscription.cancelledAt) && (
+            <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+              {subscription.currentPeriodStart && (
+                <div>
+                  <p className="text-ledger-gray-500">Current period</p>
+                  <p className="text-kx-primary-900 font-medium">
+                    {formatDate(subscription.currentPeriodStart)} — {formatDate(subscription.currentPeriodEnd!)}
+                  </p>
+                </div>
+              )}
+              {subscription.cancelledAt && (
+                <div>
+                  <p className="text-ledger-gray-500">Cancelled on</p>
+                  <p className="text-red-600 font-medium">{formatDate(subscription.cancelledAt)}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Invoice + Cancel row */}
+          <div className="flex items-center justify-between mt-auto pt-4 border-t border-kx-card-border">
+            <button
+              onClick={handleDownloadInvoice}
+              disabled={isDownloading}
+              className="flex items-center gap-1 text-xs text-kx-primary-600 hover:text-kx-primary-800 hover:underline transition-colors disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {isDownloading ? 'Opening...' : 'View Invoice'}
+            </button>
+            {canCancel && (
+              <button
+                onClick={() => setShowCancelDialog(true)}
+                className="text-xs text-red-500 hover:text-red-700 hover:underline transition-colors"
+              >
+                Cancel Subscription
+              </button>
             )}
           </div>
-        )}
-      </div>
+        </div>
 
-      {/* Invoice + Cancel row */}
-      <div className="flex items-center justify-between px-1">
-        <button
-          onClick={handleDownloadInvoice}
-          disabled={isDownloading}
-          className="flex items-center gap-1 text-xs text-kx-primary-600 hover:text-kx-primary-800 hover:underline transition-colors disabled:opacity-50"
-        >
-          <Download className="h-3.5 w-3.5" />
-          {isDownloading ? 'Opening...' : 'View Invoice'}
-        </button>
-        {canCancel && (
-          <button
-            onClick={() => setShowCancelDialog(true)}
-            className="text-xs text-red-500 hover:text-red-700 hover:underline transition-colors"
-          >
-            Cancel Subscription
-          </button>
+        {/* Usage section */}
+        {usage && (
+          <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
+            <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Usage</h3>
+            <div className="space-y-4">
+              <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="Resets weekly" />
+              <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="Resets weekly" />
+              <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} period="Plan limit" />
+              <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} period="Plan limit" />
+              <UsageBar
+                label="Storage"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                used={usage.storageMbUsed ?? Math.round((usage as any).storageUsedBytes / (1024 * 1024))}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                limit={usage.storageMbLimit ?? Math.round((usage as any).storageLimitBytes / (1024 * 1024))}
+                unit="MB"
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -414,29 +439,7 @@ export function BillingPage() {
         </div>
       )}
 
-      {/* Usage section */}
-      {usage && (
-        <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
-          <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Usage</h3>
-          <div className="space-y-4">
-            <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="Resets weekly" />
-            <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="Resets weekly" />
-            <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} period="Plan limit" />
-            <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} period="Plan limit" />
-            <UsageBar
-              label="Storage"
-              // API returns bytes; fall back to MB fields if backend is normalised
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              used={usage.storageMbUsed ?? Math.round((usage as any).storageUsedBytes / (1024 * 1024))}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              limit={usage.storageMbLimit ?? Math.round((usage as any).storageLimitBytes / (1024 * 1024))}
-              unit="MB"
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Inline plan selector */}
+      {/* Inline plan selector — full width */}
       <PlanSelector
         currentPlanName={subscription.planName}
         currentBillingCycle={subscription.billingCycle}

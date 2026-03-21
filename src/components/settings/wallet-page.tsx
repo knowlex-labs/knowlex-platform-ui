@@ -81,64 +81,68 @@ export function WalletPage() {
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
+      <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Wallet</h2>
       {error && (
         <div className="rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 text-sm text-red-700 dark:text-red-400">
           {error}
         </div>
       )}
 
-      {/* Balance card */}
-      <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
-        <div className="flex items-center gap-3 mb-2">
-          <Wallet className="h-5 w-5 text-kx-primary-600" />
-          <span className="text-sm text-ledger-gray-500">Wallet Balance</span>
+      {/* Bento row: Balance + Top-up side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Balance card */}
+        <div className="bg-kx-card border border-kx-card-border rounded-lg p-6 flex flex-col justify-center">
+          <div className="flex items-center gap-3 mb-2">
+            <Wallet className="h-5 w-5 text-kx-primary-600" />
+            <span className="text-sm text-ledger-gray-500">Wallet Balance</span>
+          </div>
+          <p className="text-3xl font-bold text-kx-primary-900">
+            {balance ? formatCurrency(balance.balance) : formatCurrency(0)}
+          </p>
         </div>
-        <p className="text-3xl font-bold text-kx-primary-900">
-          {balance ? formatCurrency(balance.balance) : formatCurrency(0)}
-        </p>
-      </div>
 
-      {/* Top-up section */}
-      <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
-        <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Add Funds</h3>
+        {/* Top-up section */}
+        <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
+          <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Add Funds</h3>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {PRESET_AMOUNTS.map((amount) => (
-            <button
-              key={amount}
-              onClick={() => handlePresetClick(amount)}
-              className={cn(
-                'px-4 py-2 rounded-lg text-sm font-medium border transition-colors',
-                selectedPreset === amount
-                  ? 'border-kx-primary-600 bg-kx-primary-50 text-kx-primary-700 dark:bg-kx-primary-900/20'
-                  : 'border-kx-card-border text-ledger-gray-600 hover:border-kx-primary-400 hover:text-kx-primary-600'
-              )}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {PRESET_AMOUNTS.map((amount) => (
+              <button
+                key={amount}
+                onClick={() => handlePresetClick(amount)}
+                className={cn(
+                  'px-4 py-2 rounded-lg text-sm font-medium border transition-colors',
+                  selectedPreset === amount
+                    ? 'border-kx-primary-600 bg-kx-primary-50 text-kx-primary-700 dark:bg-kx-primary-900/20'
+                    : 'border-kx-card-border text-ledger-gray-600 hover:border-kx-primary-400 hover:text-kx-primary-600'
+                )}
+              >
+                {formatCurrency(amount)}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex gap-3">
+            <Input
+              type="number"
+              min={MIN_AMOUNT}
+              placeholder={`Custom amount (min ${formatCurrency(MIN_AMOUNT)})`}
+              value={customAmount}
+              onChange={(e) => handleCustomChange(e.target.value)}
+              className="flex-1"
+            />
+            <Button
+              onClick={handleTopUp}
+              disabled={isToppingUp || effectiveAmount < MIN_AMOUNT}
             >
-              {formatCurrency(amount)}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-3">
-          <Input
-            type="number"
-            min={MIN_AMOUNT}
-            placeholder={`Custom amount (min ${formatCurrency(MIN_AMOUNT)})`}
-            value={customAmount}
-            onChange={(e) => handleCustomChange(e.target.value)}
-            className="flex-1"
-          />
-          <Button
-            onClick={handleTopUp}
-            disabled={isToppingUp || effectiveAmount < MIN_AMOUNT}
-          >
-            {isToppingUp ? 'Processing...' : 'Add Funds'}
-          </Button>
+              {isToppingUp ? 'Processing...' : 'Add Funds'}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Transaction history */}
+      {/* Transaction history — full width */}
       <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
         <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Transaction History</h3>
 

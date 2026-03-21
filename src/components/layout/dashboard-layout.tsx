@@ -60,8 +60,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </Sheet>
 
       {/* Main Content */}
-      <main className={`min-h-screen w-auto overflow-x-hidden transition-[margin] duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-64'}`}>
-        {/* Mobile top padding to account for fixed header */}
+      <main className={`min-h-screen w-auto overflow-x-hidden transition-[margin] duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'}`}>
         <div className="pt-14 md:pt-0">
           <div className={isFullBleed ? 'md:pt-2' : 'p-4 md:p-8'}>
             {children}

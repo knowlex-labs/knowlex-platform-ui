@@ -65,7 +65,7 @@ export function DashboardHome() {
       {/* Header: greeting + quick actions + bell */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
+          <h1 className="text-lg md:text-xl font-serif font-semibold text-kx-primary-900">
             {greeting}, {displayName}
           </h1>
           <p className="text-sm text-ledger-gray-500 mt-1">
