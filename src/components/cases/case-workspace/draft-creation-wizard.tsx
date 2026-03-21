@@ -173,7 +173,7 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
     const request: CreateDraftRequest = {
       title,
       document_type: config.documentType,
-      input_mode: hasFiles && !hasText ? 'file' : 'freetext',
+      input_mode: hasFiles ? 'file' : 'freetext',
       subtype: config.subtype,
       freetext_body: hasText ? body : undefined,
       file_ids: hasFiles ? Array.from(localSourceIds) : undefined,
