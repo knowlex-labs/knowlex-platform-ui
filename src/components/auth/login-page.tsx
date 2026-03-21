@@ -7,18 +7,6 @@ import { useAuth } from '@/contexts/auth-context'
 import { AuthLayout } from './auth-layout'
 import { AlertCircle } from 'lucide-react'
 
-declare global {
-  interface Window {
-    google?: {
-      accounts: {
-        id: {
-          initialize: (config: any) => void
-          renderButton: (element: HTMLElement, config: any) => void
-        }
-      }
-    }
-  }
-}
 
 function GoogleIcon() {
   return (
