@@ -35,15 +35,16 @@ export function CaseTableRow({ caseItem, onClick }: CaseTableRowProps) {
     <button
       onClick={onClick}
       className={cn(
-        'w-full grid grid-cols-12 gap-4 px-4 py-4 text-left',
-        'border-b border-ledger-gray-100 last:border-b-0',
-        'hover:bg-ledger-gray-50 transition-colors',
-        'focus:outline-none focus:bg-ledger-gray-100'
+        'w-full grid grid-cols-12 gap-4 px-4 py-4 text-left bg-kx-card',
+        'border-b border-kx-card-border last:border-b-0',
+        'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-50 transition-all duration-150',
+        'border-l-2 border-l-transparent hover:border-l-kx-primary-500',
+        'focus:outline-none'
       )}
     >
       {/* Case Title & Number */}
       <div className="col-span-4">
-        <p className="text-sm font-medium text-kx-primary-900 truncate">
+        <p className="text-sm font-medium text-kx-text-primary truncate">
           {caseItem.caseTitle || 'Untitled Case'}
         </p>
         <code className="text-xs font-mono text-ledger-gray-500 mt-0.5 block">

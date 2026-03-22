@@ -174,9 +174,9 @@ export function CaseList() {
                   <p className="text-sm text-ledger-gray-500">No cases found</p>
                 </div>
               ) : (
-                <div className="bg-kx-card rounded-lg border border-kx-card-border overflow-hidden">
+                <div className="border border-kx-card-border rounded-lg overflow-hidden shadow-sm">
                   {/* Table header */}
-                  <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-ledger-gray-50 dark:bg-ledger-gray-800 border-b border-ledger-gray-200 text-xs font-semibold text-ledger-gray-500 uppercase tracking-wide">
+                  <div className="grid grid-cols-12 gap-4 px-4 py-3 bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border text-xs font-medium text-ledger-gray-600 uppercase tracking-wider">
                     <div className="col-span-4">Case</div>
                     <div className="col-span-2">Client</div>
                     <div className="col-span-2">Status</div>
