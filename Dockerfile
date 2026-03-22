@@ -34,7 +34,7 @@ FROM nginx:1.27-alpine AS runner
 
 # GKE/non-root: nginx listens on 8080 (unprivileged port)
 RUN sed -i 's/user  nginx;//g' /etc/nginx/nginx.conf && \
-    sed -i 's|/var/run/nginx.pid|/tmp/nginx.pid|g' /etc/nginx/nginx.conf && \
+    sed -i 's|pid[[:space:]]*/[^;]*nginx\.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf && \
     chown -R nginx:nginx /var/cache/nginx /var/log/nginx /usr/share/nginx/html && \
     chmod -R 755 /var/cache/nginx
 
