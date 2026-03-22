@@ -1,5 +1,17 @@
 import { apiClient } from './api-client'
+import { config } from '@/config/env'
 import type { CaseDocument, CaseDocumentStatus, ChatResponse } from '@/types'
+
+const API_BASE_URL = config.apiBaseUrl
+
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {}
+  const token = localStorage.getItem('auth_token')
+  if (token) headers['Authorization'] = `Bearer ${token}`
+  const userId = localStorage.getItem('auth_user_id')
+  if (userId) headers['x-user-id'] = userId
+  return headers
+}
 
 // API response wrapper type
 interface ApiResponse<T> {
@@ -56,6 +68,8 @@ interface CreateDocumentResponse {
   jobStatus: string
   indexingStatus: string
   filePath: string | null
+  downloadUrl?: string | null
+  signedUrl?: string | null
 }
 
 // Map backend chat response to frontend ChatResponse
@@ -269,5 +283,91 @@ export const workspaceApi = {
     await apiClient.delete<ApiResponse<null>>(
       `/api/v1/cases/${caseId}/documents/${documentId}`
     )
+  },
+
+  /**
+   * Upload a new document using multipart form data
+   * POST /api/v1/documents/upload with FormData (file + caseId)
+   * Returns the created document's id
+   */
+  async uploadDocument(caseId: string, file: File): Promise<{ id: string }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('caseId', caseId)
+
+    const response = await fetch(`${API_BASE_URL}/api/v1/documents/upload`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: formData,
+    })
+
+    if (!response.ok) {
+      let message = `Upload failed: ${response.status}`
+      try {
+        const data = await response.json()
+        if (data?.message) message = data.message
+      } catch { /* ignore */ }
+      throw new Error(message)
+    }
+
+    const data = await response.json()
+    return data.data
+  },
+
+  /**
+   * Fetch the text content of a document, handling both encrypted (downloadUrl) and direct (signedUrl) cases.
+   * Falls back to POST /presigned-url/download if neither field is set.
+   */
+  async fetchDocumentContent(doc: { id: string; signedUrl?: string | null; downloadUrl?: string | null }): Promise<string> {
+    if (doc.downloadUrl) {
+      const res = await fetch(`${API_BASE_URL}${doc.downloadUrl}`, { headers: getAuthHeaders() })
+      if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
+      return res.text()
+    }
+
+    if (doc.signedUrl) {
+      const res = await fetch(doc.signedUrl)
+      if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
+      return res.text()
+    }
+
+    // Fallback: get presigned URL from backend
+    const response = await apiClient.post<ApiResponse<{ downloadUrl: string; storageUrl: string }>>(
+      '/api/v1/presigned-url/download',
+      { documentId: doc.id }
+    )
+    const presignedUrl = response.data.downloadUrl
+    if (!presignedUrl) throw new Error('No download URL available')
+    const res = await fetch(presignedUrl)
+    if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
+    return res.text()
+  },
+
+  /**
+   * Resolve a usable URL for viewing/downloading a document.
+   * - If doc.downloadUrl is set: fetch with auth and return a blob URL (for encrypted docs)
+   * - If doc.signedUrl is set: return it directly (legacy/judgments)
+   */
+  async resolveDocumentUrl(doc: { id: string; signedUrl?: string | null; downloadUrl?: string | null }): Promise<string> {
+    if (doc.downloadUrl) {
+      const res = await fetch(`${API_BASE_URL}${doc.downloadUrl}`, {
+        headers: getAuthHeaders(),
+      })
+      if (!res.ok) throw new Error(`Failed to download document: ${res.status}`)
+      const blob = await res.blob()
+      return URL.createObjectURL(blob)
+    }
+
+    if (doc.signedUrl) {
+      return doc.signedUrl
+    }
+
+    // Fallback: authenticated download endpoint
+    const res = await fetch(`${API_BASE_URL}/api/v1/documents/${doc.id}/download`, {
+      headers: getAuthHeaders(),
+    })
+    if (!res.ok) throw new Error(`Failed to download document: ${res.status}`)
+    const blob = await res.blob()
+    return URL.createObjectURL(blob)
   },
 }

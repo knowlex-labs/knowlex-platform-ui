@@ -23,7 +23,7 @@ export function useSummary(caseId: string) {
     pollAttemptsRef.current = 0
   }, [])
 
-  type RawDoc = { id: string; status?: string; jobStatus?: string; draft_body?: string; content?: string; signedUrl?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }
+  type RawDoc = { id: string; status?: string; jobStatus?: string; draft_body?: string; content?: string; signedUrl?: string; downloadUrl?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }
 
   const mapDoc = (raw: RawDoc, fetchedContent?: string): CaseSummary => {
     const rawStatus = (raw.status ?? raw.jobStatus ?? 'pending').toLowerCase()
@@ -57,10 +57,13 @@ export function useSummary(caseId: string) {
       const isCompleted = rawStatus === 'completed'
 
       let fetchedContent: string | undefined
-      if (isCompleted && raw.signedUrl) {
+      if (isCompleted && (raw.downloadUrl ?? raw.signedUrl)) {
         try {
-          const res = await fetch(raw.signedUrl)
-          fetchedContent = await res.text()
+          fetchedContent = await workspaceApi.fetchDocumentContent({
+            id: raw.id,
+            downloadUrl: raw.downloadUrl,
+            signedUrl: raw.signedUrl,
+          })
         } catch {
           // fall back to empty string
         }

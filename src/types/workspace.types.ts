@@ -27,6 +27,7 @@ export interface CaseDocument {
   filePath?: string
   storageUrl?: string
   signedUrl?: string
+  downloadUrl?: string
 }
 
 export interface ChatResponse {

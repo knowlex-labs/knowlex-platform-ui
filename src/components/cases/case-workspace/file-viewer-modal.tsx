@@ -23,21 +23,15 @@ export function FileViewerModal({ source, onClose }: FileViewerModalProps) {
   useEffect(() => {
     if (!source) return
 
-    // Use signedUrl from document response, fallback to fetching download URL
     setIsLoading(true)
     setError(null)
-    if (source.signedUrl) {
-      setDownloadUrl(source.signedUrl)
-      setIsLoading(false)
-    } else {
-      workspaceApi.getDownloadUrl(source.id)
-        .then(setDownloadUrl)
-        .catch((err) => {
-          console.error('Failed to get download URL:', err)
-          setError('Unable to load document. Please try again.')
-        })
-        .finally(() => setIsLoading(false))
-    }
+    workspaceApi.resolveDocumentUrl(source)
+      .then(setDownloadUrl)
+      .catch((err) => {
+        console.error('Failed to get download URL:', err)
+        setError('Unable to load document. Please try again.')
+      })
+      .finally(() => setIsLoading(false))
   }, [source?.id])
 
   if (!source) return null

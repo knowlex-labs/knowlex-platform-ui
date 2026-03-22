@@ -137,7 +137,7 @@ export function JudgmentItem({
 
   const handleOpenInNewTab = async () => {
     try {
-      const url = judgment.signedUrl || await workspaceApi.getDownloadUrl(judgment.id)
+      const url = await workspaceApi.resolveDocumentUrl(judgment)
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err) {
       console.error('Failed to get download URL:', err)
@@ -151,7 +151,7 @@ export function JudgmentItem({
 
     setIsLoadingView(true)
     try {
-      const url = judgment.signedUrl || await workspaceApi.getDownloadUrl(judgment.id)
+      const url = await workspaceApi.resolveDocumentUrl(judgment)
       onOpenInTab(judgment, url)
     } catch (err) {
       console.error('Failed to get download URL:', err)

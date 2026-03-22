@@ -89,11 +89,7 @@ export function DocumentItem({ document }: DocumentItemProps) {
 
     setIsDownloading(true)
     try {
-      let url = document.signedUrl || document.storageUrl
-
-      if (!url) {
-        url = await workspaceApi.getDownloadUrl(document.id)
-      }
+      const url = await workspaceApi.resolveDocumentUrl(document)
 
       // Trigger download - use window.document to avoid shadowing the prop
       const link = window.document.createElement('a')

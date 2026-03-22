@@ -18,9 +18,14 @@ function normalizeStatus(status: string): 'pending' | 'completed' | 'failed' {
   return 'pending'
 }
 
-// If draft_body is empty but we have a storage key, fetch content from S3 via download URL
-async function resolveDraftBody(draft_body: string, documentId: string, _documentType?: string): Promise<string> {
-  // If draft_body is a URL, fetch from it directly
+// If draft_body is empty, fetch content using downloadUrl (auth) or signedUrl (direct)
+async function resolveDraftBody(
+  draft_body: string,
+  documentId: string,
+  _documentType?: string,
+  docUrls?: { downloadUrl?: string | null; signedUrl?: string | null }
+): Promise<string> {
+  // If draft_body is a URL, fetch from it directly (legacy: unencrypted presigned URL in body)
   if (draft_body && draft_body.startsWith('http')) {
     try {
       const response = await fetch(draft_body)
@@ -30,14 +35,14 @@ async function resolveDraftBody(draft_body: string, documentId: string, _documen
     }
   }
 
-  // If draft_body is empty, try to get download URL from S3
+  // If draft_body is empty, fetch via authenticated or presigned URL
   if (!draft_body) {
     try {
-      const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(documentId)
-      if (downloadUrl) {
-        const response = await fetch(downloadUrl)
-        return await response.text()
-      }
+      return await workspaceApi.fetchDocumentContent({
+        id: documentId,
+        downloadUrl: docUrls?.downloadUrl,
+        signedUrl: docUrls?.signedUrl,
+      })
     } catch {
       return ''
     }
@@ -63,8 +68,11 @@ function mapListItemToDraft(item: DraftListItem, resolvedContent?: string): Draf
 }
 
 // Map a list item, resolving presigned URL content if needed
-async function mapListItemToDraftAsync(item: DraftListItem): Promise<Draft> {
-  const content = await resolveDraftBody(item.draft_body || '', item.id, item.document_type)
+async function mapListItemToDraftAsync(
+  item: DraftListItem,
+  docUrls?: { downloadUrl?: string | null; signedUrl?: string | null }
+): Promise<Draft> {
+  const content = await resolveDraftBody(item.draft_body || '', item.id, item.document_type, docUrls)
   return mapListItemToDraft(item, content)
 }
 
@@ -139,14 +147,14 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         const normalizedStatus = normalizeStatus(jobStatus)
 
         if (normalizedStatus === 'completed') {
-          // Fetch content via presigned download URL
+          // Fetch content via authenticated or presigned URL
           let resolvedContent = ''
           try {
-            const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(info.documentId)
-            if (downloadUrl) {
-              const response = await fetch(downloadUrl)
-              resolvedContent = await response.text()
-            }
+            resolvedContent = await workspaceApi.fetchDocumentContent({
+              id: info.documentId,
+              downloadUrl: doc.downloadUrl,
+              signedUrl: doc.signedUrl,
+            })
           } catch {
             // Content fetch failed, leave empty
           }
@@ -168,7 +176,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
             completed_at: null,
-          })
+          }, { downloadUrl: doc.downloadUrl, signedUrl: doc.signedUrl })
           setDrafts((prev) =>
             prev.map((d) => (d.id === info.draftId ? resolvedDraft : d))
           )
@@ -280,16 +288,17 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     if (!draft || draft.content) return draft // Already has content
 
     try {
-      const { downloadUrl } = await workspaceApi.getPresignedDownloadUrl(id)
-      if (downloadUrl) {
-        const response = await fetch(downloadUrl)
-        const content = await response.text()
-        const updated = { ...draft, content }
-        setDrafts((prev) =>
-          prev.map((d) => d.id === id ? { ...d, content } : d)
-        )
-        return updated
-      }
+      const caseDoc = documentsRef.current?.find((d) => d.id === id)
+      const content = await workspaceApi.fetchDocumentContent({
+        id,
+        downloadUrl: caseDoc?.downloadUrl,
+        signedUrl: caseDoc?.signedUrl,
+      })
+      const updated = { ...draft, content }
+      setDrafts((prev) =>
+        prev.map((d) => d.id === id ? { ...d, content } : d)
+      )
+      return updated
     } catch {
       console.error('Failed to fetch draft content:', id)
     }

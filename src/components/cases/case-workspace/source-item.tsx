@@ -140,7 +140,7 @@ export function SourceItem({
 
   const handleOpenInNewTab = async () => {
     try {
-      const url = source.signedUrl || await workspaceApi.getDownloadUrl(source.id)
+      const url = await workspaceApi.resolveDocumentUrl(source)
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err) {
       console.error('Failed to get download URL:', err)
@@ -156,7 +156,7 @@ export function SourceItem({
 
     setIsLoadingView(true)
     try {
-      const url = source.signedUrl || await workspaceApi.getDownloadUrl(source.id)
+      const url = await workspaceApi.resolveDocumentUrl(source)
       onOpenInTab(source, url)
     } catch (err) {
       console.error('Failed to get download URL:', err)

@@ -206,14 +206,10 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
       setError(null)
 
       try {
-        // Step 1: Get presigned URL (backend creates document automatically)
-        const { documentId, uploadUrl } =
-          await workspaceApi.getPresignedUploadUrl(caseId, file.name, file.size)
+        // Step 1: Upload via multipart (backend handles storage)
+        const { id: documentId } = await workspaceApi.uploadDocument(caseId, file)
 
-        // Step 2: Upload to S3
-        await workspaceApi.uploadFileToS3(uploadUrl, file)
-
-        // Step 3: Fetch the newly created document and add to state
+        // Step 2: Fetch the newly created document and add to state
         const newDoc = await workspaceApi.getDocument(caseId, documentId)
         setDocuments((prev) => [...prev, newDoc as unknown as CaseDocument])
         setSelectedSourceIds((prev) => new Set([...prev, documentId]))
