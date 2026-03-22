@@ -83,7 +83,7 @@ function formatClientDetails(c: Client): string {
   return parts.join(', ')
 }
 
-export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: DraftCreationWizardProps) {
+export function DraftCreationWizard({ sources, onGenerate, onCancel }: DraftCreationWizardProps) {
   const [step, setStep] = useState<'select' | 'form'>('select')
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formData, setFormData] = useState<TemplateFormData>({})
