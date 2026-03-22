@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Select } from '@/components/ui/select'
 import { caseApi, clientApi } from '@/services/api'
 import { mapBackendClient } from '@/services/mappers'
 import { useCaseTypes } from '@/hooks/use-case-types'
+import { AddClientModal } from '@/components/clients/add-client-modal'
 import type { BackendCaseType, BackendCaseStatus } from '@/types'
 
 interface AddCaseModalProps {
@@ -62,6 +63,8 @@ export function AddCaseModal({
   const [error, setError] = useState<string | null>(null)
   const [clients, setClients] = useState<ClientOption[]>([])
   const { caseTypes } = useCaseTypes()
+
+  const [showAddClientModal, setShowAddClientModal] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -147,6 +150,7 @@ export function AddCaseModal({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -295,6 +299,15 @@ export function AddCaseModal({
               ))}
               <option value="other">Other (no client)</option>
             </Select>
+            <button
+              type="button"
+              onClick={() => setShowAddClientModal(true)}
+              disabled={isSubmitting}
+              className="flex items-center gap-1 text-xs text-kx-primary-600 dark:text-kx-primary-400 hover:underline disabled:opacity-50"
+            >
+              <Plus className="h-3 w-3" />
+              Add new client
+            </button>
           </div>
 
           <DialogFooter className="pt-4">
@@ -320,5 +333,16 @@ export function AddCaseModal({
         </form>
       </DialogContent>
     </Dialog>
+
+    <AddClientModal
+      open={showAddClientModal}
+      onOpenChange={setShowAddClientModal}
+      onSuccess={() => {}}
+      onSuccessWithClient={(client) => {
+        setClients((prev) => [...prev, client])
+        setFormData((prev) => ({ ...prev, clientId: client.id }))
+      }}
+    />
+    </>
   )
 }

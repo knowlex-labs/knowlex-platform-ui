@@ -11,6 +11,8 @@ import { cn } from '@/lib/utils'
 import type { DraftTemplate, TemplateFormData, CaseDocument, Client } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
 import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/document-types'
+import { clientApi } from '@/services/api'
+import { mapBackendClient } from '@/services/mappers'
 
 // Maps each template to its API document_type and optional subtype
 export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
@@ -86,21 +88,19 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
   const [formData, setFormData] = useState<TemplateFormData>({})
   const [localSourceIds, setLocalSourceIds] = useState<Set<string>>(new Set())
-  const [useClientFor, setUseClientFor] = useState<Record<string, boolean>>({})
   const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false)
   const sourceDropdownRef = useRef<HTMLDivElement>(null)
+  const [allClients, setAllClients] = useState<{ id: string; name: string; details: string }[]>([])
+  const [selectedClientIdFor, setSelectedClientIdFor] = useState<Record<string, string>>({})
 
   // Initialize form when template changes
   useEffect(() => {
     if (selectedTemplate) {
       const initial: TemplateFormData = {}
-      const clientDefaults: Record<string, boolean> = {}
+      const initialClientIds: Record<string, string> = {}
       selectedTemplate.fields.forEach((field) => {
         if (field.type === 'sources') {
           initial[field.id] = []
-        } else if (field.type === 'client-select' && client) {
-          initial[field.id] = formatClientDetails(client)
-          clientDefaults[field.id] = true
         } else if (field.type === 'select' && field.options?.length) {
           initial[field.id] = field.options[0].value
         } else {
@@ -108,10 +108,10 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
         }
       })
       setFormData(initial)
-      setUseClientFor(clientDefaults)
       setLocalSourceIds(new Set())
+      setSelectedClientIdFor(initialClientIds)
     }
-  }, [selectedTemplate, client])
+  }, [selectedTemplate])
 
   // Close source dropdown when clicking outside
   useEffect(() => {
@@ -124,6 +124,19 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [sourceDropdownOpen])
+
+  // Fetch all clients when moving to form step
+  useEffect(() => {
+    if (step !== 'form') return
+    clientApi.getAll({ page: 0, size: 100 }).then((res) => {
+      if (res.status === 'success') {
+        setAllClients(res.data.content.map((c) => {
+          const mapped = mapBackendClient(c)
+          return { id: mapped.id, name: mapped.name, details: formatClientDetails(mapped) }
+        }))
+      }
+    }).catch(() => {})
+  }, [step])
 
   const handleFieldChange = (fieldId: string, value: string) => {
     setFormData((prev) => ({ ...prev, [fieldId]: value }))
@@ -392,68 +405,48 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
                     }
 
                     if (field.type === 'client-select') {
-                      const isUsingClient = useClientFor[field.id] ?? false
+                      const selectedId = selectedClientIdFor[field.id] ?? ''
                       return (
                         <div key={field.id} className={cn('space-y-2', colSpan)}>
                           <Label htmlFor={field.id}>
                             {field.label}
                             {isRequired && <span className="text-red-500 ml-1">*</span>}
                           </Label>
-                          {client ? (
-                            <div className="space-y-2">
-                              <div className="flex flex-col gap-1.5">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name={`client-select-${field.id}`}
-                                    checked={isUsingClient}
-                                    onChange={() => {
-                                      setUseClientFor((prev) => ({ ...prev, [field.id]: true }))
-                                      handleFieldChange(field.id, formatClientDetails(client))
-                                    }}
-                                    className="h-3.5 w-3.5 text-kx-primary-600 focus:ring-kx-primary-500"
-                                  />
-                                  <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200">
-                                    Use client: <span className="font-medium">{client.name}</span>
-                                  </span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input
-                                    type="radio"
-                                    name={`client-select-${field.id}`}
-                                    checked={!isUsingClient}
-                                    onChange={() => {
-                                      setUseClientFor((prev) => ({ ...prev, [field.id]: false }))
-                                      handleFieldChange(field.id, '')
-                                    }}
-                                    className="h-3.5 w-3.5 text-kx-primary-600 focus:ring-kx-primary-500"
-                                  />
-                                  <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200">Enter manually</span>
-                                </label>
-                              </div>
-                              {isUsingClient ? (
-                                <div className="rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-600 bg-ledger-gray-50 dark:bg-ledger-gray-800 px-3 py-2 text-sm text-kx-primary-800 dark:text-ledger-gray-200">
-                                  {formatClientDetails(client)}
-                                </div>
-                              ) : (
-                                <Textarea
-                                  id={field.id}
-                                  value={(formData[field.id] as string) || ''}
-                                  onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                                  placeholder="AI will extract from documents if left blank"
-                                  className="min-h-[100px] resize-none"
-                                />
+                          <div className="space-y-2">
+                            <select
+                              value={selectedId}
+                              onChange={(e) => {
+                                const id = e.target.value
+                                setSelectedClientIdFor((prev) => ({ ...prev, [field.id]: id }))
+                                if (id === '') {
+                                  handleFieldChange(field.id, '')
+                                } else {
+                                  const found = allClients.find((c) => c.id === id)
+                                  if (found) handleFieldChange(field.id, found.details)
+                                }
+                              }}
+                              className={cn(
+                                'flex h-10 w-full rounded border border-ledger-gray-300 dark:border-ledger-gray-600 bg-ledger-white dark:bg-ledger-gray-900 px-3 py-2',
+                                'text-sm font-sans text-kx-primary-900 dark:text-ledger-gray-100',
+                                'focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-1',
                               )}
-                            </div>
-                          ) : (
+                            >
+                              <option value="">Select a client...</option>
+                              {allClients.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
                             <Textarea
                               id={field.id}
                               value={(formData[field.id] as string) || ''}
-                              onChange={(e) => handleFieldChange(field.id, e.target.value)}
-                              placeholder="AI will extract from documents if left blank"
-                              className="min-h-[100px] resize-none"
+                              onChange={(e) => {
+                                setSelectedClientIdFor((prev) => ({ ...prev, [field.id]: '' }))
+                                handleFieldChange(field.id, e.target.value)
+                              }}
+                              placeholder={field.placeholder || 'AI will extract from documents if left blank'}
+                              className="min-h-[80px] resize-none dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100 dark:placeholder:text-ledger-gray-500"
                             />
-                          )}
+                          </div>
                         </div>
                       )
                     }
@@ -495,7 +488,7 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
                             value={(formData[field.id] as string) || ''}
                             onChange={(e) => handleFieldChange(field.id, e.target.value)}
                             placeholder="AI will extract from documents if left blank"
-                            className="min-h-[100px] resize-none"
+                            className="min-h-[100px] resize-none dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100 dark:placeholder:text-ledger-gray-500"
                           />
                         </div>
                       )
@@ -513,6 +506,7 @@ export function DraftCreationWizard({ sources, client, onGenerate, onCancel }: D
                           value={(formData[field.id] as string) || ''}
                           onChange={(e) => handleFieldChange(field.id, e.target.value)}
                           placeholder={field.placeholder}
+                          className="dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100 dark:placeholder:text-ledger-gray-500"
                         />
                       </div>
                     )

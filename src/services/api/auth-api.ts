@@ -15,6 +15,7 @@ export interface RegisterRequest {
   lastName?: string
   mobileNumber?: string
   city?: string
+  bench?: string
 }
 
 export interface LoginRequest {

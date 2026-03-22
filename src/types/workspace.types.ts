@@ -215,7 +215,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter notice title' },
       { id: 'sender', label: 'Sender Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'recipient', label: 'Recipient Details', type: 'textarea', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'recipient', label: 'Recipient Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'body', label: 'Notice Content', type: 'textarea', required: false, placeholder: 'Enter initial content (optional)' },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
     ],
@@ -252,7 +252,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter application title' },
       { id: 'plaintiff', label: 'Plaintiff Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'defendant', label: 'Defendant Details', type: 'textarea', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
+      { id: 'defendant', label: 'Defendant Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
       { id: 'grounds', label: 'Grounds', type: 'textarea', required: false, placeholder: 'Enter grounds for application' },
       { id: 'sources', label: 'Supporting Documents', type: 'sources', required: false },
     ],
@@ -277,7 +277,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter application title' },
       { id: 'applicant', label: 'Applicant Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
-      { id: 'opposite_party', label: 'Opposite Party / State', type: 'textarea', required: false, placeholder: 'Enter opposite party details (e.g., State of Karnataka through PSI, XYZ Police Station)' },
+      { id: 'opposite_party', label: 'Opposite Party / State', type: 'client-select', required: false, placeholder: 'Enter opposite party details (e.g., State of Karnataka through PSI, XYZ Police Station)' },
       { id: 'court_details', label: 'Court Details', type: 'text', required: false, placeholder: 'e.g., Sessions Court, Bangalore Urban District' },
       { id: 'fir_details', label: 'FIR Details', type: 'textarea', required: false, placeholder: 'FIR number, police station, date, sections invoked (e.g., FIR No. 123/2025, XYZ PS, u/s 302, 34 IPC)' },
       { id: 'facts', label: 'Brief Facts', type: 'textarea', required: false, placeholder: 'Briefly describe the facts of the case' },
@@ -301,7 +301,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter appeal title' },
       { id: 'appellant', label: 'Appellant Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
-      { id: 'respondent', label: 'Respondent Details', type: 'textarea', required: false, placeholder: 'Enter respondent details (e.g., State of Maharashtra through PP, High Court)' },
+      { id: 'respondent', label: 'Respondent Details', type: 'client-select', required: false, placeholder: 'Enter respondent details (e.g., State of Maharashtra through PP, High Court)' },
       { id: 'court_details', label: 'Court Details', type: 'text', required: false, placeholder: 'e.g., High Court of Bombay, Appellate Side' },
       { id: 'impugned_order', label: 'Impugned Order Details', type: 'textarea', required: false, placeholder: 'Details of the order/judgment being challenged — court, date, case number, conviction details' },
       { id: 'facts', label: 'Brief Facts', type: 'textarea', required: false, placeholder: 'Briefly describe the facts of the case' },

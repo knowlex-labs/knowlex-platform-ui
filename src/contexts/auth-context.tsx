@@ -63,6 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             firstName: userResponse.data.firstName,
             lastName: userResponse.data.lastName,
             phone: userResponse.data.mobileNumber,
+            bench: userResponse.data.bench,
             createdAt: new Date(userResponse.data.createdAt),
           }
 
@@ -189,7 +190,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       firstName: data.firstName,
       lastName: data.lastName,
       mobileNumber: data.mobileNumber,
-      city: data.city,
+      city: data.bench || data.city,
+      bench: data.bench,
     })
 
     // After successful registration, automatically log the user in
@@ -270,6 +272,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
   }, [login])
 
+  const updateProfile = React.useCallback(async (data: { bench?: string }) => {
+    await userApi.updateProfile(data)
+    setAuthState((prev) => prev.user
+      ? { ...prev, user: { ...prev.user, ...data } }
+      : prev
+    )
+  }, [])
+
   const logout = React.useCallback(() => {
     setAuthTokens(null, null, null)
 
@@ -286,6 +296,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     googleLogin,
     continueAsGuest,
     logout,
+    updateProfile,
     isRestoringSession,
   }
 

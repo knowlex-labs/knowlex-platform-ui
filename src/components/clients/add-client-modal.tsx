@@ -20,6 +20,7 @@ interface AddClientModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
+  onSuccessWithClient?: (client: { id: string; name: string }) => void
 }
 
 interface FormData {
@@ -38,7 +39,7 @@ const initialFormData: FormData = {
   clientType: 'INDIVIDUAL',
 }
 
-export function AddClientModal({ open, onOpenChange, onSuccess }: AddClientModalProps) {
+export function AddClientModal({ open, onOpenChange, onSuccess, onSuccessWithClient }: AddClientModalProps) {
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,6 +77,7 @@ export function AddClientModal({ open, onOpenChange, onSuccess }: AddClientModal
       }
 
       setFormData(initialFormData)
+      onSuccessWithClient?.({ id: response.data.id, name: response.data.name })
       onSuccess()
       onOpenChange(false)
     } catch (err) {

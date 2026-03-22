@@ -4,8 +4,10 @@ import { Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select } from '@/components/ui/select'
 import { useAuth } from '@/contexts/auth-context'
 import { AuthLayout } from './auth-layout'
+import { STATE_BENCH_MAP, STATES } from '@/lib/courts'
 
 function GoogleIcon() {
   return (
@@ -38,7 +40,8 @@ export function SignupPage() {
     email: '',
     firstName: '',
     lastName: '',
-    city: '',
+    state: '',
+    bench: '',
     password: '',
     confirmPassword: '',
   })
@@ -143,9 +146,13 @@ export function SignupPage() {
     }
   }, [isGoogleScriptLoaded, googleClientId, handleGoogleCallback])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+    if (name === 'state') {
+      setFormData((prev) => ({ ...prev, state: value, bench: '' }))
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }))
+    }
     setError('')
   }
 
@@ -165,7 +172,7 @@ export function SignupPage() {
     setIsLoading(true)
 
     try {
-      await signup(formData)
+      await signup({ ...formData, city: formData.bench })
       navigate('/', { replace: true })
     } catch (err) {
       console.error('Signup failed:', err)
@@ -249,27 +256,49 @@ export function SignupPage() {
             )}
           </div>
 
+          <div className="space-y-1">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              name="username"
+              placeholder=""
+              value={formData.username}
+              onChange={handleChange}
+              required
+            />
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                name="username"
-                placeholder=""
-                value={formData.username}
+              <Label htmlFor="state">State</Label>
+              <Select
+                id="state"
+                name="state"
+                value={formData.state}
                 onChange={handleChange}
-                required
-              />
+                searchable
+                searchPlaceholder="Search state..."
+              >
+                <option value="">Select state</option>
+                {STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </Select>
             </div>
             <div className="space-y-1">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                name="city"
-                placeholder=""
-                value={formData.city}
+              <Label htmlFor="bench">Bench</Label>
+              <Select
+                id="bench"
+                name="bench"
+                value={formData.bench}
                 onChange={handleChange}
-              />
+                disabled={!formData.state}
+              >
+                <option value="">Select bench</option>
+                {(STATE_BENCH_MAP[formData.state] || []).map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </Select>
             </div>
           </div>
 

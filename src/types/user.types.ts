@@ -5,6 +5,7 @@ export interface User {
   firstName: string
   lastName: string
   phone?: string
+  bench?: string
   isAdmin?: boolean
   createdAt: Date
 }
@@ -28,6 +29,8 @@ export interface SignupData {
   confirmPassword: string
   mobileNumber?: string
   city?: string
+  state?: string
+  bench?: string
 }
 
 export interface AuthContextValue extends AuthState {
@@ -36,5 +39,6 @@ export interface AuthContextValue extends AuthState {
   googleLogin: (idToken: string) => Promise<void>
   continueAsGuest: () => Promise<void>
   logout: () => void
+  updateProfile: (data: { bench?: string }) => Promise<void>
   isRestoringSession?: boolean
 }
