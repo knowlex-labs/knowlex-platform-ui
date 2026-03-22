@@ -134,6 +134,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           firstName: userResponse.data.firstName,
           lastName: userResponse.data.lastName,
           phone: userResponse.data.mobileNumber,
+          bench: userResponse.data.bench,
           createdAt: new Date(userResponse.data.createdAt),
         }
 
@@ -217,6 +218,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           firstName: userResponse.data.firstName,
           lastName: userResponse.data.lastName,
           phone: userResponse.data.mobileNumber,
+          bench: userResponse.data.bench,
           createdAt: new Date(userResponse.data.createdAt),
         }
 
