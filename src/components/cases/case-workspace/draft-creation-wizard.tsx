@@ -22,22 +22,22 @@ import { renderDraftToHtml } from '@/lib/draft-renderer'
 // Maps each template to its API document_type and optional subtype
 export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
   'notice': { documentType: 'legal_notice', subtype: 'demand' },
-  'patent': { documentType: 'application' },
-  'application-draft': { documentType: 'application', subtype: 'vakalatnama' },
+  'patent': { documentType: 'patent' },
+  'application-draft': { documentType: 'application_draft' },
   'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
   'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
   'bail-application': { documentType: 'bail_application' },
   'criminal-appeal': { documentType: 'criminal_appeal' },
   'plaint': { documentType: 'application', subtype: 'plaint' },
-  'written-statement': { documentType: 'application', subtype: 'written_statement' },
-  'written-arguments': { documentType: 'application', subtype: 'written_arguments' },
+  'written-statement': { documentType: 'written_statement' },
+  'written-arguments': { documentType: 'written_arguments' },
   'writ-petition': { documentType: 'petition', subtype: 'writ_petition' },
-  'slp': { documentType: 'petition', subtype: 'slp' },
-  'quashing-petition': { documentType: 'petition', subtype: 'quashing_petition' },
-  'anticipatory-bail': { documentType: 'bail_application', subtype: 'anticipatory_bail' },
-  'revision-petition': { documentType: 'petition', subtype: 'revision_petition' },
-  'execution-petition': { documentType: 'application', subtype: 'execution_petition' },
-  'consumer-complaint': { documentType: 'petition', subtype: 'consumer_complaint' },
+  'slp': { documentType: 'slp' },
+  'quashing-petition': { documentType: 'quashing_petition' },
+  'anticipatory-bail': { documentType: 'anticipatory_bail' },
+  'revision-petition': { documentType: 'revision_petition' },
+  'execution-petition': { documentType: 'execution_petition' },
+  'consumer-complaint': { documentType: 'consumer_complaint' },
 }
 
 export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {

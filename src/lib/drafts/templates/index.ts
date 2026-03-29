@@ -35,6 +35,22 @@ export type DraftTemplateType =
     | 'bail-application'
     | 'criminal_appeal'
     | 'criminal-appeal'
+    | 'slp'
+    | 'quashing_petition'
+    | 'quashing-petition'
+    | 'anticipatory_bail'
+    | 'anticipatory-bail'
+    | 'revision_petition'
+    | 'revision-petition'
+    | 'execution_petition'
+    | 'execution-petition'
+    | 'consumer_complaint'
+    | 'consumer-complaint'
+    | 'written_statement'
+    | 'written-statement'
+    | 'written_arguments'
+    | 'written-arguments'
+    | 'application_draft'
 
 export const templateRenderers: Record<string, (content: string) => string> = {
     // Interim Application variations
@@ -73,6 +89,24 @@ export const templateRenderers: Record<string, (content: string) => string> = {
     // Criminal - Criminal Appeal
     'criminal_appeal': renderApplicationDraft,
     'criminal-appeal': renderApplicationDraft,
+
+    // New specific document types
+    'slp': renderApplicationDraft,
+    'quashing_petition': renderApplicationDraft,
+    'quashing-petition': renderApplicationDraft,
+    'anticipatory_bail': renderApplicationDraft,
+    'anticipatory-bail': renderApplicationDraft,
+    'revision_petition': renderApplicationDraft,
+    'revision-petition': renderApplicationDraft,
+    'execution_petition': renderApplicationDraft,
+    'execution-petition': renderApplicationDraft,
+    'consumer_complaint': renderApplicationDraft,
+    'consumer-complaint': renderApplicationDraft,
+    'written_statement': renderApplicationDraft,
+    'written-statement': renderApplicationDraft,
+    'written_arguments': renderApplicationDraft,
+    'written-arguments': renderApplicationDraft,
+    'application_draft': renderApplicationDraft,
 }
 
 /**
