@@ -376,7 +376,10 @@ export function CaseWorkspace() {
   }
 
   const handleWizardGenerate = (request: CreateDraftRequest) => {
-    const pendingDraft = createDraft(request)
+    const pendingDraft = createDraft(request, {
+      // Sync real document id after POST — placeholder id is replaced in state and preview must track the same id
+      onDocumentCreated: (documentId) => setWizardDraftId(documentId),
+    })
     setWizardDraftId(pendingDraft.id)
     setWorkspaceMode('draft')
     // Wizard stays open — auto-advances to preview step

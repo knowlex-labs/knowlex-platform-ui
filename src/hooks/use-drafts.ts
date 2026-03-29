@@ -10,9 +10,10 @@ export type { DocumentType } from '@/services/api/document-types'
 const POLL_INTERVAL_MS = 6000
 const MAX_POLL_ATTEMPTS = 20
 
-// Normalize API status: backend returns "processing" | "completed" | "failed"
-function normalizeStatus(status: string): 'pending' | 'completed' | 'failed' {
-  const s = status.toLowerCase()
+// Normalize API status: backend returns "processing" | "completed" | "failed" (or JobStatus enums)
+function normalizeStatus(status: string | undefined | null): 'pending' | 'completed' | 'failed' {
+  if (status == null || status === '') return 'pending'
+  const s = String(status).toLowerCase()
   if (s === 'completed') return 'completed'
   if (s === 'failed') return 'failed'
   return 'pending'
@@ -80,7 +81,10 @@ interface UseDraftsResult {
   drafts: Draft[]
   isLoading: boolean
   error: string | null
-  createDraft: (request: CreateDraftRequest) => Draft
+  createDraft: (
+    request: CreateDraftRequest,
+    options?: { onDocumentCreated?: (documentId: string) => void },
+  ) => Draft
   updateDraftLocal: (id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => void
   saveDraftToBackend: (id: string, title?: string, content?: string) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
@@ -350,6 +354,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         }
       }
       ensurePolling()
+      void pollPendingDrafts()
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to fetch drafts'
       setError(message)
@@ -357,14 +362,14 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     } finally {
       setIsLoading(false)
     }
-  }, [caseId, ensurePolling])
+  }, [caseId, ensurePolling, pollPendingDrafts])
 
   useEffect(() => {
     fetchDrafts()
   }, [fetchDrafts, draftListKey])
 
   // Create draft: POST → insert placeholder → poll → content fills in
-  const createDraft = useCallback((request: CreateDraftRequest): Draft => {
+  const createDraft = useCallback((request: CreateDraftRequest, options?: { onDocumentCreated?: (documentId: string) => void }): Draft => {
     const placeholderId = `pending-${Date.now()}`
 
     const placeholder: Draft = {
@@ -413,7 +418,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
 
     workspaceApi.createDocument(caseId, documentRequest).then((createResponse) => {
       const draftId = createResponse.id
-      const jobId = createResponse.jobId
+      const jobId = createResponse.jobId || draftId
 
       setDrafts((prev) =>
         prev.map((d) =>
@@ -421,9 +426,13 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         )
       )
 
+      options?.onDocumentCreated?.(draftId)
+
       // Poll using jobId (new API returns jobId for polling)
       pollingJobsRef.current.set(jobId, { attempts: 0, draftId, documentId: draftId })
       ensurePolling()
+      // First poll immediately (setInterval waits POLL_INTERVAL_MS before first tick)
+      void pollPendingDrafts()
     }).catch(() => {
       setDrafts((prev) =>
         prev.map((d) =>
@@ -433,7 +442,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     })
 
     return placeholder
-  }, [caseId, ensurePolling])
+  }, [caseId, ensurePolling, pollPendingDrafts])
 
   // Update draft in local state only (no backend call)
   const updateDraftLocal = useCallback((id: string, updates: Partial<Pick<Draft, 'title' | 'content'>>) => {
