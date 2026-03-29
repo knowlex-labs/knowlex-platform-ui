@@ -4,7 +4,6 @@ import { WorkspaceTabBar } from './workspace-tab-bar'
 import { WorkspaceLanding } from './workspace-landing'
 import { DraftPreviewTab } from './draft-preview-tab'
 import { SummaryView } from './summary-view'
-import { DraftCreationWizard } from './draft-creation-wizard'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -14,8 +13,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog'
-import type { WorkspaceTabItem, Draft, CaseSummary, CaseDocument, Client } from '@/types'
-import type { CreateDraftRequest } from '@/services/api/document-types'
+import type { WorkspaceTabItem, Draft, CaseSummary } from '@/types'
 
 interface CenterPanelProps {
   tabs: WorkspaceTabItem[]
@@ -37,12 +35,7 @@ interface CenterPanelProps {
   onSendToChat: (text: string) => void
   onGenerateSummary: () => void
   onDeleteSummary: () => void
-  showDraftWizard?: boolean
-  wizardSources?: CaseDocument[]
-  wizardClient?: Client | null
-  onWizardGenerate?: (request: CreateDraftRequest) => void
-  onWizardCancel?: () => void
-  /** When true, skips landing page and wizard — used when rendered in the right panel */
+  /** When true, skips landing page — used when rendered in the right panel */
   compact?: boolean
 }
 
@@ -66,11 +59,6 @@ export function CenterPanel({
   onSendToChat,
   onGenerateSummary,
   onDeleteSummary,
-  showDraftWizard = false,
-  wizardSources = [],
-  wizardClient = null,
-  onWizardGenerate,
-  onWizardCancel,
   compact = false,
 }: CenterPanelProps) {
   const activeTab = tabs.find((t) => t.id === activeTabId)
@@ -117,20 +105,6 @@ export function CenterPanel({
     onTabClose(pendingCloseTabId)
     setPendingCloseTabId(null)
   }, [pendingCloseTabId, onTabClose])
-
-  // Full-panel wizard — only in main center position
-  if (!compact && showDraftWizard && onWizardGenerate && onWizardCancel) {
-    return (
-      <div className="flex flex-col h-full bg-kx-card overflow-hidden">
-        <DraftCreationWizard
-          sources={wizardSources}
-          client={wizardClient}
-          onGenerate={onWizardGenerate}
-          onCancel={onWizardCancel}
-        />
-      </div>
-    )
-  }
 
   // Empty state — show landing with tool cards
   if (tabs.length === 0) {

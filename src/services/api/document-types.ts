@@ -11,6 +11,7 @@ export type DocumentType =
   | 'application'
   | 'bail_application'
   | 'criminal_appeal'
+  | 'consumer_complaint'
   | 'DRAFT'
   | 'SUMMARY'
   | 'SOURCE_DOC'

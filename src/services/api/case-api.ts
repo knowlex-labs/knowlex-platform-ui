@@ -10,6 +10,7 @@ import type {
   CreateCaseRequest,
   PaginatedData,
   UpdateCaseRequest,
+  UpdateRespondentRequest,
   Judgment,
 } from '@/types'
 
@@ -77,5 +78,9 @@ export const caseApi = {
 
   getOverviewSummary: (caseId: string): Promise<ApiResponse<CaseOverviewSummary>> => {
     return apiClient.get<ApiResponse<CaseOverviewSummary>>(`${CASES_ENDPOINT}/${caseId}/overview/summary`)
+  },
+
+  updateRespondent: (caseId: string, data: UpdateRespondentRequest): Promise<ApiResponse<BackendCase>> => {
+    return apiClient.put<ApiResponse<BackendCase>>(`${CASES_ENDPOINT}/${caseId}/respondent`, data)
   },
 }

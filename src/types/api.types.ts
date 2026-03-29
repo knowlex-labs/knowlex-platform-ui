@@ -24,8 +24,30 @@ export interface BackendCase {
   courtName: string | null
   courtLocation: string | null
   nextHearingDate: string | null // ISO date string YYYY-MM-DD
+  respondentName: string | null
+  respondentDetails: Record<string, string> | null
   createdAt: string // ISO datetime string
   updatedAt: string // ISO datetime string
+}
+
+export interface RespondentDetails {
+  fatherName?: string
+  addressLine1?: string
+  addressLine2?: string
+  city?: string
+  state?: string
+  pincode?: string
+  country?: string
+  phone?: string
+  email?: string
+  advocateName?: string
+  advocateEnrollment?: string
+  notes?: string
+}
+
+export interface UpdateRespondentRequest {
+  respondentName?: string
+  details?: RespondentDetails
 }
 
 // Backend Client entity (exact API response type)

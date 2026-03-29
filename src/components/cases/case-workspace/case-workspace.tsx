@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, Bot } from 'lucide-react'
+import { ArrowLeft, PanelLeftClose, PanelLeftOpen, PanelRightClose, Bot, Pencil, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
@@ -16,11 +16,13 @@ import { ModeToggle } from './mode-toggle'
 import type { WorkspaceMode } from './mode-toggle'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
-import { TEMPLATE_TO_DOC_CONFIG } from './draft-creation-wizard'
+import { TEMPLATE_TO_DOC_CONFIG, DraftCreationWizard } from './draft-creation-wizard'
+import { CaseDetailsModal } from './case-details-modal'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
-import type { Draft, CaseDocument } from '@/types'
+import type { Draft, CaseDocument, Client, BackendCase, UpdateCaseRequest, RespondentDetails } from '@/types'
 import { IndexingStatus } from '@/types'
 import { toast } from '@/hooks/use-toast'
+import { mapBackendClient } from '@/services/mappers'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -28,11 +30,39 @@ export function CaseWorkspace() {
   const navigate = useNavigate()
   const { setSidebarCollapsed } = useUIState()
   const [caseName, setCaseName] = useState('Case Workspace')
+  const [caseData, setCaseData] = useState<BackendCase | null>(null)
+  // Inline title editing
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editingTitleValue, setEditingTitleValue] = useState('')
+  const titleInputRef = useRef<HTMLInputElement>(null)
+  // Case details modal
+  const [caseDetailsOpen, setCaseDetailsOpen] = useState(false)
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('draft')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [showDraftWizard, setShowDraftWizard] = useState(false)
+  const [wizardDraftId, setWizardDraftId] = useState<string | null>(null)
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
+
+  // Case client (auto-fills first-party fields in draft wizard)
+  const [caseClient, setCaseClient] = useState<Client | null>(null)
+  useEffect(() => {
+    caseApi.getClients(caseId).then((res) => {
+      if (res.status === 'success' && res.data.length > 0) {
+        setCaseClient(mapBackendClient(res.data[0]))
+      }
+    }).catch(() => {})
+  }, [caseId])
+
+  // Respondent details pre-fill string (populated from API on case load)
+  const [respondentDetails, setRespondentDetails] = useState<string>('')
+
+  const handleSaveRespondent = useCallback(async (details: string) => {
+    setRespondentDetails(details)
+    // Parse the plain string back to the respondentName for a quick save from the wizard
+    await caseApi.updateRespondent(caseId, { respondentName: details.split(',')[0].trim() || details })
+    toast({ title: 'Respondent saved', description: 'Will pre-fill in future drafts for this case.' })
+  }, [caseId])
 
   // Resizable chat panel
   const MIN_CHAT_WIDTH = 320
@@ -147,19 +177,71 @@ export function CaseWorkspace() {
     setSidebarCollapsed(true)
   }, [setSidebarCollapsed])
 
-  // Fetch actual case name
-  useEffect(() => {
+  // Fetch case data (title + respondent)
+  const refreshCaseData = useCallback(() => {
     caseApi.getById(caseId).then((response) => {
-      setCaseName(response.data.caseTitle ?? 'Case Workspace')
-    }).catch(() => {
-      // Keep default name on error
-    })
+      const data = response.data
+      setCaseData(data)
+      setCaseName(data.caseTitle ?? 'Case Workspace')
+      // Pre-populate respondent from backend
+      if (data.respondentName || data.respondentDetails) {
+        const r = data.respondentDetails ?? {}
+        const parts = [
+          data.respondentName,
+          r.addressLine1,
+          r.addressLine2,
+          r.city,
+          r.state && r.pincode ? `${r.state} ${r.pincode}` : (r.state ?? r.pincode),
+          r.phone,
+          r.email,
+          r.advocateName ? `Advocate: ${r.advocateName}` : undefined,
+          r.notes,
+        ].filter(Boolean)
+        setRespondentDetails(parts.join(', '))
+      }
+    }).catch(() => {})
   }, [caseId])
+
+  useEffect(() => { refreshCaseData() }, [refreshCaseData])
 
   const handleBack = () => {
     setSidebarCollapsed(false)
     navigate('/cases')
   }
+
+  // Inline title editing
+  const startEditingTitle = useCallback(() => {
+    setEditingTitleValue(caseName)
+    setIsEditingTitle(true)
+    setTimeout(() => titleInputRef.current?.select(), 30)
+  }, [caseName])
+
+  const commitTitleEdit = useCallback(async () => {
+    const newTitle = editingTitleValue.trim()
+    setIsEditingTitle(false)
+    if (!newTitle || newTitle === caseName) return
+    setCaseName(newTitle)
+    await caseApi.update(caseId, { caseTitle: newTitle })
+    toast({ title: 'Case title updated' })
+  }, [editingTitleValue, caseName, caseId])
+
+  const cancelTitleEdit = useCallback(() => {
+    setIsEditingTitle(false)
+    setEditingTitleValue(caseName)
+  }, [caseName])
+
+  // Case details modal handlers
+  const handleSaveCase = useCallback(async (data: UpdateCaseRequest) => {
+    await caseApi.update(caseId, data)
+    await refreshCaseData()
+    toast({ title: 'Case details updated' })
+  }, [caseId, refreshCaseData])
+
+  const handleSaveRespondentFull = useCallback(async (name: string, details: RespondentDetails) => {
+    await caseApi.updateRespondent(caseId, { respondentName: name, details })
+    await refreshCaseData()
+    toast({ title: 'Respondent details updated' })
+  }, [caseId, refreshCaseData])
 
   const handleSendMessage = async (query: string) => {
     await draftSendMessage(query, Array.from(selectedSourceIds))
@@ -295,28 +377,80 @@ export function CaseWorkspace() {
 
   const handleWizardGenerate = (request: CreateDraftRequest) => {
     const pendingDraft = createDraft(request)
-    setShowDraftWizard(false)
-    openTab(pendingDraft)
+    setWizardDraftId(pendingDraft.id)
     setWorkspaceMode('draft')
+    // Wizard stays open — auto-advances to preview step
+  }
+
+  const handleWizardSave = () => {
+    const draft = wizardDraftId ? drafts.find((d) => d.id === wizardDraftId) ?? null : null
+    if (draft) {
+      openTab(draft)
+      setWorkspaceMode('draft')
+    }
+    setShowDraftWizard(false)
+    setWizardDraftId(null)
+    setRightPanelOpen(false)
+  }
+
+  const handleWizardDiscard = async (draftId: string) => {
+    setWizardDraftId(null)
+    try { await deleteDraft(draftId) } catch { /* ignore */ }
   }
 
   const handleWizardCancel = () => {
     setShowDraftWizard(false)
+    setWizardDraftId(null)
   }
 
   return (
     <div className="h-screen flex flex-col bg-kx-card">
       <div className="flex items-center justify-between px-4 py-2 border-b border-kx-card-border bg-kx-card">
-        {/* Left: Back + Case name */}
+        {/* Left: Back + Case name (double-click to edit) + pencil */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Button variant="ghost" size="sm" onClick={handleBack} className="gap-2 h-8 px-3 text-ledger-gray-600 hover:text-kx-primary-700 flex-shrink-0">
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
           <div className="h-4 w-px bg-ledger-gray-300 flex-shrink-0" />
-          <h2 className="text-lg font-bold text-kx-primary-900 truncate">
-            {caseName}
-          </h2>
+
+          {isEditingTitle ? (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <input
+                ref={titleInputRef}
+                value={editingTitleValue}
+                onChange={(e) => setEditingTitleValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitTitleEdit(); if (e.key === 'Escape') cancelTitleEdit() }}
+                onBlur={commitTitleEdit}
+                className="text-lg font-bold text-kx-primary-900 bg-white border border-kx-primary-400 rounded-md px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-kx-primary-500 min-w-[200px] max-w-[360px]"
+                autoFocus
+              />
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); commitTitleEdit() }} className="h-6 w-6 flex items-center justify-center rounded text-green-600 hover:bg-green-50">
+                <Check className="h-3.5 w-3.5" />
+              </button>
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); cancelTitleEdit() }} className="h-6 w-6 flex items-center justify-center rounded text-ledger-gray-400 hover:bg-ledger-gray-100">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 min-w-0 group">
+              <h2
+                className="text-lg font-bold text-kx-primary-900 truncate cursor-pointer select-none"
+                onDoubleClick={startEditingTitle}
+                title="Double-click to edit title"
+              >
+                {caseName}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setCaseDetailsOpen(true)}
+                className="h-6 w-6 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-primary-600 hover:bg-ledger-gray-100 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                title="Edit case details"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Center: Mode toggle */}
@@ -426,11 +560,6 @@ export function CaseWorkspace() {
               onSendToChat={handleSendToChat}
               onGenerateSummary={handleGenerateSummary}
               onDeleteSummary={handleDeleteSummary}
-              showDraftWizard={showDraftWizard}
-              wizardSources={sources}
-              wizardClient={undefined}
-              onWizardGenerate={handleWizardGenerate}
-              onWizardCancel={handleWizardCancel}
             />
           ) : (
             <DraftChatPanel
@@ -521,6 +650,31 @@ export function CaseWorkspace() {
         onRefresh={refresh}
         isUploading={isUploading}
       />
+
+      <CaseDetailsModal
+        open={caseDetailsOpen}
+        onOpenChange={setCaseDetailsOpen}
+        caseData={caseData}
+        onSaveCase={handleSaveCase}
+        onSaveRespondent={handleSaveRespondentFull}
+      />
+
+      {showDraftWizard && (
+        <div className="fixed inset-0 left-16 z-50 flex items-stretch">
+          <DraftCreationWizard
+            sources={sources}
+            judgments={judgments}
+            client={caseClient}
+            respondentDetails={respondentDetails}
+            onSaveRespondent={handleSaveRespondent}
+            onGenerate={handleWizardGenerate}
+            onSave={handleWizardSave}
+            onDiscard={handleWizardDiscard}
+            onCancel={handleWizardCancel}
+            previewDraft={wizardDraftId ? (drafts.find((d) => d.id === wizardDraftId) ?? null) : null}
+          />
+        </div>
+      )}
     </div>
   )
 }
