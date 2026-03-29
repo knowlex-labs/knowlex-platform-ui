@@ -337,7 +337,7 @@ export function DraftCreationWizard({
       subtype: config.subtype,
       freetext_body: body.length > 0 ? body : undefined,
       file_ids: hasFiles ? Array.from(localSourceIds) : undefined,
-      language: isCriminal ? language : undefined,
+      language: language || undefined,
       config: draftConfig,
     })
   }
