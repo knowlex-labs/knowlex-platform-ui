@@ -19,6 +19,7 @@ interface CenterPanelProps {
   tabs: WorkspaceTabItem[]
   activeTabId: string
   drafts: Draft[]
+  caseId: string
   summary: CaseSummary | null
   isGeneratingSummary: boolean
   onTabClick: (tabId: string) => void
@@ -43,6 +44,7 @@ export function CenterPanel({
   tabs,
   activeTabId,
   drafts,
+  caseId,
   summary,
   isGeneratingSummary,
   onTabClick,
@@ -173,6 +175,7 @@ export function CenterPanel({
           <DraftPreviewTab
             key={activeDraft.id}
             draft={activeDraft}
+            caseId={caseId}
             onSaveLocal={onSaveDraftLocal}
             onSaveToBackend={onSaveDraftToBackend}
             onDelete={onDeleteDraft}

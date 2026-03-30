@@ -547,6 +547,7 @@ export function CaseWorkspace() {
               tabs={tabs}
               activeTabId={activeTabId}
               drafts={drafts}
+              caseId={caseId}
               summary={summary}
               isGeneratingSummary={isGeneratingSummary}
               onTabClick={setActiveTab}
@@ -623,6 +624,7 @@ export function CaseWorkspace() {
                   tabs={tabs}
                   activeTabId={activeTabId}
                   drafts={drafts}
+                  caseId={caseId}
                   summary={summary}
                   isGeneratingSummary={isGeneratingSummary}
                   onTabClick={setActiveTab}

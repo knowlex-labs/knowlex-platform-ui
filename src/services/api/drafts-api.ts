@@ -67,6 +67,16 @@ export interface UpdateDraftRequest {
   storage_key?: string
 }
 
+export interface CitationResult {
+  caseName: string
+  citation: string
+  judgmentId: string | null
+  internalPdfUrl: string | null
+  sccOnlineUrl: string
+  manupatraUrl: string | null
+  resolved: boolean
+}
+
 // Presigned URL response for draft uploads/downloads
 export interface DraftPresignedUrlData {
   uploadUrl: string
@@ -117,6 +127,13 @@ export const draftsApi = {
     const response = await apiClient.post<ApiResponse<DraftPresignedUrlData>>(
       '/api/v1/presigned-url/download',
       { documentId, fileName, contentType }
+    )
+    return response.data
+  },
+
+  getCitations: async (caseId: string, documentId: string): Promise<CitationResult[]> => {
+    const response = await apiClient.get<ApiResponse<CitationResult[]>>(
+      `/api/v1/cases/${caseId}/documents/${documentId}/citations`
     )
     return response.data
   },

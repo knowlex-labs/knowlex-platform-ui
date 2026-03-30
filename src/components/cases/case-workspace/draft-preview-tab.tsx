@@ -10,7 +10,33 @@ import {
   downloadAsPdf,
   downloadAsDoc,
 } from '@/lib/draft-renderer'
+import { draftsApi } from '@/services/api/drafts-api'
+import type { CitationResult } from '@/services/api/drafts-api'
 import type { Draft } from '@/types'
+
+/**
+ * Walk all <strong> elements in el. For each one whose text matches a key in
+ * citationMap, wrap it in an <a data-citation> anchor (skip if already wrapped).
+ */
+function applyCitationLinks(
+  el: HTMLElement,
+  citationMap: Map<string, { url: string; external: boolean }>
+): void {
+  if (citationMap.size === 0) return
+  el.querySelectorAll<HTMLElement>('strong').forEach((strong) => {
+    const text = strong.textContent?.trim() ?? ''
+    const info = citationMap.get(text)
+    if (!info || strong.closest('a[data-citation]')) return
+    const a = document.createElement('a')
+    a.setAttribute('data-citation', 'true')
+    a.dataset.citationUrl = info.url
+    a.dataset.citationExternal = info.external ? 'true' : 'false'
+    a.style.cssText =
+      'text-decoration:underline;text-decoration-color:rgb(99,102,241);text-decoration-thickness:1px;cursor:pointer;'
+    strong.replaceWith(a)
+    a.appendChild(strong)
+  })
+}
 
 // Module-level cache: survives unmount/remount race where the old component's
 // state update hasn't been processed before the new instance mounts.
@@ -99,6 +125,7 @@ function repaginateEditor(el: HTMLElement): void {
 
 interface DraftPreviewTabProps {
   draft: Draft
+  caseId: string
   onSaveLocal: (id: string, title: string, content: string) => void
   onSaveToBackend: (id: string, title: string, content: string) => void | Promise<void>
   onDelete: (id: string) => void | Promise<void>
@@ -109,6 +136,7 @@ interface DraftPreviewTabProps {
 
 export function DraftPreviewTab({
   draft,
+  caseId,
   onSaveLocal,
   onSaveToBackend,
   onDelete,
@@ -274,6 +302,7 @@ export function DraftPreviewTab({
   return (
     <CompletedDraftEditor
       draft={draft}
+      caseId={caseId}
       onSaveLocal={onSaveLocal}
       onSaveToBackend={onSaveToBackend}
       onDelete={onDelete}
@@ -286,6 +315,7 @@ export function DraftPreviewTab({
 // Extracted the completed-draft editor into its own component so hooks are called unconditionally
 function CompletedDraftEditor({
   draft,
+  caseId,
   onSaveLocal,
   onSaveToBackend,
   onDirtyChange,
@@ -312,6 +342,42 @@ function CompletedDraftEditor({
   }, [onDirtyChange])
 
   const formatting = useEditorFormatting(editorRef, markDirty)
+
+  // ─── Citations ────────────────────────────────────────────────────────────
+  const citationMapRef = useRef<Map<string, { url: string; external: boolean }>>(new Map())
+
+  useEffect(() => {
+    draftsApi.getCitations(caseId, draft.id).then((results: CitationResult[]) => {
+      const map = new Map<string, { url: string; external: boolean }>()
+      for (const r of results) {
+        const url = r.resolved && r.judgmentId
+          ? `/judgments/${r.judgmentId}`
+          : r.sccOnlineUrl
+        map.set(r.caseName, { url, external: !r.resolved || !r.judgmentId })
+      }
+      citationMapRef.current = map
+      if (editorRef.current) applyCitationLinks(editorRef.current, map)
+    }).catch(() => {
+      // citations are best-effort — silently ignore failures
+    })
+  }, [caseId, draft.id])
+
+  // Click handler for citation links (event delegation on scroll container)
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const handler = (e: MouseEvent) => {
+      if (isEditing) return
+      const a = (e.target as HTMLElement).closest('a[data-citation]') as HTMLAnchorElement | null
+      if (!a) return
+      e.preventDefault()
+      const url = a.dataset.citationUrl!
+      const external = a.dataset.citationExternal === 'true'
+      window.open(url, '_blank', external ? 'noopener,noreferrer' : '')
+    }
+    container.addEventListener('click', handler)
+    return () => container.removeEventListener('click', handler)
+  }, [isEditing])
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -355,8 +421,11 @@ function CompletedDraftEditor({
         draft.contentFormat
       )
       editorRef.current.innerHTML = html
-      // Re-paginate after setting new content
-      setTimeout(() => repaginate(), 80)
+      // Re-paginate after setting new content, then re-apply citation links
+      setTimeout(() => {
+        repaginate()
+        if (editorRef.current) applyCitationLinks(editorRef.current, citationMapRef.current)
+      }, 80)
     }
   }, [draft.id, draft.content, draft.title, draft.sections, draft.templateType, repaginate])
 
@@ -481,7 +550,10 @@ function CompletedDraftEditor({
         draft.contentFormat
       )
       editorRef.current.innerHTML = html
-      setTimeout(() => repaginate(), 50)
+      setTimeout(() => {
+        repaginate()
+        if (editorRef.current) applyCitationLinks(editorRef.current, citationMapRef.current)
+      }, 50)
     }
     setIsEditing(false)
   }, [draft, onDirtyChange, repaginate])
@@ -508,7 +580,10 @@ function CompletedDraftEditor({
   // ─── Initial pagination (runs once after first render) ───────────────────
   useEffect(() => {
     // Small delay: let the browser finish painting the injected HTML
-    const timer = setTimeout(() => repaginate(), 120)
+    const timer = setTimeout(() => {
+      repaginate()
+      if (editorRef.current) applyCitationLinks(editorRef.current, citationMapRef.current)
+    }, 120)
     return () => clearTimeout(timer)
   }, [initialHtml, repaginate])
 
