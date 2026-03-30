@@ -121,9 +121,9 @@ export function DraftPreviewTab({
     return (
       <div className="flex flex-col h-full">
         {/* Greyed-out toolbar placeholder */}
-        <div className="flex-shrink-0 h-11 border-b border-ledger-gray-200 dark:border-ledger-gray-700 bg-white dark:bg-ledger-gray-900 flex items-center px-4 gap-2 opacity-40 pointer-events-none select-none">
-          {[48, 32, 40, 40, 28, 28, 28, 28].map((w, i) => (
-            <div key={i} className={`h-5 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse`} style={{ width: w }} />
+        <div className="flex-shrink-0 h-9 border-b border-ledger-gray-200 dark:border-ledger-gray-700 bg-white dark:bg-ledger-gray-900 flex items-center px-3 gap-2 opacity-40 pointer-events-none select-none">
+          {[28, 28, 28, 16, 28, 28, 28, 16, 36, 16, 28, 28].map((w, i) => (
+            <div key={i} className="h-4 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" style={{ width: w }} />
           ))}
         </div>
 
@@ -227,12 +227,6 @@ export function DraftPreviewTab({
           </div>
         </div>
 
-        {/* Status footer */}
-        <div className="flex-shrink-0 px-4 py-2 border-t border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50 dark:bg-ledger-gray-900">
-          <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500">
-            You can continue working while the draft generates.
-          </p>
-        </div>
       </div>
     )
   }
@@ -416,12 +410,6 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [flushToLocalState])
 
-  // ─── Handle mode switching ────────────────────────────────────────────────
-  useEffect(() => {
-    // Always show page breaks (like PDF) - repaginate handles this
-    repaginate()
-  }, [isEditing, repaginate])
-
   // ─── Export handlers ──────────────────────────────────────────────────────
   const getCurrentContent = useCallback(
     () => (editorRef.current ? getCleanHtml(editorRef.current) : draft.content),
@@ -472,23 +460,18 @@ function CompletedDraftEditor({
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleSaveToBackend])
 
-  // ─── Handle save completion ─────────────────────────────────────────────────
+  // ─── Handle save & exit edit mode ────────────────────────────────────────
   const handleSaveAndExitEditMode = useCallback(async () => {
     await handleSaveToBackend()
     setIsEditing(false)
   }, [handleSaveToBackend])
 
-  // ─── Handle cancel editing ─────────────────────────────────────────────────
+  // ─── Handle cancel editing ────────────────────────────────────────────────
   const handleCancelEdit = useCallback(() => {
-    // Clear any pending auto-save
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current)
-    }
-    // Discard local changes by reloading from cache or original content
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
     draftContentCache.delete(draft.id)
     setHasChanges(false)
     onDirtyChange?.(false)
-    // Reload original content
     if (editorRef.current) {
       const hasSections = draft.sections && draft.sections.length > 0
       const html = renderDraftToHtml(
@@ -498,11 +481,15 @@ function CompletedDraftEditor({
         draft.contentFormat
       )
       editorRef.current.innerHTML = html
-      // Repaginate after content is set
       setTimeout(() => repaginate(), 50)
     }
     setIsEditing(false)
   }, [draft, onDirtyChange, repaginate])
+
+  // ─── Repaginate when entering/leaving edit mode ───────────────────────────
+  useEffect(() => {
+    repaginate()
+  }, [isEditing, repaginate])
 
   // ─── Initial HTML ─────────────────────────────────────────────────────────
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -546,7 +533,6 @@ function CompletedDraftEditor({
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col h-full">
-      {/* Formatting Toolbar */}
       <FormattingToolbar
         isEditing={isEditing}
         onEdit={() => setIsEditing(true)}
@@ -567,30 +553,33 @@ function CompletedDraftEditor({
         isSaving={isSaving}
         hasChanges={hasChanges}
         documentTitle={title}
-        className="bg-ledger-white dark:bg-ledger-gray-900"
+        className="bg-white dark:bg-ledger-gray-900"
       />
 
-      {/* ── Document viewer: light background, A4 paper centered ── */}
+      {/* Document viewer */}
       <div
         ref={scrollContainerRef}
         className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800 [--page-gap-bg:#f1f5f9] dark:[--page-gap-bg:#1e293b]"
         onScroll={handleScroll}
       >
-        {/* Sticky page badge — floats top-right while scrolling */}
+        {/* Sticky page badge */}
         <div className="sticky top-3 z-10 h-0 overflow-visible flex justify-end pr-5 pointer-events-none">
           <span className="bg-ledger-gray-600/80 text-white text-xs px-3 py-1 rounded-full font-mono tracking-wide select-none">
             {currentPage} / {totalPages}
           </span>
         </div>
 
-        {/* A4 paper — the actual contentEditable editor */}
+        {/* A4 paper */}
         <div
           ref={editorRef}
           contentEditable={isEditing}
           suppressContentEditableWarning
           onInput={isEditing ? handleEditorInput : undefined}
           onBlur={isEditing ? flushToLocalState : undefined}
-          className={cn('legal-document focus:outline-none bg-white', !isEditing && 'cursor-default')}
+          className={cn(
+            'legal-document focus:outline-none bg-white',
+            isEditing ? 'cursor-text' : 'cursor-default'
+          )}
           style={{
             fontFamily: "'Times New Roman', Times, serif",
             fontSize: '12pt',
@@ -600,23 +589,11 @@ function CompletedDraftEditor({
             maxWidth: `calc(100% - ${PAGE_H_PAD}px)`,
             minHeight: `${A4_TOTAL_H}px`,
             padding: `${PAGE_V_PAD}px ${PAGE_H_PAD}px`,
-            margin: '16px auto 24px',
+            margin: '12px auto 20px',
             boxShadow: '0 1px 8px rgba(0,0,0,0.08)',
           }}
           dangerouslySetInnerHTML={{ __html: initialHtml }}
         />
-      </div>
-
-      {/* Status footer */}
-      <div className="px-4 py-2 border-t border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50 dark:bg-ledger-gray-900 flex items-center justify-between">
-        <p className="text-xs text-ledger-gray-500">
-          {hasChanges ? (
-            <span className="text-amber-600 dark:text-amber-400 font-medium">Unsaved changes</span>
-          ) : (
-            `Last saved: ${draft.updatedAt.toLocaleString()}`
-          )}
-        </p>
-        <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500" />
       </div>
     </div>
   )
