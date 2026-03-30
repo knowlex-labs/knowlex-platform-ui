@@ -3,6 +3,7 @@ import { Search, X, SlidersHorizontal } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { DatePicker } from '@/components/ui/date-picker'
 import { judgmentsApi } from '@/services/api/judgments-api'
 import type { JudgmentFilters } from '@/types'
 
@@ -59,7 +60,10 @@ function AdvancedFiltersDropdown({
     useEffect(() => {
         if (!open) return
         const handleClick = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+            const target = e.target as Node
+            // Don't close if clicking inside a Radix popover (e.g. calendar)
+            if ((target as Element).closest?.('[data-radix-popper-content-wrapper]')) return
+            if (containerRef.current && !containerRef.current.contains(target)) {
                 setOpen(false)
             }
         }
@@ -147,39 +151,19 @@ function AdvancedFiltersDropdown({
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
                                     <label className="text-xs text-ledger-gray-400">From</label>
-                                    <button
-                                        type="button"
-                                        className="relative w-full"
-                                        onClick={(e) => {
-                                            const input = e.currentTarget.querySelector('input')
-                                            input?.showPicker()
-                                        }}
-                                    >
-                                        <Input
-                                            type="date"
-                                            value={draft.dateFrom ?? ''}
-                                            onChange={(e) => setDraft({ ...draft, dateFrom: e.target.value || undefined })}
-                                            className="h-9 text-sm cursor-pointer"
-                                        />
-                                    </button>
+                                    <DatePicker
+                                        value={draft.dateFrom}
+                                        onChange={(v) => setDraft({ ...draft, dateFrom: v })}
+                                        placeholder="Start date"
+                                    />
                                 </div>
                                 <div className="space-y-1">
                                     <label className="text-xs text-ledger-gray-400">To</label>
-                                    <button
-                                        type="button"
-                                        className="relative w-full"
-                                        onClick={(e) => {
-                                            const input = e.currentTarget.querySelector('input')
-                                            input?.showPicker()
-                                        }}
-                                    >
-                                        <Input
-                                            type="date"
-                                            value={draft.dateTo ?? ''}
-                                            onChange={(e) => setDraft({ ...draft, dateTo: e.target.value || undefined })}
-                                            className="h-9 text-sm cursor-pointer"
-                                        />
-                                    </button>
+                                    <DatePicker
+                                        value={draft.dateTo}
+                                        onChange={(v) => setDraft({ ...draft, dateTo: v })}
+                                        placeholder="End date"
+                                    />
                                 </div>
                             </div>
                         </div>

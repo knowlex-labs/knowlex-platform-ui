@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface RefreshButtonProps {
   onClick: () => void
@@ -10,14 +10,19 @@ interface RefreshButtonProps {
 
 export function RefreshButton({ onClick, isLoading, disabled, className }: RefreshButtonProps) {
   return (
-    <Button
-      variant="outline"
+    <button
+      type="button"
       onClick={onClick}
       disabled={disabled ?? isLoading}
-      className={`gap-2 h-9 min-h-0 px-3 text-sm ${className ?? ''}`}
+      className={cn(
+        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+        'text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        className
+      )}
     >
-      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+      <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
       Refresh
-    </Button>
+    </button>
   )
 }

@@ -2,10 +2,10 @@ import * as React from 'react'
 import { useCauseLists } from '@/hooks/use-cause-lists'
 import { CauseListTable } from './cause-list-table'
 import { CauseListPagination } from './cause-list-pagination'
-import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { RefreshButton } from '@/components/ui/refresh-button'
+import { DateSlider } from './date-slider'
 import { useAuth } from '@/contexts/auth-context'
 import { STATE_BENCH_MAP, STATES } from '@/lib/courts'
 
@@ -89,33 +89,24 @@ export function CauseLists() {
     <div className="flex flex-col h-[calc(100vh-56px)] md:h-[calc(100vh-16px)]">
       <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
-          <div>
-            <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
-              Cause Lists
-            </h2>
-            <p className="text-sm text-ledger-gray-500 mt-1">
-              View your upcoming court hearings and cause lists
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="relative"
-              onClick={(e) => {
-                const input = e.currentTarget.querySelector('input')
-                input?.showPicker()
-              }}
-            >
-              <Input
-                type="date"
-                value={filters.date ?? ''}
-                onChange={(e) => setFilters({ ...filters, date: e.target.value || undefined })}
-                className="h-9 text-sm cursor-pointer w-[160px]"
-              />
-            </button>
+        <div className="space-y-3 mb-4 md:mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
+                Cause Lists
+              </h2>
+              <p className="text-sm text-ledger-gray-500 mt-1">
+                View your upcoming court hearings and cause lists
+              </p>
+            </div>
             <RefreshButton onClick={refresh} isLoading={isLoading} />
           </div>
+
+          {/* Date slider — hero element */}
+          <DateSlider
+            value={filters.date ?? new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}
+            onChange={(date) => setFilters({ ...filters, date })}
+          />
         </div>
 
         {/* No bench banner */}
