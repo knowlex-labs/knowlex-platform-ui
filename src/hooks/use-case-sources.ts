@@ -149,9 +149,9 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
         const docs = await workspaceApi.getCaseDocuments(caseId)
         setDocuments(docs)
 
-        // Auto-select all sources by default (only USER_UPLOADED)
-        const userUploadedDocs = docs.filter((d) => d.type === 'USER_UPLOADED')
-        setSelectedSourceIds(new Set(userUploadedDocs.map((d) => d.id)))
+        // Auto-select all sources by default (USER_UPLOADED and JUDGMENT)
+        const selectableDocs = docs.filter((d) => d.type === 'USER_UPLOADED' || d.type === 'JUDGMENT')
+        setSelectedSourceIds(new Set(selectableDocs.map((d) => d.id)))
 
         // Start polling for documents with processing status
         for (const doc of docs) {
@@ -190,8 +190,8 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   }, [])
 
   const selectAllSources = useCallback(() => {
-    const userUploadedDocs = documents.filter((d) => d.type === 'USER_UPLOADED')
-    setSelectedSourceIds(new Set(userUploadedDocs.map((d) => d.id)))
+    const selectableDocs = documents.filter((d) => d.type === 'USER_UPLOADED' || d.type === 'JUDGMENT')
+    setSelectedSourceIds(new Set(selectableDocs.map((d) => d.id)))
   }, [documents])
 
   const deselectAllSources = useCallback(() => {
