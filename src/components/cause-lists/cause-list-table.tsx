@@ -1,5 +1,6 @@
 import * as React from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ChevronDown, ChevronRight, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CauseListItem } from '@/types'
@@ -48,7 +49,7 @@ function groupByJudge(items: CauseListItem[]): JudgeGroup[] {
     // Sub-group by hearingType + hearing_category
     const subMap = new Map<string, CauseListItem[]>()
     for (const item of groupItems) {
-      const subKey = `${item.hearingType}|||${item.metadata.hearing_category}`
+      const subKey = `${item.hearingType}|||${item.metadata.hearing_category ?? ''}`
       if (!subMap.has(subKey)) subMap.set(subKey, [])
       subMap.get(subKey)!.push(item)
     }
@@ -198,6 +199,20 @@ function ExpandableRow({ item }: { item: CauseListItem }) {
                 </p>
                 <p className="text-kx-text-secondary">{item.bench}</p>
               </div>
+
+              {/* Case link */}
+              {item.caseId && (
+                <div className="md:col-span-2 pt-1 border-t border-ledger-gray-100 dark:border-ledger-gray-200">
+                  <Link
+                    to={`/cases/${item.caseId}`}
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-kx-primary-700 hover:text-kx-primary-900 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <FolderOpen className="h-4 w-4" />
+                    View Case Documents
+                  </Link>
+                </div>
+              )}
             </div>
           </td>
         </tr>
@@ -278,7 +293,7 @@ export function CauseListTable({ items, isLoading }: CauseListTableProps) {
                 <p className="text-xs font-bold text-center text-kx-text-secondary uppercase tracking-wider">
                   &mdash; {sub.hearingType} &mdash;
                 </p>
-                {sub.hearingCategory && (
+                {sub.hearingCategory && sub.hearingCategory !== 'undefined' && (
                   <p className="text-xs text-center text-ledger-gray-500 mt-0.5">
                     {sub.hearingCategory}
                   </p>

@@ -101,9 +101,13 @@ export function CauseLists() {
 
   const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
   const [syncDialogOpen, setSyncDialogOpen] = React.useState(false)
-  const [syncDate, setSyncDate] = React.useState<Date>(() => {
-    try { return parseISO(today) } catch { return new Date() }
-  })
+  const [syncDate, setSyncDate] = React.useState<Date>(new Date())
+
+  const openSyncDialog = () => {
+    const selectedDate = filters.date ?? today
+    try { setSyncDate(parseISO(selectedDate)) } catch { setSyncDate(new Date()) }
+    setSyncDialogOpen(true)
+  }
 
   const isFetching = triggerState === 'triggering' || triggerState === 'polling'
 
@@ -129,7 +133,8 @@ export function CauseLists() {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                onClick={() => setSyncDialogOpen(true)}
+                variant="outline"
+                onClick={openSyncDialog}
                 disabled={isFetching}
               >
                 {isFetching ? (
@@ -175,8 +180,9 @@ export function CauseLists() {
 
         {/* Error banner */}
         {error && (
-          <div className="px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
-            {error}
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            Failed to load cause lists. Please try refreshing.
           </div>
         )}
 

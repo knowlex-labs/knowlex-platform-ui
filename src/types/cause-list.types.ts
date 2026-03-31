@@ -24,6 +24,7 @@ export interface CauseListItem {
   courtHallNo: string | null
   metadata: CauseListMetadata
   createdAt: string
+  caseId?: string | null
 }
 
 export interface CauseListFilters {

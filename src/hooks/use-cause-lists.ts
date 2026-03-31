@@ -71,9 +71,8 @@ export function useCauseLists(): UseCauseListsResult {
         totalElements: pageData.totalElements,
         totalPages: pageData.totalPages,
       })
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch cause lists'
-      setError(message)
+    } catch {
+      setError('Failed to load cause lists. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -146,7 +145,11 @@ export function useCauseLists(): UseCauseListsResult {
           clearInterval(triggerIntervalRef.current!)
           triggerIntervalRef.current = null
           setTriggerState('completed')
-          setTriggerMessage(`${job.entriesSaved ?? 0} entries fetched`)
+          setTriggerMessage(
+            job.entriesSaved
+              ? `Synced ${formattedDate} — ${job.entriesSaved} hearing${job.entriesSaved === 1 ? '' : 's'} found`
+              : `Cause list synced for ${formattedDate}`
+          )
           fetchCauseLists(filtersRef.current, paginationRef.current.page)
         } else if (job.status === 'failed') {
           clearInterval(triggerIntervalRef.current!)
