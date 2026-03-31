@@ -11,6 +11,8 @@ interface Pagination {
   totalPages: number
 }
 
+type TriggerState = 'idle' | 'triggering' | 'polling' | 'completed' | 'failed'
+
 interface UseCauseListsResult {
   items: CauseListItem[]
   filters: CauseListFilters
@@ -20,6 +22,9 @@ interface UseCauseListsResult {
   isLoading: boolean
   error: string | null
   refresh: () => void
+  triggerState: TriggerState
+  triggerMessage: string
+  triggerFetch: (date: string) => void
 }
 
 export function useCauseLists(): UseCauseListsResult {
@@ -37,10 +42,14 @@ export function useCauseLists(): UseCauseListsResult {
     totalPages: 0,
   })
 
+  const [triggerState, setTriggerState] = useState<TriggerState>('idle')
+  const [triggerMessage, setTriggerMessage] = useState('')
+
   const filtersRef = useRef(filters)
   filtersRef.current = filters
   const paginationRef = useRef(pagination)
   paginationRef.current = pagination
+  const triggerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const fetchCauseLists = useCallback(async (
     currentFilters: CauseListFilters,
@@ -89,6 +98,80 @@ export function useCauseLists(): UseCauseListsResult {
     fetchCauseLists(filtersRef.current, paginationRef.current.page)
   }, [fetchCauseLists])
 
+  const triggerFetch = useCallback(async (date: string) => {
+    if (triggerIntervalRef.current) {
+      clearInterval(triggerIntervalRef.current)
+      triggerIntervalRef.current = null
+    }
+
+    const formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+
+    setTriggerState('triggering')
+    setTriggerMessage(`Fetching cause list for ${formattedDate}...`)
+
+    let jobId: string
+    try {
+      const result = await causeListApi.trigger(date)
+      jobId = result.jobId
+    } catch {
+      setTriggerState('failed')
+      setTriggerMessage('Failed to start fetch. Please try again.')
+      return
+    }
+
+    setTriggerState('polling')
+
+    let pollCount = 0
+    const MAX_POLLS = 20 // 60s at 3s intervals
+
+    triggerIntervalRef.current = setInterval(async () => {
+      pollCount++
+
+      if (pollCount > MAX_POLLS) {
+        clearInterval(triggerIntervalRef.current!)
+        triggerIntervalRef.current = null
+        setTriggerState('failed')
+        setTriggerMessage('Taking longer than expected, check back later')
+        return
+      }
+
+      try {
+        const job = await causeListApi.pollTrigger(jobId)
+
+        if (job.status === 'completed') {
+          clearInterval(triggerIntervalRef.current!)
+          triggerIntervalRef.current = null
+          setTriggerState('completed')
+          setTriggerMessage(`${job.entriesSaved ?? 0} entries fetched`)
+          fetchCauseLists(filtersRef.current, paginationRef.current.page)
+        } else if (job.status === 'failed') {
+          clearInterval(triggerIntervalRef.current!)
+          triggerIntervalRef.current = null
+          setTriggerState('failed')
+          setTriggerMessage(job.error ?? 'Fetch failed. Please try again.')
+        }
+      } catch {
+        clearInterval(triggerIntervalRef.current!)
+        triggerIntervalRef.current = null
+        setTriggerState('failed')
+        setTriggerMessage('Job not found — server may have restarted')
+      }
+    }, 3000)
+  }, [fetchCauseLists])
+
+  // Clean up polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (triggerIntervalRef.current) {
+        clearInterval(triggerIntervalRef.current)
+      }
+    }
+  }, [])
+
   return {
     items,
     filters,
@@ -98,5 +181,8 @@ export function useCauseLists(): UseCauseListsResult {
     isLoading,
     error,
     refresh,
+    triggerState,
+    triggerMessage,
+    triggerFetch,
   }
 }

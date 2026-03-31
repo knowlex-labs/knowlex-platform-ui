@@ -4,10 +4,21 @@ import { CauseListTable } from './cause-list-table'
 import { CauseListPagination } from './cause-list-pagination'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { RefreshButton } from '@/components/ui/refresh-button'
 import { DateSlider } from './date-slider'
+import { RefreshButton } from '@/components/ui/refresh-button'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { useAuth } from '@/contexts/auth-context'
 import { STATE_BENCH_MAP, STATES } from '@/lib/courts'
+import { Loader2, CheckCircle, AlertCircle, Download } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
 
 function AddBenchBanner() {
   const { updateProfile } = useAuth()
@@ -83,7 +94,23 @@ export function CauseLists() {
     isLoading,
     error,
     refresh,
+    triggerState,
+    triggerMessage,
+    triggerFetch,
   } = useCauseLists()
+
+  const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
+  const [syncDialogOpen, setSyncDialogOpen] = React.useState(false)
+  const [syncDate, setSyncDate] = React.useState<Date>(() => {
+    try { return parseISO(today) } catch { return new Date() }
+  })
+
+  const isFetching = triggerState === 'triggering' || triggerState === 'polling'
+
+  const handleSyncConfirm = () => {
+    setSyncDialogOpen(false)
+    triggerFetch(format(syncDate, 'yyyy-MM-dd'))
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] md:h-[calc(100vh-16px)]">
@@ -96,18 +123,52 @@ export function CauseLists() {
                 Cause Lists
               </h2>
               <p className="text-sm text-ledger-gray-500 mt-1">
-                View your upcoming court hearings and cause lists
+                Your scheduled court hearings
               </p>
             </div>
-            <RefreshButton onClick={refresh} isLoading={isLoading} />
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => setSyncDialogOpen(true)}
+                disabled={isFetching}
+              >
+                {isFetching ? (
+                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-1.5" />
+                )}
+                {isFetching ? 'Syncing...' : 'Sync from Court'}
+              </Button>
+              <RefreshButton onClick={refresh} isLoading={isLoading} />
+            </div>
           </div>
 
           {/* Date slider — hero element */}
           <DateSlider
-            value={filters.date ?? new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}
+            value={filters.date ?? today}
             onChange={(date) => setFilters({ ...filters, date })}
           />
         </div>
+
+        {/* Sync status banner */}
+        {(triggerState === 'triggering' || triggerState === 'polling') && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            {triggerMessage}
+          </div>
+        )}
+        {triggerState === 'completed' && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-300">
+            <CheckCircle className="h-4 w-4 shrink-0" />
+            {triggerMessage}
+          </div>
+        )}
+        {triggerState === 'failed' && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            {triggerMessage}
+          </div>
+        )}
 
         {/* No bench banner */}
         {!user?.bench && <AddBenchBanner />}
@@ -138,6 +199,31 @@ export function CauseLists() {
           </div>
         )}
       </div>
+
+      {/* Sync from Court dialog */}
+      <Dialog open={syncDialogOpen} onOpenChange={setSyncDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sync from Court</DialogTitle>
+            <DialogDescription>
+              Pick a date to pull the latest cause list from the court website.
+            </DialogDescription>
+          </DialogHeader>
+          <Calendar
+            selected={syncDate}
+            onSelect={(date) => setSyncDate(date)}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSyncDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSyncConfirm}>
+              <Download className="h-4 w-4 mr-1.5" />
+              Sync {format(syncDate, 'd MMM yyyy')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

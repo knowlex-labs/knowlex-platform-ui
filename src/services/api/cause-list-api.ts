@@ -28,4 +28,19 @@ export const causeListApi = {
   get: async (id: string): Promise<ApiResponse<CauseListItem>> => {
     return apiClient.get<ApiResponse<CauseListItem>>(`/api/v1/cause-lists/${id}`)
   },
+
+  trigger: async (date: string): Promise<{ jobId: string; status: string }> => {
+    const response = await apiClient.post<{ status: string; message: string; data: { jobId: string; date: string; status: string } }>(
+      '/api/v1/cause-lists/trigger',
+      { date },
+    )
+    return response.data
+  },
+
+  pollTrigger: async (jobId: string): Promise<{ status: string; entriesSaved?: number; error?: string }> => {
+    const response = await apiClient.get<{ data: { status: string; entriesSaved?: number; error?: string } }>(
+      `/api/v1/cause-lists/trigger/${jobId}`,
+    )
+    return response.data
+  },
 }
