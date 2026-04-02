@@ -107,8 +107,6 @@ export function CaseWorkspace() {
     isLoading: sourcesLoading,
     isUploading,
     toggleSourceSelection,
-    selectAllSources,
-    deselectAllSources,
     uploadFile,
     deleteSource,
     linkContent,
@@ -544,8 +542,6 @@ export function CaseWorkspace() {
                 summary={summary}
                 isSummaryLoading={isSummaryLoading}
                 onToggleSourceSelection={toggleSourceSelection}
-                onSelectAllSources={selectAllSources}
-                onDeselectAllSources={deselectAllSources}
                 onDeleteSource={deleteSource}
                 onLinkContent={linkContent}
                 onDraftClick={handleDraftClick}

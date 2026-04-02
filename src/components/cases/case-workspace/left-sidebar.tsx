@@ -18,8 +18,6 @@ interface LeftSidebarProps {
   summary: CaseSummary | null
   isSummaryLoading: boolean
   onToggleSourceSelection: (sourceId: string) => void
-  onSelectAllSources: () => void
-  onDeselectAllSources: () => void
   onDeleteSource: (sourceId: string) => Promise<void>
   onLinkContent: (sourceId: string) => Promise<void>
   onDraftClick: (draft: Draft) => void
@@ -45,8 +43,6 @@ export function LeftSidebar({
   summary,
   isSummaryLoading,
   onToggleSourceSelection,
-  onSelectAllSources,
-  onDeselectAllSources,
   onDeleteSource,
   onLinkContent,
   onDraftClick,
@@ -68,8 +64,6 @@ export function LeftSidebar({
 
   // Filter sources by type
   const uploadedSources = (sources || []).filter(s => s.type === 'USER_UPLOADED')
-
-  const allSourcesSelected = uploadedSources.length > 0 && selectedSourceIds.size === uploadedSources.length
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const [canScrollUp, setCanScrollUp] = useState(false)
