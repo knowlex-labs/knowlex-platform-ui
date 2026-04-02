@@ -163,7 +163,7 @@ export function JudgmentItem({
 
   return (
     <div
-      className="group relative flex items-center gap-2 px-4 py-2.5 hover:bg-ledger-gray-50 transition-colors"
+      className="group relative flex items-center gap-2 px-4 py-1.5 hover:bg-ledger-gray-50 transition-colors"
       onMouseLeave={() => setShowMenu(false)}
     >
       {/* File Icon + Filename — click to open in tab */}

@@ -9,8 +9,8 @@ interface ModeToggleProps {
 }
 
 const modes = [
-  { value: 'draft' as const, label: 'Draft', icon: PenLine },
   { value: 'research' as const, label: 'Research', icon: Bot },
+  { value: 'draft' as const, label: 'Draft', icon: PenLine },
 ]
 
 export function ModeToggle({ mode, onModeChange }: ModeToggleProps) {
