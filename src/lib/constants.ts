@@ -13,7 +13,7 @@ export const SIDEBAR_TABS: SidebarTabConfig[] = [
   { id: 'cases', label: 'Cases', icon: 'briefcase', path: '/cases' },
   { id: 'cause-lists', label: 'Cause Lists', icon: 'clipboard-list', path: '/cause-lists' },
   { id: 'clients', label: 'Clients', icon: 'users', path: '/clients' },
-  { id: 'judgments', label: 'Judgments', icon: 'scale', path: '/judgments' },
+  { id: 'judgments', label: 'Legal Library', icon: 'scale', path: '/judgments' },
   { id: 'ai-research', label: 'AI Research', icon: 'brain', path: '/ai-research', locked: true },
 ]
 

@@ -1,6 +1,5 @@
 import { Briefcase, ArrowRight, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatDistanceToNow } from 'date-fns'
 import type { RecentCase } from '@/services/api/dashboard-api'
 
 interface ContinueWhereLeftOffProps {
