@@ -25,14 +25,13 @@ function formatStatus(status: string): string {
 export function ContinueWhereLeftOff({ cases, isLoading, onCaseClick }: ContinueWhereLeftOffProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {[1, 2].map((i) => (
-          <div key={i} className="border border-ledger-gray-200 rounded-lg p-5 animate-pulse">
-            <div className="h-4 bg-ledger-gray-200 rounded w-3/4 mb-3" />
-            <div className="h-3 bg-ledger-gray-200 rounded w-1/2 mb-4" />
-            <div className="flex gap-2">
-              <div className="h-5 bg-ledger-gray-200 rounded-full w-16" />
-              <div className="h-5 bg-ledger-gray-200 rounded-full w-14" />
+      <div className="space-y-2">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center gap-3 p-3 rounded-lg animate-pulse">
+            <div className="h-8 w-8 bg-ledger-gray-200 rounded-lg flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="h-3.5 bg-ledger-gray-200 rounded w-3/4 mb-1.5" />
+              <div className="h-3 bg-ledger-gray-200 rounded w-1/2" />
             </div>
           </div>
         ))}
@@ -42,59 +41,47 @@ export function ContinueWhereLeftOff({ cases, isLoading, onCaseClick }: Continue
 
   if (cases.length === 0) {
     return (
-      <div className="text-center py-12 border border-dashed border-ledger-gray-300 rounded-lg">
-        <Briefcase className="h-12 w-12 text-ledger-gray-400 mx-auto mb-3" />
-        <h3 className="text-lg font-medium text-ledger-gray-900 mb-1">No active cases</h3>
+      <div className="text-center py-8 border border-dashed border-ledger-gray-300 rounded-lg">
+        <Briefcase className="h-8 w-8 text-ledger-gray-400 mx-auto mb-2" />
         <p className="text-sm text-ledger-gray-500">Your recent cases will appear here</p>
       </div>
     )
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+    <div className="space-y-1">
       {cases.map((caseItem, index) => (
         <button
           key={caseItem.id}
           onClick={() => onCaseClick(caseItem.id)}
           className={cn(
-            'group w-full bg-kx-card border border-kx-card-border rounded-lg p-5 text-left shadow-sm card-elevated',
-            'focus:outline-none focus:ring-2 focus:ring-kx-primary-400 focus:ring-offset-2',
+            'group w-full flex items-center gap-3 p-3 rounded-lg text-left',
+            'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-900/10 transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-kx-primary-400 focus:ring-offset-1',
             'animate-bounce-in'
           )}
           style={{ animationDelay: `${index * 60}ms` }}
         >
-          {/* Header row: icon + arrow */}
-          <div className="flex items-start justify-between mb-3">
-            <div className="h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-kx-primary-100 text-kx-primary-700">
-              <Scale className="h-4 w-4" />
-            </div>
-            <ArrowRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-500 transition-colors" />
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-kx-primary-100 text-kx-primary-700">
+            <Scale className="h-3.5 w-3.5" />
           </div>
-
-          {/* Case title */}
-          <p className="text-sm font-semibold text-kx-primary-900 group-hover:text-kx-primary-700 transition-colors truncate">
-            {caseItem.caseTitle || 'Untitled Case'}
-          </p>
-
-          {/* Case number */}
-          {caseItem.caseNumber && (
-            <p className="text-xs text-ledger-gray-500 truncate mt-0.5">
-              {caseItem.caseNumber}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-kx-primary-900 group-hover:text-kx-primary-700 truncate leading-tight">
+              {caseItem.caseTitle || 'Untitled Case'}
             </p>
-          )}
-
-          {/* Footer: status badge + updated time */}
-          <div className="flex items-center gap-2 mt-3">
-            <span className={cn(
-              'text-[10px] font-medium px-2 py-0.5 rounded-full capitalize',
-              statusColors[caseItem.caseStatus] || statusColors.ACTIVE
-            )}>
-              {formatStatus(caseItem.caseStatus)}
-            </span>
-            <span className="text-[10px] text-ledger-gray-400">
-              {formatDistanceToNow(new Date(caseItem.updatedAt), { addSuffix: true })}
-            </span>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {caseItem.caseNumber && (
+                <span className="text-xs text-ledger-gray-400 truncate">{caseItem.caseNumber}</span>
+              )}
+              <span className={cn(
+                'text-[10px] font-medium px-1.5 py-0.5 rounded-full capitalize flex-shrink-0',
+                statusColors[caseItem.caseStatus] || statusColors.ACTIVE
+              )}>
+                {formatStatus(caseItem.caseStatus)}
+              </span>
+            </div>
           </div>
+          <ArrowRight className="h-3.5 w-3.5 text-ledger-gray-300 group-hover:text-kx-primary-500 transition-colors flex-shrink-0" />
         </button>
       ))}
     </div>

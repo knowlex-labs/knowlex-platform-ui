@@ -5,8 +5,6 @@ import { useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'
 import { StatsOverview } from './stats-overview'
-import { ActivityChart } from './activity-chart'
-import { ActivityFeed } from './activity-feed'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
 import { RecentClientsWidget } from './recent-clients-widget'
 import { ContinueWhereLeftOff } from './continue-where-left-off'
@@ -28,10 +26,6 @@ export function DashboardHome() {
     recentClients,
     totalCases,
     totalClients,
-    chartData,
-    chartPeriod,
-    setChartPeriod,
-    activityFeed,
     isLoading,
   } = useDashboardAnalytics()
   const [notifOpen, setNotifOpen] = useState(false)
@@ -149,23 +143,13 @@ export function DashboardHome() {
 
         {/* LEFT column */}
         <div className="space-y-5 min-w-0">
-          {/* Continue where you left off (Recent Cases) */}
+          {/* Upcoming Hearings */}
           <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
-            <h2 className="text-base font-semibold text-kx-primary-900 mb-4">Continue where you left off</h2>
-            <ContinueWhereLeftOff
-              cases={recentCases}
-              isLoading={isLoading}
-              onCaseClick={handleCaseClick}
-            />
-          </section>
-
-          {/* Activity Chart */}
-          <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
-            <ActivityChart
-              data={chartData}
-              period={chartPeriod}
-              onPeriodChange={setChartPeriod}
-            />
+            <div className="flex items-center gap-2 mb-4">
+              <CalendarDays className="h-4 w-4 text-amber-600" />
+              <h2 className="text-base font-semibold text-kx-primary-900">Upcoming Hearings</h2>
+            </div>
+            <UpcomingHearingsWidget />
           </section>
 
           {/* Recent Clients */}
@@ -182,19 +166,14 @@ export function DashboardHome() {
         {/* RIGHT sidebar */}
         <aside>
           <div className="lg:sticky lg:top-6 space-y-5">
-            {/* Upcoming Hearings */}
+            {/* Continue where you left off */}
             <div className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <CalendarDays className="h-4 w-4 text-amber-600" />
-                <h2 className="text-sm font-semibold text-kx-primary-900">Upcoming Hearings</h2>
-              </div>
-              <UpcomingHearingsWidget />
-            </div>
-
-            {/* Recent Activity Feed */}
-            <div className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-kx-primary-900 mb-4">Recent Activity</h2>
-              <ActivityFeed items={activityFeed} />
+              <h2 className="text-sm font-semibold text-kx-primary-900 mb-4">Continue where you left off</h2>
+              <ContinueWhereLeftOff
+                cases={recentCases}
+                isLoading={isLoading}
+                onCaseClick={handleCaseClick}
+              />
             </div>
           </div>
         </aside>

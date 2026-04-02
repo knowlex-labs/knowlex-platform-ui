@@ -343,7 +343,7 @@ export function Sidebar() {
   const planType = subscription?.planType ?? subscription?.planName
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen overflow-hidden bg-kx-card border-r border-kx-card-border shadow-sm flex-col hidden md:flex transition-all duration-300 overscroll-contain ${collapsed ? 'w-16' : 'w-60'}`}>
+    <aside className={`fixed left-0 top-0 h-screen bg-kx-card border-r border-kx-card-border shadow-sm flex-col hidden md:flex transition-all duration-300 overscroll-contain ${collapsed ? 'w-16' : 'w-60'}`}>
       {/* Logo + Collapse Toggle */}
       <div className="px-4 py-4 border-b border-ledger-gray-200">
         {collapsed ? (
