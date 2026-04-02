@@ -45,17 +45,22 @@ export function DraftItem({ draft, onClick, onDelete, onRename }: DraftItemProps
     setShowMenu(false)
   }
 
+  const displayTitle = draft.title || ''
+  const lastDot = displayTitle.lastIndexOf('.')
+  const titleStem = lastDot > 0 ? displayTitle.slice(0, lastDot) : displayTitle
+  const titleExt = lastDot > 0 ? displayTitle.slice(lastDot) : ''
+
   const handleStartRename = () => {
-    setRenameValue(draft.title || '')
+    setRenameValue(titleStem)
     setIsRenaming(true)
     setShowMenu(false)
   }
 
   const handleRenameSubmit = async () => {
     const trimmed = renameValue.trim()
-    if (trimmed && trimmed !== draft.title && onRename) {
+    if (trimmed && trimmed !== titleStem && onRename) {
       try {
-        await onRename(trimmed)
+        await onRename(trimmed + titleExt)
       } catch {
         // handled by parent
       }
@@ -88,16 +93,21 @@ export function DraftItem({ draft, onClick, onDelete, onRename }: DraftItemProps
         )}
 
         {isRenaming ? (
-          <input
-            ref={renameInputRef}
-            type="text"
-            value={renameValue}
-            onChange={(e) => setRenameValue(e.target.value)}
-            onKeyDown={handleRenameKeyDown}
-            onBlur={handleRenameSubmit}
-            onClick={(e) => e.stopPropagation()}
-            className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-white dark:bg-ledger-gray-800 border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
-          />
+          <div className="flex items-center gap-1 flex-1 min-w-0">
+            <input
+              ref={renameInputRef}
+              type="text"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={handleRenameKeyDown}
+              onBlur={handleRenameSubmit}
+              onClick={(e) => e.stopPropagation()}
+              className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-white dark:bg-ledger-gray-800 border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
+            />
+            {titleExt && (
+              <span className="text-sm text-ledger-gray-400 flex-shrink-0">{titleExt}</span>
+            )}
+          </div>
         ) : (
           <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">
             {draft.title}
