@@ -16,9 +16,11 @@ const MODEL_OPTIONS: { value: DraftChatModel; label: string; short: string }[] =
 ]
 
 interface TempAttachment {
-  id: string
+  id: string        // local React key
   name: string
   file: File
+  documentId?: string   // set after S3 upload completes
+  isUploading: boolean
 }
 
 // Tool calls collapsible section
@@ -134,7 +136,8 @@ interface DraftChatInterfaceProps {
   isLoadingHistory: boolean
   indexingCount?: number
   settings: DraftChatSettings
-  onSendMessage: (message: string) => Promise<void>
+  onSendMessage: (message: string, fileIds?: string[]) => Promise<void>
+  onUploadFile: (file: File) => Promise<string>
   onUpdateSettings: (updates: Partial<DraftChatSettings>) => void
   showGreeting?: boolean
 }
@@ -167,6 +170,7 @@ export function DraftChatInterface({
   indexingCount = 0,
   settings,
   onSendMessage,
+  onUploadFile,
   onUpdateSettings,
   showGreeting = false,
 }: DraftChatInterfaceProps) {
@@ -176,7 +180,6 @@ export function DraftChatInterface({
   const [tempAttachments, setTempAttachments] = useState<TempAttachment[]>([])
   const [plusMenuOpen, setPlusMenuOpen] = useState(false)
   const [modelMenuOpen, setModelMenuOpen] = useState(false)
-  const [expandedSection, setExpandedSection] = useState<'tone' | 'style' | null>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -232,10 +235,12 @@ export function DraftChatInterface({
     e.preventDefault()
     if (!input.trim() || isStreaming) return
     const query = input.trim()
+    const fileIds = tempAttachments
+      .filter((a) => a.documentId)
+      .map((a) => a.documentId!)
     setInput('')
     setTempAttachments([])
-    // TODO: pass tempAttachments to onSendMessage when backend supports inline doc context
-    await onSendMessage(query)
+    await onSendMessage(query, fileIds)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -247,14 +252,25 @@ export function DraftChatInterface({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? [])
-    const newAttachments: TempAttachment[] = files.map((file) => ({
-      id: `${Date.now()}-${file.name}`,
-      name: file.name,
-      file,
-    }))
-    setTempAttachments((prev) => [...prev, ...newAttachments])
     e.target.value = ''
     setPlusMenuOpen(false)
+
+    files.forEach((file) => {
+      const localId = `${Date.now()}-${file.name}`
+      const attachment: TempAttachment = { id: localId, name: file.name, file, isUploading: true }
+      setTempAttachments((prev) => [...prev, attachment])
+
+      onUploadFile(file)
+        .then((documentId) => {
+          setTempAttachments((prev) =>
+            prev.map((a) => a.id === localId ? { ...a, documentId, isUploading: false } : a)
+          )
+        })
+        .catch(() => {
+          // Remove failed attachment
+          setTempAttachments((prev) => prev.filter((a) => a.id !== localId))
+        })
+    })
   }
 
   const removeAttachment = (id: string) => {
@@ -371,15 +387,20 @@ export function DraftChatInterface({
                   key={att.id}
                   className="flex items-center gap-1 px-2 py-1 rounded-lg bg-kx-primary-50 border border-kx-primary-200 text-xs text-kx-primary-700"
                 >
-                  <Paperclip className="h-3 w-3 flex-shrink-0" />
+                  {att.isUploading
+                    ? <Loader2 className="h-3 w-3 flex-shrink-0 animate-spin" />
+                    : <Paperclip className="h-3 w-3 flex-shrink-0" />
+                  }
                   <span className="max-w-[120px] truncate">{att.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeAttachment(att.id)}
-                    className="ml-0.5 text-kx-primary-400 hover:text-kx-primary-700 transition-colors"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  {!att.isUploading && (
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(att.id)}
+                      className="ml-0.5 text-kx-primary-400 hover:text-kx-primary-700 transition-colors"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
@@ -389,7 +410,7 @@ export function DraftChatInterface({
           <form onSubmit={handleSubmit}>
             <div className="flex items-center gap-2 px-3 py-2">
               {/* + button */}
-              <PopoverPrimitive.Root open={plusMenuOpen} onOpenChange={(open) => { setPlusMenuOpen(open); if (!open) setExpandedSection(null) }}>
+              <PopoverPrimitive.Root open={plusMenuOpen} onOpenChange={setPlusMenuOpen}>
                 <PopoverPrimitive.Trigger asChild>
                   <button
                     type="button"
@@ -404,84 +425,99 @@ export function DraftChatInterface({
                     side="top"
                     align="start"
                     sideOffset={8}
-                    className="z-50 w-64 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95 p-2"
+                    className="z-50 w-44 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95 p-1"
                   >
                     {/* Upload documents */}
                     <button
                       type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-ledger-gray-700 hover:bg-ledger-gray-100 transition-colors"
+                      onClick={() => { fileInputRef.current?.click(); setPlusMenuOpen(false) }}
+                      className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-xs text-ledger-gray-700 hover:bg-ledger-gray-100 transition-colors whitespace-nowrap"
                     >
-                      <Paperclip className="h-4 w-4 text-ledger-gray-500 flex-shrink-0" />
-                      <span className="font-medium">Upload documents</span>
-                      <span className="ml-auto text-xs text-ledger-gray-400">chat only</span>
+                      <Paperclip className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
+                      <span>Upload documents</span>
                     </button>
 
-                    <div className="my-1.5 border-t border-ledger-gray-100" />
+                    <div className="my-1 border-t border-ledger-gray-100" />
 
-                    {/* Tone */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'tone' ? null : 'tone')}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-ledger-gray-700 hover:bg-ledger-gray-100 transition-colors"
-                      >
-                        <SlidersHorizontal className="h-4 w-4 text-ledger-gray-500 flex-shrink-0" />
-                        <span className="font-medium">Tone</span>
-                        <span className="ml-auto text-xs text-kx-primary-600 capitalize">{settings.tone}</span>
-                      </button>
-                      {expandedSection === 'tone' && (
-                        <div className="flex gap-1.5 px-3 pb-2">
+                    {/* Tone — right-side submenu */}
+                    <PopoverPrimitive.Root>
+                      <PopoverPrimitive.Trigger asChild>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-xs text-ledger-gray-700 hover:bg-ledger-gray-100 transition-colors"
+                        >
+                          <SlidersHorizontal className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
+                          <span>Tone</span>
+                          <span className="ml-auto text-[10px] text-kx-primary-600 capitalize">{settings.tone}</span>
+                        </button>
+                      </PopoverPrimitive.Trigger>
+                      <PopoverPrimitive.Portal>
+                        <PopoverPrimitive.Content
+                          side="right"
+                          align="start"
+                          sideOffset={4}
+                          className="z-50 w-36 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95 p-1"
+                        >
                           {(['formal', 'neutral', 'conversational'] as const).map((t) => (
                             <button
                               key={t}
                               type="button"
-                              onClick={() => { onUpdateSettings({ tone: t }); setExpandedSection(null) }}
+                              onClick={() => { onUpdateSettings({ tone: t }); setPlusMenuOpen(false) }}
                               className={cn(
-                                'flex-1 text-xs py-1.5 rounded-md border transition-colors capitalize',
+                                'flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs transition-colors capitalize',
                                 settings.tone === t
-                                  ? 'bg-kx-primary-600 text-white border-kx-primary-600'
-                                  : 'border-ledger-gray-200 text-ledger-gray-600 hover:bg-ledger-gray-50'
+                                  ? 'bg-kx-primary-50 text-kx-primary-700 font-medium'
+                                  : 'text-ledger-gray-700 hover:bg-ledger-gray-100'
                               )}
                             >
-                              {t === 'conversational' ? 'Conv.' : t.charAt(0).toUpperCase() + t.slice(1)}
+                              {t === 'conversational' ? 'Conversational' : t.charAt(0).toUpperCase() + t.slice(1)}
+                              {settings.tone === t && <span className="h-1.5 w-1.5 rounded-full bg-kx-primary-500 flex-shrink-0" />}
                             </button>
                           ))}
-                        </div>
-                      )}
-                    </div>
+                          <PopoverPrimitive.Arrow className="fill-kx-card" />
+                        </PopoverPrimitive.Content>
+                      </PopoverPrimitive.Portal>
+                    </PopoverPrimitive.Root>
 
-                    {/* Style */}
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedSection(expandedSection === 'style' ? null : 'style')}
-                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-ledger-gray-700 hover:bg-ledger-gray-100 transition-colors"
-                      >
-                        <Wand2 className="h-4 w-4 text-ledger-gray-500 flex-shrink-0" />
-                        <span className="font-medium">Style</span>
-                        <span className="ml-auto text-xs text-kx-primary-600 capitalize">{settings.style}</span>
-                      </button>
-                      {expandedSection === 'style' && (
-                        <div className="flex gap-1.5 px-3 pb-2">
+                    {/* Style — right-side submenu */}
+                    <PopoverPrimitive.Root>
+                      <PopoverPrimitive.Trigger asChild>
+                        <button
+                          type="button"
+                          className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-xs text-ledger-gray-700 hover:bg-ledger-gray-100 transition-colors"
+                        >
+                          <Wand2 className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
+                          <span>Style</span>
+                          <span className="ml-auto text-[10px] text-kx-primary-600 capitalize">{settings.style}</span>
+                        </button>
+                      </PopoverPrimitive.Trigger>
+                      <PopoverPrimitive.Portal>
+                        <PopoverPrimitive.Content
+                          side="right"
+                          align="start"
+                          sideOffset={4}
+                          className="z-50 w-36 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95 p-1"
+                        >
                           {(['precise', 'balanced', 'detailed'] as const).map((s) => (
                             <button
                               key={s}
                               type="button"
-                              onClick={() => { onUpdateSettings({ style: s }); setExpandedSection(null) }}
+                              onClick={() => { onUpdateSettings({ style: s }); setPlusMenuOpen(false) }}
                               className={cn(
-                                'flex-1 text-xs py-1.5 rounded-md border transition-colors capitalize',
+                                'flex items-center justify-between w-full px-2.5 py-1.5 rounded-lg text-xs transition-colors capitalize',
                                 settings.style === s
-                                  ? 'bg-kx-primary-600 text-white border-kx-primary-600'
-                                  : 'border-ledger-gray-200 text-ledger-gray-600 hover:bg-ledger-gray-50'
+                                  ? 'bg-kx-primary-50 text-kx-primary-700 font-medium'
+                                  : 'text-ledger-gray-700 hover:bg-ledger-gray-100'
                               )}
                             >
                               {s.charAt(0).toUpperCase() + s.slice(1)}
+                              {settings.style === s && <span className="h-1.5 w-1.5 rounded-full bg-kx-primary-500 flex-shrink-0" />}
                             </button>
                           ))}
-                        </div>
-                      )}
-                    </div>
+                          <PopoverPrimitive.Arrow className="fill-kx-card" />
+                        </PopoverPrimitive.Content>
+                      </PopoverPrimitive.Portal>
+                    </PopoverPrimitive.Root>
 
                     <PopoverPrimitive.Arrow className="fill-kx-card" />
                   </PopoverPrimitive.Content>
@@ -547,7 +583,7 @@ export function DraftChatInterface({
               <button
                 type="submit"
                 className="h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 text-white hover:from-kx-primary-400 hover:to-kx-primary-600 shadow-sm disabled:opacity-40 mb-px"
-                disabled={!input.trim() || isStreaming}
+                disabled={!input.trim() || isStreaming || tempAttachments.some((a) => a.isUploading)}
               >
                 {isStreaming ? (
                   <Loader2 className="h-3 w-3 animate-spin" />

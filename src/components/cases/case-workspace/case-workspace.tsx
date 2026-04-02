@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
+import { workspaceApi } from '@/services/api/workspace-api'
 import { useCaseDocuments } from '@/hooks/use-case-sources'
 import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
@@ -244,8 +245,13 @@ export function CaseWorkspace() {
     toast({ title: 'Respondent details updated' })
   }, [caseId, refreshCaseData])
 
-  const handleSendMessage = async (query: string) => {
-    await draftSendMessage(query, Array.from(selectedSourceIds))
+  const handleSendMessage = async (query: string, fileIds: string[] = []) => {
+    await draftSendMessage(query, [...Array.from(selectedSourceIds), ...fileIds])
+  }
+
+  const handleUploadChatFile = async (file: File): Promise<string> => {
+    const { id } = await workspaceApi.uploadDocument(caseId, file)
+    return id
   }
 
   const handleModeChange = (mode: WorkspaceMode) => {
@@ -593,6 +599,7 @@ export function CaseWorkspace() {
               indexingCount={indexingCount}
               settings={chatSettings}
               onSendMessage={handleSendMessage}
+              onUploadFile={handleUploadChatFile}
               onClearChat={clearChat}
               onDeleteSession={deleteChatSession}
               onSelectSession={selectSession}
@@ -624,10 +631,10 @@ export function CaseWorkspace() {
                 sessions={chatSessions}
                 activeSessionId={activeSessionId}
                 isLoadingSessions={isLoadingSessions}
-                selectedSourceCount={selectedSourceIds.size}
                 indexingCount={indexingCount}
                 settings={chatSettings}
                 onSendMessage={handleSendMessage}
+                onUploadFile={handleUploadChatFile}
                 onClearChat={clearChat}
                 onDeleteSession={deleteChatSession}
                 onSelectSession={selectSession}
