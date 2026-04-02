@@ -8,6 +8,7 @@ import { StatsOverview } from './stats-overview'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
 import { RecentClientsWidget } from './recent-clients-widget'
 import { ContinueWhereLeftOff } from './continue-where-left-off'
+import { LegalBytesWidget } from './legal-bytes-widget'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -152,6 +153,16 @@ export function DashboardHome() {
             <UpcomingHearingsWidget />
           </section>
 
+          {/* Continue where you left off */}
+          <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-kx-primary-900 mb-4">Continue where you left off</h2>
+            <ContinueWhereLeftOff
+              cases={recentCases}
+              isLoading={isLoading}
+              onCaseClick={handleCaseClick}
+            />
+          </section>
+
           {/* Recent Clients */}
           <section className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
             <h2 className="text-base font-semibold text-kx-primary-900 mb-4">Recent clients</h2>
@@ -163,17 +174,11 @@ export function DashboardHome() {
           </section>
         </div>
 
-        {/* RIGHT sidebar */}
+        {/* RIGHT sidebar — Legal Bytes */}
         <aside>
-          <div className="lg:sticky lg:top-6 space-y-5">
-            {/* Continue where you left off */}
+          <div className="lg:sticky lg:top-6">
             <div className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-kx-primary-900 mb-4">Continue where you left off</h2>
-              <ContinueWhereLeftOff
-                cases={recentCases}
-                isLoading={isLoading}
-                onCaseClick={handleCaseClick}
-              />
+              <LegalBytesWidget />
             </div>
           </div>
         </aside>

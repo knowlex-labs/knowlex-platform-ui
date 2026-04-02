@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Judgments } from './judgments'
 import { NewsTab } from './news-tab'
@@ -11,7 +12,9 @@ const TABS: { id: LibraryTab; label: string }[] = [
 ]
 
 export function LegalLibrary() {
-    const [activeTab, setActiveTab] = useState<LibraryTab>('judgments')
+    const [searchParams] = useSearchParams()
+    const initialTab = (searchParams.get('tab') as LibraryTab) === 'news' ? 'news' : 'judgments'
+    const [activeTab, setActiveTab] = useState<LibraryTab>(initialTab)
 
     return (
         <div>

@@ -1,19 +1,19 @@
 import { useState } from 'react'
-import { ExternalLink, Newspaper } from 'lucide-react'
+import { Newspaper } from 'lucide-react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import type { NewsItem } from '@/types'
 
-const SOURCE_STYLES: Record<string, string> = {
-    LiveLaw: 'bg-blue-100 text-blue-800 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800',
-    BarAndBench: 'bg-purple-100 text-purple-800 border border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800',
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const SOURCE_COLORS: Record<string, string> = {
+    LiveLaw: 'text-blue-600',
+    BarAndBench: 'text-purple-600',
 }
 
-const CATEGORY_STYLES: Record<string, string> = {
-    'supreme-court': 'bg-kx-primary-50 text-kx-primary-700 border border-kx-primary-200',
-    'high-court': 'bg-green-50 text-green-700 border border-green-200',
-    'top-stories': 'bg-orange-50 text-orange-700 border border-orange-200',
-    'trending': 'bg-red-50 text-red-700 border border-red-200',
+const SOURCE_BG: Record<string, string> = {
+    LiveLaw: 'bg-blue-600',
+    BarAndBench: 'bg-purple-600',
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -21,82 +21,104 @@ const CATEGORY_LABELS: Record<string, string> = {
     'high-court': 'High Court',
     'top-stories': 'Top Stories',
     'trending': 'Trending',
-    'all': 'All',
 }
 
-function relativeTime(dateStr: string): string {
+export function relativeTime(dateStr: string): string {
     try {
         return formatDistanceToNow(parseISO(dateStr), { addSuffix: true })
     } catch {
-        return dateStr
+        return ''
     }
 }
 
-interface NewsCardProps {
-    item: NewsItem
+function Img({ src, alt, className }: { src: string | null; alt: string; className?: string }) {
+    const [error, setError] = useState(false)
+    if (src && !error) {
+        return <img src={src} alt={alt} onError={() => setError(true)} className={cn('w-full h-full object-cover', className)} />
+    }
+    return (
+        <div className={cn('w-full h-full flex items-center justify-center bg-ledger-gray-100', className)}>
+            <Newspaper className="h-7 w-7 text-ledger-gray-300" />
+        </div>
+    )
 }
 
-export function NewsCard({ item }: NewsCardProps) {
-    const [imgError, setImgError] = useState(false)
+// ─── Featured card ─────────────────────────────────────────────────────────────
+// Large card: full image background, gradient overlay, text at bottom
 
-    const categoryLabel = CATEGORY_LABELS[item.category] ?? item.category
+export function FeaturedNewsCard({ item }: { item: NewsItem }) {
+    const categoryLabel = CATEGORY_LABELS[item.category]
 
     return (
         <a
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="group flex flex-col rounded-lg border border-kx-card-border bg-kx-card hover:border-kx-primary-300 hover:shadow-sm transition-all duration-150 overflow-hidden"
+            className="group relative block rounded-2xl overflow-hidden h-52 md:h-56 bg-ledger-gray-100"
         >
             {/* Image */}
-            {item.imageUrl && !imgError ? (
-                <img
-                    src={item.imageUrl}
-                    alt={item.title}
-                    onError={() => setImgError(true)}
-                    className="w-full aspect-video object-cover"
-                />
-            ) : (
-                <div className="w-full aspect-video bg-ledger-gray-100 flex items-center justify-center">
-                    <Newspaper className="h-8 w-8 text-ledger-gray-300" />
-                </div>
-            )}
+            <div className="absolute inset-0 transition-transform duration-700 group-hover:scale-105">
+                <Img src={item.imageUrl} alt={item.title} />
+            </div>
 
-            {/* Body */}
-            <div className="p-4 flex flex-col gap-2 flex-1">
-                {/* Badges */}
-                <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={cn(
-                        'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                        SOURCE_STYLES[item.source] ?? 'bg-ledger-gray-100 text-ledger-gray-700 border border-ledger-gray-200'
-                    )}>
-                        {item.source}
-                    </span>
-                    {item.category && item.category !== 'all' && (
-                        <span className={cn(
-                            'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium',
-                            CATEGORY_STYLES[item.category] ?? 'bg-ledger-gray-100 text-ledger-gray-600 border border-ledger-gray-200'
-                        )}>
-                            {categoryLabel}
-                        </span>
-                    )}
-                </div>
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
 
-                {/* Title */}
-                <h3 className="text-sm font-semibold text-kx-text-primary leading-snug line-clamp-2 group-hover:text-kx-primary-700 transition-colors">
-                    {item.title}
-                    <ExternalLink className="inline-block ml-1 h-3 w-3 opacity-0 group-hover:opacity-60 transition-opacity align-middle" />
-                </h3>
+            {/* Source badge — top left */}
+            <div className="absolute top-4 left-4">
+                <span className={cn(
+                    'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold text-white',
+                    SOURCE_BG[item.source] ?? 'bg-ledger-gray-600'
+                )}>
+                    {item.source}
+                </span>
+            </div>
 
-                {/* Description */}
-                {item.description && (
-                    <p className="text-xs text-ledger-gray-500 line-clamp-2 leading-relaxed">
-                        {item.description}
+            {/* Text — bottom */}
+            <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
+                {categoryLabel && (
+                    <p className="text-white/60 text-xs font-medium uppercase tracking-wide mb-2">
+                        {categoryLabel}
                     </p>
                 )}
+                <h2 className="text-white font-serif text-xl md:text-2xl font-semibold leading-snug line-clamp-3 group-hover:text-white/90 transition-colors">
+                    {item.title}
+                </h2>
+                <p className="text-white/50 text-xs mt-2">{relativeTime(item.publishedAt)}</p>
+            </div>
+        </a>
+    )
+}
 
-                {/* Timestamp */}
-                <p className="text-xs text-ledger-gray-400 mt-auto pt-1">
+// ─── Sidebar compact card ──────────────────────────────────────────────────────
+// Horizontal row: small thumbnail + text — used in the right-column sidebar
+
+export function SidebarNewsCard({ item, hasBorder }: { item: NewsItem; hasBorder?: boolean }) {
+    return (
+        <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+                'group flex gap-3 p-3.5 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-900/50 transition-colors',
+                hasBorder && 'border-t border-ledger-gray-100'
+            )}
+        >
+            {/* Thumbnail */}
+            <div className="flex-shrink-0 w-[72px] h-[52px] rounded-lg overflow-hidden bg-ledger-gray-100">
+                <Img src={item.imageUrl} alt={item.title} />
+            </div>
+
+            {/* Text */}
+            <div className="flex-1 min-w-0 space-y-1">
+                <h3 className="text-sm font-medium text-kx-text-primary leading-snug line-clamp-2 group-hover:text-kx-primary-700 transition-colors">
+                    {item.title}
+                </h3>
+                <p className="text-xs text-ledger-gray-400">
+                    <span className={cn('font-medium', SOURCE_COLORS[item.source] ?? 'text-ledger-gray-500')}>
+                        {item.source}
+                    </span>
+                    {' · '}
                     {relativeTime(item.publishedAt)}
                 </p>
             </div>
@@ -104,22 +126,81 @@ export function NewsCard({ item }: NewsCardProps) {
     )
 }
 
-export function NewsCardSkeleton() {
+// ─── Grid card ─────────────────────────────────────────────────────────────────
+// Vertical card: image top, text below — for the 3-col grid
+
+export function GridNewsCard({ item }: { item: NewsItem }) {
+    const categoryLabel = CATEGORY_LABELS[item.category]
+
     return (
-        <div className="rounded-lg border border-kx-card-border overflow-hidden animate-pulse">
-            <div className="w-full aspect-video bg-ledger-gray-200" />
-            <div className="p-4 space-y-2.5">
-                <div className="flex gap-1.5">
-                    <div className="h-5 w-14 bg-ledger-gray-200 rounded" />
-                    <div className="h-5 w-20 bg-ledger-gray-200 rounded" />
+        <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group flex flex-col"
+        >
+            {/* Image */}
+            <div className="h-36 rounded-xl overflow-hidden bg-ledger-gray-100">
+                <div className="w-full h-full transition-transform duration-300 group-hover:scale-[1.04]">
+                    <Img src={item.imageUrl} alt={item.title} />
                 </div>
-                <div className="space-y-1.5">
-                    <div className="h-4 bg-ledger-gray-200 rounded w-full" />
-                    <div className="h-4 bg-ledger-gray-200 rounded w-3/4" />
+            </div>
+
+            {/* Text */}
+            <div className="pt-3 space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                    <span className={cn('text-xs font-semibold', SOURCE_COLORS[item.source] ?? 'text-ledger-gray-500')}>
+                        {item.source}
+                    </span>
+                    {categoryLabel && (
+                        <>
+                            <span className="text-ledger-gray-300 text-xs">·</span>
+                            <span className="text-xs text-ledger-gray-400">{categoryLabel}</span>
+                        </>
+                    )}
                 </div>
-                <div className="h-3 bg-ledger-gray-200 rounded w-full" />
-                <div className="h-3 bg-ledger-gray-200 rounded w-2/3" />
-                <div className="h-3 bg-ledger-gray-100 rounded w-1/3 mt-1" />
+                <h3 className="text-sm font-semibold text-kx-text-primary leading-snug line-clamp-2 group-hover:text-kx-primary-700 transition-colors">
+                    {item.title}
+                </h3>
+                <p className="text-xs text-ledger-gray-400">{relativeTime(item.publishedAt)}</p>
+            </div>
+        </a>
+    )
+}
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+
+export function FeaturedNewsCardSkeleton() {
+    return (
+        <div className="rounded-2xl h-52 md:h-56 bg-ledger-gray-200 animate-pulse" />
+    )
+}
+
+export function SidebarNewsCardSkeleton({ hasBorder }: { hasBorder?: boolean }) {
+    return (
+        <div className={cn('flex gap-3 p-3.5 animate-pulse', hasBorder && 'border-t border-ledger-gray-100')}>
+            <div className="flex-shrink-0 w-[72px] h-[52px] rounded-lg bg-ledger-gray-200" />
+            <div className="flex-1 space-y-2 pt-1">
+                <div className="h-3.5 bg-ledger-gray-200 rounded w-full" />
+                <div className="h-3.5 bg-ledger-gray-200 rounded w-3/4" />
+                <div className="h-3 bg-ledger-gray-100 rounded w-1/2" />
+            </div>
+        </div>
+    )
+}
+
+export function GridNewsCardSkeleton() {
+    return (
+        <div className="flex flex-col animate-pulse">
+            <div className="h-36 rounded-xl bg-ledger-gray-200" />
+            <div className="pt-3 space-y-2">
+                <div className="flex gap-2">
+                    <div className="h-3 w-12 bg-ledger-gray-200 rounded-full" />
+                    <div className="h-3 w-16 bg-ledger-gray-100 rounded-full" />
+                </div>
+                <div className="h-4 bg-ledger-gray-200 rounded w-full" />
+                <div className="h-4 bg-ledger-gray-200 rounded w-4/5" />
+                <div className="h-3 bg-ledger-gray-100 rounded w-1/3" />
             </div>
         </div>
     )
