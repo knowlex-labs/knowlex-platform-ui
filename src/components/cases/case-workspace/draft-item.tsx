@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { FileText, Loader2, AlertCircle, MoreVertical, Trash2, ExternalLink } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { FileText, Loader2, AlertCircle, MoreVertical, Trash2, ExternalLink, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
@@ -9,11 +9,22 @@ interface DraftItemProps {
   draft: Draft
   onClick: () => void
   onDelete: (id: string) => void
+  onRename?: (newTitle: string) => Promise<void>
 }
 
-export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
+export function DraftItem({ draft, onClick, onDelete, onRename }: DraftItemProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (isRenaming && renameInputRef.current) {
+      renameInputRef.current.focus()
+      renameInputRef.current.select()
+    }
+  }, [isRenaming])
 
   const handleDelete = async () => {
     setIsDeleting(true)
@@ -34,14 +45,37 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
     setShowMenu(false)
   }
 
+  const handleStartRename = () => {
+    setRenameValue(draft.title || '')
+    setIsRenaming(true)
+    setShowMenu(false)
+  }
+
+  const handleRenameSubmit = async () => {
+    const trimmed = renameValue.trim()
+    if (trimmed && trimmed !== draft.title && onRename) {
+      try {
+        await onRename(trimmed)
+      } catch {
+        // handled by parent
+      }
+    }
+    setIsRenaming(false)
+  }
+
+  const handleRenameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleRenameSubmit()
+    else if (e.key === 'Escape') setIsRenaming(false)
+  }
+
   return (
     <div
       className={cn(
-        'group relative flex items-center gap-2 px-4 py-2.5 cursor-pointer',
+        'group relative flex items-center gap-2 px-4 py-1.5 cursor-pointer',
         'hover:bg-ledger-gray-50 transition-colors',
         draft.status === 'failed' && 'opacity-60'
       )}
-      onClick={onClick}
+      onClick={isRenaming ? undefined : onClick}
       onMouseLeave={() => setShowMenu(false)}
     >
       <div className="flex items-center gap-2 flex-1 min-w-0 text-left">
@@ -52,49 +86,74 @@ export function DraftItem({ draft, onClick, onDelete }: DraftItemProps) {
         ) : (
           <FileText className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
         )}
-        <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">
-          {draft.title}
-          {draft.status === 'pending' && (
-            <span className="text-ledger-gray-400 ml-1">- Generating...</span>
-          )}
-          {draft.status === 'failed' && (
-            <span className="text-red-400 ml-1">- Failed</span>
-          )}
-        </span>
+
+        {isRenaming ? (
+          <input
+            ref={renameInputRef}
+            type="text"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={handleRenameKeyDown}
+            onBlur={handleRenameSubmit}
+            onClick={(e) => e.stopPropagation()}
+            className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-white dark:bg-ledger-gray-800 border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
+          />
+        ) : (
+          <span className="text-sm text-kx-primary-900 truncate flex-1 min-w-0">
+            {draft.title}
+            {draft.status === 'pending' && (
+              <span className="text-ledger-gray-400 ml-1">- Generating...</span>
+            )}
+            {draft.status === 'failed' && (
+              <span className="text-red-400 ml-1">- Failed</span>
+            )}
+          </span>
+        )}
       </div>
 
       {/* Three-dot Menu */}
-      <div className="relative flex-shrink-0">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
-          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
-        >
-          <MoreVertical className="h-3.5 w-3.5" />
-        </Button>
+      {!isRenaming && (
+        <div className="relative flex-shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
+            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </Button>
 
-        {showMenu && (
-          <div className="absolute right-0 top-full mt-1 w-44 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
-            <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors rounded-t-lg disabled:opacity-50"
-              onClick={(e) => { e.stopPropagation(); handleOpenInNewTab() }}
-              disabled={draft.status !== 'completed' || !draft.content}
-            >
-              <ExternalLink className="h-4 w-4" />
-              Open in new tab
-            </button>
-            <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-b-lg disabled:opacity-50"
-              onClick={(e) => { e.stopPropagation(); handleDelete() }}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-4 w-4" />
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </button>
-          </div>
-        )}
-      </div>
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1 w-44 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors rounded-t-lg disabled:opacity-50"
+                onClick={(e) => { e.stopPropagation(); handleOpenInNewTab() }}
+                disabled={draft.status !== 'completed' || !draft.content}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open in new tab
+              </button>
+              {onRename && (
+                <button
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
+                  onClick={(e) => { e.stopPropagation(); handleStartRename() }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Rename
+                </button>
+              )}
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors rounded-b-lg disabled:opacity-50"
+                onClick={(e) => { e.stopPropagation(); handleDelete() }}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4" />
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

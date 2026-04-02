@@ -31,6 +31,7 @@ interface LeftSidebarProps {
   onDeleteJudgment: (judgmentId: string) => Promise<void>
   onReindexJudgment: (judgmentId: string) => Promise<void>
   onRenameDocument: (documentId: string, newName: string) => Promise<void>
+  onRenameDraft: (draftId: string, newTitle: string) => Promise<void>
 }
 
 export function LeftSidebar({
@@ -57,6 +58,7 @@ export function LeftSidebar({
   onDeleteJudgment,
   onReindexJudgment,
   onRenameDocument,
+  onRenameDraft,
 }: LeftSidebarProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(true)
   const [judgmentsExpanded, setJudgmentsExpanded] = useState(true)
@@ -132,17 +134,6 @@ export function LeftSidebar({
                 </div>
               ) : (
                 <div>
-                  <div className="flex items-center justify-between px-4 py-1">
-                    <button
-                      className="text-xs text-ledger-gray-500 hover:text-kx-primary-700 transition-colors"
-                      onClick={allSourcesSelected ? onDeselectAllSources : onSelectAllSources}
-                    >
-                      {allSourcesSelected ? 'Deselect all' : 'Select all'}
-                    </button>
-                    {selectedSourceIds.size > 0 && (
-                      <span className="text-xs text-ledger-gray-400">{selectedSourceIds.size} selected</span>
-                    )}
-                  </div>
                   {uploadedSources.map((source) => (
                     <SourceItem
                       key={source.id}
@@ -250,6 +241,7 @@ export function LeftSidebar({
                       draft={draft}
                       onClick={() => onDraftClick(draft)}
                       onDelete={onDeleteDraft}
+                      onRename={(newTitle) => onRenameDraft(draft.id, newTitle)}
                     />
                   ))}
                 </div>

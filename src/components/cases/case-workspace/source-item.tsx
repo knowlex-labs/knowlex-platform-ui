@@ -168,7 +168,7 @@ export function SourceItem({
 
   return (
     <div
-      className="group relative flex items-center gap-2 px-4 py-2.5 hover:bg-ledger-gray-50 transition-colors"
+      className="group relative flex items-center gap-2 px-4 py-1.5 hover:bg-ledger-gray-50 transition-colors"
       onMouseLeave={() => setShowMenu(false)}
     >
       {/* Checkbox */}

@@ -12,6 +12,7 @@ import { useWorkspaceTabs } from '@/hooks/use-workspace-tabs'
 import { LeftSidebar } from './left-sidebar'
 import { CenterPanel } from './center-panel'
 import { DraftChatPanel } from './draft-chat-panel'
+import { ResearchSidebar } from './research-sidebar'
 import { ModeToggle } from './mode-toggle'
 import type { WorkspaceMode } from './mode-toggle'
 import { HeaderToolButtons } from './header-tool-buttons'
@@ -37,7 +38,7 @@ export function CaseWorkspace() {
   const titleInputRef = useRef<HTMLInputElement>(null)
   // Case details modal
   const [caseDetailsOpen, setCaseDetailsOpen] = useState(false)
-  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('draft')
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('research')
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [rightPanelOpen, setRightPanelOpen] = useState(true)
   const [showDraftWizard, setShowDraftWizard] = useState(false)
@@ -67,7 +68,7 @@ export function CaseWorkspace() {
   // Resizable chat panel
   const MIN_CHAT_WIDTH = 320
   const MAX_CHAT_WIDTH = 700
-  const DEFAULT_CHAT_WIDTH = 384 // w-96
+  const DEFAULT_CHAT_WIDTH = 320
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH)
   const isResizingRef = useRef(false)
   const startXRef = useRef(0)
@@ -463,13 +464,17 @@ export function CaseWorkspace() {
 
         {/* Right: Tools + panel toggles */}
         <div className="flex items-center gap-1 flex-1 justify-end">
-          <HeaderToolButtons
-            onDraftingClick={handleDraftingClick}
-            onSummaryClick={handleSummaryClick}
-            onUploadDocumentsClick={handleUploadDocumentsClick}
-            onLinkJudgmentClick={handleLinkJudgment}
-          />
-          <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
+          {workspaceMode === 'draft' && (
+            <>
+              <HeaderToolButtons
+                onDraftingClick={handleDraftingClick}
+                onSummaryClick={handleSummaryClick}
+                onUploadDocumentsClick={handleUploadDocumentsClick}
+                onLinkJudgmentClick={handleLinkJudgment}
+              />
+              <div className="h-4 w-px bg-ledger-gray-300 mx-1" />
+            </>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -482,65 +487,77 @@ export function CaseWorkspace() {
               : (
                 <>
                   <PanelLeftOpen className="h-4 w-4" />
-                  <span className="text-sm font-medium">Files</span>
+                  <span className="text-sm font-medium">{workspaceMode === 'research' ? 'Chats' : 'Files'}</span>
                 </>
               )
             }
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setRightPanelOpen(!rightPanelOpen)}
-            className={rightPanelOpen ? 'h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700' : 'h-8 px-3 gap-1.5 text-ledger-gray-500 hover:text-kx-primary-700'}
-            title={rightPanelOpen ? 'Hide right panel' : 'Show right panel'}
-          >
-            {rightPanelOpen
-              ? <PanelRightClose className="h-4 w-4" />
-              : (
-                <>
-                  <Bot className="h-4 w-4" />
-                  <span className="text-sm font-medium">
-                    {workspaceMode === 'draft' ? 'AI Chat' : 'Workspace'}
-                  </span>
-                </>
-              )
-            }
-          </Button>
+          {workspaceMode === 'draft' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setRightPanelOpen(!rightPanelOpen)}
+              className={rightPanelOpen ? 'h-8 w-8 p-0 text-ledger-gray-500 hover:text-kx-primary-700' : 'h-8 px-3 gap-1.5 text-ledger-gray-500 hover:text-kx-primary-700'}
+              title={rightPanelOpen ? 'Hide right panel' : 'Show right panel'}
+            >
+              {rightPanelOpen
+                ? <PanelRightClose className="h-4 w-4" />
+                : (
+                  <>
+                    <Bot className="h-4 w-4" />
+                    <span className="text-sm font-medium">AI Chat</span>
+                  </>
+                )
+              }
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 flex min-h-0 overflow-hidden bg-kx-card">
         {leftPanelOpen && (
-          <div className="w-72 flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden transition-all duration-200">
-            <LeftSidebar
-              sources={sources}
-              apiDraftDocuments={draftDocuments}
-              judgments={judgments}
-              isJudgmentsLoading={sourcesLoading}
-              selectedSourceIds={selectedSourceIds}
-              isSourcesLoading={sourcesLoading}
-              drafts={drafts}
-              summary={summary}
-              isSummaryLoading={isSummaryLoading}
-              onToggleSourceSelection={toggleSourceSelection}
-              onSelectAllSources={selectAllSources}
-              onDeselectAllSources={deselectAllSources}
-              onDeleteSource={deleteSource}
-              onLinkContent={linkContent}
-              onDraftClick={handleDraftClick}
-              onDeleteDraft={handleDeleteDraft}
-              onSummaryClick={handleSummaryClick}
-              onDeleteSummary={handleDeleteSummary}
-              onOpenSourceInTab={openSourceTab}
-              onOpenJudgmentInTab={handleOpenJudgmentInTab}
-              onDeleteJudgment={handleDeleteJudgment}
-              onReindexJudgment={handleReindexJudgment}
-              onRenameDocument={renameDocument}
-            />
+          <div className={`${workspaceMode === 'research' ? 'w-56' : 'w-60'} flex-shrink-0 flex flex-col border-r border-kx-card-border overflow-hidden transition-all duration-200`}>
+            {workspaceMode === 'research' ? (
+              <ResearchSidebar
+                sessions={chatSessions}
+                activeSessionId={activeSessionId}
+                isLoadingSessions={isLoadingSessions}
+                onSelectSession={selectSession}
+                onStartNewChat={startNewChat}
+                onDeleteSession={deleteChatSession}
+              />
+            ) : (
+              <LeftSidebar
+                sources={sources}
+                apiDraftDocuments={draftDocuments}
+                judgments={judgments}
+                isJudgmentsLoading={sourcesLoading}
+                selectedSourceIds={selectedSourceIds}
+                isSourcesLoading={sourcesLoading}
+                drafts={drafts}
+                summary={summary}
+                isSummaryLoading={isSummaryLoading}
+                onToggleSourceSelection={toggleSourceSelection}
+                onSelectAllSources={selectAllSources}
+                onDeselectAllSources={deselectAllSources}
+                onDeleteSource={deleteSource}
+                onLinkContent={linkContent}
+                onDraftClick={handleDraftClick}
+                onDeleteDraft={handleDeleteDraft}
+                onSummaryClick={handleSummaryClick}
+                onDeleteSummary={handleDeleteSummary}
+                onOpenSourceInTab={openSourceTab}
+                onOpenJudgmentInTab={handleOpenJudgmentInTab}
+                onDeleteJudgment={handleDeleteJudgment}
+                onReindexJudgment={handleReindexJudgment}
+                onRenameDocument={renameDocument}
+                onRenameDraft={renameDocument}
+              />
+            )}
           </div>
         )}
 
-        {/* Center: CenterPanel in draft mode, Chat in research mode */}
+        {/* Center */}
         <div className="flex-1 min-h-0 min-w-0">
           {workspaceMode === 'draft' ? (
             <CenterPanel
@@ -573,7 +590,6 @@ export function CaseWorkspace() {
               sessions={chatSessions}
               activeSessionId={activeSessionId}
               isLoadingSessions={isLoadingSessions}
-              selectedSourceCount={selectedSourceIds.size}
               indexingCount={indexingCount}
               settings={chatSettings}
               onSendMessage={handleSendMessage}
@@ -583,12 +599,13 @@ export function CaseWorkspace() {
               onUpdateSettings={updateChatSettings}
               onStartNewChat={startNewChat}
               showGreeting
+              isResearchMode
             />
           )}
         </div>
 
-        {/* Right: Chat in draft mode, CenterPanel in research mode */}
-        {rightPanelOpen && (
+        {/* Right: Chat panel — draft mode only */}
+        {workspaceMode === 'draft' && rightPanelOpen && (
           <>
             <div
               onMouseDown={handleResizeStart}
@@ -600,49 +617,23 @@ export function CaseWorkspace() {
               className="flex-shrink-0 flex flex-col border-l border-kx-card-border overflow-hidden"
               style={{ width: chatWidth }}
             >
-              {workspaceMode === 'draft' ? (
-                <DraftChatPanel
-                  messages={messages}
-                  isStreaming={chatStreaming}
-                  isLoadingHistory={chatLoadingHistory}
-                  sessions={chatSessions}
-                  activeSessionId={activeSessionId}
-                  isLoadingSessions={isLoadingSessions}
-                  selectedSourceCount={selectedSourceIds.size}
-                  indexingCount={indexingCount}
-                  settings={chatSettings}
-                  onSendMessage={handleSendMessage}
-                  onClearChat={clearChat}
-                  onDeleteSession={deleteChatSession}
-                  onSelectSession={selectSession}
-                  onUpdateSettings={updateChatSettings}
-                  onStartNewChat={startNewChat}
-                />
-              ) : (
-                <CenterPanel
-                  compact
-                  tabs={tabs}
-                  activeTabId={activeTabId}
-                  drafts={drafts}
-                  caseId={caseId}
-                  summary={summary}
-                  isGeneratingSummary={isGeneratingSummary}
-                  onTabClick={setActiveTab}
-                  onTabClose={closeTab}
-                  onSaveDraftLocal={handleSaveDraftLocal}
-                  onSaveDraftToBackend={handleSaveDraftToBackend}
-                  onDeleteDraft={handleDeleteDraft}
-                  onRetryDraft={handleRetryDraft}
-                  onTabDirtyChange={setTabDirty}
-                  onDraftingClick={handleDraftingClick}
-                  onSummaryClick={handleSummaryClick}
-                  onUploadDocumentsClick={handleUploadDocumentsClick}
-                  onLinkJudgmentClick={handleLinkJudgment}
-                  onSendToChat={handleSendToChat}
-                  onGenerateSummary={handleGenerateSummary}
-                  onDeleteSummary={handleDeleteSummary}
-                />
-              )}
+              <DraftChatPanel
+                messages={messages}
+                isStreaming={chatStreaming}
+                isLoadingHistory={chatLoadingHistory}
+                sessions={chatSessions}
+                activeSessionId={activeSessionId}
+                isLoadingSessions={isLoadingSessions}
+                selectedSourceCount={selectedSourceIds.size}
+                indexingCount={indexingCount}
+                settings={chatSettings}
+                onSendMessage={handleSendMessage}
+                onClearChat={clearChat}
+                onDeleteSession={deleteChatSession}
+                onSelectSession={selectSession}
+                onUpdateSettings={updateChatSettings}
+                onStartNewChat={startNewChat}
+              />
             </div>
           </>
         )}
