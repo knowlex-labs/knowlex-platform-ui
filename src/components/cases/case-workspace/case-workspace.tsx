@@ -105,10 +105,18 @@ export function CaseWorkspace() {
 
   const {
     documents,
+    paginatedSources,
+    sourcePage,
+    sourceTotal,
+    setSourcePage,
     selectedSourceIds,
     isLoading: sourcesLoading,
+    isSourcesLoading,
     isUploading,
     toggleSourceSelection,
+    selectAllSources,
+    deselectAllSources,
+    batchDelete,
     uploadFile,
     deleteSource,
     linkContent,
@@ -117,12 +125,12 @@ export function CaseWorkspace() {
   } = useCaseDocuments(caseId)
 
   // Filter documents by type for display
-  const sources = documents.filter(d => d.type === 'USER_UPLOADED')
+  const sources = paginatedSources
   const judgments = documents.filter(d => d.type === 'JUDGMENT')
   const draftDocuments = documents.filter(d => d.type === 'DRAFT')
 
-  // Count docs/judgments currently being indexed
-  const indexingCount = documents.filter(d =>
+  // Count docs/judgments currently being indexed (across both sources and non-sources)
+  const indexingCount = [...paginatedSources, ...documents].filter(d =>
     d.indexingStatus === IndexingStatus.PENDING ||
     d.indexingStatus === IndexingStatus.RUNNING
   ).length
@@ -535,15 +543,21 @@ export function CaseWorkspace() {
             ) : (
               <LeftSidebar
                 sources={sources}
+                sourcePage={sourcePage}
+                sourceTotal={sourceTotal}
+                onSourcePageChange={setSourcePage}
                 apiDraftDocuments={draftDocuments}
                 judgments={judgments}
                 isJudgmentsLoading={sourcesLoading}
                 selectedSourceIds={selectedSourceIds}
-                isSourcesLoading={sourcesLoading}
+                isSourcesLoading={isSourcesLoading}
                 drafts={drafts}
                 summary={summary}
                 isSummaryLoading={isSummaryLoading}
                 onToggleSourceSelection={toggleSourceSelection}
+                onSelectAllSources={selectAllSources}
+                onDeselectAllSources={deselectAllSources}
+                onBatchDelete={batchDelete}
                 onDeleteSource={deleteSource}
                 onLinkContent={linkContent}
                 onDraftClick={handleDraftClick}

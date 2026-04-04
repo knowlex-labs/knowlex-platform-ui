@@ -24,10 +24,17 @@ export interface CaseDocument {
   jobStatus?: JobStatus
   jobId?: string
   subType?: string
-  filePath?: string
-  storageUrl?: string
-  signedUrl?: string
-  downloadUrl?: string
+  filePath?: string | null
+  storageUrl?: string | null
+  signedUrl?: string | null
+  downloadUrl?: string | null
+  // Additional fields from DocumentResponse
+  caseId?: string | null
+  caseTitle?: string | null
+  originalFilename?: string | null
+  fileType?: string | null
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface ChatResponse {

@@ -910,7 +910,7 @@ export function DocumentsPage() {
   const refresh = useCallback(async () => {
     setError(null)
     try {
-      const data = await listAllDocuments()
+      const { documents: data } = await listAllDocuments()
       setAllDocs(data)
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to load documents')

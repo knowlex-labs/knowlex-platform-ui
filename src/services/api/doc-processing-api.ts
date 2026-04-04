@@ -66,31 +66,41 @@ export interface CompressResponse {
 export type DocumentRecordType = 'USER_UPLOADED' | 'DRAFT' | 'SUMMARY' | 'JUDGMENT'
 
 /**
- * Full document record returned by GET /api/v1/documents/all.
+ * DocumentResponse — the canonical shape returned by GET /api/v1/documents.
  * Covers every document the user has ever touched across all cases.
  */
 export interface DocumentRecord {
   id: string
   caseId: string | null
   caseTitle: string | null
-  /** File name or document name */
   name: string
-  /** For JUDGMENT: the human-readable judgment title */
   originalFilename: string | null
-  fileType: 'PDF' | null
+  fileType: string | null
   /** Presigned S3 URL — use for DRAFT/SUMMARY/JUDGMENT downloads */
   storageUrl: string | null
-  signedUrl: null
-  /** Backend decrypt-stream path — present for USER_UPLOADED */
+  /** Legacy direct URL */
+  signedUrl: string | null
+  /** Encrypted doc download — use this when present */
   downloadUrl: string | null
   type: DocumentRecordType
   subType: string | null
   jobStatus: string | null
   jobId: string | null
   indexingStatus: string | null
-  filePath: string
+  filePath: string | null
   createdAt: string
   updatedAt: string
+}
+
+// Spring Page wrapper (shared shape)
+interface SpringPage<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  number: number
+  size: number
+  first: boolean
+  last: boolean
 }
 
 /**
@@ -182,23 +192,33 @@ export function triggerDirectDownload(url: string, fileName: string): void {
 }
 
 /**
- * List all user documents across all cases and standalone.
- * GET /api/v1/documents/all
- * @param type  Optional filter: USER_UPLOADED | DRAFT | SUMMARY | JUDGMENT
+ * List all user documents across all cases and standalone (paginated).
+ * GET /api/v1/documents?type=<type>&page=0&size=200
  */
-export async function listAllDocuments(type?: DocumentRecordType): Promise<DocumentRecord[]> {
-  const query = type ? `?type=${type}` : ''
-  const res = await apiClient.get<ApiResponse<DocumentRecord[]>>(`/api/v1/documents/all${query}`)
-  return res.data ?? []
+export async function listAllDocuments(
+  type?: DocumentRecordType,
+  opts?: { page?: number; size?: number }
+): Promise<{ documents: DocumentRecord[]; total: number }> {
+  const params = new URLSearchParams({ page: String(opts?.page ?? 0), size: String(opts?.size ?? 200) })
+  if (type) params.set('type', type)
+  const res = await apiClient.get<ApiResponse<SpringPage<DocumentRecord>>>(`/api/v1/documents?${params}`)
+  return { documents: res.data?.content ?? [], total: res.data?.totalElements ?? 0 }
 }
 
 /**
- * List all standalone documents (not attached to any case).
- * GET /api/v1/documents
+ * List standalone documents only (not attached to any case).
+ * GET /api/v1/documents?linked=false
  */
-export async function listStandaloneDocuments(): Promise<ProcessedDocumentInfo[]> {
-  const res = await apiClient.get<ApiResponse<ProcessedDocumentInfo[]>>('/api/v1/documents')
-  return res.data ?? []
+export async function listStandaloneDocuments(
+  opts?: { page?: number; size?: number }
+): Promise<{ documents: DocumentRecord[]; total: number }> {
+  const params = new URLSearchParams({
+    linked: 'false',
+    page: String(opts?.page ?? 0),
+    size: String(opts?.size ?? 200),
+  })
+  const res = await apiClient.get<ApiResponse<SpringPage<DocumentRecord>>>(`/api/v1/documents?${params}`)
+  return { documents: res.data?.content ?? [], total: res.data?.totalElements ?? 0 }
 }
 
 /**

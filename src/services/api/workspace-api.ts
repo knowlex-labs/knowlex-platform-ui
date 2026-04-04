@@ -20,6 +20,17 @@ interface ApiResponse<T> {
   data: T
 }
 
+// Spring Boot Page response shape returned by GET /api/v1/documents
+interface SpringPage<T> {
+  content: T[]
+  totalElements: number
+  totalPages: number
+  number: number   // 0-based current page
+  size: number
+  first: boolean
+  last: boolean
+}
+
 // Presigned URL response from backend
 interface PresignedUrlData {
   documentId: string
@@ -87,18 +98,41 @@ function mapChatResponse(data: BackendChatResponse): ChatResponse {
 
 export const workspaceApi = {
   /**
-   * Get all documents for a case
-   * GET /api/v1/cases/{caseId}/documents - returns all documents
-   * GET /api/v1/cases/{caseId}/documents?type=DRAFT - returns only drafts
-   * GET /api/v1/cases/{caseId}/documents?type=USER_UPLOADED - returns only uploaded docs
-   * Response: { success: true, data: [...] } - direct array (not paginated)
+   * List documents for a case — used for non-paginated fetches (drafts, summaries, judgments).
+   * GET /api/v1/documents?caseId=<uuid>&type=<type>&size=200
    */
-  async getCaseDocuments(caseId: string, type?: 'USER_UPLOADED' | 'DRAFT' | 'SUMMARY'): Promise<CaseDocument[]> {
-    const params = type ? `?type=${type}` : ''
-    const response = await apiClient.get<ApiResponse<CaseDocument[]>>(
-      `/api/v1/cases/${caseId}/documents${params}`
+  async getCaseDocuments(
+    caseId: string,
+    type?: 'USER_UPLOADED' | 'DRAFT' | 'SUMMARY' | 'JUDGMENT'
+  ): Promise<CaseDocument[]> {
+    const params = new URLSearchParams({ caseId, size: '200' })
+    if (type) params.set('type', type)
+    const response = await apiClient.get<ApiResponse<SpringPage<CaseDocument>>>(
+      `/api/v1/documents?${params}`
     )
-    return response.data
+    return response.data?.content ?? []
+  },
+
+  /**
+   * List USER_UPLOADED documents with server-side pagination.
+   * GET /api/v1/documents?caseId=<uuid>&type=USER_UPLOADED&page=<0-based>&size=<N>
+   * Hook passes 1-based pages; we convert to 0-based here.
+   */
+  async getCaseDocumentsPaginated(
+    caseId: string,
+    opts: { page: number; limit: number }
+  ): Promise<{ documents: CaseDocument[]; total: number }> {
+    const params = new URLSearchParams({
+      caseId,
+      type: 'USER_UPLOADED',
+      page: String(opts.page - 1),   // hook is 1-based → API is 0-based
+      size: String(opts.limit),
+    })
+    const response = await apiClient.get<ApiResponse<SpringPage<CaseDocument>>>(
+      `/api/v1/documents?${params}`
+    )
+    const page = response.data
+    return { documents: page?.content ?? [], total: page?.totalElements ?? 0 }
   },
 
   /**
@@ -165,10 +199,27 @@ export const workspaceApi = {
   },
 
   /**
-   * Delete a document
+   * Delete a single document
    */
   async deleteCaseDocument(caseId: string, documentId: string): Promise<void> {
     await apiClient.delete(`/api/v1/cases/${caseId}/documents/${documentId}`)
+  },
+
+  /**
+   * Batch delete documents — one request for all IDs
+   * DELETE /api/v1/documents  { documentIds: [...] }
+   */
+  async batchDeleteDocuments(documentIds: string[]): Promise<void> {
+    await fetch(`${API_BASE_URL}/api/v1/documents`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ documentIds }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.message ?? `Batch delete failed: ${res.status}`)
+      }
+    })
   },
 
   /**

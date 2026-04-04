@@ -172,21 +172,24 @@ export function SourceItem({
   }
 
   return (
+    // Clicking anywhere on the row toggles selection; filename text stopPropagates to open instead
     <div
-      className="group relative flex items-center gap-2 px-4 py-1.5 hover:bg-ledger-gray-50 transition-colors"
+      className="group relative flex items-center gap-2 px-4 py-1.5 hover:bg-ledger-gray-50 transition-colors cursor-pointer select-none"
+      onClick={onToggleSelection}
       onMouseLeave={() => setShowMenu(false)}
     >
-      {/* Checkbox */}
+      {/* Checkbox — click stopPropagated so it doesn't double-toggle with the row onClick */}
       <input
         type="checkbox"
         checked={isSelected}
         onChange={onToggleSelection}
-        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0"
+        onClick={(e) => e.stopPropagation()}
+        className="h-3.5 w-3.5 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-500 flex-shrink-0 cursor-pointer"
       />
 
-      {/* File Icon + Filename — click to open PDF */}
+      {/* File Icon + Filename — stopPropagation so clicking name opens the file, not toggles */}
       {isRenaming ? (
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
           <Icon className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
           <input
             ref={renameInputRef}
@@ -195,7 +198,7 @@ export function SourceItem({
             onChange={(e) => setRenameValue(e.target.value)}
             onKeyDown={handleRenameKeyDown}
             onBlur={handleRenameSubmit}
-            className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-white dark:bg-ledger-gray-800 border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
+            className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-white dark:bg-ledger-gray-800 border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500 cursor-text select-text"
           />
           {nameExt && (
             <span className="text-sm text-ledger-gray-400 flex-shrink-0">{nameExt}</span>
@@ -204,7 +207,7 @@ export function SourceItem({
       ) : (
         <button
           className="flex items-center gap-2 flex-1 min-w-0 text-left"
-          onClick={handleView}
+          onClick={(e) => { e.stopPropagation(); handleView() }}
           disabled={isLoadingView}
           title="Open file"
         >
@@ -224,7 +227,7 @@ export function SourceItem({
           variant="ghost"
           size="sm"
           className="h-6 w-6 p-0 text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100 transition-colors opacity-0 group-hover:opacity-100"
-          onClick={() => setShowMenu(!showMenu)}
+          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
         >
           <MoreVertical className="h-3.5 w-3.5" />
         </Button>
