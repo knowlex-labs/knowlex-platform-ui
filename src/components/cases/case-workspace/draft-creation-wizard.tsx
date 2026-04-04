@@ -15,13 +15,9 @@ import { cn } from '@/lib/utils'
 import type { DraftTemplate, TemplateFormData, CaseDocument, Client, Draft } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
 import type { CreateDraftRequest, DocumentType, Language } from '@/services/api/document-types'
-import { clientApi, caseApi } from '@/services/api'
+import { clientApi } from '@/services/api'
 import { mapBackendClient } from '@/services/mappers'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
-import { Select } from '@/components/ui/select'
-import { FileUploadZone } from '@/components/toolbox/file-upload-zone'
-import { uploadToolboxFile } from '@/services/api/doc-processing-api'
-import type { BackendCase } from '@/types/api.types'
 
 // Maps each template to its API document_type and optional subtype
 export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
@@ -125,7 +121,7 @@ export interface DraftCreationWizardProps {
   onDiscard: (draftId: string) => void
   onCancel: () => void
   previewDraft?: Draft | null
-  standalone?: boolean
+
 }
 
 function formatClientDetails(c: Client): string {
@@ -196,7 +192,7 @@ const CLIENT_FIELD_IDS = new Set([
 
 export function DraftCreationWizard({
   sources, judgments = [], client, respondentDetails, onSaveRespondent,
-  onGenerate, onSave, onDiscard, onCancel, previewDraft = null, standalone = false,
+  onGenerate, onSave, onDiscard, onCancel, previewDraft = null,
 }: DraftCreationWizardProps) {
   const [step, setStep] = useState<WizardStep>('templates')
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
@@ -210,13 +206,6 @@ export function DraftCreationWizard({
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [isEditingPreview, setIsEditingPreview] = useState(false)
   const previewEditorRef = useRef<HTMLDivElement>(null)
-
-  // ── Standalone mode state ──
-  const [standaloneCases, setStandaloneCases] = useState<{ id: string; label: string }[]>([])
-  const [standaloneCaseId, setStandaloneCaseId] = useState('')
-  const [standaloneFiles, setStandaloneFiles] = useState<File[]>([])
-  const [standaloneUploadedIds, setStandaloneUploadedIds] = useState<string[]>([])
-  const [isUploadingFiles, setIsUploadingFiles] = useState(false)
 
   // Pre-fill form when template changes: client → first-party field, respondent → opposing-party field
   useEffect(() => {
@@ -273,38 +262,6 @@ export function DraftCreationWizard({
     }).catch(() => {})
   }, [step])
 
-  // Fetch cases for standalone mode
-  useEffect(() => {
-    if (!standalone || step !== 'details') return
-    caseApi.getAll({ size: 50 }).then((res) => {
-      if (res.status === 'success') {
-        setStandaloneCases(res.data.content.map((c: BackendCase) => ({
-          id: c.id,
-          label: c.caseTitle || c.caseNumber || c.id,
-        })))
-      }
-    }).catch(() => {})
-  }, [standalone, step])
-
-  // Upload standalone reference files
-  const handleStandaloneFilesSelected = useCallback(async (files: File[]) => {
-    setStandaloneFiles((prev) => [...prev, ...files])
-    setIsUploadingFiles(true)
-    try {
-      const ids = await Promise.all(files.map((f) => uploadToolboxFile(f)))
-      setStandaloneUploadedIds((prev) => [...prev, ...ids])
-    } catch {
-      // toast handled by caller
-    } finally {
-      setIsUploadingFiles(false)
-    }
-  }, [])
-
-  const handleRemoveStandaloneFile = useCallback((idx: number) => {
-    setStandaloneFiles((prev) => prev.filter((_, i) => i !== idx))
-    setStandaloneUploadedIds((prev) => prev.filter((_, i) => i !== idx))
-  }, [])
-
   // Auto-advance to preview when parent provides a draft
   useEffect(() => {
     if (previewDraft && step === 'details') {
@@ -356,7 +313,7 @@ export function DraftCreationWizard({
     const config = TEMPLATE_TO_DOC_CONFIG[selectedTemplate.id] || { documentType: 'legal_notice' as DocumentType }
     const title = titleValue.trim() || selectedTemplate.name
     const body = assembleBody(selectedTemplate.id, formData)
-    const allFileIds = [...Array.from(localSourceIds), ...standaloneUploadedIds]
+    const allFileIds = Array.from(localSourceIds)
     const hasFiles = allFileIds.length > 0
     const language = formData['language'] as Language | undefined
     const isCriminal = [
@@ -601,54 +558,6 @@ export function DraftCreationWizard({
             </div>
 
             <div className="flex-1 min-h-0 overflow-y-auto px-8 py-6">
-              {/* ── Standalone: case selector + file upload ── */}
-              {standalone && (
-                <div className="max-w-2xl mx-auto mb-6 space-y-5">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
-                      Link to Case <span className="text-ledger-gray-400 font-normal">(optional)</span>
-                    </Label>
-                    <Select
-                      value={standaloneCaseId}
-                      onChange={(e) => setStandaloneCaseId(e.target.value)}
-                      searchable
-                      searchPlaceholder="Search cases..."
-                    >
-                      <option value="">No case — standalone draft</option>
-                      {standaloneCases.map((c) => (
-                        <option key={c.id} value={c.id}>{c.label}</option>
-                      ))}
-                    </Select>
-                    <p className="text-xs text-ledger-gray-400">Link this draft to a case to access case documents and auto-save it there.</p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
-                      Upload Reference Files <span className="text-ledger-gray-400 font-normal">(optional)</span>
-                    </Label>
-                    <FileUploadZone
-                      accept=".pdf,.doc,.docx,.txt"
-                      multiple
-                      onFilesSelected={handleStandaloneFilesSelected}
-                      label="Drop reference files here or click to browse"
-                      selectedFiles={standaloneFiles}
-                      onRemoveFile={handleRemoveStandaloneFile}
-                    />
-                    {isUploadingFiles && (
-                      <p className="text-xs text-kx-primary-600 flex items-center gap-1.5">
-                        <span className="h-3 w-3 border-2 border-kx-primary-600 border-t-transparent rounded-full animate-spin" />
-                        Uploading files...
-                      </p>
-                    )}
-                    <p className="text-xs text-ledger-gray-400">Upload your own reference documents for the AI to use during drafting.</p>
-                  </div>
-
-                  {(standaloneCaseId || standaloneFiles.length > 0) && (
-                    <div className="h-px bg-ledger-gray-200 dark:bg-ledger-gray-700" />
-                  )}
-                </div>
-              )}
-
               <div className="max-w-2xl mx-auto grid grid-cols-2 gap-5">
                 {orderedFields.map((field) => {
                   const isRequired = field.id === 'title'
