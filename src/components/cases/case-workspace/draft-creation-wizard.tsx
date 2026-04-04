@@ -121,6 +121,7 @@ export interface DraftCreationWizardProps {
   onDiscard: (draftId: string) => void
   onCancel: () => void
   previewDraft?: Draft | null
+
 }
 
 function formatClientDetails(c: Client): string {
@@ -312,7 +313,8 @@ export function DraftCreationWizard({
     const config = TEMPLATE_TO_DOC_CONFIG[selectedTemplate.id] || { documentType: 'legal_notice' as DocumentType }
     const title = titleValue.trim() || selectedTemplate.name
     const body = assembleBody(selectedTemplate.id, formData)
-    const hasFiles = localSourceIds.size > 0
+    const allFileIds = Array.from(localSourceIds)
+    const hasFiles = allFileIds.length > 0
     const language = formData['language'] as Language | undefined
     const isCriminal = [
       'bail-application', 'criminal-appeal', 'anticipatory-bail',
@@ -336,7 +338,7 @@ export function DraftCreationWizard({
       input_mode: hasFiles ? 'file' : 'freetext',
       subtype: config.subtype,
       freetext_body: body.length > 0 ? body : undefined,
-      file_ids: hasFiles ? Array.from(localSourceIds) : undefined,
+      file_ids: hasFiles ? allFileIds : undefined,
       language: language || undefined,
       config: draftConfig,
     })

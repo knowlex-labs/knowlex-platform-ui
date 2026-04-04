@@ -18,6 +18,7 @@ import { ModeToggle } from './mode-toggle'
 import type { WorkspaceMode } from './mode-toggle'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
+import { OnlyOfficeEditor } from './onlyoffice-editor'
 import { TEMPLATE_TO_DOC_CONFIG, DraftCreationWizard } from './draft-creation-wizard'
 import { CaseDetailsModal } from './case-details-modal'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
@@ -45,6 +46,7 @@ export function CaseWorkspace() {
   const [showDraftWizard, setShowDraftWizard] = useState(false)
   const [wizardDraftId, setWizardDraftId] = useState<string | null>(null)
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
+  const [editingDocument, setEditingDocument] = useState<CaseDocument | null>(null)
 
   // Case client (auto-fills first-party fields in draft wizard)
   const [caseClient, setCaseClient] = useState<Client | null>(null)
@@ -103,10 +105,18 @@ export function CaseWorkspace() {
 
   const {
     documents,
+    paginatedSources,
+    sourcePage,
+    sourceTotal,
+    setSourcePage,
     selectedSourceIds,
     isLoading: sourcesLoading,
+    isSourcesLoading,
     isUploading,
     toggleSourceSelection,
+    selectAllSources,
+    deselectAllSources,
+    batchDelete,
     uploadFile,
     deleteSource,
     linkContent,
@@ -115,12 +125,12 @@ export function CaseWorkspace() {
   } = useCaseDocuments(caseId)
 
   // Filter documents by type for display
-  const sources = documents.filter(d => d.type === 'USER_UPLOADED')
+  const sources = paginatedSources
   const judgments = documents.filter(d => d.type === 'JUDGMENT')
   const draftDocuments = documents.filter(d => d.type === 'DRAFT')
 
-  // Count docs/judgments currently being indexed
-  const indexingCount = documents.filter(d =>
+  // Count docs/judgments currently being indexed (across both sources and non-sources)
+  const indexingCount = [...paginatedSources, ...documents].filter(d =>
     d.indexingStatus === IndexingStatus.PENDING ||
     d.indexingStatus === IndexingStatus.RUNNING
   ).length
@@ -533,15 +543,21 @@ export function CaseWorkspace() {
             ) : (
               <LeftSidebar
                 sources={sources}
+                sourcePage={sourcePage}
+                sourceTotal={sourceTotal}
+                onSourcePageChange={setSourcePage}
                 apiDraftDocuments={draftDocuments}
                 judgments={judgments}
                 isJudgmentsLoading={sourcesLoading}
                 selectedSourceIds={selectedSourceIds}
-                isSourcesLoading={sourcesLoading}
+                isSourcesLoading={isSourcesLoading}
                 drafts={drafts}
                 summary={summary}
                 isSummaryLoading={isSummaryLoading}
                 onToggleSourceSelection={toggleSourceSelection}
+                onSelectAllSources={selectAllSources}
+                onDeselectAllSources={deselectAllSources}
+                onBatchDelete={batchDelete}
                 onDeleteSource={deleteSource}
                 onLinkContent={linkContent}
                 onDraftClick={handleDraftClick}
@@ -554,6 +570,7 @@ export function CaseWorkspace() {
                 onReindexJudgment={handleReindexJudgment}
                 onRenameDocument={renameDocument}
                 onRenameDraft={renameDocument}
+                onEditInBrowser={(doc) => setEditingDocument(doc)}
               />
             )}
           </div>
@@ -657,6 +674,14 @@ export function CaseWorkspace() {
         onSaveCase={handleSaveCase}
         onSaveRespondent={handleSaveRespondentFull}
       />
+
+      {editingDocument && (
+        <OnlyOfficeEditor
+          documentId={editingDocument.id}
+          caseId={caseId}
+          onClose={() => setEditingDocument(null)}
+        />
+      )}
 
       {showDraftWizard && (
         <div className="fixed inset-0 left-16 z-50 flex items-stretch">

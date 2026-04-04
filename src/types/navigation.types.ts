@@ -1,11 +1,13 @@
 export type DashboardTab =
   | 'dashboard'
   | 'cases'
+  | 'drafting'
   | 'cause-lists'
   | 'clients'
   | 'judgments'
   | 'ai-research'
   | 'account-settings'
+  | 'documents'
 
 export type NavigationView = 'landing' | 'dashboard'
 
