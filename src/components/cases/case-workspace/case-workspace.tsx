@@ -18,6 +18,7 @@ import { ModeToggle } from './mode-toggle'
 import type { WorkspaceMode } from './mode-toggle'
 import { HeaderToolButtons } from './header-tool-buttons'
 import { AddSourceModal } from './add-source-modal'
+import { OnlyOfficeEditor } from './onlyoffice-editor'
 import { TEMPLATE_TO_DOC_CONFIG, DraftCreationWizard } from './draft-creation-wizard'
 import { CaseDetailsModal } from './case-details-modal'
 import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
@@ -45,6 +46,7 @@ export function CaseWorkspace() {
   const [showDraftWizard, setShowDraftWizard] = useState(false)
   const [wizardDraftId, setWizardDraftId] = useState<string | null>(null)
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
+  const [editingDocument, setEditingDocument] = useState<CaseDocument | null>(null)
 
   // Case client (auto-fills first-party fields in draft wizard)
   const [caseClient, setCaseClient] = useState<Client | null>(null)
@@ -554,6 +556,7 @@ export function CaseWorkspace() {
                 onReindexJudgment={handleReindexJudgment}
                 onRenameDocument={renameDocument}
                 onRenameDraft={renameDocument}
+                onEditInBrowser={(doc) => setEditingDocument(doc)}
               />
             )}
           </div>
@@ -657,6 +660,14 @@ export function CaseWorkspace() {
         onSaveCase={handleSaveCase}
         onSaveRespondent={handleSaveRespondentFull}
       />
+
+      {editingDocument && (
+        <OnlyOfficeEditor
+          documentId={editingDocument.id}
+          caseId={caseId}
+          onClose={() => setEditingDocument(null)}
+        />
+      )}
 
       {showDraftWizard && (
         <div className="fixed inset-0 left-16 z-50 flex items-stretch">

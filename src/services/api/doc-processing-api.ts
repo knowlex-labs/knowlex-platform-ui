@@ -236,6 +236,26 @@ export interface TranslationStatus {
   error: string | null
 }
 
+export interface EditSessionResponse {
+  editSessionKey: string
+  docxDownloadUrl: string
+  callbackUrl: string
+  title: string
+  fileType: string
+  onlyOfficeServerUrl: string
+}
+
+export async function openEditSession(
+  documentId: string,
+  caseId?: string | null
+): Promise<EditSessionResponse> {
+  const res = await apiClient.post<ApiResponse<EditSessionResponse>>(
+    '/api/v1/doc-processing/edit/open',
+    { documentId, caseId: caseId ?? null }
+  )
+  return res.data
+}
+
 export const docProcessingApi = {
   split: (data: SplitRequest) =>
     apiClient.post<ApiResponse<SplitResponse>>('/api/v1/doc-processing/split', data),

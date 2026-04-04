@@ -30,6 +30,7 @@ interface LeftSidebarProps {
   onReindexJudgment: (judgmentId: string) => Promise<void>
   onRenameDocument: (documentId: string, newName: string) => Promise<void>
   onRenameDraft: (draftId: string, newTitle: string) => Promise<void>
+  onEditInBrowser: (source: CaseDocument) => void
 }
 
 export function LeftSidebar({
@@ -55,6 +56,7 @@ export function LeftSidebar({
   onReindexJudgment,
   onRenameDocument,
   onRenameDraft,
+  onEditInBrowser,
 }: LeftSidebarProps) {
   const [sourcesExpanded, setSourcesExpanded] = useState(true)
   const [judgmentsExpanded, setJudgmentsExpanded] = useState(true)
@@ -138,6 +140,7 @@ export function LeftSidebar({
                       onLinkContent={() => onLinkContent(source.id)}
                       onOpenInTab={onOpenSourceInTab}
                       onRename={(newName) => onRenameDocument(source.id, newName)}
+                      onEditInBrowser={onEditInBrowser}
                     />
                   ))}
                 </div>

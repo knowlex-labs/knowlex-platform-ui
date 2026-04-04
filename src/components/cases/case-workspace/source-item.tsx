@@ -9,6 +9,7 @@ import {
   RefreshCw,
   ExternalLink,
   Pencil,
+  FilePen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { workspaceApi } from '@/services/api/workspace-api'
@@ -22,6 +23,7 @@ interface SourceItemProps {
   onLinkContent: () => void
   onOpenInTab: (source: CaseDocument, url: string) => void
   onRename: (newName: string) => Promise<void>
+  onEditInBrowser?: (source: CaseDocument) => void
 }
 
 function getFileIcon(fileName: string) {
@@ -69,6 +71,7 @@ export function SourceItem({
   onLinkContent,
   onOpenInTab,
   onRename,
+  onEditInBrowser,
 }: SourceItemProps) {
   const [showMenu, setShowMenu] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -79,6 +82,8 @@ export function SourceItem({
 
   const displayName = source.name || `${source.type} Document`
   const Icon = getFileIcon(displayName)
+  const fileExt = displayName.split('.').pop()?.toUpperCase() || ''
+  const isEditable = ['PDF', 'DOCX', 'DOC'].includes(fileExt)
 
   useEffect(() => {
     if (isRenaming && renameInputRef.current) {
@@ -231,6 +236,15 @@ export function SourceItem({
             <div className="px-3 py-2 border-b border-ledger-gray-100">
               <div className="mt-1">{getStatusBadge(source.type === 'DRAFT' ? source.jobStatus : source.indexingStatus)}</div>
             </div>
+            {isEditable && onEditInBrowser && (
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
+                onClick={() => { onEditInBrowser(source); setShowMenu(false) }}
+              >
+                <FilePen className="h-4 w-4" />
+                Edit in Browser
+              </button>
+            )}
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-900 hover:bg-ledger-gray-50 transition-colors"
               onClick={handleOpenInNewTab}
