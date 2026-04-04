@@ -1,71 +1,17 @@
 import { apiClient } from './api-client'
 import type { ApiResponse } from '@/types'
+import type {
+  CreateDraftRequest,
+  DraftListItem,
+  UpdateDraftRequest,
+} from '@/services/api/document-types'
 
-export type DocumentType =
-  | 'contract'
-  | 'agreement'
-  | 'legal_notice'
-  | 'demand_notice'
-  | 'petition'
-  | 'affidavit'
-  | 'application'
-  | 'bail_application'
-  | 'criminal_appeal'
-  | 'DRAFT'
-  | 'SUMMARY'
-  | 'SOURCE_DOC'
+export type { CreateDraftRequest, DraftListItem, UpdateDraftRequest }
 
-export type InputMode = 'structured' | 'freetext' | 'file'
-
-export type Language = 'english' | 'hindi' | 'bilingual'
-
-export interface CreateDraftRequest {
-  title: string
-  document_type: DocumentType
-  input_mode: InputMode
-  subtype?: string
-  freetext_body?: string
-  file_ids?: string[]
-  language?: Language
-  config?: Record<string, string>
-}
-
-// Both create and single GET return the same flat CaseDraftResponse shape as list items
+// Both create and single GET return the same flat DraftListItem shape
 export type CreateDraftResponse = DraftListItem
 export type DraftJobResponse = DraftListItem
-
-// Item format returned by the list endpoint (flat structure, not nested in result)
-export interface DraftListItem {
-  id: string
-  job_id: string
-  title: string
-  document_type: string
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  draft_body: string
-  file_path?: string
-  sections: Array<{ title: string; content: string; order: number }>
-  metadata: {
-    document_type: string
-    title: string
-    summary: string
-    subtype?: string
-    input_mode?: string
-    case_id?: string
-  }
-  content_format?: string
-  created_at: string
-  updated_at: string
-  completed_at: string | null
-}
-
-// List endpoint returns data as a direct array
 export type ListDraftsResponse = DraftListItem[]
-
-export interface UpdateDraftRequest {
-  title?: string
-  draft_body?: string
-  storage_key?: string
-}
 
 export interface CitationResult {
   caseName: string
@@ -81,7 +27,8 @@ export interface CitationResult {
 export interface DraftPresignedUrlData {
   uploadUrl: string
   storageKey: string
-  storageUrl: string
+  storageUrl: string   // plain S3 URL (not presigned — do not use for downloads)
+  downloadUrl: string  // presigned URL with X-Amz-Signature — use this for downloads
 }
 
 export const draftsApi = {
@@ -129,6 +76,16 @@ export const draftsApi = {
       { documentId, fileName, contentType }
     )
     return response.data
+  },
+
+  // Create a draft without a case (standalone toolbox use)
+  createStandalone: async (data: CreateDraftRequest): Promise<ApiResponse<CreateDraftResponse>> => {
+    return apiClient.post<ApiResponse<CreateDraftResponse>>('/api/v1/drafts', data)
+  },
+
+  // Poll a standalone draft by job ID (no caseId)
+  getStandalone: async (jobId: string): Promise<ApiResponse<DraftJobResponse>> => {
+    return apiClient.get<ApiResponse<DraftJobResponse>>(`/api/v1/drafts/${jobId}`)
   },
 
   getCitations: async (caseId: string, documentId: string): Promise<CitationResult[]> => {

@@ -25,6 +25,8 @@ import { AdminLayout } from '@/components/admin/admin-layout'
 import { AdminDashboard } from '@/components/admin/admin-dashboard'
 import { BlogAdminList } from '@/components/admin/blog/blog-admin-list'
 import { BlogFormPage } from '@/components/admin/blog/blog-form-page'
+import { DocumentsPage } from '@/components/documents/documents-page'
+import { DraftingPage } from '@/components/drafting/drafting-page'
 
 const isDashboardSubdomain = window.location.hostname.startsWith('dashboard.')
 
@@ -70,12 +72,14 @@ export const router = createBrowserRouter([
       { path: '/home', element: <DashboardHome /> },
       { path: '/cases', element: <CaseList /> },
       { path: '/cases/:caseId', element: <CaseWorkspace /> },
+      { path: '/drafting', element: <DraftingPage /> },
       { path: '/cause-lists', element: <CauseLists /> },
       { path: '/clients', element: <ClientList /> },
       { path: '/clients/:clientId', element: <ClientDetail /> },
       { path: '/judgments', element: <LegalLibrary /> },
       { path: '/judgments/:judgmentId', element: <JudgmentDetail /> },
       { path: '/ai-research', element: <AIResearch /> },
+      { path: '/documents', element: <DocumentsPage /> },
       {
         path: '/settings',
         element: <SettingsLayout />,
