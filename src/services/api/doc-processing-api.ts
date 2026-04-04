@@ -76,6 +76,7 @@ export interface DocumentRecord {
   name: string
   originalFilename: string | null
   fileType: string | null
+  fileSize?: number | null
   /** Presigned S3 URL — use for DRAFT/SUMMARY/JUDGMENT downloads */
   storageUrl: string | null
   /** Legacy direct URL */
@@ -191,18 +192,39 @@ export function triggerDirectDownload(url: string, fileName: string): void {
   document.body.removeChild(a)
 }
 
+export interface ListDocumentsOpts {
+  page?: number
+  size?: number
+  type?: DocumentRecordType
+  caseId?: string
+  linked?: boolean
+  search?: string
+  /** Spring Pageable sort string e.g. "createdAt,desc" or "fileName,asc" */
+  sort?: string
+}
+
 /**
- * List all user documents across all cases and standalone (paginated).
- * GET /api/v1/documents?type=<type>&page=0&size=200
+ * Unified paginated document list.
+ * GET /api/v1/documents — supports search, sort, type, caseId, linked, page, size.
  */
 export async function listAllDocuments(
-  type?: DocumentRecordType,
-  opts?: { page?: number; size?: number }
-): Promise<{ documents: DocumentRecord[]; total: number }> {
-  const params = new URLSearchParams({ page: String(opts?.page ?? 0), size: String(opts?.size ?? 200) })
-  if (type) params.set('type', type)
+  opts?: ListDocumentsOpts
+): Promise<{ documents: DocumentRecord[]; total: number; totalPages: number }> {
+  const params = new URLSearchParams({
+    page: String(opts?.page ?? 0),
+    size: String(opts?.size ?? 20),
+  })
+  if (opts?.type)   params.set('type', opts.type)
+  if (opts?.caseId) params.set('caseId', opts.caseId)
+  if (opts?.linked !== undefined) params.set('linked', String(opts.linked))
+  if (opts?.search) params.set('search', opts.search)
+  if (opts?.sort)   params.set('sort', opts.sort)
   const res = await apiClient.get<ApiResponse<SpringPage<DocumentRecord>>>(`/api/v1/documents?${params}`)
-  return { documents: res.data?.content ?? [], total: res.data?.totalElements ?? 0 }
+  return {
+    documents: res.data?.content ?? [],
+    total: res.data?.totalElements ?? 0,
+    totalPages: res.data?.totalPages ?? 0,
+  }
 }
 
 /**
@@ -212,13 +234,8 @@ export async function listAllDocuments(
 export async function listStandaloneDocuments(
   opts?: { page?: number; size?: number }
 ): Promise<{ documents: DocumentRecord[]; total: number }> {
-  const params = new URLSearchParams({
-    linked: 'false',
-    page: String(opts?.page ?? 0),
-    size: String(opts?.size ?? 200),
-  })
-  const res = await apiClient.get<ApiResponse<SpringPage<DocumentRecord>>>(`/api/v1/documents?${params}`)
-  return { documents: res.data?.content ?? [], total: res.data?.totalElements ?? 0 }
+  const result = await listAllDocuments({ linked: false, ...opts })
+  return { documents: result.documents, total: result.total }
 }
 
 /**
