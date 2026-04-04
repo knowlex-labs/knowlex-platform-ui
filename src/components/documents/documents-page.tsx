@@ -44,7 +44,6 @@ import type {
 
 type ActiveToolId = null | 'split' | 'merge' | 'convert' | 'compress' | 'translation'
 type DocRowAction = 'download' | 'assign' | 'split' | 'convert' | 'compress' | 'translate' | 'delete'
-type TypeFilter = 'ALL' | DocumentRecordType
 
 interface ToolContext {
   id: ActiveToolId
@@ -392,7 +391,7 @@ function DocumentViewer({
   }
 
   return (
-    <div className="flex flex-col h-full border-r border-kx-card-border">
+    <div className="flex flex-col h-full border-l border-kx-card-border">
       {/* Header */}
       <div className="flex items-center gap-2 px-4 py-3 border-b border-kx-card-border flex-shrink-0">
         <button type="button" onClick={onClose} className="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors">
@@ -403,6 +402,11 @@ function DocumentViewer({
         <span className={cn('flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide', meta.className)}>
           {meta.label}
         </span>
+        {isUploadedPdf && viewerMode === 'view' && (
+          <Button size="sm" onClick={handleEdit} className="gap-1.5 h-7 text-xs flex-shrink-0">
+            <Scissors className="h-3.5 w-3.5" /> Edit PDF
+          </Button>
+        )}
         {canDownload && viewerMode === 'view' && (
           <button type="button" onClick={handleDownload} title="Download" className="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors">
             <Download className="h-4 w-4" />
@@ -418,14 +422,6 @@ function DocumentViewer({
           onBulletList={formatting.handleBulletList} onNumberedList={formatting.handleNumberedList} onFontSize={formatting.handleFontSize}
           isSaving={isSaving} hasChanges={isDirty}
         />
-      )}
-
-      {isUploadedPdf && viewerMode === 'view' && (
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-kx-card-border flex-shrink-0">
-          <Button size="sm" onClick={handleEdit} className="gap-1.5 h-7 text-xs">
-            <Scissors className="h-3.5 w-3.5" /> Edit PDF
-          </Button>
-        </div>
       )}
 
       <div className="flex-1 min-h-0 overflow-auto relative">
@@ -640,11 +636,12 @@ export function DocumentsPage() {
   // Filters / sort / pagination — all server-side
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL')
+  const [typeFilters, setTypeFilters] = useState<Set<DocumentRecordType>>(new Set())
+  const [typeFilterOpen, setTypeFilterOpen] = useState(false)
+  const typeFilterRef = useRef<HTMLDivElement>(null)
   const [caseFilter, setCaseFilter] = useState('') // '' = all, 'standalone' = unlinked, uuid = specific case
   const [sort, setSort] = useState('createdAt,desc')
   const [page, setPage] = useState(0) // 0-based
-  const [filterPanelOpen, setFilterPanelOpen] = useState(false)
 
   // Cases for dropdown
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
@@ -694,7 +691,7 @@ export function DocumentsPage() {
       const { documents, total: t, totalPages: tp } = await listAllDocuments({
         page,
         size: PAGE_SIZE,
-        type: typeFilter !== 'ALL' ? typeFilter : undefined,
+        type: typeFilters.size === 1 ? Array.from(typeFilters)[0] : undefined,
         caseId,
         linked,
         search: debouncedSearch || undefined,
@@ -708,12 +705,31 @@ export function DocumentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [page, typeFilter, caseFilter, debouncedSearch, sort])
+  }, [page, typeFilters, caseFilter, debouncedSearch, sort])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
   // Reset page when filters change
-  useEffect(() => { setPage(0) }, [typeFilter, caseFilter, sort])
+  useEffect(() => { setPage(0) }, [typeFilters, caseFilter, sort])
+
+  // Close type filter dropdown on outside click
+  useEffect(() => {
+    if (!typeFilterOpen) return
+    const handler = (e: MouseEvent) => {
+      if (typeFilterRef.current && !typeFilterRef.current.contains(e.target as Node)) setTypeFilterOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [typeFilterOpen])
+
+  const toggleTypeFilter = (type: DocumentRecordType) => {
+    setTypeFilters(prev => {
+      const next = new Set(prev)
+      next.has(type) ? next.delete(type) : next.add(type)
+      return next
+    })
+    setPage(0)
+  }
 
   const handleSort = (field: string) => {
     const [currentField, currentDir] = sort.split(',')
@@ -805,98 +821,124 @@ export function DocumentsPage() {
         </Button>
       </div>
 
-      {/* ── Tools tab bar ── */}
-      <div className="px-6 mb-4 flex-shrink-0">
-        <div className="flex items-center gap-1 border border-kx-card-border rounded-xl px-2 py-1.5 bg-kx-card w-fit">
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-ledger-gray-100 dark:bg-ledger-gray-800 mr-1">
-            <Settings2 className="h-3.5 w-3.5 text-ledger-gray-500" />
-            <span className="text-xs font-semibold text-ledger-gray-600 dark:text-ledger-gray-300">Tools</span>
+      {/* ── Tools tab bar — hidden when viewer open ── */}
+      {!viewerOpen && (
+        <div className="px-6 mb-4 flex-shrink-0">
+          <div className="flex items-center gap-1 border border-kx-card-border rounded-xl px-2 py-1.5 bg-kx-card w-fit">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-ledger-gray-100 dark:bg-ledger-gray-800 mr-1">
+              <Settings2 className="h-3.5 w-3.5 text-ledger-gray-500" />
+              <span className="text-xs font-semibold text-ledger-gray-600 dark:text-ledger-gray-300">Tools</span>
+            </div>
+            {TOOLS.map(tool => {
+              const ToolIcon = tool.icon
+              const isActive = toolCtx.id === tool.id
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => isActive ? closeTool() : openTool(tool.id)}
+                  className={cn(
+                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    isActive
+                      ? 'bg-kx-primary-600 text-white shadow-sm'
+                      : 'text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 hover:text-kx-primary-700'
+                  )}
+                >
+                  <ToolIcon className="h-3.5 w-3.5" />
+                  {tool.label}
+                </button>
+              )
+            })}
           </div>
-          {TOOLS.map(tool => {
-            const ToolIcon = tool.icon
-            const isActive = toolCtx.id === tool.id
-            return (
-              <button
-                key={tool.id}
-                type="button"
-                onClick={() => isActive ? closeTool() : openTool(tool.id)}
-                className={cn(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  isActive
-                    ? 'bg-kx-primary-600 text-white shadow-sm'
-                    : 'text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 hover:text-kx-primary-700'
+        </div>
+      )}
+
+      {/* ── Search + filter row — hidden when viewer open ── */}
+      {!viewerOpen && (
+        <div className="px-6 mb-3 flex items-center gap-3 flex-shrink-0">
+          {/* Search */}
+          <div className="relative flex-1 max-w-lg">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Search documents..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full h-9 pl-9 pr-3 text-sm border border-kx-card-border rounded-lg bg-kx-card text-kx-text-primary placeholder-ledger-gray-400 focus:outline-none focus:ring-1 focus:ring-kx-primary-400"
+            />
+          </div>
+
+          {/* Case filter */}
+          <div className="w-52">
+            <Select value={caseFilter} onChange={e => setCaseFilter(e.target.value)} searchable searchPlaceholder="Search cases...">
+              <option value="">All Cases</option>
+              <option value="standalone">Standalone only</option>
+              {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </Select>
+          </div>
+
+          {/* Type multi-select dropdown */}
+          <div ref={typeFilterRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setTypeFilterOpen(v => !v)}
+              className={cn(
+                'flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap',
+                typeFilters.size > 0 || typeFilterOpen
+                  ? 'border-kx-primary-400 bg-kx-primary-50 text-kx-primary-700 dark:bg-kx-primary-950/30'
+                  : 'border-kx-card-border text-ledger-gray-500 hover:border-kx-primary-300 hover:text-kx-primary-700'
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5 flex-shrink-0" />
+              <span className="max-w-[140px] truncate">
+                {typeFilters.size === 0
+                  ? 'All Types'
+                  : Array.from(typeFilters).map(t => TYPE_META[t].label).join(', ')}
+              </span>
+              {typeFilters.size > 0 && (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-kx-primary-600 text-white text-[9px] font-bold flex-shrink-0">
+                  {typeFilters.size}
+                </span>
+              )}
+            </button>
+            {typeFilterOpen && (
+              <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card shadow-lg py-1">
+                {(['USER_UPLOADED', 'DRAFT', 'SUMMARY', 'JUDGMENT'] as const).map(t => {
+                  const isChecked = typeFilters.has(t)
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => toggleTypeFilter(t)}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800 transition-colors"
+                    >
+                      <div className={cn(
+                        'h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors',
+                        isChecked ? 'bg-kx-primary-600 border-kx-primary-600 text-white' : 'border-ledger-gray-300 dark:border-ledger-gray-600'
+                      )}>
+                        {isChecked && (
+                          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
+                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      {TYPE_META[t].label}
+                    </button>
+                  )
+                })}
+                {typeFilters.size > 0 && (
+                  <div className="border-t border-ledger-gray-100 dark:border-ledger-gray-800 mt-1 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => { setTypeFilters(new Set()); setPage(0) }}
+                      className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800 transition-colors"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
                 )}
-              >
-                <ToolIcon className="h-3.5 w-3.5" />
-                {tool.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* ── Search + filter row ── */}
-      <div className="px-6 mb-3 flex items-center gap-3 flex-shrink-0">
-        {/* Search */}
-        <div className="relative flex-1 max-w-lg">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="Search documents..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full h-9 pl-9 pr-3 text-sm border border-kx-card-border rounded-lg bg-kx-card text-kx-text-primary placeholder-ledger-gray-400 focus:outline-none focus:ring-1 focus:ring-kx-primary-400"
-          />
-        </div>
-
-        {/* Case filter */}
-        <div className="w-52">
-          <Select value={caseFilter} onChange={e => setCaseFilter(e.target.value)} searchable searchPlaceholder="Search cases...">
-            <option value="">All Cases</option>
-            <option value="standalone">Standalone only</option>
-            {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-          </Select>
-        </div>
-
-        {/* Filter toggle */}
-        <button
-          type="button"
-          onClick={() => setFilterPanelOpen(v => !v)}
-          className={cn(
-            'flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-colors',
-            filterPanelOpen || typeFilter !== 'ALL'
-              ? 'border-kx-primary-400 bg-kx-primary-50 text-kx-primary-700 dark:bg-kx-primary-950/30'
-              : 'border-kx-card-border text-ledger-gray-500 hover:border-kx-primary-300 hover:text-kx-primary-700'
-          )}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filter
-          {typeFilter !== 'ALL' && (
-            <span className="flex h-4 w-4 items-center justify-center rounded-full bg-kx-primary-600 text-white text-[9px] font-bold">1</span>
-          )}
-        </button>
-      </div>
-
-      {/* Filter panel */}
-      {filterPanelOpen && (
-        <div className="px-6 mb-3 flex-shrink-0">
-          <div className="flex items-center gap-2 p-3 border border-kx-card-border rounded-lg bg-kx-card w-fit">
-            <span className="text-xs font-medium text-ledger-gray-400 uppercase tracking-wide">Type:</span>
-            {(['ALL', 'USER_UPLOADED', 'DRAFT', 'SUMMARY', 'JUDGMENT'] as const).map(t => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTypeFilter(t)}
-                className={cn(
-                  'text-xs px-2.5 py-1 rounded-full border transition-colors',
-                  typeFilter === t
-                    ? 'bg-kx-primary-600 text-white border-kx-primary-600'
-                    : 'border-kx-card-border text-ledger-gray-500 hover:border-kx-primary-300 hover:text-kx-primary-700'
-                )}
-              >
-                {t === 'ALL' ? 'All Types' : TYPE_META[t].label}
-              </button>
-            ))}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -904,17 +946,10 @@ export function DocumentsPage() {
       {/* ── Main content ── */}
       <div className="flex flex-1 min-h-0 border-t border-kx-card-border">
 
-        {/* Viewer — LEFT side when open */}
-        {viewerOpen && selectedDoc && (
-          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            <DocumentViewer doc={selectedDoc} onClose={closeViewer} onOpenTool={openTool} />
-          </div>
-        )}
-
-        {/* List — right sidebar when viewer open, full-width otherwise */}
+        {/* List — LEFT always, narrows to 380px when viewer open */}
         <div className={cn(
           'flex flex-col overflow-hidden',
-          viewerOpen ? 'w-[380px] flex-shrink-0 border-l border-kx-card-border' : 'flex-1'
+          viewerOpen ? 'w-[380px] flex-shrink-0 border-r border-kx-card-border' : 'flex-1'
         )}>
 
           {/* Selection action bar */}
@@ -988,9 +1023,9 @@ export function DocumentsPage() {
                 <BookOpen className="h-8 w-8 text-ledger-gray-300" />
                 <p className="font-medium text-kx-primary-900 dark:text-kx-primary-100">No documents found</p>
                 <p className="text-sm text-ledger-gray-400">
-                  {search || typeFilter !== 'ALL' || caseFilter ? 'Try adjusting your filters.' : 'Upload a document to get started.'}
+                  {search || typeFilters.size > 0 || caseFilter ? 'Try adjusting your filters.' : 'Upload a document to get started.'}
                 </p>
-                {!search && typeFilter === 'ALL' && !caseFilter && (
+                {!search && typeFilters.size === 0 && !caseFilter && (
                   <Button size="sm" variant="ghost" className="mt-1 border border-kx-card-border gap-1.5" onClick={() => setUploadDialogOpen(true)}>
                     <Upload className="h-3.5 w-3.5" /> Upload a file
                   </Button>
@@ -1045,6 +1080,13 @@ export function DocumentsPage() {
             </div>
           )}
         </div>
+
+        {/* Viewer — RIGHT side when open */}
+        {viewerOpen && selectedDoc && (
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+            <DocumentViewer doc={selectedDoc} onClose={closeViewer} onOpenTool={openTool} />
+          </div>
+        )}
       </div>
 
       {/* Tool dialogs */}
