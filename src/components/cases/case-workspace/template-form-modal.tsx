@@ -182,7 +182,7 @@ export function TemplateFormModal({
             </DialogHeader>
 
             <ScrollArea className="flex-1 min-h-0 pr-4">
-              <p className="text-sm text-ledger-gray-600 dark:text-ledger-gray-400 mb-5">
+              <p className="text-sm text-ledger-gray-600  mb-5">
                 Choose a template to start drafting your document
               </p>
               <div className="grid grid-cols-2 gap-3">
@@ -199,20 +199,20 @@ export function TemplateFormModal({
                         'shadow-sm hover:shadow-md hover:scale-[1.02]',
                         isSelected
                           ? 'border-kx-primary-600 bg-kx-primary-50 dark:bg-kx-primary-900 ring-2 ring-kx-primary-500'
-                          : 'border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-white dark:bg-ledger-gray-800 hover:border-ledger-gray-300 dark:hover:border-ledger-gray-600 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700'
+                          : 'border-ledger-gray-200  bg-nb-input hover:border-ledger-gray-300  hover:bg-ledger-gray-50 '
                       )}
                     >
                       <div className={cn(
                         'w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0',
                         isSelected
                           ? 'bg-kx-primary-600 text-white'
-                          : 'bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-600 dark:text-ledger-gray-300'
+                          : 'bg-ledger-gray-100  text-ledger-gray-600 '
                       )}>
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="flex flex-col gap-1 min-w-0">
-                        <p className="font-medium text-sm text-kx-primary-900 dark:text-kx-primary-100">{t.name}</p>
-                        <p className="text-xs text-ledger-gray-500 dark:text-ledger-gray-400 line-clamp-2">{t.description}</p>
+                        <p className="font-medium text-sm text-kx-primary-900 ">{t.name}</p>
+                        <p className="text-xs text-ledger-gray-500  line-clamp-2">{t.description}</p>
                       </div>
                     </button>
                   )
@@ -269,8 +269,8 @@ export function TemplateFormModal({
                               type="button"
                               onClick={() => setSourceDropdownOpen((open) => !open)}
                               className={cn(
-                                'flex h-10 w-full items-center justify-between rounded border border-ledger-gray-300 dark:border-ledger-gray-600 bg-ledger-white dark:bg-ledger-gray-800 px-3 py-2',
-                                'text-sm font-sans text-kx-primary-900 dark:text-ledger-gray-200',
+                                'flex h-10 w-full items-center justify-between rounded border border-ledger-gray-300  bg-nb-input px-3 py-2',
+                                'text-sm font-sans text-kx-primary-900 ',
                                 'focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-1',
                                 'hover:border-ledger-gray-400 transition-colors'
                               )}
@@ -288,12 +288,12 @@ export function TemplateFormModal({
                               />
                             </button>
                             {sourceDropdownOpen && (
-                              <div className="absolute z-10 mt-1 w-full rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-600 bg-ledger-white dark:bg-ledger-gray-800 shadow-lg max-h-48 overflow-y-auto">
+                              <div className="absolute z-10 mt-1 w-full rounded-lg border border-ledger-gray-200  bg-nb-input shadow-lg max-h-48 overflow-y-auto">
                                 <div className="divide-y divide-ledger-gray-100 dark:divide-ledger-gray-700 py-1">
                                   {sources.map((source) => (
                                     <label
                                       key={source.id}
-                                      className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700"
+                                      className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-ledger-gray-50 "
                                     >
                                       <button
                                         type="button"
@@ -303,14 +303,14 @@ export function TemplateFormModal({
                                           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-kx-primary-500 focus-visible:ring-offset-2',
                                           localSourceIds.has(source.id)
                                             ? 'bg-kx-primary-600 border-kx-primary-600 text-ledger-white'
-                                            : 'border-ledger-gray-300 dark:border-ledger-gray-500 bg-ledger-white dark:bg-ledger-gray-700'
+                                            : 'border-ledger-gray-300  bg-ledger-white '
                                         )}
                                       >
                                         {localSourceIds.has(source.id) && (
                                           <Check className="h-3 w-3" />
                                         )}
                                       </button>
-                                      <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200 truncate">
+                                      <span className="text-sm text-kx-primary-900  truncate">
                                         {source.name}
                                       </span>
                                     </label>
@@ -346,7 +346,7 @@ export function TemplateFormModal({
                                   }}
                                   className="h-3.5 w-3.5 text-kx-primary-600 focus:ring-kx-primary-500"
                                 />
-                                <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200">
+                                <span className="text-sm text-kx-primary-900 ">
                                   Use client: <span className="font-medium">{client.name}</span>
                                 </span>
                               </label>
@@ -361,11 +361,11 @@ export function TemplateFormModal({
                                   }}
                                   className="h-3.5 w-3.5 text-kx-primary-600 focus:ring-kx-primary-500"
                                 />
-                                <span className="text-sm text-kx-primary-900 dark:text-ledger-gray-200">Enter manually</span>
+                                <span className="text-sm text-kx-primary-900 ">Enter manually</span>
                               </label>
                             </div>
                             {isUsingClient ? (
-                              <div className="rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-600 bg-ledger-gray-50 dark:bg-ledger-gray-800 px-3 py-2 text-sm text-kx-primary-800 dark:text-ledger-gray-200">
+                              <div className="rounded-lg border border-ledger-gray-200  bg-ledger-gray-50  px-3 py-2 text-sm text-kx-primary-800 ">
                                 {formatClientDetails(client)}
                               </div>
                             ) : (
@@ -403,8 +403,8 @@ export function TemplateFormModal({
                           value={(formData[field.id] as string) || ''}
                           onChange={(e) => handleFieldChange(field.id, e.target.value)}
                           className={cn(
-                            'flex h-10 w-full rounded border border-ledger-gray-300 dark:border-ledger-gray-600 bg-ledger-white dark:bg-ledger-gray-800 px-3 py-2',
-                            'text-sm font-sans text-kx-primary-900 dark:text-ledger-gray-200',
+                            'flex h-10 w-full rounded border border-ledger-gray-300  bg-nb-input px-3 py-2',
+                            'text-sm font-sans text-kx-primary-900 ',
                             'focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:ring-offset-1',
                           )}
                         >

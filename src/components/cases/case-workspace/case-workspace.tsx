@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
-  ArrowLeft, PanelLeftOpen, PanelRightOpen,
+  ArrowLeft, PanelLeft, PanelRight,
   Check, X, Pencil, Scale, FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -198,96 +198,91 @@ export function CaseWorkspace() {
   }, [caseId])
 
   return (
-    <div className="h-screen flex flex-col bg-kx-card overflow-hidden">
+    <div className="h-full flex flex-col bg-nb-separator overflow-hidden">
       {/* ─── Header ─────────────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-4 py-2.5 border-b border-kx-card-border bg-kx-card flex-shrink-0">
+      <header className="flex items-center justify-between px-5 py-3 border-b border-nb-panel-border bg-nb-panel flex-shrink-0">
         {/* Left: Back + Case title */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Button
             variant="ghost" size="sm"
             onClick={handleBack}
-            className="gap-1.5 h-8 px-3 text-ledger-gray-500 hover:text-kx-primary-700 flex-shrink-0"
+            className="gap-2 h-9 px-3 text-nb-text-muted hover:text-kx-primary-700 hover:bg-nb-sidebar-hover rounded-lg flex-shrink-0"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </Button>
 
-          <div className="h-4 w-px bg-ledger-gray-200 dark:bg-ledger-gray-700 flex-shrink-0" />
+          <div className="h-5 w-px bg-nb-panel-border flex-shrink-0" />
 
           {isEditingTitle ? (
-            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
               <input
                 ref={titleInputRef}
                 value={editingTitleValue}
                 onChange={(e) => setEditingTitleValue(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') commitTitleEdit(); if (e.key === 'Escape') cancelTitleEdit() }}
                 onBlur={commitTitleEdit}
-                className="flex-1 min-w-0 text-base font-semibold text-kx-primary-900 bg-white dark:bg-ledger-gray-800 border border-kx-primary-400 rounded-md px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-kx-primary-500"
+                className="flex-1 min-w-0 text-base font-semibold text-kx-primary-900 bg-nb-input border border-kx-primary-400 rounded-lg px-3 py-1 focus:outline-none focus:ring-2 focus:ring-kx-primary-500"
                 autoFocus
               />
-              <button type="button" onMouseDown={(e) => { e.preventDefault(); commitTitleEdit() }} className="h-6 w-6 flex items-center justify-center rounded text-green-600 hover:bg-green-50">
-                <Check className="h-3.5 w-3.5" />
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); commitTitleEdit() }} className="h-7 w-7 flex items-center justify-center rounded-md text-green-600 hover:bg-green-50">
+                <Check className="h-4 w-4" />
               </button>
-              <button type="button" onMouseDown={(e) => { e.preventDefault(); cancelTitleEdit() }} className="h-6 w-6 flex items-center justify-center rounded text-ledger-gray-400 hover:bg-ledger-gray-100">
-                <X className="h-3.5 w-3.5" />
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); cancelTitleEdit() }} className="h-7 w-7 flex items-center justify-center rounded-md text-nb-text-muted hover:bg-nb-sidebar-hover">
+                <X className="h-4 w-4" />
               </button>
             </div>
           ) : (
-            <div className="group flex items-start gap-1.5 min-w-0">
+            <div className="group flex items-start gap-2 min-w-0">
               <div className="min-w-0">
-                <h2
-                  className="text-base font-semibold text-kx-primary-900 dark:text-kx-primary-100 truncate cursor-pointer select-none leading-snug"
+                <h1
+                  className="text-lg font-bold text-kx-primary-900 truncate cursor-pointer select-none leading-snug"
                   onDoubleClick={startEditingTitle}
                   title="Double-click to edit"
                 >
                   {caseName}
-                </h2>
+                </h1>
                 {caseSubtitle && (
-                  <p className="text-xs text-ledger-gray-400 truncate leading-snug">{caseSubtitle}</p>
+                  <p className="text-xs text-nb-text-muted truncate leading-snug mt-0.5">{caseSubtitle}</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={startEditingTitle}
-                className="h-5 w-5 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-primary-600 hover:bg-ledger-gray-100 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5"
+                className="h-6 w-6 flex items-center justify-center rounded-md text-nb-text-muted hover:text-kx-primary-600 hover:bg-nb-sidebar-hover opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1"
                 title="Edit title"
               >
-                <Pencil className="h-3 w-3" />
+                <Pencil className="h-3.5 w-3.5" />
               </button>
             </div>
           )}
         </div>
 
         {/* Right: toggles */}
-        <div className="flex items-center gap-1 flex-shrink-0">
-          {/* Case details button */}
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button
             variant="ghost" size="sm"
             onClick={() => setCaseDetailsOpen(true)}
-            className="h-8 px-2.5 gap-1.5 text-xs text-ledger-gray-500 hover:text-kx-primary-700"
+            className="h-9 px-3 gap-2 text-sm text-nb-text-muted hover:text-kx-primary-700 hover:bg-nb-sidebar-hover rounded-lg"
           >
-            <Scale className="h-3.5 w-3.5" />
+            <Scale className="h-4 w-4" />
             Case Details
           </Button>
         </div>
       </header>
 
       {/* ─── Body ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden bg-nb-separator p-1.5 gap-1.5">
         {/* Left: Sources panel — full when open, icon strip when closed */}
         {leftPanelOpen ? (
-          <div className="w-72 flex-shrink-0 border-r border-kx-card-border flex flex-col overflow-hidden min-h-0">
+          <div className="w-72 flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col min-h-0 bg-nb-sidebar shadow-sm overflow-hidden">
             <WorkspaceSourcesPanel
               sources={sources}
               isSourcesLoading={isSourcesLoading}
-              drafts={drafts}
-              summary={isSummaryLoading ? null : summary}
               selectedSourceIds={selectedSourceIds}
               onAddSource={() => setAddSourceModalOpen(true)}
               onDeleteSource={deleteSource}
               onRenameDocument={renameDocument}
-              onDeleteDraft={handleDeleteDraft}
-              onRenameDraft={handleRenameDraft}
               onToggleSource={toggleSourceSelection}
               onSelectAll={selectAllSources}
               onDeselectAll={deselectAllSources}
@@ -295,40 +290,44 @@ export function CaseWorkspace() {
             />
           </div>
         ) : (
-          <div className="w-12 flex-shrink-0 border-r border-kx-card-border flex flex-col items-center py-2 gap-1 overflow-hidden bg-kx-card">
-            {/* Re-open button */}
+          <div className="w-14 flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col items-center py-3 gap-2 overflow-y-auto bg-nb-sidebar shadow-sm">
             <button
               type="button"
               onClick={() => setLeftPanelOpen(true)}
-              className="h-8 w-8 flex items-center justify-center rounded-lg border-2 border-kx-primary-400 bg-kx-primary-50 text-kx-primary-600 hover:bg-kx-primary-100 transition-colors flex-shrink-0"
+              className="h-9 w-9 flex items-center justify-center rounded-lg border-2 border-kx-primary-400 bg-kx-primary-50 text-kx-primary-600 hover:bg-kx-primary-100 transition-colors flex-shrink-0"
               title="Show sources panel"
             >
-              <PanelLeftOpen className="h-4 w-4" />
+              <PanelLeft className="h-4 w-4" />
             </button>
-            {/* Source document icons */}
-            <div className="flex flex-col items-center gap-1 mt-1 overflow-hidden flex-1 w-full px-1">
-              {sources.slice(0, 12).map((doc) => {
-                const ext = (doc.originalFilename || doc.name).split('.').pop()?.toUpperCase() || ''
-                const isPdf = ext === 'PDF'
-                const isDoc = ext === 'DOCX' || ext === 'DOC'
-                return (
-                  <button
-                    key={doc.id}
-                    type="button"
-                    onClick={() => setLeftPanelOpen(true)}
-                    className="h-8 w-8 flex items-center justify-center rounded-md hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 transition-colors flex-shrink-0"
-                    title={doc.originalFilename || doc.name}
-                  >
-                    <FileText className={`h-4 w-4 ${isPdf ? 'text-red-500' : isDoc ? 'text-blue-500' : 'text-ledger-gray-400'}`} />
-                  </button>
-                )
-              })}
-            </div>
+            <button
+              type="button"
+              onClick={() => { setLeftPanelOpen(true); setAddSourceModalOpen(true) }}
+              className="h-8 w-8 flex items-center justify-center rounded-lg text-nb-text-muted hover:text-kx-primary-600 hover:bg-nb-sidebar-hover transition-colors flex-shrink-0"
+              title="Add source"
+            >
+              <span className="text-lg leading-none">+</span>
+            </button>
+            {sources.map((doc) => {
+              const ext = (doc.originalFilename || doc.name).split('.').pop()?.toUpperCase() || ''
+              const isPdf = ext === 'PDF'
+              const isDoc = ext === 'DOCX' || ext === 'DOC'
+              return (
+                <button
+                  key={doc.id}
+                  type="button"
+                  onClick={() => setLeftPanelOpen(true)}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-nb-sidebar-hover transition-colors flex-shrink-0"
+                  title={doc.originalFilename || doc.name}
+                >
+                  <FileText className={`h-4 w-4 ${isPdf ? 'text-red-500' : isDoc ? 'text-blue-500' : 'text-nb-text-muted'}`} />
+                </button>
+              )
+            })}
           </div>
         )}
 
         {/* Center: AI Chat */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden border border-nb-panel-border rounded-xl bg-nb-panel shadow-sm">
           <DraftChatPanel
             messages={messages}
             isStreaming={chatStreaming}
@@ -352,27 +351,39 @@ export function CaseWorkspace() {
 
         {/* Right: Case Studio — full when open, icon strip when closed */}
         {studioOpen ? (
-          <div className="w-72 flex-shrink-0 border-l border-kx-card-border flex flex-col overflow-hidden">
+          <div className="w-72 flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col overflow-hidden bg-nb-sidebar shadow-sm">
             <CaseStudioPanel
               onClose={() => setStudioOpen(false)}
               onGenerateSummary={handleGenerateSummary}
               onSendToChat={(msg) => handleSendMessage(msg)}
               onFindPrecedents={handleFindPrecedents}
               sourceCount={sources.length}
+              caseId={caseId}
+              drafts={drafts}
+              summary={isSummaryLoading ? null : summary}
+              onDeleteDraft={handleDeleteDraft}
+              onRenameDraft={handleRenameDraft}
             />
           </div>
         ) : (
-          <div className="w-12 flex-shrink-0 border-l border-kx-card-border flex flex-col items-center py-2 bg-kx-card">
+          <div className="w-14 flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col items-center py-3 bg-nb-sidebar shadow-sm">
             <button
               type="button"
               onClick={() => setStudioOpen(true)}
               className="h-8 w-8 flex items-center justify-center rounded-lg border-2 border-kx-primary-400 bg-kx-primary-50 text-kx-primary-600 hover:bg-kx-primary-100 transition-colors flex-shrink-0"
               title="Open Case Studio"
             >
-              <PanelRightOpen className="h-4 w-4" />
+              <PanelRight className="h-4 w-4" />
             </button>
           </div>
         )}
+      </div>
+
+      {/* ─── Footer disclaimer ────────────────────────────────────────── */}
+      <div className="flex-shrink-0 py-1 text-center">
+        <p className="text-[11px] text-nb-text-muted">
+          Knowlex can be inaccurate; please double check its responses.
+        </p>
       </div>
 
       {/* ─── Modals ──────────────────────────────────────────────────────── */}

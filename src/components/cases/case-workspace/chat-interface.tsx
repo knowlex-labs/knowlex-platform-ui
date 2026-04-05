@@ -67,10 +67,10 @@ export function ChatInterface({
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 flex items-center justify-center mb-4 shadow-lg">
             <MessageSquare className="h-6 w-6 text-white" />
           </div>
-          <p className="text-base text-ledger-gray-700 dark:text-ledger-gray-300 font-semibold mb-2">
+          <p className="text-base text-ledger-gray-700 font-semibold mb-2">
             Start a conversation
           </p>
-          <p className="text-sm text-ledger-gray-400 dark:text-ledger-gray-500 max-w-[320px] leading-relaxed">
+          <p className="text-sm text-ledger-gray-400 max-w-[320px] leading-relaxed">
             Ask questions about your documents or send text from your drafts
           </p>
         </div>

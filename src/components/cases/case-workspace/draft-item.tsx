@@ -102,7 +102,7 @@ export function DraftItem({ draft, onClick, onDelete, onRename }: DraftItemProps
               onKeyDown={handleRenameKeyDown}
               onBlur={handleRenameSubmit}
               onClick={(e) => e.stopPropagation()}
-              className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-white dark:bg-ledger-gray-800 border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
+              className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-nb-input border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
             />
             {titleExt && (
               <span className="text-sm text-ledger-gray-400 flex-shrink-0">{titleExt}</span>

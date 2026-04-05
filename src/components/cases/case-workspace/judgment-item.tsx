@@ -177,7 +177,7 @@ export function JudgmentItem({
             onChange={(e) => setRenameValue(e.target.value)}
             onKeyDown={handleRenameKeyDown}
             onBlur={handleRenameSubmit}
-            className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-white dark:bg-ledger-gray-800 border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
+            className="text-sm text-kx-primary-900 flex-1 min-w-0 bg-nb-input border border-kx-primary-300 rounded px-1.5 py-0.5 outline-none focus:border-kx-primary-500"
           />
           {nameExt && (
             <span className="text-sm text-ledger-gray-400 flex-shrink-0">{nameExt}</span>
@@ -233,7 +233,7 @@ export function JudgmentItem({
               Rename
             </button>
             <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-600 dark:text-kx-primary-400 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-600 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950 transition-colors disabled:opacity-50"
               onClick={handleLinkContent}
               disabled={isLinking}
             >

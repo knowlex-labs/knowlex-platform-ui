@@ -149,14 +149,14 @@ export function DraftPreviewTab({
     return (
       <div className="flex flex-col h-full">
         {/* Greyed-out toolbar placeholder */}
-        <div className="flex-shrink-0 h-9 border-b border-ledger-gray-200 dark:border-ledger-gray-700 bg-white dark:bg-ledger-gray-900 flex items-center px-3 gap-2 opacity-40 pointer-events-none select-none">
+        <div className="flex-shrink-0 h-9 border-b border-ledger-gray-200 border-ledger-gray-200 bg-nb-panel flex items-center px-3 gap-2 opacity-40 pointer-events-none select-none">
           {[28, 28, 28, 16, 28, 28, 28, 16, 36, 16, 28, 28].map((w, i) => (
-            <div key={i} className="h-4 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" style={{ width: w }} />
+            <div key={i} className="h-4 rounded bg-ledger-gray-200 animate-pulse" style={{ width: w }} />
           ))}
         </div>
 
         {/* Outer paper background */}
-        <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800 relative">
+        <div className="flex-1 overflow-auto bg-ledger-gray-100 relative">
           {/* Floating status pill */}
           <div className="sticky top-3 z-10 h-0 overflow-visible flex justify-center pointer-events-none">
             <div className="flex items-center gap-2 bg-kx-primary-700/90 text-white text-xs px-4 py-1.5 rounded-full shadow-lg font-medium tracking-wide select-none backdrop-blur-sm">
@@ -180,35 +180,35 @@ export function DraftPreviewTab({
           >
             {/* Case caption / court header */}
             <div className="flex flex-col items-center gap-3 mb-10">
-              <div className="h-4 w-48 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-              <div className="h-4 w-64 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-              <div className="h-px w-full bg-ledger-gray-200 dark:bg-ledger-gray-700 mt-2" />
+              <div className="h-4 w-48 rounded bg-ledger-gray-200 animate-pulse" />
+              <div className="h-4 w-64 rounded bg-ledger-gray-200 animate-pulse" />
+              <div className="h-px w-full bg-ledger-gray-200 mt-2" />
             </div>
 
             {/* Document title */}
             <div className="flex flex-col items-center gap-2 mb-8">
-              <div className="h-6 w-72 rounded bg-ledger-gray-300 dark:bg-ledger-gray-600 animate-pulse" />
-              <div className="h-4 w-48 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
+              <div className="h-6 w-72 rounded bg-ledger-gray-300 animate-pulse" />
+              <div className="h-4 w-48 rounded bg-ledger-gray-200 animate-pulse" />
             </div>
 
             {/* Parties section */}
             <div className="flex gap-8 mb-8">
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-20 rounded bg-ledger-gray-300 dark:bg-ledger-gray-600 animate-pulse" />
-                <div className="h-4 w-full rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-                <div className="h-4 w-3/4 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-                <div className="h-4 w-5/6 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
+                <div className="h-3 w-20 rounded bg-ledger-gray-300 animate-pulse" />
+                <div className="h-4 w-full rounded bg-ledger-gray-200 animate-pulse" />
+                <div className="h-4 w-3/4 rounded bg-ledger-gray-200 animate-pulse" />
+                <div className="h-4 w-5/6 rounded bg-ledger-gray-200 animate-pulse" />
               </div>
-              <div className="w-px bg-ledger-gray-200 dark:bg-ledger-gray-700" />
+              <div className="w-px bg-ledger-gray-200" />
               <div className="flex-1 space-y-2">
-                <div className="h-3 w-20 rounded bg-ledger-gray-300 dark:bg-ledger-gray-600 animate-pulse" />
-                <div className="h-4 w-full rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-                <div className="h-4 w-2/3 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-                <div className="h-4 w-5/6 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
+                <div className="h-3 w-20 rounded bg-ledger-gray-300 animate-pulse" />
+                <div className="h-4 w-full rounded bg-ledger-gray-200 animate-pulse" />
+                <div className="h-4 w-2/3 rounded bg-ledger-gray-200 animate-pulse" />
+                <div className="h-4 w-5/6 rounded bg-ledger-gray-200 animate-pulse" />
               </div>
             </div>
 
-            <div className="h-px w-full bg-ledger-gray-200 dark:bg-ledger-gray-700 mb-8" />
+            <div className="h-px w-full bg-ledger-gray-200 mb-8" />
 
             {/* Body paragraphs */}
             {[
@@ -218,11 +218,11 @@ export function DraftPreviewTab({
               [88, 100, 78, 92, 65],
             ].map((widths, paraIdx) => (
               <div key={paraIdx} className="mb-6 space-y-2">
-                <div className="h-3.5 w-28 rounded bg-ledger-gray-300 dark:bg-ledger-gray-600 animate-pulse mb-3" />
+                <div className="h-3.5 w-28 rounded bg-ledger-gray-300 animate-pulse mb-3" />
                 {widths.map((w, lineIdx) => (
                   <div
                     key={lineIdx}
-                    className="h-3.5 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse"
+                    className="h-3.5 rounded bg-ledger-gray-200 animate-pulse"
                     style={{ width: `${w}%` }}
                   />
                 ))}
@@ -231,11 +231,11 @@ export function DraftPreviewTab({
 
             {/* Prayer section */}
             <div className="mt-10 space-y-2">
-              <div className="h-3.5 w-36 rounded bg-ledger-gray-300 dark:bg-ledger-gray-600 animate-pulse mb-3" />
+              <div className="h-3.5 w-36 rounded bg-ledger-gray-300 animate-pulse mb-3" />
               {[95, 80, 88, 70, 60].map((w, i) => (
                 <div
                   key={i}
-                  className="h-3.5 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse"
+                  className="h-3.5 rounded bg-ledger-gray-200 animate-pulse"
                   style={{ width: `${w}%` }}
                 />
               ))}
@@ -244,12 +244,12 @@ export function DraftPreviewTab({
             {/* Signature block */}
             <div className="mt-16 flex justify-between">
               <div className="space-y-2">
-                <div className="h-3.5 w-32 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-                <div className="h-3.5 w-24 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
+                <div className="h-3.5 w-32 rounded bg-ledger-gray-200 animate-pulse" />
+                <div className="h-3.5 w-24 rounded bg-ledger-gray-200 animate-pulse" />
               </div>
               <div className="space-y-2">
-                <div className="h-3.5 w-32 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-                <div className="h-3.5 w-24 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
+                <div className="h-3.5 w-32 rounded bg-ledger-gray-200 animate-pulse" />
+                <div className="h-3.5 w-24 rounded bg-ledger-gray-200 animate-pulse" />
               </div>
             </div>
           </div>
@@ -262,13 +262,13 @@ export function DraftPreviewTab({
   // --- Failed state ---
   if (draft.status === 'failed') {
     return (
-      <div className="flex flex-col h-full items-center justify-center bg-ledger-white dark:bg-ledger-gray-900">
+      <div className="flex flex-col h-full items-center justify-center bg-ledger-white">
         <div className="flex flex-col items-center gap-4">
           <AlertCircle className="h-10 w-10 text-red-400" />
-          <p className="text-sm text-ledger-gray-700 dark:text-ledger-gray-200 font-medium">
+          <p className="text-sm text-ledger-gray-700 font-medium">
             Draft generation failed
           </p>
-          <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500 text-center max-w-xs">
+          <p className="text-xs text-ledger-gray-400 text-center max-w-xs">
             Something went wrong while generating this draft. You can retry or delete it.
           </p>
           <div className="flex items-center gap-2">
@@ -628,13 +628,13 @@ function CompletedDraftEditor({
         isSaving={isSaving}
         hasChanges={hasChanges}
         documentTitle={title}
-        className="bg-white dark:bg-ledger-gray-900"
+        className="bg-nb-panel"
       />
 
       {/* Document viewer */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800 [--page-gap-bg:#f1f5f9] dark:[--page-gap-bg:#1e293b]"
+        className="flex-1 overflow-auto bg-ledger-gray-100 [--page-gap-bg:#f1f5f9] dark:[--page-gap-bg:#1e293b]"
         onScroll={handleScroll}
       >
         {/* Sticky page badge */}

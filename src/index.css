@@ -41,6 +41,16 @@
   --kx-text-primary: #0F172A;
   --kx-text-secondary: #64748B;
 
+  /* NotebookLM-inspired colors */
+  --nb-panel-bg: #FEFCF8;
+  --nb-panel-border: #F0EDE6;
+  --nb-separator-bg: #F5F2EB;
+  --nb-sidebar-bg: #FFFFFF;
+  --nb-sidebar-hover: #F8F6F1;
+  --nb-input-bg: #FFFFFF;
+  --nb-input-border: #E5E2DB;
+  --nb-text-muted: #6B7280;
+
   /* Card surface */
   --kx-card-bg: #ffffff;
   --kx-card-border: #e2e8f0;
@@ -98,6 +108,16 @@
   --kx-surface: #0F0A09;
   --kx-text-primary: #F4EFED;
   --kx-text-secondary: #A8948F;
+
+  /* NotebookLM-inspired colors (dark mode) */
+  --nb-panel-bg: #1A1311;
+  --nb-panel-border: #2A1E1B;
+  --nb-separator-bg: #160F0D;
+  --nb-sidebar-bg: #120E0C;
+  --nb-sidebar-hover: #1C1412;
+  --nb-input-bg: #1A1311;
+  --nb-input-border: #2A1E1B;
+  --nb-text-muted: #7A6560;
 
   /* Card surface — distinct from body for depth */
   --kx-card-bg: #1A1311;
@@ -422,6 +442,23 @@
   .animate-bounce-in {
     animation: bounce-in 0.5s ease-out forwards;
     opacity: 0;
+  }
+
+  /* NotebookLM-style panel transitions */
+  .panel-transition {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .panel-shadow {
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.05),
+      0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .panel-shadow {
+    box-shadow: 
+      0 1px 3px rgba(0, 0, 0, 0.3),
+      0 1px 2px rgba(0, 0, 0, 0.2);
   }
 
   /* Typewriter bouncing dots for draft generation */

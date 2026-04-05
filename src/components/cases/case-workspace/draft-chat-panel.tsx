@@ -147,10 +147,10 @@ export function DraftChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-kx-card">
+    <div className="flex flex-col h-full bg-nb-panel">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-kx-card-border flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-nb-panel-border flex-shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
           <Bot className="h-4 w-4 text-kx-primary-600 flex-shrink-0" />
 
           {/* Session switcher — only in draft mode (research mode has ResearchSidebar) */}
@@ -218,7 +218,7 @@ export function DraftChatPanel({
                                       onChange={e => setRenameValue(e.target.value)}
                                       onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') cancelRename() }}
                                       onBlur={commitRename}
-                                      className="flex-1 min-w-0 text-xs border border-kx-primary-400 rounded px-1.5 py-0.5 bg-white dark:bg-ledger-gray-800 text-kx-text-primary focus:outline-none"
+                                      className="flex-1 min-w-0 text-xs border border-kx-primary-400 rounded px-1.5 py-0.5 bg-nb-input text-kx-text-primary focus:outline-none"
                                       autoFocus
                                     />
                                     <button type="button" onMouseDown={e => { e.preventDefault(); commitRename() }} className="p-0.5 text-green-600 hover:bg-green-50 rounded">
@@ -283,7 +283,7 @@ export function DraftChatPanel({
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 w-7 p-0 text-ledger-gray-600 dark:text-ledger-gray-300 hover:text-red-500"
+          className="h-8 w-8 p-0 text-nb-text-muted hover:text-red-500 hover:bg-nb-sidebar-hover rounded-lg"
           title="Clear messages"
           onClick={() => setClearDialogOpen(true)}
         >

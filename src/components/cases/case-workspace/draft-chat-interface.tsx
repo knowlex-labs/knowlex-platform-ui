@@ -280,10 +280,10 @@ export function DraftChatInterface({
   const currentModel = MODEL_OPTIONS.find((m) => m.value === settings.model) ?? MODEL_OPTIONS[0]
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-nb-panel">
       {/* Messages area */}
       {isLoadingHistory ? (
-        <div className="flex-1 px-4 py-4 space-y-4">
+        <div className="flex-1 px-6 py-6 space-y-5">
           <Skeleton className="h-8 w-3/4 ml-auto rounded-2xl" />
           <Skeleton className="h-16 w-4/5 rounded-2xl" />
           <Skeleton className="h-8 w-2/3 ml-auto rounded-2xl" />
@@ -293,18 +293,18 @@ export function DraftChatInterface({
         <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
           {showGreeting ? (
             <>
-              <h2 className="text-2xl font-semibold text-kx-primary-900 mb-2">
+              <h2 className="text-3xl font-bold text-kx-primary-900 mb-3">
                 {greetingRef.current.heading(getTimeGreeting(), displayName)}
               </h2>
-              <p className="text-sm text-ledger-gray-400 max-w-[320px] leading-relaxed">
+              <p className="text-base text-nb-text-muted max-w-[360px] leading-relaxed">
                 {greetingRef.current.subtitle}
               </p>
-              <div className="flex flex-col gap-2 mt-5 w-full max-w-[320px]">
+              <div className="flex flex-col gap-2.5 mt-8 w-full max-w-[360px]">
                 {['Summarize the key facts of this case', 'What are the relevant legal provisions?', 'Compare arguments from both sides'].map((prompt) => (
                   <button
                     key={prompt}
                     onClick={() => setInput(prompt)}
-                    className="text-left text-xs px-3 py-2.5 rounded-lg border border-ledger-gray-200 text-ledger-gray-600 hover:border-kx-primary-300 hover:bg-kx-primary-50 hover:text-kx-primary-700 transition-all"
+                    className="text-left text-sm px-4 py-3 rounded-xl border border-nb-input-border text-ledger-gray-700 hover:border-kx-primary-300 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 hover:text-kx-primary-700 transition-all font-medium"
                   >
                     {prompt}
                   </button>
@@ -316,18 +316,18 @@ export function DraftChatInterface({
               <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 flex items-center justify-center mb-4 shadow-lg">
                 <MessageSquareDot className="h-6 w-6 text-white" />
               </div>
-              <p className="text-base text-ledger-gray-700 dark:text-ledger-gray-300 font-semibold mb-2">
+              <p className="text-lg text-ledger-gray-700 font-bold mb-2">
                 Chat
               </p>
-              <p className="text-sm text-ledger-gray-400 dark:text-ledger-gray-500 max-w-[280px] leading-relaxed">
+              <p className="text-sm text-nb-text-muted max-w-[300px] leading-relaxed">
                 Ask about your documents, refine drafts, or get legal writing help
               </p>
-              <div className="flex flex-col gap-2 mt-5 w-full max-w-[280px]">
+              <div className="flex flex-col gap-2.5 mt-6 w-full max-w-[300px]">
                 {['Summarize the key facts', 'Find relevant legal provisions', 'Help refine my draft'].map((prompt) => (
                   <button
                     key={prompt}
                     onClick={() => setInput(prompt)}
-                    className="text-left text-xs px-3 py-2.5 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-600 text-ledger-gray-600 dark:text-ledger-gray-400 hover:border-kx-primary-300 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-900/20 hover:text-kx-primary-700 dark:hover:text-kx-primary-400 transition-all"
+                    className="text-left text-sm px-4 py-3 rounded-xl border border-nb-input-border text-ledger-gray-700 hover:border-kx-primary-300 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 hover:text-kx-primary-700 transition-all font-medium"
                   >
                     {prompt}
                   </button>
@@ -367,7 +367,7 @@ export function DraftChatInterface({
       )}
 
       {/* Input */}
-      <div className="px-4 pb-4 pt-2">
+      <div className="px-5 pb-5 pt-3">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -378,7 +378,7 @@ export function DraftChatInterface({
           onChange={handleFileChange}
         />
 
-        <div className="rounded-2xl border border-kx-card-border bg-kx-card shadow-md backdrop-blur-sm focus-within:shadow-lg focus-within:border-kx-primary-400/30 transition-all">
+        <div className="rounded-2xl border border-nb-input-border bg-nb-input shadow-sm focus-within:shadow-md focus-within:border-kx-primary-300 transition-all">
           {/* Attachment chips */}
           {tempAttachments.length > 0 && (
             <div className="flex flex-wrap gap-1.5 px-3 pt-2.5">
@@ -519,8 +519,8 @@ export function DraftChatInterface({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask about your case..."
-                className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-gray-800 dark:text-ledger-gray-200 placeholder:text-ledger-gray-400 resize-none overflow-y-auto p-0 m-0 align-middle"
-                style={{ height: '20px', maxHeight: '150px', lineHeight: '20px', verticalAlign: 'middle' }}
+                className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-gray-800 placeholder:text-nb-text-muted resize-none overflow-y-auto p-0 m-0 align-middle"
+                style={{ height: '20px', maxHeight: '120px', lineHeight: '20px', verticalAlign: 'middle' }}
                 rows={1}
                 disabled={isStreaming}
               />
@@ -530,7 +530,7 @@ export function DraftChatInterface({
                 <PopoverPrimitive.Trigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1 rounded-full border border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50 dark:bg-ledger-gray-800 hover:bg-kx-primary-50 hover:border-kx-primary-300 text-xs text-ledger-gray-600 dark:text-ledger-gray-400 hover:text-kx-primary-700 transition-colors"
+                    className="flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1 rounded-full border border-ledger-gray-200 bg-ledger-gray-50 hover:bg-kx-primary-50 hover:border-kx-primary-300 text-xs text-ledger-gray-600 hover:text-kx-primary-700 transition-colors"
                     title="Change model"
                   >
                     <Sparkles className="h-3.5 w-3.5 text-kx-primary-500" />
@@ -570,7 +570,7 @@ export function DraftChatInterface({
               {/* Send button */}
               <button
                 type="submit"
-                className="h-6 w-6 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-kx-primary-500 to-kx-primary-700 text-white hover:from-kx-primary-400 hover:to-kx-primary-600 shadow-sm disabled:opacity-40 mb-px"
+                className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center bg-kx-primary-600 text-white hover:bg-kx-primary-700 shadow-sm disabled:opacity-40 transition-colors mb-px"
                 disabled={!input.trim() || isStreaming || tempAttachments.some((a) => a.isUploading)}
               >
                 {isStreaming ? (

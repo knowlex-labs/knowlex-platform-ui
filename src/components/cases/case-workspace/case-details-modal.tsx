@@ -27,7 +27,7 @@ const STATUS_OPTIONS: { value: BackendCaseStatus; label: string }[] = [
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs font-semibold uppercase tracking-wider text-ledger-gray-400 dark:text-ledger-gray-500 mb-3">
+    <p className="text-xs font-semibold uppercase tracking-wider text-ledger-gray-400 mb-3">
       {children}
     </p>
   )
@@ -45,13 +45,13 @@ function Field({
 }) {
   return (
     <div className={cn('space-y-1.5', className)}>
-      <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">{label}</Label>
+      <Label className="text-sm font-medium text-ledger-gray-700">{label}</Label>
       <Input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="rounded-lg h-9 border-ledger-gray-200 dark:bg-ledger-gray-800 dark:border-ledger-gray-600 dark:text-ledger-gray-100"
+        className="rounded-lg h-9 border-ledger-gray-200 bg-nb-input text-kx-text-primary"
       />
     </div>
   )
@@ -150,11 +150,11 @@ export function CaseDetailsModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-ledger-gray-100 dark:border-ledger-gray-800">
-          <DialogTitle className="text-lg font-semibold text-kx-primary-900 dark:text-kx-primary-100">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-ledger-gray-100">
+          <DialogTitle className="text-lg font-semibold text-kx-primary-900">
             Case Details
           </DialogTitle>
-          <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-0.5">
+          <p className="text-sm text-ledger-gray-500 mt-0.5">
             Update case information and respondent details
           </p>
         </DialogHeader>
@@ -167,11 +167,11 @@ export function CaseDetailsModal({
               <Field label="Case Title" value={caseTitle} onChange={setCaseTitle} placeholder="e.g., State vs. John Doe" className="col-span-2" />
               <Field label="Case Number" value={caseNumber} onChange={setCaseNumber} placeholder="e.g., CRL/12/2024" />
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">Status</Label>
+                <Label className="text-sm font-medium text-ledger-gray-700">Status</Label>
                 <select
                   value={caseStatus}
                   onChange={(e) => setCaseStatus(e.target.value as BackendCaseStatus)}
-                  className="flex h-9 w-full rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-600 bg-white dark:bg-ledger-gray-800 px-3 text-sm text-kx-primary-900 dark:text-ledger-gray-100 focus:outline-none focus:ring-2 focus:ring-kx-primary-500"
+                  className="flex h-9 w-full rounded-lg border border-ledger-gray-200 bg-nb-input px-3 text-sm text-kx-primary-900 focus:outline-none focus:ring-2 focus:ring-kx-primary-500"
                 >
                   {STATUS_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
@@ -213,12 +213,12 @@ export function CaseDetailsModal({
               <Field label="Father's Name" value={fatherName} onChange={setFatherName} placeholder="If applicable" />
             </div>
             <div className="mt-4 space-y-1.5">
-              <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">Notes</Label>
+              <Label className="text-sm font-medium text-ledger-gray-700">Notes</Label>
               <Textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any additional notes about the respondent (e.g., Through Secretary, Home Department)"
-                className="resize-none min-h-[72px] rounded-lg border-ledger-gray-200 dark:bg-ledger-gray-800 dark:border-ledger-gray-600"
+                className="resize-none min-h-[72px] rounded-lg border-ledger-gray-200 bg-nb-input"
                 rows={3}
               />
             </div>
@@ -226,7 +226,7 @@ export function CaseDetailsModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-ledger-gray-100 dark:border-ledger-gray-800 flex justify-end gap-3 bg-white dark:bg-ledger-gray-900">
+        <div className="px-6 py-4 border-t border-ledger-gray-100 flex justify-end gap-3 bg-nb-panel">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving} className="rounded-lg">
             Cancel
           </Button>

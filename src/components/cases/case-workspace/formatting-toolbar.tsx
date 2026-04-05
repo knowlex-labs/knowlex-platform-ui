@@ -87,8 +87,8 @@ export function FormattingToolbar({
         onClick={() => setExportOpen((prev) => !prev)}
         className={cn(
           'flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors',
-          'text-ledger-gray-600 dark:text-ledger-gray-300 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700',
-          exportOpen && 'bg-ledger-gray-100 dark:bg-ledger-gray-700'
+          'text-ledger-gray-600 hover:bg-ledger-gray-100',
+          exportOpen && 'bg-ledger-gray-100'
         )}
         title="Export options"
       >
@@ -98,20 +98,20 @@ export function FormattingToolbar({
       </button>
 
       {exportOpen && (
-        <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-ledger-gray-800 rounded-lg shadow-lg border border-ledger-gray-200 dark:border-ledger-gray-600 py-1 z-50">
+        <div className="absolute right-0 top-full mt-1 w-48 bg-nb-panel rounded-lg shadow-lg border border-nb-panel-border py-1 z-50">
           {onPrint && (
             <button
               onClick={() => { onPrint(); setExportOpen(false) }}
-              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 hover:bg-ledger-gray-50 transition-colors"
             >
-              <Printer className="h-4 w-4 text-ledger-gray-400 dark:text-ledger-gray-500" />
+              <Printer className="h-4 w-4 text-ledger-gray-400" />
               Print
             </button>
           )}
           {onDownloadPdf && (
             <button
               onClick={() => { onDownloadPdf(); setExportOpen(false) }}
-              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 hover:bg-ledger-gray-50 transition-colors"
             >
               <FileText className="h-4 w-4 text-red-400" />
               Download PDF
@@ -120,7 +120,7 @@ export function FormattingToolbar({
           {onDownloadDoc && (
             <button
               onClick={() => { onDownloadDoc(); setExportOpen(false) }}
-              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 transition-colors"
+              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 hover:bg-ledger-gray-50 transition-colors"
             >
               <FileText className="h-4 w-4 text-blue-500" />
               Download Word
@@ -132,11 +132,11 @@ export function FormattingToolbar({
   )
 
   const barBase = cn(
-    'flex items-center gap-0.5 px-3 py-1.5 border-b border-ledger-gray-200 dark:border-ledger-gray-700 flex-shrink-0',
+    'flex items-center gap-0.5 px-3 py-1.5 border-b border-ledger-gray-200 flex-shrink-0',
     className
   )
-  const divider = <div className="w-px h-4 bg-ledger-gray-200 dark:bg-ledger-gray-600 mx-1 flex-shrink-0" />
-  const btnBase = 'p-1.5 rounded hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 dark:text-ledger-gray-300 transition-colors flex-shrink-0'
+  const divider = <div className="w-px h-4 bg-ledger-gray-200 mx-1 flex-shrink-0" />
+  const btnBase = 'p-1.5 rounded hover:bg-ledger-gray-100 text-ledger-gray-600 transition-colors flex-shrink-0'
 
   // ── View mode ──────────────────────────────────────────────────────────────
   if (!isEditing) {
@@ -144,7 +144,7 @@ export function FormattingToolbar({
       <div className={barBase}>
         <div className="flex-1 min-w-0">
           {documentTitle && (
-            <h3 className="text-sm font-medium text-kx-primary-900 dark:text-kx-primary-100 truncate">
+            <h3 className="text-sm font-medium text-kx-primary-900 truncate">
               {documentTitle}
             </h3>
           )}
@@ -198,7 +198,7 @@ export function FormattingToolbar({
 
       <select
         onChange={(e) => onFontSize(e.target.value)}
-        className="h-7 px-1.5 text-xs border border-ledger-gray-200 dark:border-ledger-gray-600 rounded hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-700 dark:bg-ledger-gray-900 dark:text-ledger-gray-300 focus:outline-none focus:ring-1 focus:ring-ledger-gray-300 flex-shrink-0"
+        className="h-7 px-1.5 text-xs border border-ledger-gray-200 rounded hover:bg-ledger-gray-50 bg-nb-input text-ledger-gray-700 focus:outline-none focus:ring-1 focus:ring-ledger-gray-300 flex-shrink-0"
         defaultValue="12"
         title="Font Size"
       >
@@ -225,10 +225,10 @@ export function FormattingToolbar({
         className={cn(
           'text-xs font-medium mr-2 transition-colors flex-shrink-0',
           isSaving
-            ? 'text-ledger-gray-400 dark:text-ledger-gray-500'
+            ? 'text-ledger-gray-400'
             : hasChanges
-              ? 'text-amber-500 dark:text-amber-400'
-              : 'text-ledger-gray-400 dark:text-ledger-gray-500'
+              ? 'text-amber-500'
+              : 'text-ledger-gray-400'
         )}
       >
         {isSaving ? 'Saving…' : hasChanges ? 'Unsaved' : 'Saved'}
@@ -243,10 +243,10 @@ export function FormattingToolbar({
           className={cn(
             'flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ml-0.5 flex-shrink-0',
             isSaving
-              ? 'text-ledger-gray-400 dark:text-ledger-gray-500 cursor-not-allowed'
+              ? 'text-ledger-gray-400 cursor-not-allowed'
               : hasChanges
                 ? 'bg-kx-primary-600 hover:bg-kx-primary-700 text-white'
-                : 'text-ledger-gray-500 dark:text-ledger-gray-400 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700'
+                : 'text-ledger-gray-500 hover:bg-ledger-gray-100'
           )}
           title="Save (Ctrl+S)"
         >
@@ -259,7 +259,7 @@ export function FormattingToolbar({
         <button
           onClick={onCancel}
           disabled={isSaving}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium text-ledger-gray-500 dark:text-ledger-gray-400 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors flex-shrink-0"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium text-ledger-gray-500 hover:bg-ledger-gray-100 transition-colors flex-shrink-0"
           title="Cancel editing"
         >
           <X className="h-3.5 w-3.5" />
