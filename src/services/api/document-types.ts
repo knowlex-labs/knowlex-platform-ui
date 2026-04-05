@@ -1,6 +1,7 @@
 // Document types - shared types for document/draft creation
 // API functions moved to workspace-api.ts
 
+/** Agent-level document sub-types sent to the legal-agent-service. */
 export type DocumentType =
   | 'contract'
   | 'agreement'

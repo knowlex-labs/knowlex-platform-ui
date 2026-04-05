@@ -5,6 +5,7 @@ import type {
   DraftListItem,
   UpdateDraftRequest,
 } from '@/services/api/document-types'
+import type { DocumentRecord } from '@/services/api/doc-processing-api'
 
 export type { CreateDraftRequest, DraftListItem, UpdateDraftRequest }
 
@@ -83,9 +84,9 @@ export const draftsApi = {
     return apiClient.post<ApiResponse<CreateDraftResponse>>('/api/v1/drafts', data)
   },
 
-  // Poll a standalone draft by job ID (no caseId)
-  getStandalone: async (jobId: string): Promise<ApiResponse<DraftJobResponse>> => {
-    return apiClient.get<ApiResponse<DraftJobResponse>>(`/api/v1/drafts/${jobId}`)
+  // Poll a standalone draft by document ID using the /documents endpoint
+  getStandalone: async (documentId: string): Promise<ApiResponse<DocumentRecord>> => {
+    return apiClient.get<ApiResponse<DocumentRecord>>(`/api/v1/documents/${documentId}`)
   },
 
   getCitations: async (caseId: string, documentId: string): Promise<CitationResult[]> => {

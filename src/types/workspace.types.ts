@@ -1,3 +1,17 @@
+export enum DocumentType {
+  USER_UPLOADED = 'USER_UPLOADED',
+  DRAFT        = 'DRAFT',
+  SUMMARY      = 'SUMMARY',
+  JUDGMENT     = 'JUDGMENT',
+  BRIEF        = 'BRIEF',
+}
+
+/** Document types whose content is AI-generated (have a jobStatus lifecycle). */
+export const GENERATED_DOC_TYPES = new Set<DocumentType>([
+  DocumentType.DRAFT,
+  DocumentType.SUMMARY,
+])
+
 export enum IndexingStatus {
   PENDING = 'INDEXING_PENDING',
   RUNNING = 'INDEXING_RUNNING',
@@ -19,7 +33,7 @@ export type CaseDocumentStatus = IndexingStatus | JobStatus
 export interface CaseDocument {
   id: string
   name: string
-  type: 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT' | 'SUMMARY' | 'BRIEF'
+  type: DocumentType
   indexingStatus?: IndexingStatus
   jobStatus?: JobStatus
   jobId?: string

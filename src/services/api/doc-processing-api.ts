@@ -1,6 +1,7 @@
 import { apiClient } from './api-client'
 import { config } from '@/config/env'
 import type { ApiResponse } from '@/types'
+import { DocumentType, JobStatus } from '@/types'
 
 const API_BASE_URL = config.apiBaseUrl
 
@@ -63,7 +64,8 @@ export interface CompressResponse {
   document: ProcessedDocumentInfo
 }
 
-export type DocumentRecordType = 'USER_UPLOADED' | 'DRAFT' | 'SUMMARY' | 'JUDGMENT'
+/** Alias so call-sites can import DocumentRecordType without changing imports. */
+export type DocumentRecordType = DocumentType
 
 /**
  * DocumentResponse — the canonical shape returned by GET /api/v1/documents.
@@ -83,9 +85,9 @@ export interface DocumentRecord {
   signedUrl: string | null
   /** Encrypted doc download — use this when present */
   downloadUrl: string | null
-  type: DocumentRecordType
+  type: DocumentType
   subType: string | null
-  jobStatus: string | null
+  jobStatus: JobStatus | null
   jobId: string | null
   indexingStatus: string | null
   filePath: string | null

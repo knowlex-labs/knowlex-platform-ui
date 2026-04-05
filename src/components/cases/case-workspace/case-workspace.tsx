@@ -21,9 +21,9 @@ import { AddSourceModal } from './add-source-modal'
 import { OnlyOfficeEditor } from './onlyoffice-editor'
 import { TEMPLATE_TO_DOC_CONFIG, DraftCreationWizard } from './draft-creation-wizard'
 import { CaseDetailsModal } from './case-details-modal'
-import type { CreateDraftRequest, DocumentType } from '@/services/api/document-types'
+import type { CreateDraftRequest, DocumentType as AgentDocType } from '@/services/api/document-types'
 import type { Draft, CaseDocument, Client, BackendCase, UpdateCaseRequest, RespondentDetails } from '@/types'
-import { IndexingStatus } from '@/types'
+import { DocumentType, IndexingStatus } from '@/types'
 import { toast } from '@/hooks/use-toast'
 import { mapBackendClient } from '@/services/mappers'
 
@@ -126,8 +126,8 @@ export function CaseWorkspace() {
 
   // Filter documents by type for display
   const sources = paginatedSources
-  const judgments = documents.filter(d => d.type === 'JUDGMENT')
-  const draftDocuments = documents.filter(d => d.type === 'DRAFT')
+  const judgments = documents.filter(d => d.type === DocumentType.JUDGMENT)
+  const draftDocuments = documents.filter(d => d.type === DocumentType.DRAFT)
 
   // Count docs/judgments currently being indexed (across both sources and non-sources)
   const indexingCount = [...paginatedSources, ...documents].filter(d =>
@@ -337,8 +337,8 @@ export function CaseWorkspace() {
 
     // Determine document type from the failed draft's templateType
     const config = failedDraft.templateType
-      ? TEMPLATE_TO_DOC_CONFIG[failedDraft.templateType] || { documentType: 'legal_notice' as DocumentType }
-      : { documentType: 'legal_notice' as DocumentType }
+      ? TEMPLATE_TO_DOC_CONFIG[failedDraft.templateType] || { documentType: 'legal_notice' as AgentDocType }
+      : { documentType: 'legal_notice' as AgentDocType }
 
     const request: CreateDraftRequest = {
       title: failedDraft.title,

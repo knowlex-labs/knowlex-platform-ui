@@ -7,6 +7,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { workspaceApi } from '@/services/api/workspace-api'
+import { DocumentType } from '@/types'
 import type { CaseDocument } from '@/types'
 
 interface DocumentItemProps {
@@ -82,7 +83,7 @@ export function DocumentItem({ document }: DocumentItemProps) {
   const Icon = getFileIcon(displayName)
 
   // Get the appropriate status based on document type
-  const status = document.type === 'DRAFT' ? document.jobStatus : document.indexingStatus
+  const status = document.type === DocumentType.DRAFT ? document.jobStatus : document.indexingStatus
 
   const handleDownload = async () => {
     if (isDownloading) return

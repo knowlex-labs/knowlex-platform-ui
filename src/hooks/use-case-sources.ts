@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { workspaceApi } from '@/services/api/workspace-api'
-import { IndexingStatus, JobStatus, type CaseDocument, type CaseDocumentStatus } from '@/types'
+import { DocumentType, GENERATED_DOC_TYPES, IndexingStatus, JobStatus, type CaseDocument, type CaseDocumentStatus } from '@/types'
 
 const POLLING_INTERVAL = 6000 // 6 seconds
 const MAX_POLL_ATTEMPTS = 20
@@ -64,8 +64,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
       try {
         const doc = await workspaceApi.getDocument(caseId, documentId)
-        const docType = doc.type as 'USER_UPLOADED' | 'DRAFT' | 'JUDGMENT' | 'SUMMARY'
-        const isDraftOrSummary = docType === 'DRAFT' || docType === 'SUMMARY'
+        const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type)
         const status = isDraftOrSummary
           ? doc.jobStatus as CaseDocumentStatus
           : doc.indexingStatus as CaseDocumentStatus
@@ -134,12 +133,12 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
       setError(null)
       try {
         const docs = await workspaceApi.getCaseDocuments(caseId)
-        const nonSources = docs.filter((d) => d.type !== 'USER_UPLOADED')
+        const nonSources = docs.filter((d) => d.type !== DocumentType.USER_UPLOADED)
         setDocuments(nonSources)
 
         // Poll any in-progress non-source docs
         for (const doc of nonSources) {
-          const isDraftOrSummary = doc.type === 'DRAFT' || doc.type === 'SUMMARY'
+          const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type)
           const status = isDraftOrSummary ? doc.jobStatus : doc.indexingStatus
           if (status === IndexingStatus.RUNNING || status === IndexingStatus.PENDING || status === JobStatus.PROCESSING) {
             startPolling(doc.id)
@@ -257,7 +256,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
       const updatedDoc = await workspaceApi.triggerIndexing(caseId!, sourceId)
       setDocuments((prev) => prev.map((d) => d.id === sourceId ? updatedDoc : d))
       setPaginatedSources((prev) => prev.map((d) => d.id === sourceId ? updatedDoc : d))
-      const status = updatedDoc.type === 'DRAFT' || updatedDoc.type === 'SUMMARY'
+      const status = GENERATED_DOC_TYPES.has(updatedDoc.type)
         ? updatedDoc.jobStatus : updatedDoc.indexingStatus
       if (status === IndexingStatus.RUNNING || status === IndexingStatus.PENDING || status === JobStatus.PROCESSING) {
         startPolling(sourceId)

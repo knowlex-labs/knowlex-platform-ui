@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { draftsApi } from '@/services/api/drafts-api'
 import { caseApi } from '@/services/api/case-api'
 import { downloadDocument, uploadToolboxFile } from '@/services/api/doc-processing-api'
+import { workspaceApi } from '@/services/api/workspace-api'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { toast } from '@/hooks/use-toast'
 import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
@@ -140,7 +141,7 @@ export function DraftingPage() {
     if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null }
   }, [])
 
-  const startPolling = useCallback((jobId: string) => {
+  const startPolling = useCallback((documentId: string) => {
     stopPolling()
     pollAttemptsRef.current = 0
     pollTimerRef.current = setInterval(async () => {
@@ -151,11 +152,40 @@ export function DraftingPage() {
         return
       }
       try {
-        const res = await draftsApi.getStandalone(jobId)
+        const res = await draftsApi.getStandalone(documentId)
         if (res.data) {
-          const draft = mapItemToDraft(res.data)
-          setPreviewDraft(draft)
-          if (draft.status === 'completed' || draft.status === 'failed') stopPolling()
+          const doc = res.data
+          const rawStatus = (doc.jobStatus ?? '').toLowerCase()
+          const status: Draft['status'] =
+            rawStatus === 'completed' ? 'completed' :
+            rawStatus === 'failed'    ? 'failed'    : 'pending'
+
+          setPreviewDraft(prev => ({
+            id: doc.id,
+            title: doc.name || prev?.title || 'Draft',
+            content: prev?.content ?? '',
+            status,
+            sections: prev?.sections ?? [],
+            summary: prev?.summary ?? '',
+            templateType: doc.subType ?? prev?.templateType,
+            contentFormat: prev?.contentFormat,
+            createdAt: prev?.createdAt ?? new Date(doc.createdAt),
+            updatedAt: new Date(doc.updatedAt),
+          }))
+
+          if (status === 'completed' || status === 'failed') {
+            stopPolling()
+            if (status === 'completed') {
+              try {
+                const content = await workspaceApi.fetchDocumentContent({
+                  id: doc.id,
+                  signedUrl: doc.signedUrl,
+                  downloadUrl: doc.downloadUrl,
+                })
+                setPreviewDraft(prev => prev ? { ...prev, content } : null)
+              } catch { /* content unavailable — user can still download */ }
+            }
+          }
         }
       } catch { /* ignore */ }
     }, POLL_INTERVAL_MS)
@@ -310,7 +340,7 @@ export function DraftingPage() {
       const draft = mapItemToDraft(res.data)
       setPreviewDraft(draft)
       if (draft.status !== 'completed' && draft.status !== 'failed') {
-        startPolling(res.data.job_id)
+        startPolling(res.data.id)
       }
     } catch {
       toast({ title: 'Failed to start draft generation', variant: 'destructive' })

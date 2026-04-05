@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { workspaceApi } from '@/services/api/workspace-api'
+import { DocumentType } from '@/types'
 import type { CaseDocument } from '@/types'
 
 interface SourceItemProps {
@@ -237,7 +238,7 @@ export function SourceItem({
           <div className="absolute right-0 top-full mt-1 w-48 bg-kx-card border border-kx-card-border rounded-lg shadow-md z-10">
             {/* File details */}
             <div className="px-3 py-2 border-b border-ledger-gray-100">
-              <div className="mt-1">{getStatusBadge(source.type === 'DRAFT' ? source.jobStatus : source.indexingStatus)}</div>
+              <div className="mt-1">{getStatusBadge(source.type === DocumentType.DRAFT ? source.jobStatus : source.indexingStatus)}</div>
             </div>
             {isEditable && onEditInBrowser && (
               <button

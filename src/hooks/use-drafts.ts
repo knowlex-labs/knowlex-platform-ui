@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { workspaceApi } from '@/services/api/workspace-api'
 import { TEMPLATE_TO_SUB_TYPE } from '@/components/cases/case-workspace/draft-creation-wizard'
 import type { Draft, CaseDocument } from '@/types'
-import { JobStatus } from '@/types'
+import { DocumentType, JobStatus } from '@/types'
 import type { CreateDraftRequest, DraftListItem } from '@/services/api/document-types'
 
 export type { DocumentType } from '@/services/api/document-types'
@@ -117,7 +117,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
   // Stable key so we only refetch when draft list or status actually changes (avoids loop when parent passes new array ref each render)
   const draftListKey = useMemo(
     () =>
-      (documents?.filter((d) => d.type === 'DRAFT') ?? [])
+      (documents?.filter((d) => d.type === DocumentType.DRAFT) ?? [])
         .map((d) => `${d.id}:${d.jobStatus ?? ''}`)
         .sort()
         .join(','),
@@ -324,7 +324,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
 
     try {
       // Filter documents for DRAFT type
-      const draftDocs = docs.filter((d) => d.type === 'DRAFT')
+      const draftDocs = docs.filter((d) => d.type === DocumentType.DRAFT)
 
       // Map to Draft objects without eagerly fetching content — content is loaded on click
       const mapped: Draft[] = draftDocs.map((doc) => {

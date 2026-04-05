@@ -4,7 +4,7 @@ import {
   FileText, File, MoreVertical, Download, FolderInput,
   Trash2, Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, SlidersHorizontal, Settings2,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, AlertCircle,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -36,9 +36,9 @@ import { AssignCaseDialog } from './assign-case-dialog'
 import { useUIState } from '@/contexts/ui-context'
 import type {
   DocumentRecord,
-  DocumentRecordType,
   ProcessedDocumentInfo,
 } from '@/services/api/doc-processing-api'
+import { DocumentType, JobStatus, GENERATED_DOC_TYPES } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -96,15 +96,16 @@ function FileIcon({ fileType, className }: { fileType?: string | null; className
 
 // ─── Type metadata ────────────────────────────────────────────────────────────
 
-const TYPE_META: Record<DocumentRecordType, {
+const TYPE_META: Record<DocumentType, {
   label: string
   className: string
   icon: React.ComponentType<{ className?: string }>
 }> = {
-  USER_UPLOADED: { label: 'Uploaded', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', icon: File },
-  DRAFT:         { label: 'Draft',    className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300', icon: PenLine },
-  SUMMARY:       { label: 'Summary',  className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', icon: FileText },
-  JUDGMENT:      { label: 'Judgment', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: Scale },
+  [DocumentType.USER_UPLOADED]: { label: 'Uploaded', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', icon: File },
+  [DocumentType.DRAFT]:         { label: 'Draft',    className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300', icon: PenLine },
+  [DocumentType.SUMMARY]:       { label: 'Summary',  className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', icon: FileText },
+  [DocumentType.JUDGMENT]:      { label: 'Judgment', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: Scale },
+  [DocumentType.BRIEF]:         { label: 'Brief',    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
 }
 
 // ─── Tools config ─────────────────────────────────────────────────────────────
@@ -147,9 +148,11 @@ function DocTableRow({
   const isStandalone = !doc.caseId
   const isPdf = doc.fileType === 'PDF'
   const canDownload = !!(doc.downloadUrl || doc.storageUrl)
-  const isUpload = doc.type === 'USER_UPLOADED'
+  const isUpload = doc.type === DocumentType.USER_UPLOADED
+  const isGenerating = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.PROCESSING
+  const isGenFailed   = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.FAILED
 
-  const menuItems: { label: string; icon: React.ComponentType<{ className?: string }>; action: DocRowAction; danger?: boolean }[] = [
+  const menuItems: { label: string; icon: React.ComponentType<{ className?: string }>; action: DocRowAction; danger?: boolean }[] = isGenerating ? [] : [
     ...(canDownload ? [{ label: 'Download', icon: Download, action: 'download' as const }] : []),
     ...(isUpload && isStandalone ? [{ label: 'Assign to Case', icon: FolderInput, action: 'assign' as const }] : []),
     ...(isUpload && isPdf ? [{ label: 'Split', icon: Scissors, action: 'split' as const }, { label: 'Compress', icon: Minimize2, action: 'compress' as const }] : []),
@@ -199,9 +202,22 @@ function DocTableRow({
 
       {/* Name */}
       <div className="min-w-0">
-        <span className="truncate text-sm font-medium text-kx-text-primary leading-none block">
-          {displayName}
-        </span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="truncate text-sm font-medium text-kx-text-primary leading-none">
+            {displayName}
+          </span>
+          {isGenerating && (
+            <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-kx-primary-600 bg-kx-primary-50 dark:bg-kx-primary-950/40 dark:text-kx-primary-400 px-1.5 py-0.5 rounded-full">
+              <span className="h-1.5 w-1.5 rounded-full bg-kx-primary-500 animate-pulse" />
+              Generating
+            </span>
+          )}
+          {isGenFailed && (
+            <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-red-600 bg-red-50 dark:bg-red-950/40 dark:text-red-400 px-1.5 py-0.5 rounded-full">
+              Failed
+            </span>
+          )}
+        </div>
         {compact && caseLabel && (
           <span className="text-[11px] text-ledger-gray-400 truncate block mt-0.5">{caseLabel}</span>
         )}
@@ -303,12 +319,14 @@ function DocumentViewer({
   const displayName = doc.originalFilename || doc.name
   const meta = TYPE_META[doc.type]
   const Icon = meta.icon
-  const isTextual = doc.type === 'DRAFT' || doc.type === 'SUMMARY'
+  const isTextual = GENERATED_DOC_TYPES.has(doc.type)
   const isPdf = doc.fileType === 'PDF'
   const isImage = !isPdf && /\.(png|jpe?g)$/i.test(doc.name)
-  const isDraft = doc.type === 'DRAFT'
-  const isUploadedPdf = doc.type === 'USER_UPLOADED' && isPdf
+  const isDraft = doc.type === DocumentType.DRAFT
+  const isUploadedPdf = doc.type === DocumentType.USER_UPLOADED && isPdf
   const canDownload = !!(doc.downloadUrl || doc.storageUrl)
+  const isGenerating = isTextual && doc.jobStatus === JobStatus.PROCESSING
+  const isGenFailed  = isTextual && doc.jobStatus === JobStatus.FAILED
 
   useEffect(() => {
     let cancelled = false
@@ -318,6 +336,12 @@ function DocumentViewer({
     setIsDirty(false)
     setEditResult(null)
     setIsLoadingContent(true)
+
+    // Don't attempt to load content for documents still being generated
+    if (isGenerating || isGenFailed) {
+      setIsLoadingContent(false)
+      return
+    }
 
     async function load() {
       try {
@@ -336,7 +360,7 @@ function DocumentViewer({
     }
     load()
     return () => { cancelled = true }
-  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual])
+  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isGenerating, isGenFailed])
 
   useEffect(() => { return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) } }, [blobUrl])
 
@@ -425,7 +449,33 @@ function DocumentViewer({
       )}
 
       <div className="flex-1 min-h-0 overflow-auto relative">
-        {isLoadingContent ? (
+        {isGenerating ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
+            <div className="flex items-center gap-2 bg-kx-primary-700/90 text-white text-xs px-4 py-1.5 rounded-full font-medium select-none">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-white/90" />
+              </span>
+              Generating {meta.label} — this usually takes 1-2 minutes
+            </div>
+            <div className="w-full max-w-sm space-y-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="space-y-1.5">
+                  <div className="h-3 w-24 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
+                  {[100, 88, 75].map((w, j) => (
+                    <div key={j} className="h-2.5 rounded bg-ledger-gray-100 dark:bg-ledger-gray-800 animate-pulse" style={{ width: `${w}%` }} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : isGenFailed ? (
+          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">
+            <AlertCircle className="h-10 w-10 text-red-400" />
+            <p className="text-sm font-medium text-kx-text-primary">{meta.label} generation failed</p>
+            <p className="text-xs text-ledger-gray-400 max-w-xs">This {meta.label.toLowerCase()} could not be generated. Please try creating it again.</p>
+          </div>
+        ) : isLoadingContent ? (
           <div className="flex items-center justify-center h-full py-20">
             <Loader2 className="h-6 w-6 animate-spin text-ledger-gray-400" />
           </div>
@@ -495,7 +545,7 @@ function DocumentViewer({
           </div>
         ) : isTextual && textContent !== null ? (
           <div className="p-6 prose prose-sm max-w-none text-kx-text-primary" dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }} />
-        ) : blobUrl && (isPdf || doc.type === 'JUDGMENT') ? (
+        ) : blobUrl && (isPdf || doc.type === DocumentType.JUDGMENT) ? (
           <iframe src={blobUrl} className="w-full h-full border-0" title={displayName} />
         ) : blobUrl && isImage ? (
           <div className="flex items-center justify-center p-6 h-full">
