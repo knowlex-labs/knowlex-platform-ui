@@ -18,11 +18,12 @@ import {
   uploadToolboxFile,
   downloadDocument,
   triggerDirectDownload,
-  docProcessingApi,
+  type DocumentRecordType,
 } from '@/services/api/doc-processing-api'
 import { workspaceApi } from '@/services/api/workspace-api'
 import { caseApi } from '@/services/api/case-api'
 import { apiClient, ApiError } from '@/services/api/api-client'
+import { OnlyOfficeEditor } from '@/components/cases/case-workspace/onlyoffice-editor'
 import { toast } from '@/hooks/use-toast'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
@@ -296,22 +297,13 @@ function DocumentViewer({
   onClose: () => void
   onOpenTool: (id: ActiveToolId, ctx?: Omit<ToolContext, 'id'>) => void
 }) {
-  const [viewerMode, setViewerMode] = useState<'view' | 'text-edit' | 'pdf-edit'>('view')
+  const [viewerMode, setViewerMode] = useState<'view' | 'text-edit'>('view')
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [textContent, setTextContent] = useState<string | null>(null)
   const [isLoadingContent, setIsLoadingContent] = useState(true)
   const [isDirty, setIsDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-
-  const [pdfOp, setPdfOp] = useState<'remove-pages' | 'add-text'>('remove-pages')
-  const [removePageInput, setRemovePageInput] = useState('')
-  const [overlayText, setOverlayText] = useState('')
-  const [overlayX, setOverlayX] = useState('50')
-  const [overlayY, setOverlayY] = useState('50')
-  const [overlayFontSize, setOverlayFontSize] = useState('12')
-  const [overlayPage, setOverlayPage] = useState('1')
-  const [isApplying, setIsApplying] = useState(false)
-  const [editResult, setEditResult] = useState<ProcessedDocumentInfo | null>(null)
+  const [onlyOfficeOpen, setOnlyOfficeOpen] = useState(false)
 
   const editorRef = useRef<HTMLDivElement>(null)
   const formatting = useEditorFormatting(editorRef, () => setIsDirty(true))
@@ -323,7 +315,7 @@ function DocumentViewer({
   const isPdf = doc.fileType === 'PDF'
   const isImage = !isPdf && /\.(png|jpe?g)$/i.test(doc.name)
   const isDraft = doc.type === DocumentType.DRAFT
-  const isUploadedPdf = doc.type === DocumentType.USER_UPLOADED && isPdf
+
   const canDownload = !!(doc.downloadUrl || doc.storageUrl)
   const isGenerating = isTextual && doc.jobStatus === JobStatus.PROCESSING
   const isGenFailed  = isTextual && doc.jobStatus === JobStatus.FAILED
@@ -334,7 +326,7 @@ function DocumentViewer({
     setTextContent(null)
     setViewerMode('view')
     setIsDirty(false)
-    setEditResult(null)
+    setOnlyOfficeOpen(false)
     setIsLoadingContent(true)
 
     // Don't attempt to load content for documents still being generated
@@ -368,10 +360,8 @@ function DocumentViewer({
     if (isDraft && textContent !== null) {
       if (editorRef.current) editorRef.current.innerHTML = renderDraftToHtml(textContent)
       setViewerMode('text-edit')
-    } else if (isUploadedPdf) {
-      setRemovePageInput(''); setOverlayText(''); setOverlayX('50'); setOverlayY('50')
-      setOverlayFontSize('12'); setOverlayPage('1'); setEditResult(null)
-      setViewerMode('pdf-edit')
+    } else {
+      setOnlyOfficeOpen(true)
     }
   }
 
@@ -387,25 +377,6 @@ function DocumentViewer({
   }
 
   const handleCancelEdit = () => { setViewerMode('view'); setIsDirty(false) }
-
-  const handleApplyPdfEdit = async () => {
-    setIsApplying(true)
-    try {
-      let res
-      if (pdfOp === 'remove-pages') {
-        const pageNumbers = removePageInput.split(/[,\s]+/).map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n) && n > 0)
-        if (pageNumbers.length === 0) { toast({ title: 'Enter at least one page number', variant: 'destructive' }); return }
-        res = await docProcessingApi.editPdf({ documentId: doc.id, caseId: doc.caseId ?? null, removePages: { pageNumbers } })
-      } else {
-        if (!overlayText.trim()) { toast({ title: 'Enter text to overlay', variant: 'destructive' }); return }
-        res = await docProcessingApi.editPdf({ documentId: doc.id, caseId: doc.caseId ?? null, addTextOverlay: { text: overlayText, x: Number(overlayX)||50, y: Number(overlayY)||50, fontSize: Number(overlayFontSize)||12, pageNumber: Number(overlayPage)||null } })
-      }
-      setEditResult(res.data?.document ?? null)
-      toast({ title: 'Edit applied', description: 'New document created.' })
-    } catch (e) {
-      toast({ title: 'Edit failed', description: e instanceof Error ? e.message : 'Please try again', variant: 'destructive' })
-    } finally { setIsApplying(false) }
-  }
 
   const handleDownload = async () => {
     try {
@@ -426,9 +397,9 @@ function DocumentViewer({
         <span className={cn('flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide', meta.className)}>
           {meta.label}
         </span>
-        {isUploadedPdf && viewerMode === 'view' && (
+        {doc.type === DocumentType.USER_UPLOADED && viewerMode === 'view' && (
           <Button size="sm" onClick={handleEdit} className="gap-1.5 h-7 text-xs flex-shrink-0">
-            <Scissors className="h-3.5 w-3.5" /> Edit PDF
+            <PenLine className="h-3.5 w-3.5" /> Edit
           </Button>
         )}
         {canDownload && viewerMode === 'view' && (
@@ -480,71 +451,24 @@ function DocumentViewer({
             <Loader2 className="h-6 w-6 animate-spin text-ledger-gray-400" />
           </div>
         ) : viewerMode === 'text-edit' ? (
-          <div ref={editorRef} contentEditable suppressContentEditableWarning onInput={() => setIsDirty(true)}
-            className="h-full w-full p-6 outline-none text-sm text-kx-text-primary leading-relaxed" />
-        ) : viewerMode === 'pdf-edit' ? (
-          <div className="p-6 space-y-5 max-w-md">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-kx-primary-900">Edit PDF</h3>
-              <button type="button" onClick={handleCancelEdit} className="text-ledger-gray-400 hover:text-kx-text-primary"><X className="h-4 w-4" /></button>
-            </div>
-            <div className="flex gap-3">
-              {(['remove-pages', 'add-text'] as const).map(op => (
-                <button key={op} type="button" onClick={() => setPdfOp(op)}
-                  className={cn('flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-colors', pdfOp === op ? 'border-kx-primary-500 bg-kx-primary-50 text-kx-primary-700 dark:bg-kx-primary-950/30' : 'border-kx-card-border text-ledger-gray-600 hover:border-kx-primary-300')}>
-                  {op === 'remove-pages' ? 'Remove Pages' : 'Add Text Overlay'}
-                </button>
-              ))}
-            </div>
-            {pdfOp === 'remove-pages' && (
-              <div>
-                <label className="text-xs font-medium text-ledger-gray-500 mb-1.5 block">Page numbers to remove <span className="font-normal">(e.g. 1, 3, 5)</span></label>
-                <input type="text" value={removePageInput} onChange={e => setRemovePageInput(e.target.value)} placeholder="1, 3, 5"
-                  className="w-full h-9 px-3 text-sm border border-kx-card-border rounded-lg bg-kx-card text-kx-text-primary focus:outline-none focus:ring-1 focus:ring-kx-primary-400" />
-              </div>
-            )}
-            {pdfOp === 'add-text' && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-ledger-gray-500 mb-1.5 block">Text</label>
-                  <input type="text" value={overlayText} onChange={e => setOverlayText(e.target.value)} placeholder="Text to add"
-                    className="w-full h-9 px-3 text-sm border border-kx-card-border rounded-lg bg-kx-card text-kx-text-primary focus:outline-none focus:ring-1 focus:ring-kx-primary-400" />
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {[{ label: 'Page', value: overlayPage, set: setOverlayPage, placeholder: '1' }, { label: 'X pos', value: overlayX, set: setOverlayX, placeholder: '50' }, { label: 'Y pos', value: overlayY, set: setOverlayY, placeholder: '50' }].map(({ label, value, set, placeholder }) => (
-                    <div key={label}>
-                      <label className="text-xs font-medium text-ledger-gray-500 mb-1 block">{label}</label>
-                      <input type="number" value={value} onChange={e => set(e.target.value)} placeholder={placeholder}
-                        className="w-full h-8 px-2 text-sm border border-kx-card-border rounded-lg bg-kx-card text-kx-text-primary focus:outline-none focus:ring-1 focus:ring-kx-primary-400" />
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-ledger-gray-500 mb-1.5 block">Font size</label>
-                  <input type="number" value={overlayFontSize} onChange={e => setOverlayFontSize(e.target.value)} placeholder="12"
-                    className="w-24 h-8 px-2 text-sm border border-kx-card-border rounded-lg bg-kx-card text-kx-text-primary focus:outline-none focus:ring-1 focus:ring-kx-primary-400" />
-                </div>
-              </div>
-            )}
-            {editResult ? (
-              <div className="flex flex-col gap-2 pt-2">
-                <p className="text-sm text-emerald-600 font-medium">Edit applied — new document created.</p>
-                <Button size="sm" className="gap-1.5 w-fit" onClick={() => downloadDocument(editResult.downloadUrl ?? editResult.id, editResult.fileName)}>
-                  <Download className="h-3.5 w-3.5" /> Download Result
-                </Button>
-                <Button size="sm" variant="ghost" className="w-fit" onClick={handleCancelEdit}>Done</Button>
-              </div>
-            ) : (
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" onClick={handleApplyPdfEdit} disabled={isApplying} className="gap-1.5">
-                  {isApplying && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Apply Edit
-                </Button>
-                <Button size="sm" variant="ghost" onClick={handleCancelEdit} disabled={isApplying}>Cancel</Button>
-              </div>
-            )}
+          <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
+            <div
+              ref={editorRef}
+              contentEditable
+              suppressContentEditableWarning
+              onInput={() => setIsDirty(true)}
+              className="legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none ring-2 ring-kx-primary-300"
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+            />
           </div>
         ) : isTextual && textContent !== null ? (
-          <div className="p-6 prose prose-sm max-w-none text-kx-text-primary" dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }} />
+          <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
+            <div
+              className="legal-document bg-white mx-auto my-4 shadow-sm"
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+              dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }}
+            />
+          </div>
         ) : blobUrl && (isPdf || doc.type === DocumentType.JUDGMENT) ? (
           <iframe src={blobUrl} className="w-full h-full border-0" title={displayName} />
         ) : blobUrl && isImage ? (
@@ -563,6 +487,14 @@ function DocumentViewer({
           </div>
         )}
       </div>
+
+      {onlyOfficeOpen && (
+        <OnlyOfficeEditor
+          documentId={doc.id}
+          caseId={doc.caseId ?? null}
+          onClose={() => setOnlyOfficeOpen(false)}
+        />
+      )}
     </div>
   )
 }
@@ -571,7 +503,7 @@ function DocumentViewer({
 
 function UploadDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOpenChange: (v: boolean) => void; onUploaded: () => void }) {
   const [files, setFiles] = useState<File[]>([])
-  const [docType, setDocType] = useState<DocumentRecordType>('USER_UPLOADED')
+  const [docType, setDocType] = useState<DocumentRecordType>(DocumentType.USER_UPLOADED)
   const [caseId, setCaseId] = useState('')
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
   const [isUploading, setIsUploading] = useState(false)
@@ -587,7 +519,7 @@ function UploadDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOpe
   }, [open])
 
   useEffect(() => {
-    if (!open) { setFiles([]); setCaseId(''); setDocType('USER_UPLOADED'); setIsDragging(false) }
+    if (!open) { setFiles([]); setCaseId(''); setDocType(DocumentType.USER_UPLOADED); setIsDragging(false) }
   }, [open])
 
   const addFiles = (incoming: FileList | null) => { if (!incoming) return; setFiles(prev => [...prev, ...Array.from(incoming)]) }
@@ -953,7 +885,7 @@ export function DocumentsPage() {
             </button>
             {typeFilterOpen && (
               <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card shadow-lg py-1">
-                {(['USER_UPLOADED', 'DRAFT', 'SUMMARY', 'JUDGMENT'] as const).map(t => {
+                {([DocumentType.USER_UPLOADED, DocumentType.DRAFT, DocumentType.SUMMARY, DocumentType.JUDGMENT] as const).map(t => {
                   const isChecked = typeFilters.has(t)
                   return (
                     <button

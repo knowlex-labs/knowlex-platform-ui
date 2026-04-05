@@ -64,7 +64,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
       try {
         const doc = await workspaceApi.getDocument(caseId, documentId)
-        const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type)
+        const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type as DocumentType)
         const status = isDraftOrSummary
           ? doc.jobStatus as CaseDocumentStatus
           : doc.indexingStatus as CaseDocumentStatus
@@ -138,7 +138,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
         // Poll any in-progress non-source docs
         for (const doc of nonSources) {
-          const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type)
+          const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type as DocumentType)
           const status = isDraftOrSummary ? doc.jobStatus : doc.indexingStatus
           if (status === IndexingStatus.RUNNING || status === IndexingStatus.PENDING || status === JobStatus.PROCESSING) {
             startPolling(doc.id)

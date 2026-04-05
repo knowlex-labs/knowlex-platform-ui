@@ -4,7 +4,7 @@ import {
   Search, X, Check, AlertCircle, Trash2, RotateCw,
   FileWarning, Lightbulb, FileClock, Scale, Gavel, ShieldAlert,
   ScrollText, ClipboardList, AlignLeft, Landmark, Star, Ban,
-  ShieldCheck, RefreshCcw, Hammer, Users, Bold, Italic, Underline,
+  ShieldCheck, RefreshCcw, Hammer, Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,6 +18,8 @@ import { caseApi } from '@/services/api/case-api'
 import { downloadDocument, uploadToolboxFile } from '@/services/api/doc-processing-api'
 import { workspaceApi } from '@/services/api/workspace-api'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
+import { useEditorFormatting } from '@/hooks/use-editor-formatting'
+import { FormattingToolbar } from '@/components/cases/case-workspace/formatting-toolbar'
 import { toast } from '@/hooks/use-toast'
 import type { Draft, DraftTemplate, TemplateFormData } from '@/types'
 import { DRAFT_TEMPLATES } from '@/types'
@@ -131,7 +133,9 @@ export function DraftingPage() {
   const [savedDraftTitle, setSavedDraftTitle] = useState('Draft')
   const [isDownloading, setIsDownloading] = useState(false)
   const [isEditingPreview, setIsEditingPreview] = useState(false)
+  const [previewDirty, setPreviewDirty] = useState(false)
   const previewEditorRef = useRef<HTMLDivElement>(null)
+  const previewFormatting = useEditorFormatting(previewEditorRef, () => setPreviewDirty(true))
 
   // Polling
   const pollAttemptsRef = useRef(0)
@@ -273,6 +277,7 @@ export function DraftingPage() {
     setSavedDraftId(null)
     setSavedDraftTitle('Draft')
     setIsEditingPreview(false)
+    setPreviewDirty(false)
     pollAttemptsRef.current = 0
   }, [stopPolling])
 
@@ -363,10 +368,6 @@ export function DraftingPage() {
     catch { toast({ title: 'Download failed', variant: 'destructive' }) }
     finally { setIsDownloading(false) }
   }
-
-  const handleBold = useCallback(() => document.execCommand('bold', false), [])
-  const handleItalic = useCallback(() => document.execCommand('italic', false), [])
-  const handleUnderline = useCallback(() => document.execCommand('underline', false), [])
 
   // ── Step indicator ──
   const steps = [
@@ -699,32 +700,54 @@ export function DraftingPage() {
       {/* ═══ Step 3: Preview ═══ */}
       {mode === 'preview' && (
         <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
-          {/* Preview toolbar */}
-          <div className="flex items-center justify-between py-2 border-b border-kx-card-border flex-shrink-0">
-            <div className="flex items-center gap-2">
-              {previewDraft?.status === 'completed' && (
-                <>
-                  {isEditingPreview ? (
-                    <>
-                      <button onClick={handleBold} className="h-7 w-7 rounded flex items-center justify-center text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700" title="Bold"><Bold className="h-3.5 w-3.5" /></button>
-                      <button onClick={handleItalic} className="h-7 w-7 rounded flex items-center justify-center text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700" title="Italic"><Italic className="h-3.5 w-3.5" /></button>
-                      <button onClick={handleUnderline} className="h-7 w-7 rounded flex items-center justify-center text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700" title="Underline"><Underline className="h-3.5 w-3.5" /></button>
-                      <div className="w-px h-4 bg-ledger-gray-200 dark:bg-ledger-gray-700 mx-1" />
-                      <button onClick={() => setIsEditingPreview(false)} className="px-3 h-7 rounded text-xs font-medium bg-kx-primary-50 text-kx-primary-700 hover:bg-kx-primary-100 transition-colors">
-                        Done editing
-                      </button>
-                    </>
-                  ) : (
-                    <button onClick={() => setIsEditingPreview(true)} className="flex items-center gap-1.5 px-3 h-7 rounded text-xs font-medium text-ledger-gray-600 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors">
-                      Edit
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
+          {/* Formatting toolbar — only when draft is completed */}
+          {previewDraft?.status === 'completed' && (
+            <FormattingToolbar
+              isEditing={isEditingPreview}
+              onEdit={() => {
+                if (previewEditorRef.current) previewEditorRef.current.innerHTML = previewHtml
+                setIsEditingPreview(true)
+              }}
+              onSave={handleSave}
+              onCancel={() => { setIsEditingPreview(false); setPreviewDirty(false) }}
+              onBold={previewFormatting.handleBold}
+              onItalic={previewFormatting.handleItalic}
+              onUnderline={previewFormatting.handleUnderline}
+              onAlignLeft={previewFormatting.handleAlignLeft}
+              onAlignCenter={previewFormatting.handleAlignCenter}
+              onAlignRight={previewFormatting.handleAlignRight}
+              onBulletList={previewFormatting.handleBulletList}
+              onNumberedList={previewFormatting.handleNumberedList}
+              onFontSize={previewFormatting.handleFontSize}
+              isSaving={false}
+              hasChanges={previewDirty}
+            />
+          )}
+
+          {/* Action bar */}
+          <div className="flex items-center justify-between px-4 py-2 border-b border-kx-card-border flex-shrink-0">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setMode('details')} className="gap-1.5 text-xs rounded-lg h-8">
                 &larr; Edit Details
+              </Button>
+              {previewDraft?.status === 'completed' && (
+                <Button
+                  variant="outline" size="sm"
+                  onClick={() => { setPreviewDraft(null); setPreviewDirty(false); handleGenerate() }}
+                  className="gap-1.5 text-xs rounded-lg h-8"
+                >
+                  <RotateCw className="h-3.5 w-3.5" />
+                  Regenerate
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost" size="sm"
+                onClick={() => { resetAll(); setMode('templates') }}
+                className="gap-1.5 text-xs rounded-lg h-8"
+              >
+                + Create Another
               </Button>
               {previewDraft && (
                 <Button
@@ -781,17 +804,30 @@ export function DraftingPage() {
                 </Button>
               </div>
             </div>
-          ) : (
+          ) : isEditingPreview ? (
             <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
               <div
                 ref={previewEditorRef}
-                contentEditable={isEditingPreview}
+                contentEditable
                 suppressContentEditableWarning
-                className={cn(
-                  'legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none',
-                  !isEditingPreview && 'cursor-default',
-                  isEditingPreview && 'ring-2 ring-kx-primary-300',
-                )}
+                onInput={() => setPreviewDirty(true)}
+                className="legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none ring-2 ring-kx-primary-300"
+                style={{
+                  fontFamily: "'Times New Roman', Times, serif",
+                  fontSize: '12pt',
+                  lineHeight: '1.6',
+                  color: '#000',
+                  width: '794px',
+                  maxWidth: 'calc(100% - 48px)',
+                  minHeight: '900px',
+                  padding: '72px 96px',
+                }}
+              />
+            </div>
+          ) : (
+            <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
+              <div
+                className="legal-document bg-white mx-auto my-4 shadow-sm cursor-default"
                 style={{
                   fontFamily: "'Times New Roman', Times, serif",
                   fontSize: '12pt',

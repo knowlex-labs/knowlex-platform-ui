@@ -347,6 +347,20 @@ export function useDraftChat(caseId: string) {
     [caseId, activeSessionId]
   )
 
+  const renameSession = useCallback(
+    async (sessionId: string, title: string) => {
+      const trimmed = title.trim()
+      if (!trimmed) return
+      try {
+        await draftChatApi.updateDefaults(caseId, sessionId, trimmed, settings.style)
+        setSessions((prev) => prev.map((s) => s.id === sessionId ? { ...s, title: trimmed } : s))
+      } catch {
+        // ignore
+      }
+    },
+    [caseId, settings.style]
+  )
+
   return {
     messages,
     isStreaming,
@@ -361,5 +375,6 @@ export function useDraftChat(caseId: string) {
     selectSession,
     startNewChat,
     updateSettings,
+    renameSession,
   }
 }

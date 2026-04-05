@@ -427,18 +427,6 @@ export function DraftChatInterface({
                     sideOffset={8}
                     className="z-50 w-44 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95 p-1"
                   >
-                    {/* Upload documents */}
-                    <button
-                      type="button"
-                      onClick={() => { fileInputRef.current?.click(); setPlusMenuOpen(false) }}
-                      className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-xs text-ledger-gray-700 hover:bg-ledger-gray-100 transition-colors whitespace-nowrap"
-                    >
-                      <Paperclip className="h-3.5 w-3.5 text-ledger-gray-500 flex-shrink-0" />
-                      <span>Upload documents</span>
-                    </button>
-
-                    <div className="my-1 border-t border-ledger-gray-100" />
-
                     {/* Tone — right-side submenu */}
                     <PopoverPrimitive.Root>
                       <PopoverPrimitive.Trigger asChild>
@@ -542,11 +530,11 @@ export function DraftChatInterface({
                 <PopoverPrimitive.Trigger asChild>
                   <button
                     type="button"
-                    className="flex items-center gap-1 flex-shrink-0 text-[10px] text-ledger-gray-400 hover:text-kx-primary-600 transition-colors"
+                    className="flex items-center gap-1.5 flex-shrink-0 px-2.5 py-1 rounded-full border border-ledger-gray-200 dark:border-ledger-gray-700 bg-ledger-gray-50 dark:bg-ledger-gray-800 hover:bg-kx-primary-50 hover:border-kx-primary-300 text-xs text-ledger-gray-600 dark:text-ledger-gray-400 hover:text-kx-primary-700 transition-colors"
                     title="Change model"
                   >
-                    <Sparkles className="h-3 w-3" />
-                    <span className="hidden sm:inline">{currentModel.short}</span>
+                    <Sparkles className="h-3.5 w-3.5 text-kx-primary-500" />
+                    <span>{currentModel.short}</span>
                   </button>
                 </PopoverPrimitive.Trigger>
                 <PopoverPrimitive.Portal>

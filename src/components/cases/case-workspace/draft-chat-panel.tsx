@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
-import { Bot, Trash2, ChevronDown, MessageSquare, Eraser, Plus } from 'lucide-react'
+import { Bot, Trash2, ChevronDown, MessageSquare, Eraser, Plus, Pencil, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -64,6 +64,7 @@ interface DraftChatPanelProps {
   onSelectSession: (id: string) => void
   onUpdateSettings: (updates: Partial<DraftChatSettings>) => void
   onStartNewChat?: () => void
+  onRenameSession?: (sessionId: string, title: string) => Promise<void>
   showGreeting?: boolean
   /** In research mode the sessions list lives in ResearchSidebar — hide session switcher here */
   isResearchMode?: boolean
@@ -85,6 +86,7 @@ export function DraftChatPanel({
   onSelectSession,
   onUpdateSettings,
   onStartNewChat,
+  onRenameSession,
   showGreeting = false,
   isResearchMode = false,
 }: DraftChatPanelProps) {
@@ -92,6 +94,30 @@ export function DraftChatPanel({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const [sessionSwitcherOpen, setSessionSwitcherOpen] = useState(false)
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const renameInputRef = useRef<HTMLInputElement>(null)
+
+  const startRename = (e: React.MouseEvent, session: DraftChatSession) => {
+    e.stopPropagation()
+    setRenamingSessionId(session.id)
+    setRenameValue(session.title)
+    setTimeout(() => renameInputRef.current?.select(), 30)
+  }
+
+  const commitRename = async () => {
+    if (!renamingSessionId) return
+    const trimmed = renameValue.trim()
+    setRenamingSessionId(null)
+    if (trimmed && onRenameSession) {
+      await onRenameSession(renamingSessionId, trimmed)
+    }
+  }
+
+  const cancelRename = () => {
+    setRenamingSessionId(null)
+    setRenameValue('')
+  }
 
   const activeSession = sessions.find((s) => s.id === activeSessionId)
 
@@ -174,7 +200,7 @@ export function DraftChatPanel({
                           {group.sessions.map((session) => (
                             <div
                               key={session.id}
-                              onClick={() => handleSelectSession(session.id)}
+                              onClick={() => renamingSessionId !== session.id && handleSelectSession(session.id)}
                               className={cn(
                                 'flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors group',
                                 session.id === activeSessionId
@@ -183,21 +209,57 @@ export function DraftChatPanel({
                               )}
                             >
                               <MessageSquare className="h-3.5 w-3.5 flex-shrink-0 opacity-50" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{session.title}</p>
-                                <p className="text-[10px] text-ledger-gray-400">
-                                  {formatSessionDate(session.createdAt)}
-                                </p>
+                              <div className="flex-1 min-w-0" onClick={e => e.stopPropagation()}>
+                                {renamingSessionId === session.id ? (
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      ref={renameInputRef}
+                                      value={renameValue}
+                                      onChange={e => setRenameValue(e.target.value)}
+                                      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') cancelRename() }}
+                                      onBlur={commitRename}
+                                      className="flex-1 min-w-0 text-xs border border-kx-primary-400 rounded px-1.5 py-0.5 bg-white dark:bg-ledger-gray-800 text-kx-text-primary focus:outline-none"
+                                      autoFocus
+                                    />
+                                    <button type="button" onMouseDown={e => { e.preventDefault(); commitRename() }} className="p-0.5 text-green-600 hover:bg-green-50 rounded">
+                                      <Check className="h-3 w-3" />
+                                    </button>
+                                    <button type="button" onMouseDown={e => { e.preventDefault(); cancelRename() }} className="p-0.5 text-ledger-gray-400 hover:bg-ledger-gray-100 rounded">
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <p className="text-xs font-medium truncate">{session.title}</p>
+                                    <p className="text-[10px] text-ledger-gray-400">
+                                      {formatSessionDate(session.createdAt)}
+                                    </p>
+                                  </>
+                                )}
                               </div>
-                              {sessions.length > 1 && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleDeleteClick(e, session.id)}
-                                  className="opacity-0 group-hover:opacity-100 p-1 text-ledger-gray-400 hover:text-red-500 transition-all"
-                                  title="Delete session"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
+                              {renamingSessionId !== session.id && (
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                                  {onRenameSession && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => startRename(e, session)}
+                                      className="p-1 text-ledger-gray-400 hover:text-kx-primary-600"
+                                      title="Rename session"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                  {sessions.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => handleDeleteClick(e, session.id)}
+                                      className="p-1 text-ledger-gray-400 hover:text-red-500"
+                                      title="Delete session"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           ))}

@@ -17,7 +17,7 @@ declare global {
 
 interface OnlyOfficeEditorProps {
   documentId: string
-  caseId: string
+  caseId?: string | null
   onClose: () => void
 }
 
