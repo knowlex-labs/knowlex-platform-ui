@@ -162,21 +162,22 @@ export function useDraftChat(caseId: string) {
       const flushStreamContent = () => {
         const msgId = streamingMsgIdRef.current
         if (msgId) {
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === msgId
-                ? {
-                    ...msg,
-                    content: answerContentRef.current,
-                    streamingPhase: phaseRef.current,
-                    toolCalls:
-                      toolCallsRef.current.length > 0
-                        ? [...toolCallsRef.current]
-                        : undefined,
-                  }
-                : msg
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === msgId
+                  ? {
+                      ...msg,
+                      content: answerContentRef.current,
+                      streamingPhase: phaseRef.current,
+                      toolCalls:
+                        toolCallsRef.current.length > 0
+                          ? [...toolCallsRef.current]
+                          : undefined,
+                      documentCitations: msg.documentCitations,
+                    }
+                  : msg
+              )
             )
-          )
         }
         rafIdRef.current = null
       }
@@ -226,6 +227,23 @@ export function useDraftChat(caseId: string) {
               scheduleFlush()
             }
           },
+          onDocumentCitations: (data) => {
+            try {
+              const citations = JSON.parse(data.trim())
+              const msgId = streamingMsgIdRef.current
+              if (msgId) {
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === msgId
+                      ? { ...msg, documentCitations: citations }
+                      : msg
+                  )
+                )
+              }
+            } catch {
+              // ignore malformed citations
+            }
+          },
           onEnd: () => {
             if (rafIdRef.current !== null) {
               cancelAnimationFrame(rafIdRef.current)
@@ -244,6 +262,7 @@ export function useDraftChat(caseId: string) {
                       toolCalls: finalToolCalls,
                       isStreaming: false,
                       streamingPhase: undefined,
+                      documentCitations: msg.documentCitations,
                     }
                   : msg
               )
@@ -270,6 +289,7 @@ export function useDraftChat(caseId: string) {
                       toolCalls: finalToolCalls,
                       isStreaming: false,
                       streamingPhase: undefined,
+                      documentCitations: msg.documentCitations,
                     }
                   : msg
               )

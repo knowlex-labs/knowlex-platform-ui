@@ -62,6 +62,7 @@ export interface DraftChatSSECallbacks {
   onAnswer: (token: string) => void
   onToolCall: (data: string) => void
   onToolResult: (data: string) => void
+  onDocumentCitations?: (data: string) => void
   onEnd: () => void
   onError: (error: string) => void
 }
@@ -217,6 +218,8 @@ export const draftChatApi = {
               callbacks.onToolCall(currentData)
             } else if (currentEvent === 'tool_result') {
               callbacks.onToolResult(currentData)
+            } else if (currentEvent === 'document_citations') {
+              callbacks.onDocumentCitations?.(currentData)
             }
           }
           currentEvent = null

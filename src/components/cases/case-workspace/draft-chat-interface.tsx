@@ -119,7 +119,7 @@ function AssistantBubble({ message }: { message: DraftChatMessage }) {
 
         {hasContent && (
           <div className="text-sm text-kx-primary-900">
-            <MarkdownRenderer content={content} />
+            <MarkdownRenderer content={content} documentCitations={message.documentCitations} />
             {isStreaming && (
               <span className="inline-block w-0.5 h-4 bg-kx-primary-400 animate-pulse ml-0.5 align-text-bottom" />
             )}

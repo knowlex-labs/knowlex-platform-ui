@@ -203,6 +203,16 @@ export interface GeneratedDraft {
 }
 
 // Draft template definitions
+export interface DocumentCitation {
+  id: number           // D1 = 1, D2 = 2
+  file_id: string
+  page?: number
+  score: number
+  text_preview: string
+  chunk_id?: string
+  key_terms?: string[]
+}
+
 export interface DraftChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -211,6 +221,7 @@ export interface DraftChatMessage {
   isStreaming?: boolean
   streamingPhase?: 'waiting' | 'tools' | 'answering'
   toolCalls?: Array<{ name: string; args: Record<string, unknown>; result?: string }>
+  documentCitations?: DocumentCitation[]
 }
 
 /** UI model option keys; backend maps these to legal-agent model names (flash, pro, openai, openai-pro). */
