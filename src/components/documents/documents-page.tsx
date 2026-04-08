@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Upload, Scissors, Minimize2, Layers,
-  FileText, File, MoreVertical, Download, FolderInput,
+  FileText, File, Download, FolderInput,
   Trash2, Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, SlidersHorizontal, Settings2,
   ChevronLeft, ChevronRight, AlertCircle,
@@ -124,7 +124,7 @@ const TOOLS: { id: Exclude<ActiveToolId, null>; label: string; icon: React.Compo
 // ─── DocTableRow ──────────────────────────────────────────────────────────────
 
 function DocTableRow({
-  doc, selected, onSelect, onAction, checked, onCheck, compact,
+  doc, selected, onSelect, onAction: _onAction, checked, onCheck, compact,
 }: {
   doc: DocumentRecord
   selected: boolean
@@ -134,35 +134,11 @@ function DocTableRow({
   onCheck: (checked: boolean) => void
   compact?: boolean
 }) {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
   const displayName = doc.originalFilename || doc.name
   const caseLabel = doc.caseTitle
   const isStandalone = !doc.caseId
-  const isPdf = doc.fileType === 'PDF'
-  const canDownload = !!(doc.downloadUrl || doc.storageUrl)
-  const isUpload = doc.type === DocumentType.USER_UPLOADED
   const isGenerating = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.PROCESSING
   const isGenFailed   = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.FAILED
-
-  const menuItems: { label: string; icon: React.ComponentType<{ className?: string }>; action: DocRowAction; danger?: boolean }[] = isGenerating ? [] : [
-    ...(canDownload ? [{ label: 'Download', icon: Download, action: 'download' as const }] : []),
-    ...(isUpload && isStandalone ? [{ label: 'Assign to Case', icon: FolderInput, action: 'assign' as const }] : []),
-    ...(isUpload && isPdf ? [{ label: 'Split', icon: Scissors, action: 'split' as const }, { label: 'Compress', icon: Minimize2, action: 'compress' as const }] : []),
-    ...(isUpload ? [{ label: 'Convert / OCR', icon: BookOpen, action: 'convert' as const }] : []),
-    { label: 'Translate', icon: Languages, action: 'translate' as const },
-    ...(isUpload ? [{ label: 'Delete', icon: Trash2, action: 'delete' as const, danger: true }] : []),
-  ]
 
   return (
     <div
