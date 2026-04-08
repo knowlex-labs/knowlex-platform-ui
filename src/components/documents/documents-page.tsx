@@ -142,7 +142,7 @@ function DocTableRow({
         'cursor-pointer transition-colors last:border-0',
         compact
           ? 'grid-cols-[20px_36px_1fr_28px]'
-          : 'grid-cols-[28px_40px_1fr_180px_130px]',
+          : 'grid-cols-[28px_40px_1fr_100px_180px_130px]',
         selected
           ? 'bg-kx-primary-50 dark:bg-kx-primary-950/20 border-l-2 border-l-kx-primary-500'
           : checked
@@ -198,6 +198,19 @@ function DocTableRow({
 
       {!compact && (
         <>
+          {/* Type badge */}
+          <div className="min-w-0">
+            {(() => {
+              const meta = TYPE_META[doc.type]
+              return (
+                <span className={cn('inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full', meta.className)}>
+                  <meta.icon className="h-2.5 w-2.5" />
+                  {meta.label}
+                </span>
+              )
+            })()}
+          </div>
+
           {/* Case badge */}
           <div className="min-w-0">
             {isStandalone ? (
@@ -300,12 +313,19 @@ function DocumentViewer({
 
   useEffect(() => { return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) } }, [blobUrl])
 
+  // Populate contentEditable after it mounts (viewerMode === 'text-edit' renders the div)
+  useEffect(() => {
+    if (viewerMode === 'text-edit' && isDraft && editorRef.current && textContent) {
+      editorRef.current.innerHTML = renderDraftToHtml(textContent)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewerMode])
+
   const handleEdit = () => {
     if (isMarkdownOrText && textContent !== null) {
       setRawTextEdit(textContent)
       setViewerMode('text-edit')
     } else if (isDraft && textContent !== null) {
-      if (editorRef.current) editorRef.current.innerHTML = renderDraftToHtml(textContent)
       setViewerMode('text-edit')
     } else {
       setOnlyOfficeOpen(true)
@@ -328,7 +348,17 @@ function DocumentViewer({
         setTextContent(rawTextEdit)
       } else {
         if (!editorRef.current) return
-        await apiClient.put(`/api/v1/documents/${doc.id}/content`, { content: editorRef.current.innerHTML })
+        const html = editorRef.current.innerHTML
+        const token = localStorage.getItem('auth_token')
+        const userId = localStorage.getItem('auth_user_id')
+        const headers: Record<string, string> = { 'Content-Type': 'text/plain' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        if (userId) headers['x-user-id'] = userId
+        const res = await fetch(`${config.apiBaseUrl}/api/v1/documents/${doc.id}/content`, {
+          method: 'PUT', headers, body: html,
+        })
+        if (!res.ok) throw new Error()
+        setTextContent(html)
       }
       setIsDirty(false)
       toast({ title: 'Saved' })
@@ -497,7 +527,7 @@ function UploadDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOpe
     if (!open) return
     caseApi.getAll({ size: 50 }).then(res => {
       const content = res.data?.content ?? []
-      setCases(content.map(c => ({ id: c.id, label: c.title || c.caseNumber || c.id })))
+      setCases(content.map(c => ({ id: c.id, label: c.caseTitle || c.caseNumber || c.id })))
     }).catch(() => {})
   }, [open])
 
@@ -633,7 +663,7 @@ export function DocumentsPage() {
   useEffect(() => {
     caseApi.getAll({ size: 100 }).then(res => {
       const content = res.data?.content ?? []
-      setCases(content.map(c => ({ id: c.id, label: c.title || c.caseNumber || c.id })))
+      setCases(content.map(c => ({ id: c.id, label: c.caseTitle || c.caseNumber || c.id })))
     }).catch(() => {})
   }, [])
 
@@ -844,7 +874,7 @@ export function DocumentsPage() {
 
           {/* Case filter */}
           <div className="w-52">
-            <Select value={caseFilter} onChange={e => setCaseFilter(e.target.value)} searchable searchPlaceholder="Search cases...">
+            <Select value={caseFilter} onChange={e => setCaseFilter(e.target.value)} searchable searchPlaceholder="Search cases..." className="h-9">
               <option value="">All Cases</option>
               <option value="standalone">Standalone only</option>
               {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
@@ -955,7 +985,7 @@ export function DocumentsPage() {
               'grid items-center gap-4 px-4 py-2.5 border-b border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-900/20 flex-shrink-0 text-[11px] font-semibold uppercase tracking-wide text-ledger-gray-400',
               viewerOpen
                 ? 'grid-cols-[20px_36px_1fr_28px]'
-                : 'grid-cols-[28px_40px_1fr_180px_130px]'
+                : 'grid-cols-[28px_40px_1fr_100px_180px_130px]'
             )}>
               <button type="button" onClick={toggleSelectAll}
                 className={cn('h-4 w-4 rounded border flex items-center justify-center transition-colors',
@@ -972,6 +1002,7 @@ export function DocumentsPage() {
               <SortBtn field="fileName" label="Name" />
               {!viewerOpen && (
                 <>
+                  <div>Type</div>
                   <SortBtn field="caseTitle" label="Case" />
                   <SortBtn field="createdAt" label="Date Added" />
                 </>

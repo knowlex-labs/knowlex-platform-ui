@@ -22,7 +22,6 @@ import { CaseStudioPanel } from './case-studio-panel'
 import type { CaseDocument, BackendCase, UpdateCaseRequest, RespondentDetails } from '@/types'
 import { DocumentType, IndexingStatus } from '@/types'
 import { toast } from '@/hooks/use-toast'
-import { mapBackendClient } from '@/services/mappers'
 
 export function CaseWorkspace() {
   const { caseId: caseIdParam } = useParams<{ caseId: string }>()
@@ -268,14 +267,6 @@ export function CaseWorkspace() {
     await renameDocument(id, title)
   }
 
-  // ── Caseload client for chat context (not needed in new design but keep for API compat) ──
-  useEffect(() => {
-    caseApi.getClients(caseId).then((res) => {
-      if (res.status === 'success' && res.data.length > 0) {
-        mapBackendClient(res.data[0])  // side-effect: available if needed
-      }
-    }).catch(() => {})
-  }, [caseId])
 
   return (
     <div className="h-full flex flex-col bg-nb-separator overflow-hidden">

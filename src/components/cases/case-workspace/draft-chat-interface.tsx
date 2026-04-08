@@ -280,7 +280,7 @@ export function DraftChatInterface({
   const currentModel = MODEL_OPTIONS.find((m) => m.value === settings.model) ?? MODEL_OPTIONS[0]
 
   return (
-    <div className="flex flex-col h-full bg-nb-panel">
+    <div className="flex flex-col h-full bg-nb-sidebar">
       {/* Messages area */}
       {isLoadingHistory ? (
         <div className="flex-1 px-6 py-6 space-y-5">

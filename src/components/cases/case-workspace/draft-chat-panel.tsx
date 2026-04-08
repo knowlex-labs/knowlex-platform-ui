@@ -147,7 +147,7 @@ export function DraftChatPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-nb-panel">
+    <div className="flex flex-col h-full bg-nb-sidebar">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-nb-panel-border flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
