@@ -72,16 +72,16 @@ export const FileUploadZone = forwardRef<FileUploadZoneHandle, FileUploadZonePro
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           className={cn(
-            'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 cursor-pointer transition-colors',
+            'flex flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed p-3 cursor-pointer transition-colors',
             'text-center select-none',
             isDragging
               ? 'border-kx-primary-500 bg-kx-primary-50 dark:bg-kx-primary-950/20'
               : 'border-ledger-gray-300 dark:border-ledger-gray-600 hover:border-kx-primary-400 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800/40'
           )}
         >
-          <Upload className="h-8 w-8 text-ledger-gray-400 dark:text-ledger-gray-500" />
-          <p className="text-sm text-ledger-gray-600 dark:text-ledger-gray-400">{label}</p>
-          <p className="text-xs text-ledger-gray-400 dark:text-ledger-gray-500">
+          <Upload className="h-5 w-5 text-ledger-gray-400 dark:text-ledger-gray-500" />
+          <p className="text-xs text-ledger-gray-600 dark:text-ledger-gray-400">{label}</p>
+          <p className="text-[10px] text-ledger-gray-400 dark:text-ledger-gray-500">
             {accept.replace(/\./g, '').toUpperCase().replace(/,/g, ', ')}
           </p>
         </div>

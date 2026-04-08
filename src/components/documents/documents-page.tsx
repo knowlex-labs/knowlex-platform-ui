@@ -21,6 +21,7 @@ import {
   type DocumentRecordType,
 } from '@/services/api/doc-processing-api'
 import { workspaceApi } from '@/services/api/workspace-api'
+import { config } from '@/config/env'
 import { caseApi } from '@/services/api/case-api'
 import { apiClient, ApiError } from '@/services/api/api-client'
 import { OnlyOfficeEditor } from '@/components/cases/case-workspace/onlyoffice-editor'
@@ -35,6 +36,7 @@ import { CompressorDialog } from '@/components/toolbox/compressor-dialog'
 import { TranslationDialog } from '@/components/toolbox/translation-dialog'
 import { AssignCaseDialog } from './assign-case-dialog'
 import { useUIState } from '@/contexts/ui-context'
+import { useSearchParams } from 'react-router-dom'
 import type {
   DocumentRecord,
   ProcessedDocumentInfo,
@@ -170,7 +172,7 @@ function DocTableRow({
         'cursor-pointer transition-colors last:border-0',
         compact
           ? 'grid-cols-[20px_36px_1fr_28px]'
-          : 'grid-cols-[28px_40px_1fr_180px_130px_80px_36px]',
+          : 'grid-cols-[28px_40px_1fr_180px_130px]',
         selected
           ? 'bg-kx-primary-50 dark:bg-kx-primary-950/20 border-l-2 border-l-kx-primary-500'
           : checked
@@ -242,48 +244,8 @@ function DocTableRow({
             {formatDate(doc.createdAt)}
           </span>
 
-          {/* Size */}
-          <span className="text-sm text-ledger-gray-400 tabular-nums">
-            {formatSize(doc.fileSize)}
-          </span>
         </>
       )}
-
-      {/* Actions */}
-      {menuItems.length > 0 ? (
-        <div ref={menuRef} className="relative flex justify-end" onClick={e => e.stopPropagation()}>
-          <button
-            type="button"
-            onClick={() => setMenuOpen(v => !v)}
-            className="flex h-7 w-7 items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors opacity-0 group-hover:opacity-100"
-          >
-            <MoreVertical className="h-4 w-4" />
-          </button>
-          {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card shadow-lg py-1">
-              {menuItems.map(item => {
-                const ItemIcon = item.icon
-                return (
-                  <button
-                    key={item.action}
-                    type="button"
-                    onClick={() => { setMenuOpen(false); onAction(item.action) }}
-                    className={cn(
-                      'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors',
-                      item.danger
-                        ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
-                        : 'text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800'
-                    )}
-                  >
-                    <ItemIcon className="h-3.5 w-3.5 flex-shrink-0" />
-                    {item.label}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      ) : <div />}
     </div>
   )
 }
@@ -300,6 +262,7 @@ function DocumentViewer({
   const [viewerMode, setViewerMode] = useState<'view' | 'text-edit'>('view')
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [textContent, setTextContent] = useState<string | null>(null)
+  const [rawTextEdit, setRawTextEdit] = useState('')
   const [isLoadingContent, setIsLoadingContent] = useState(true)
   const [isDirty, setIsDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -315,6 +278,7 @@ function DocumentViewer({
   const isPdf = doc.fileType === 'PDF'
   const isImage = !isPdf && /\.(png|jpe?g)$/i.test(doc.name)
   const isDraft = doc.type === DocumentType.DRAFT
+  const isMarkdownOrText = doc.type === DocumentType.USER_UPLOADED && /\.(md|txt)$/i.test(displayName)
 
   const canDownload = !!(doc.downloadUrl || doc.storageUrl)
   const isGenerating = isTextual && doc.jobStatus === JobStatus.PROCESSING
@@ -324,6 +288,7 @@ function DocumentViewer({
     let cancelled = false
     setBlobUrl(null)
     setTextContent(null)
+    setRawTextEdit('')
     setViewerMode('view')
     setIsDirty(false)
     setOnlyOfficeOpen(false)
@@ -337,7 +302,16 @@ function DocumentViewer({
 
     async function load() {
       try {
-        if (isTextual) {
+        if (isMarkdownOrText) {
+          const token = localStorage.getItem('auth_token')
+          const userId = localStorage.getItem('auth_user_id')
+          const headers: Record<string, string> = {}
+          if (token) headers['Authorization'] = `Bearer ${token}`
+          if (userId) headers['x-user-id'] = userId
+          const res = await fetch(`${config.apiBaseUrl}/api/v1/documents/${doc.id}/content`, { headers })
+          if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
+          if (!cancelled) setTextContent(await res.text())
+        } else if (isTextual) {
           const text = await workspaceApi.fetchDocumentContent({ id: doc.id, signedUrl: doc.storageUrl, downloadUrl: doc.downloadUrl })
           if (!cancelled) setTextContent(text)
         } else {
@@ -352,12 +326,15 @@ function DocumentViewer({
     }
     load()
     return () => { cancelled = true }
-  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isGenerating, isGenFailed])
+  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isGenerating, isGenFailed])
 
   useEffect(() => { return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) } }, [blobUrl])
 
   const handleEdit = () => {
-    if (isDraft && textContent !== null) {
+    if (isMarkdownOrText && textContent !== null) {
+      setRawTextEdit(textContent)
+      setViewerMode('text-edit')
+    } else if (isDraft && textContent !== null) {
       if (editorRef.current) editorRef.current.innerHTML = renderDraftToHtml(textContent)
       setViewerMode('text-edit')
     } else {
@@ -366,10 +343,23 @@ function DocumentViewer({
   }
 
   const handleSave = async () => {
-    if (!editorRef.current) return
     setIsSaving(true)
     try {
-      await apiClient.put(`/api/v1/documents/${doc.id}/content`, { content: editorRef.current.innerHTML })
+      if (isMarkdownOrText) {
+        const token = localStorage.getItem('auth_token')
+        const userId = localStorage.getItem('auth_user_id')
+        const headers: Record<string, string> = { 'Content-Type': 'text/plain' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+        if (userId) headers['x-user-id'] = userId
+        const res = await fetch(`${config.apiBaseUrl}/api/v1/documents/${doc.id}/content`, {
+          method: 'PUT', headers, body: rawTextEdit,
+        })
+        if (!res.ok) throw new Error()
+        setTextContent(rawTextEdit)
+      } else {
+        if (!editorRef.current) return
+        await apiClient.put(`/api/v1/documents/${doc.id}/content`, { content: editorRef.current.innerHTML })
+      }
       setIsDirty(false)
       toast({ title: 'Saved' })
     } catch { toast({ title: 'Save failed', variant: 'destructive' }) }
@@ -418,6 +408,17 @@ function DocumentViewer({
           isSaving={isSaving} hasChanges={isDirty}
         />
       )}
+      {isMarkdownOrText && viewerMode === 'text-edit' && (
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-kx-card-border flex-shrink-0 bg-nb-panel">
+          <Button size="sm" onClick={handleSave} disabled={isSaving || !isDirty} className="h-7 text-xs gap-1.5">
+            {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+            Save
+          </Button>
+          <button type="button" onClick={handleCancelEdit} className="h-7 px-2 text-xs text-ledger-gray-500 hover:text-kx-text-primary transition-colors">
+            Cancel
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 overflow-auto relative">
         {isGenerating ? (
@@ -451,16 +452,28 @@ function DocumentViewer({
             <Loader2 className="h-6 w-6 animate-spin text-ledger-gray-400" />
           </div>
         ) : viewerMode === 'text-edit' ? (
-          <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
-            <div
-              ref={editorRef}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={() => setIsDirty(true)}
-              className="legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none ring-2 ring-kx-primary-300"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+          isMarkdownOrText ? (
+            <textarea
+              className="w-full h-full p-6 font-mono text-sm text-kx-text-primary bg-nb-input resize-none focus:outline-none"
+              value={rawTextEdit}
+              onChange={e => { setRawTextEdit(e.target.value); setIsDirty(true) }}
             />
-          </div>
+          ) : (
+            <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
+              <div
+                ref={editorRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={() => setIsDirty(true)}
+                className="legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none ring-2 ring-kx-primary-300"
+                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+              />
+            </div>
+          )
+        ) : isMarkdownOrText && textContent !== null ? (
+          <pre className="w-full h-full overflow-auto p-6 text-sm text-kx-text-primary font-mono whitespace-pre-wrap break-words leading-relaxed">
+            {textContent}
+          </pre>
         ) : isTextual && textContent !== null ? (
           <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
             <div
@@ -634,6 +647,8 @@ export function DocumentsPage() {
 
   const { setSidebarCollapsed } = useUIState()
   const prevSidebarCollapsedRef = useRef<boolean | null>(null)
+  const [searchParams] = useSearchParams()
+  const openDocId = searchParams.get('open')
 
   const selectedDoc = allDocs.find(d => d.id === selectedDocId) ?? null
   const viewerOpen = selectedDocId !== null && toolCtx.id === null
@@ -690,6 +705,13 @@ export function DocumentsPage() {
   }, [page, typeFilters, caseFilter, debouncedSearch, sort])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
+
+  // Auto-open doc from ?open= param once docs are loaded
+  useEffect(() => {
+    if (openDocId && allDocs.length > 0 && !selectedDocId) {
+      setSelectedDocId(openDocId)
+    }
+  }, [openDocId, allDocs, selectedDocId])
 
   // Reset page when filters change
   useEffect(() => { setPage(0) }, [typeFilters, caseFilter, sort])
@@ -963,7 +985,7 @@ export function DocumentsPage() {
               'grid items-center gap-4 px-4 py-2.5 border-b border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-900/20 flex-shrink-0 text-[11px] font-semibold uppercase tracking-wide text-ledger-gray-400',
               viewerOpen
                 ? 'grid-cols-[20px_36px_1fr_28px]'
-                : 'grid-cols-[28px_40px_1fr_180px_130px_80px_36px]'
+                : 'grid-cols-[28px_40px_1fr_180px_130px]'
             )}>
               <button type="button" onClick={toggleSelectAll}
                 className={cn('h-4 w-4 rounded border flex items-center justify-center transition-colors',
@@ -982,10 +1004,8 @@ export function DocumentsPage() {
                 <>
                   <SortBtn field="caseTitle" label="Case" />
                   <SortBtn field="createdAt" label="Date Added" />
-                  <SortBtn field="fileSize" label="Size" />
                 </>
               )}
-              <div>Actions</div>
             </div>
           )}
 

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   PanelRight, FileText, Clock, Gavel, MessageSquare, Search, Sparkles,
   Lock, MoreVertical, Trash2, Pencil, Check, X, Loader2,
-  AlertCircle, ExternalLink,
+  AlertCircle, ExternalLink, BookOpen,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -234,12 +234,20 @@ export function CaseStudioPanel({
 
   const tools: (ToolCardProps & { key: string })[] = [
     {
-      key: 'synopsis',
+      key: 'summary',
       icon: FileText,
       iconColor: 'text-blue-600',
       iconBg: 'bg-blue-50 dark:bg-blue-950/40',
-      title: 'Synopsis',
+      title: 'Summary',
       onClick: onGenerateSummary,
+    },
+    {
+      key: 'synopsis',
+      icon: BookOpen,
+      iconColor: 'text-teal-600',
+      iconBg: 'bg-teal-50 dark:bg-teal-950/40',
+      title: 'Synopsis',
+      locked: true,
     },
     {
       key: 'timeline',
@@ -323,7 +331,7 @@ export function CaseStudioPanel({
           <div className="border-t border-nb-panel-border my-2" />
           <div className="flex items-center justify-between px-2 py-2">
             <p className="text-xs font-bold tracking-wider text-nb-text-muted uppercase">
-              Generated ({generatedCount})
+              Activity ({generatedCount})
             </p>
             {generatedCount > 0 && (
               <button
@@ -341,7 +349,7 @@ export function CaseStudioPanel({
             {/* Summary */}
             {summary && (
               <div
-                className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-nb-sidebar-hover transition-colors cursor-pointer"
+                className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 transition-colors cursor-pointer"
                 onDoubleClick={handleOpenSummary}
               >
                 <div className="flex-shrink-0 h-7 w-7 rounded-md bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center">
@@ -379,7 +387,7 @@ export function CaseStudioPanel({
                 <div
                   key={draft.id}
                   className={cn(
-                    'group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-nb-sidebar-hover transition-colors',
+                    'group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 transition-colors',
                     draft.status === 'completed' && 'cursor-pointer'
                   )}
                   onDoubleClick={() => handleOpenDraft(draft)}

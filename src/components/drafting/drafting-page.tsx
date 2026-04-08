@@ -137,6 +137,14 @@ export function DraftingPage() {
   const previewEditorRef = useRef<HTMLDivElement>(null)
   const previewFormatting = useEditorFormatting(previewEditorRef, () => setPreviewDirty(true))
 
+  // Populate editor content after the contentEditable div mounts
+  useEffect(() => {
+    if (isEditingPreview && previewEditorRef.current && previewHtml) {
+      previewEditorRef.current.innerHTML = previewHtml
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditingPreview])
+
   // Polling
   const pollAttemptsRef = useRef(0)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -354,10 +362,9 @@ export function DraftingPage() {
 
   const handleSave = () => {
     if (previewDraft) {
-      setSavedDraftId(previewDraft.id)
-      setSavedDraftTitle(previewDraft.title)
-      setMode('download')
-      toast({ title: 'Draft ready', description: 'Download your draft below.' })
+      toast({ title: 'Draft saved' })
+      resetAll()
+      setMode('templates')
     }
   }
 
@@ -517,7 +524,7 @@ export function DraftingPage() {
                 className={cn(
                   'w-full h-10 pl-9 pr-4 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-700',
                   'bg-white dark:bg-ledger-gray-800 text-sm text-kx-primary-900 dark:text-ledger-gray-100',
-                  'placeholder:text-ledger-gray-400 focus:outline-none focus:ring-2 focus:ring-kx-primary-500 focus:border-transparent',
+                  'placeholder:text-ledger-gray-400 focus:outline-none focus:border-kx-primary-500',
                 )}
               />
               {searchQuery && (
@@ -704,10 +711,7 @@ export function DraftingPage() {
           {previewDraft?.status === 'completed' && (
             <FormattingToolbar
               isEditing={isEditingPreview}
-              onEdit={() => {
-                if (previewEditorRef.current) previewEditorRef.current.innerHTML = previewHtml
-                setIsEditingPreview(true)
-              }}
+              onEdit={() => setIsEditingPreview(true)}
               onSave={handleSave}
               onCancel={() => { setIsEditingPreview(false); setPreviewDirty(false) }}
               onBold={previewFormatting.handleBold}
@@ -724,47 +728,31 @@ export function DraftingPage() {
             />
           )}
 
-          {/* Action bar */}
-          <div className="flex items-center justify-between px-4 py-2 border-b border-kx-card-border flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setMode('details')} className="gap-1.5 text-xs rounded-lg h-8">
-                &larr; Edit Details
+          {/* Action bar — single row */}
+          <div className="flex items-center gap-2 px-4 py-2 border-b border-kx-card-border flex-shrink-0">
+            <Button variant="outline" size="sm" onClick={() => setMode('details')} className="gap-1.5 text-xs rounded-lg h-8">
+              Edit
+            </Button>
+            {previewDraft?.status === 'completed' && (
+              <Button size="sm" onClick={handleSave} className="gap-1.5 text-xs rounded-lg h-8 bg-kx-primary-600 hover:bg-kx-primary-700 text-white">
+                Save Draft
               </Button>
-              {previewDraft?.status === 'completed' && (
-                <Button
-                  variant="outline" size="sm"
-                  onClick={() => { setPreviewDraft(null); setPreviewDirty(false); handleGenerate() }}
-                  className="gap-1.5 text-xs rounded-lg h-8"
-                >
-                  <RotateCw className="h-3.5 w-3.5" />
-                  Regenerate
-                </Button>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost" size="sm"
-                onClick={() => { resetAll(); setMode('templates') }}
-                className="gap-1.5 text-xs rounded-lg h-8"
-              >
-                + Create Another
-              </Button>
-              {previewDraft && (
-                <Button
-                  variant="outline" size="sm"
-                  onClick={() => { setPreviewDraft(null); setMode('details') }}
-                  className="gap-1.5 text-xs rounded-lg h-8 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </Button>
-              )}
-              {previewDraft?.status === 'completed' && (
-                <Button size="sm" onClick={handleSave} className="gap-1.5 text-xs rounded-lg h-8 bg-kx-primary-600 hover:bg-kx-primary-700 text-white">
-                  Save Draft
-                </Button>
-              )}
-            </div>
+            )}
+            <Button
+              variant="ghost" size="sm"
+              onClick={() => { resetAll(); setMode('templates') }}
+              className="gap-1.5 text-xs rounded-lg h-8"
+            >
+              + Create Another
+            </Button>
+            <div className="flex-1" />
+            <Button
+              variant="ghost" size="sm"
+              onClick={() => { resetAll(); setMode('templates') }}
+              className="gap-1.5 text-xs rounded-lg h-8 text-ledger-gray-500"
+            >
+              Finish
+            </Button>
           </div>
 
           {/* Preview content */}

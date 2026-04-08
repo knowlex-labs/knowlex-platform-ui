@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   ArrowLeft, PanelLeft, PanelRight,
-  Check, X, Pencil, Scale, FileText,
+  Check, X, Pencil, Scale, FileText, ChevronLeft,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
 import { caseApi } from '@/services/api/case-api'
 import { workspaceApi } from '@/services/api/workspace-api'
+import { config } from '@/config/env'
 import { useCaseDocuments } from '@/hooks/use-case-sources'
 import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
@@ -41,6 +42,85 @@ export function CaseWorkspace() {
   // ── Panel visibility ──
   const [leftPanelOpen, setLeftPanelOpen] = useState(true)
   const [studioOpen, setStudioOpen] = useState(true)
+
+  // ── Left panel resize ──
+  const DEFAULT_LEFT_WIDTH = 288
+  const PREVIEW_LEFT_WIDTH = 480
+  const MIN_LEFT_WIDTH = 200
+  const MAX_LEFT_WIDTH = 500
+  const [leftPanelWidth, setLeftPanelWidth] = useState(DEFAULT_LEFT_WIDTH)
+  const isResizingLeft = useRef(false)
+  const leftPanelRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number>(0)
+
+  // ── Document preview in left panel ──
+  const [previewingDoc, setPreviewingDoc] = useState<{ doc: CaseDocument; url: string; textContent?: string } | null>(null)
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingLeft.current) return
+      e.preventDefault()
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = requestAnimationFrame(() => {
+        const panelLeft = leftPanelRef.current?.getBoundingClientRect().left ?? 0
+        const newWidth = Math.min(MAX_LEFT_WIDTH, Math.max(MIN_LEFT_WIDTH, e.clientX - panelLeft))
+        setLeftPanelWidth(newWidth)
+      })
+    }
+    const handleMouseUp = () => {
+      if (!isResizingLeft.current) return
+      isResizingLeft.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+      cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
+
+  const handleStartResize = useCallback(() => {
+    isResizingLeft.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }, [])
+
+  const handleDoubleClickDocument = useCallback(async (doc: CaseDocument) => {
+    try {
+      const url = await workspaceApi.resolveDocumentUrl({
+        id: doc.id,
+        downloadUrl: doc.downloadUrl ?? undefined,
+        signedUrl: doc.signedUrl ?? undefined,
+      })
+      const ext = (doc.originalFilename || doc.name).split('.').pop()?.toLowerCase() || ''
+      let textContent: string | undefined
+      if (ext === 'md' || ext === 'txt') {
+        try {
+          const token = localStorage.getItem('auth_token')
+          const userId = localStorage.getItem('auth_user_id')
+          const headers: Record<string, string> = {}
+          if (token) headers['Authorization'] = `Bearer ${token}`
+          if (userId) headers['x-user-id'] = userId
+          const res = await fetch(`${config.apiBaseUrl}/api/v1/documents/${doc.id}/download`, { headers })
+          if (res.ok) textContent = await res.text()
+        } catch {
+          textContent = undefined
+        }
+      }
+      setPreviewingDoc({ doc, url, textContent })
+      setLeftPanelWidth(PREVIEW_LEFT_WIDTH)
+    } catch {
+      toast({ title: 'Could not preview file', variant: 'destructive' })
+    }
+  }, [])
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewingDoc(null)
+    setLeftPanelWidth(DEFAULT_LEFT_WIDTH)
+  }, [])
 
   // ── Modals / editors ──
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
@@ -275,20 +355,73 @@ export function CaseWorkspace() {
       <div className="flex flex-1 min-h-0 overflow-hidden bg-nb-separator p-1.5 gap-1.5">
         {/* Left: Sources panel — full when open, icon strip when closed */}
         {leftPanelOpen ? (
-          <div className="w-72 flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col min-h-0 bg-nb-sidebar shadow-sm overflow-hidden">
-            <WorkspaceSourcesPanel
-              sources={sources}
-              isSourcesLoading={isSourcesLoading}
-              selectedSourceIds={selectedSourceIds}
-              onAddSource={() => setAddSourceModalOpen(true)}
-              onDeleteSource={deleteSource}
-              onRenameDocument={renameDocument}
-              onToggleSource={toggleSourceSelection}
-              onSelectAll={selectAllSources}
-              onDeselectAll={deselectAllSources}
-              onClose={() => setLeftPanelOpen(false)}
-            />
-          </div>
+          <>
+            <div ref={leftPanelRef} className="flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col min-h-0 bg-nb-sidebar shadow-sm overflow-hidden" style={{ width: leftPanelWidth }}>
+              {previewingDoc ? (
+                <div className="flex flex-col h-full">
+                  <div className="flex items-center gap-2 px-3 py-3 border-b border-nb-panel-border flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleClosePreview}
+                      className="h-7 w-7 flex items-center justify-center rounded-lg text-nb-text-muted hover:text-kx-text-primary hover:bg-nb-sidebar-hover transition-colors flex-shrink-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className="text-sm font-medium text-kx-text-primary truncate">
+                      {previewingDoc.doc.originalFilename || previewingDoc.doc.name}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-h-0 overflow-hidden bg-ledger-gray-50 dark:bg-ledger-gray-900">
+                    {(() => {
+                      const ext = (previewingDoc.doc.originalFilename || previewingDoc.doc.name).split('.').pop()?.toLowerCase() || ''
+                      if (ext === 'pdf') {
+                        return <iframe src={previewingDoc.url} className="w-full h-full border-0" title="Document preview" />
+                      }
+                      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        return <img src={previewingDoc.url} alt="Preview" className="max-w-full max-h-full object-contain m-auto" />
+                      }
+                      if (previewingDoc.textContent !== undefined) {
+                        return (
+                          <pre className="w-full h-full overflow-auto p-4 text-xs text-kx-text-primary font-mono whitespace-pre-wrap break-words">
+                            {previewingDoc.textContent}
+                          </pre>
+                        )
+                      }
+                      return (
+                        <div className="flex flex-col items-center justify-center h-full gap-3 text-nb-text-muted">
+                          <FileText className="h-8 w-8" />
+                          <p className="text-xs">Preview not available</p>
+                          <a href={previewingDoc.url} target="_blank" rel="noreferrer" className="text-xs text-kx-primary-600 hover:underline">Open file</a>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
+              ) : (
+                <WorkspaceSourcesPanel
+                  sources={sources}
+                  isSourcesLoading={isSourcesLoading}
+                  selectedSourceIds={selectedSourceIds}
+                  onAddSource={() => setAddSourceModalOpen(true)}
+                  onDeleteSource={deleteSource}
+                  onRenameDocument={renameDocument}
+                  onToggleSource={toggleSourceSelection}
+                  onSelectAll={selectAllSources}
+                  onDeselectAll={deselectAllSources}
+                  onClose={() => setLeftPanelOpen(false)}
+                  onDoubleClickDocument={handleDoubleClickDocument}
+                />
+              )}
+            </div>
+            {/* Resize handle */}
+            <div
+              className="w-1.5 flex-shrink-0 cursor-col-resize group/handle relative"
+              onMouseDown={handleStartResize}
+            >
+              <div className="absolute inset-y-0 -left-1 -right-1" />
+              <div className="h-full w-full rounded-full" />
+            </div>
+          </>
         ) : (
           <div className="w-14 flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col items-center py-3 gap-2 overflow-y-auto bg-nb-sidebar shadow-sm">
             <button

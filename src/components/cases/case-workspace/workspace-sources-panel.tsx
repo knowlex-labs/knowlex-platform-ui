@@ -179,6 +179,7 @@ interface WorkspaceSourcesPanelProps {
   onSelectAll: (ids: string[]) => void
   onDeselectAll: () => void
   onClose: () => void
+  onDoubleClickDocument?: (doc: CaseDocument) => void
 }
 
 export function WorkspaceSourcesPanel({
@@ -192,6 +193,7 @@ export function WorkspaceSourcesPanel({
   onSelectAll,
   onDeselectAll,
   onClose,
+  onDoubleClickDocument,
 }: WorkspaceSourcesPanelProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -291,7 +293,8 @@ export function WorkspaceSourcesPanel({
               return (
                 <div
                   key={doc.id}
-                  className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-nb-sidebar-hover cursor-pointer transition-colors"
+                  className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 cursor-pointer transition-colors"
+                  onDoubleClick={() => onDoubleClickDocument?.(doc)}
                 >
                   <FileIconBadge name={name} />
                   <div className="flex-1 min-w-0">
