@@ -377,8 +377,8 @@ export function BillingPage() {
           <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
             <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Usage</h3>
             <div className="space-y-4">
-              <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="Resets weekly" />
-              <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="Resets weekly" />
+              <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="Resets monthly" />
+              <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="Resets monthly" />
               <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} period="Plan limit" />
               <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} period="Plan limit" />
               <UsageBar
