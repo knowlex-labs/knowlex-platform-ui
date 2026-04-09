@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -184,6 +184,20 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
 
       {/* User Section */}
       <div className="border-t border-ledger-gray-200 p-3 space-y-2">
+        {/* Upgrade Account Button */}
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full h-9 text-kx-primary-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 dark:hover:bg-white/5",
+            collapsed ? "justify-center px-0" : "justify-start px-4"
+          )}
+          onClick={() => navigate('/settings/billing')}
+          title="Upgrade Account"
+        >
+          <Sparkles className="h-4 w-4 flex-shrink-0" />
+          {!collapsed && <span className="ml-3">Upgrade Account</span>}
+        </Button>
+
         {/* Help and Support Button */}
         <Button
           variant="ghost"

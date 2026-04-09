@@ -12,7 +12,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { FileUploadZone } from '@/components/toolbox/file-upload-zone'
+import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { draftsApi } from '@/services/api/drafts-api'
 import { caseApi } from '@/services/api/case-api'
 import { downloadDocument, uploadToolboxFile } from '@/services/api/doc-processing-api'
@@ -109,6 +117,8 @@ type PageMode = 'home' | 'templates' | 'details' | 'preview' | 'download'
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function DraftingPage() {
+  const navigate = useNavigate()
+
   // Mode
   const [mode, setMode] = useState<PageMode>('home')
 
@@ -126,6 +136,9 @@ export function DraftingPage() {
   const [refFiles, setRefFiles] = useState<File[]>([])
   const [uploadedFileIds, setUploadedFileIds] = useState<string[]>([])
   const [isUploadingFiles, setIsUploadingFiles] = useState(false)
+
+  // Upgrade modal
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   // Draft generation + preview
   const [previewDraft, setPreviewDraft] = useState<Draft | null>(null)
@@ -355,8 +368,14 @@ export function DraftingPage() {
       if (draft.status !== 'completed' && draft.status !== 'failed') {
         startPolling(res.data.id)
       }
-    } catch {
-      toast({ title: 'Failed to start draft generation', variant: 'destructive' })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to start draft generation'
+      const isLimitError = /limit|upgrade|quota/i.test(message)
+      if (isLimitError) {
+        setShowUpgradeModal(true)
+      } else {
+        toast({ title: message, variant: 'destructive' })
+      }
     }
   }
 
@@ -848,6 +867,33 @@ export function DraftingPage() {
           )}
         </div>
       )}
+
+      {/* Upgrade Plan Modal */}
+      <Dialog open={showUpgradeModal} onOpenChange={setShowUpgradeModal}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-kx-primary-600" />
+              Draft Limit Reached
+            </DialogTitle>
+            <DialogDescription>
+              You've used all your drafts for this month. Upgrade your plan to generate more drafts.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex flex-col gap-3">
+            <Button
+              className="w-full bg-gradient-to-r from-kx-primary-600 to-kx-primary-700 text-white hover:from-kx-primary-700 hover:to-kx-primary-800"
+              onClick={() => { setShowUpgradeModal(false); navigate('/settings/billing') }}
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Upgrade Plan
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => setShowUpgradeModal(false)}>
+              Maybe Later
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

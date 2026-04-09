@@ -14,7 +14,6 @@ import {
 import { useSubscription } from '@/hooks/use-subscription'
 import { usePlans } from '@/hooks/use-plans'
 import { subscriptionApi } from '@/services/api/subscription-api'
-import { config } from '@/config/env'
 import { cn } from '@/lib/utils'
 import type { SubscriptionStatus, BillingCycle, PlanType, PaymentRecord } from '@/types'
 
@@ -125,20 +124,6 @@ function PlanSelector({ currentPlanName, currentBillingCycle, onSuccess }: PlanS
 
   // Show only paid plans (skip FREE)
   const paidPlans = plans.filter((p) => getPlanTypeKey(p) !== 'FREE')
-
-  if (!config.enablePayment) {
-    return (
-      <div className="bg-kx-card border border-kx-card-border rounded-lg p-6 text-center">
-        <p className="text-sm text-ledger-gray-500">
-          Contact us at{' '}
-          <a href="mailto:hello@knowlex.ai" className="text-kx-primary-600 hover:underline">
-            hello@knowlex.ai
-          </a>{' '}
-          to upgrade your plan.
-        </p>
-      </div>
-    )
-  }
 
   if (isLoading) {
     return (
