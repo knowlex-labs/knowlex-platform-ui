@@ -119,11 +119,11 @@ export function ActiveCaseCards({ cases, isLoading, onCaseClick }: ActiveCaseCar
               <p className="text-xs text-ledger-gray-600">
                 Next hearing:{' '}
                 <span className="font-medium text-ledger-gray-900">
-                  {new Date(caseItem.nextHearingDate).toLocaleDateString('en-IN', {
+                  {caseItem.nextHearingDate ? new Date(caseItem.nextHearingDate).toLocaleDateString('en-IN', {
                     day: 'numeric',
                     month: 'short',
                     year: 'numeric',
-                  })}
+                  }) : '—'}
                 </span>
               </p>
             </div>

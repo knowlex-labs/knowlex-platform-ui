@@ -28,8 +28,11 @@ const ICON_MAP: Record<ActivityFeedItem['type'], { icon: typeof Briefcase; color
   },
 }
 
-function timeAgo(timestamp: string): string {
-  const diff = Date.now() - new Date(timestamp).getTime()
+function timeAgo(timestamp: string | null | undefined): string {
+  if (!timestamp) return ''
+  const d = new Date(timestamp)
+  if (isNaN(d.getTime())) return ''
+  const diff = Date.now() - d.getTime()
   const minutes = Math.floor(diff / 60000)
   if (minutes < 60) return `${minutes}m ago`
   const hours = Math.floor(minutes / 60)

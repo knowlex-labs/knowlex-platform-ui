@@ -245,7 +245,7 @@ export function CaseWorkspace() {
 
   // ── Studio actions ──
   const handleGenerateSummary = async () => {
-    if (summary && summary.status !== 'failed') return
+    if (summary && summary.status === 'pending') return
     const existing = await fetchSummary()
     if (!existing || existing.status === 'failed') generateSummary()
   }

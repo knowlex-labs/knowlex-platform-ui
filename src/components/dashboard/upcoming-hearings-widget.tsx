@@ -66,7 +66,9 @@ export function UpcomingHearingsWidget() {
     <div>
       <div className="space-y-1.5">
         {hearings.slice(0, 5).map((hearing, index) => {
+          if (!hearing.nextHearingDate) return null
           const hearingDate = new Date(hearing.nextHearingDate)
+          if (isNaN(hearingDate.getTime())) return null
           const { text: dateLabel, urgent } = getDateLabel(hearingDate)
 
           return (

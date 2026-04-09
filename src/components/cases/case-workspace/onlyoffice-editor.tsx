@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { X, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useAuth } from '@/contexts/auth-context'
 import { openEditSession } from '@/services/api/doc-processing-api'
 
 declare global {
@@ -40,7 +39,6 @@ function loadScript(src: string): Promise<void> {
 }
 
 export function OnlyOfficeEditor({ documentId, caseId, onClose }: OnlyOfficeEditorProps) {
-  const { user } = useAuth()
   const editorRef = useRef<{ destroyEditor: () => void } | null>(null)
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)

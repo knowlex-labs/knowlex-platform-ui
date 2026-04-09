@@ -94,6 +94,13 @@ export interface PaginatedData<T> {
   number: number
   numberOfElements: number
   empty: boolean
+  /** Spring Boot 3 wraps pagination metadata here instead of at the top level */
+  page?: {
+    size: number
+    number: number
+    totalElements: number
+    totalPages: number
+  }
 }
 
 // Request DTOs

@@ -232,6 +232,20 @@ export function CaseStudioPanel({
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [previewDoc, setPreviewDoc] = useState<{ title: string; html: string } | null>(null)
 
+  const handleOpenSummary = () => {
+    if (!summary || summary.status !== 'completed') return
+    const html = renderDraftToHtml(summary.content)
+    setPreviewDoc({ title: 'Summary', html })
+  }
+
+  const handleSummaryClick = () => {
+    if (summary?.status === 'completed') {
+      handleOpenSummary()
+    } else {
+      onGenerateSummary()
+    }
+  }
+
   const tools: (ToolCardProps & { key: string })[] = [
     {
       key: 'summary',
@@ -239,7 +253,7 @@ export function CaseStudioPanel({
       iconColor: 'text-blue-600',
       iconBg: 'bg-blue-50 dark:bg-blue-950/40',
       title: 'Summary',
-      onClick: onGenerateSummary,
+      onClick: handleSummaryClick,
     },
     {
       key: 'synopsis',
@@ -296,12 +310,6 @@ export function CaseStudioPanel({
     setPreviewDoc({ title: draft.title, html })
   }
 
-  const handleOpenSummary = () => {
-    if (!summary || summary.status !== 'completed') return
-    const html = renderDraftToHtml(summary.content)
-    setPreviewDoc({ title: 'Summary', html })
-  }
-
   return (
     <div className="flex flex-col h-full bg-nb-sidebar">
       {/* Header */}
@@ -350,7 +358,7 @@ export function CaseStudioPanel({
             {summary && (
               <div
                 className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 transition-colors cursor-pointer"
-                onDoubleClick={handleOpenSummary}
+                onClick={handleOpenSummary}
               >
                 <div className="flex-shrink-0 h-7 w-7 rounded-md bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center">
                   <Sparkles className="h-3.5 w-3.5 text-kx-primary-600" />

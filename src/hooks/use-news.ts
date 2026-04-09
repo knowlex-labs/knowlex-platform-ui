@@ -60,8 +60,8 @@ export function useNews(): UseNewsResult {
                 size: meta.size ?? DEFAULT_PAGE_SIZE,
                 totalElements: meta.totalElements ?? 0,
                 totalPages: meta.totalPages ?? 0,
-                first: meta.first ?? (meta.number === 0),
-                last: meta.last ?? (meta.number === meta.totalPages - 1),
+                first: (meta as { first?: boolean }).first ?? (meta.number === 0),
+                last: (meta as { last?: boolean }).last ?? (meta.number === meta.totalPages - 1),
             })
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to fetch news'
