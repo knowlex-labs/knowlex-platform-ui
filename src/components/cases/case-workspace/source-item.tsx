@@ -84,7 +84,7 @@ export function SourceItem({
   const displayName = source.name || `${source.type} Document`
   const Icon = getFileIcon(displayName)
   const fileExt = displayName.split('.').pop()?.toUpperCase() || ''
-  const isEditable = ['PDF', 'DOCX', 'DOC'].includes(fileExt)
+  const isEditable = ['DOCX', 'DOC', 'MD'].includes(fileExt)
 
   useEffect(() => {
     if (isRenaming && renameInputRef.current) {
