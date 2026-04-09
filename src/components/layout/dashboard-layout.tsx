@@ -11,20 +11,11 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { sidebarCollapsed, setSidebarCollapsed } = useUIState()
+  const { sidebarCollapsed } = useUIState()
   const location = useLocation()
 
   const isWorkspaceView = /^\/cases\/[^/]+/.test(location.pathname)
-  const isFullBleed = isWorkspaceView || location.pathname === '/ai-research'
-  const prevPathRef = React.useRef(location.pathname)
-
-  // Auto-collapse sidebar when entering AI Research
-  React.useEffect(() => {
-    if (location.pathname === '/ai-research' && prevPathRef.current !== '/ai-research') {
-      setSidebarCollapsed(true)
-    }
-    prevPathRef.current = location.pathname
-  }, [location.pathname, setSidebarCollapsed])
+  const isFullBleed = isWorkspaceView
 
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 

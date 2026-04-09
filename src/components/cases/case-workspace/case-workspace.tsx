@@ -133,7 +133,6 @@ export function CaseWorkspace() {
     documents,
     paginatedSources,
     isSourcesLoading,
-    isUploading,
     deleteSource,
     renameDocument,
     uploadFile,
@@ -346,8 +345,8 @@ export function CaseWorkspace() {
       <div className="flex flex-1 min-h-0 overflow-hidden bg-nb-separator p-1.5 gap-1.5">
         {/* Left: Sources panel — full when open, icon strip when closed */}
         {leftPanelOpen ? (
-          <>
-            <div ref={leftPanelRef} className="flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col min-h-0 bg-nb-sidebar shadow-sm overflow-hidden" style={{ width: leftPanelWidth }}>
+          <div className="flex-shrink-0 relative min-h-0" style={{ width: leftPanelWidth }}>
+            <div ref={leftPanelRef} className="h-full border border-nb-panel-border rounded-xl flex flex-col min-h-0 bg-nb-sidebar shadow-sm overflow-hidden">
               {previewingDoc ? (
                 <div className="flex flex-col h-full">
                   <div className="flex items-center gap-2 px-3 py-3 border-b border-nb-panel-border flex-shrink-0">
@@ -393,6 +392,7 @@ export function CaseWorkspace() {
                   sources={sources}
                   isSourcesLoading={isSourcesLoading}
                   selectedSourceIds={selectedSourceIds}
+                  caseId={caseId}
                   onAddSource={() => setAddSourceModalOpen(true)}
                   onDeleteSource={deleteSource}
                   onRenameDocument={renameDocument}
@@ -404,15 +404,15 @@ export function CaseWorkspace() {
                 />
               )}
             </div>
-            {/* Resize handle */}
+            {/* Resize handle — positioned at right edge, sits in the gap, keeps same gap as right side */}
             <div
-              className="w-1.5 flex-shrink-0 cursor-col-resize group/handle relative"
+              className="absolute top-0 right-0 w-0 h-full cursor-col-resize z-10"
+              style={{ transform: 'translateX(50%)' }}
               onMouseDown={handleStartResize}
             >
-              <div className="absolute inset-y-0 -left-1 -right-1" />
-              <div className="h-full w-full rounded-full" />
+              <div className="absolute inset-y-0 -left-3 -right-3" />
             </div>
-          </>
+          </div>
         ) : (
           <div className="w-14 flex-shrink-0 border border-nb-panel-border rounded-xl flex flex-col items-center py-3 gap-2 overflow-y-auto bg-nb-sidebar shadow-sm">
             <button
@@ -516,7 +516,6 @@ export function CaseWorkspace() {
         onOpenChange={setAddSourceModalOpen}
         onUpload={uploadFile}
         onRefresh={refresh}
-        isUploading={isUploading}
       />
 
       <CaseDetailsModal

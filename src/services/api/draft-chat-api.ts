@@ -201,15 +201,18 @@ export const draftChatApi = {
         let currentEvent: string | null = null
         let currentData: string | null = null
         let buffer = ''
-
         const dispatchEvent = () => {
           if (currentEvent && currentData !== null) {
             if (currentEvent === 'end') {
-              callbacks.onEnd()
+              // Don't call onEnd yet — document_citations may follow after end
+              currentEvent = null
+              currentData = null
               return 'end'
             }
             if (currentEvent === 'error') {
               callbacks.onError(currentData.trim())
+              currentEvent = null
+              currentData = null
               return 'error'
             }
             if (currentEvent === 'answer') {
@@ -240,7 +243,8 @@ export const draftChatApi = {
 
             if (line === '') {
               const result = dispatchEvent()
-              if (result === 'end' || result === 'error') return
+              if (result === 'error') return
+              // Don't return on 'end' — keep reading for document_citations
               continue
             }
 
@@ -257,10 +261,10 @@ export const draftChatApi = {
           }
         }
 
-        const result = dispatchEvent()
-        if (result !== 'end') {
-          callbacks.onEnd()
-        }
+        // Process any remaining buffered event
+        dispatchEvent()
+        // Always call onEnd once stream is fully consumed
+        callbacks.onEnd()
       })
       .catch((err) => {
         if (err.name === 'AbortError') return

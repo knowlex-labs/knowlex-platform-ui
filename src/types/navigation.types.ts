@@ -5,7 +5,6 @@ export type DashboardTab =
   | 'cause-lists'
   | 'clients'
   | 'judgments'
-  | 'ai-research'
   | 'account-settings'
   | 'documents'
 

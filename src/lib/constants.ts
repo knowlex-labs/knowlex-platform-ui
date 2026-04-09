@@ -16,7 +16,6 @@ export const SIDEBAR_TABS: SidebarTabConfig[] = [
   { id: 'clients', label: 'Clients', icon: 'users', path: '/clients' },
   { id: 'judgments', label: 'Legal Library', icon: 'scale', path: '/judgments' },
   { id: 'documents', label: 'Documents', icon: 'files', path: '/documents' },
-  { id: 'ai-research', label: 'AI Research', icon: 'brain', path: '/ai-research', locked: true },
 ]
 
 export const STATUS_COLORS = {

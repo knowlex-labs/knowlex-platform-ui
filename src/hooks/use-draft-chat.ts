@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { DraftChatMessage, DraftChatSettings, DraftChatSession } from '@/types'
+import type { DraftChatMessage, DraftChatSettings, DraftChatSession, DocumentCitation } from '@/types'
 import { draftChatApi } from '@/services/api/draft-chat-api'
 
 type ToolCall = DraftChatMessage['toolCalls'] extends Array<infer T> | undefined ? T : never
@@ -24,6 +24,7 @@ export function useDraftChat(caseId: string) {
   const toolCallsRef = useRef<ToolCall[]>([])
   const phaseRef = useRef<DraftChatMessage['streamingPhase']>('waiting')
   const streamingMsgIdRef = useRef<string | null>(null)
+  const documentCitationsRef = useRef<DocumentCitation[] | undefined>(undefined)
   const rafIdRef = useRef<number | null>(null)
 
   const loadHistory = useCallback(async (sessionId: string) => {
@@ -153,6 +154,7 @@ export function useDraftChat(caseId: string) {
 
       answerContentRef.current = ''
       toolCallsRef.current = []
+      documentCitationsRef.current = undefined
       phaseRef.current = 'waiting'
       streamingMsgIdRef.current = assistantId
 
@@ -230,6 +232,8 @@ export function useDraftChat(caseId: string) {
           onDocumentCitations: (data) => {
             try {
               const citations = JSON.parse(data.trim())
+              // Store in ref so onEnd can use it regardless of React batching order
+              documentCitationsRef.current = citations
               const msgId = streamingMsgIdRef.current
               if (msgId) {
                 setMessages((prev) =>
@@ -252,6 +256,7 @@ export function useDraftChat(caseId: string) {
             const finalContent = answerContentRef.current
             const finalToolCalls =
               toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+            const finalCitations = documentCitationsRef.current
             const msgId = streamingMsgIdRef.current
             setMessages((prev) =>
               prev.map((msg) =>
@@ -262,13 +267,14 @@ export function useDraftChat(caseId: string) {
                       toolCalls: finalToolCalls,
                       isStreaming: false,
                       streamingPhase: undefined,
-                      documentCitations: msg.documentCitations,
+                      documentCitations: finalCitations ?? msg.documentCitations,
                     }
                   : msg
               )
             )
             setIsStreaming(false)
             streamingMsgIdRef.current = null
+            documentCitationsRef.current = undefined
             abortControllerRef.current = null
           },
           onError: (errorMsg) => {
@@ -279,6 +285,7 @@ export function useDraftChat(caseId: string) {
             const finalContent = answerContentRef.current
             const finalToolCalls =
               toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+            const finalCitations = documentCitationsRef.current
             const msgId = streamingMsgIdRef.current
             setMessages((prev) =>
               prev.map((msg) =>
@@ -289,13 +296,14 @@ export function useDraftChat(caseId: string) {
                       toolCalls: finalToolCalls,
                       isStreaming: false,
                       streamingPhase: undefined,
-                      documentCitations: msg.documentCitations,
+                      documentCitations: finalCitations ?? msg.documentCitations,
                     }
                   : msg
               )
             )
             setIsStreaming(false)
             streamingMsgIdRef.current = null
+            documentCitationsRef.current = undefined
             abortControllerRef.current = null
           },
         }

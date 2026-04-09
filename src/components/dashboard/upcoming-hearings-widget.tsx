@@ -66,7 +66,7 @@ export function UpcomingHearingsWidget() {
     <div>
       <div className="space-y-1.5">
         {hearings.slice(0, 5).map((hearing, index) => {
-          const hearingDate = new Date(hearing.causeListDate)
+          const hearingDate = new Date(hearing.nextHearingDate)
           const { text: dateLabel, urgent } = getDateLabel(hearingDate)
 
           return (
@@ -105,16 +105,19 @@ export function UpcomingHearingsWidget() {
                 {/* Hearing info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-kx-primary-900 truncate">
-                    {hearing.caseNumber}
+                    {hearing.caseTitle || hearing.caseNumber}
                   </p>
+                  <p className="text-[10px] text-ledger-gray-400 truncate mt-0.5">{hearing.caseNumber}</p>
                   <span className="flex items-center gap-1 text-[11px] text-ledger-gray-500 truncate mt-0.5">
                     <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
-                    {hearing.court} &middot; {hearing.bench}
+                    {hearing.courtName}{hearing.courtLocation ? ` · ${hearing.courtLocation}` : ''}
                   </span>
-                  <span className="flex items-center gap-1 text-[11px] text-ledger-gray-500 truncate mt-0.5">
-                    <Gavel className="h-2.5 w-2.5 flex-shrink-0" />
-                    {hearing.hearingType.charAt(0) + hearing.hearingType.slice(1).toLowerCase()}
-                  </span>
+                  {hearing.judgeName && (
+                    <span className="flex items-center gap-1 text-[11px] text-ledger-gray-500 truncate mt-0.5">
+                      <Gavel className="h-2.5 w-2.5 flex-shrink-0" />
+                      {hearing.judgeName}
+                    </span>
+                  )}
                   <span className={cn(
                     'inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full mt-1',
                     urgent
@@ -130,7 +133,6 @@ export function UpcomingHearingsWidget() {
         })}
       </div>
 
-      {/* View More */}
       <button
         onClick={() => navigate('/cause-lists')}
         className="flex items-center gap-1 text-xs font-medium text-kx-primary-600 hover:text-kx-primary-700 mt-3 transition-colors"

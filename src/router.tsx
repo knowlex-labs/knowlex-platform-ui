@@ -6,7 +6,6 @@ import { CaseList } from '@/components/cases/case-list'
 import { CaseWorkspace } from '@/components/cases/case-workspace'
 import { ClientList } from '@/components/clients/client-list'
 import { ClientDetail } from '@/components/clients/client-detail'
-import { AIResearch } from '@/components/ai-research/ai-research'
 import { LegalLibrary } from '@/components/judgments/legal-library'
 import { CauseLists } from '@/components/cause-lists/cause-lists'
 import { JudgmentDetail } from '@/components/judgments/judgment-detail'
@@ -78,8 +77,7 @@ export const router = createBrowserRouter([
       { path: '/clients/:clientId', element: <ClientDetail /> },
       { path: '/judgments', element: <LegalLibrary /> },
       { path: '/judgments/:judgmentId', element: <JudgmentDetail /> },
-      { path: '/ai-research', element: <AIResearch /> },
-      { path: '/documents', element: <DocumentsPage /> },
+{ path: '/documents', element: <DocumentsPage /> },
       {
         path: '/settings',
         element: <SettingsLayout />,

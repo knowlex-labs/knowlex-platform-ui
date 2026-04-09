@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useBlogDetail } from '@/hooks/use-blog-detail'
-import { MarkdownRenderer } from '@/components/ai-research/markdown-renderer'
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Calendar, Clock } from 'lucide-react'
 

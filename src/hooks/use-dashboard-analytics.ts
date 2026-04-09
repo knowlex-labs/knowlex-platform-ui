@@ -1,151 +1,72 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { dashboardApi } from '@/services/api/dashboard-api'
-import type { ChartDataPoint as ChartDataPointApi, RecentCase, RecentClient } from '@/services/api/dashboard-api'
-import type {
-  AiProductivityStats,
-  ChartDataPoint,
-  ChartPeriod,
-  ActivityFeedItem,
-} from '@/types/dashboard.types'
-
-// Map API activity type to frontend type
-function mapActivityType(apiType: string): ActivityFeedItem['type'] {
-  const typeMap: Record<string, ActivityFeedItem['type']> = {
-    DRAFT_GENERATED: 'draft_generated',
-    CASE_CREATED: 'case_created',
-    DOCUMENT_UPLOADED: 'document_uploaded',
-    JUDGMENT_ADDED: 'case_created',
-  }
-  return typeMap[apiType] || 'case_created'
-}
-
-// Map API chart data to frontend format
-function mapChartData(apiData: ChartDataPointApi[]): ChartDataPoint[] {
-  return apiData.map((point) => ({
-    label: point.period,
-    cases: point.caseCount,
-    drafts: point.draftCount,
-  }))
-}
+import type { RecentCase, RecentClient, RecentDocument } from '@/services/api/dashboard-api'
 
 interface UseDashboardAnalyticsResult {
-  aiStats: AiProductivityStats
+  totalCases: number
+  activeCases: number
+  totalClients: number
   recentCases: RecentCase[]
   recentClients: RecentClient[]
-  totalCases: number
-  totalClients: number
-  chartData: ChartDataPoint[]
-  chartPeriod: ChartPeriod
-  setChartPeriod: (period: ChartPeriod) => void
-  activityFeed: ActivityFeedItem[]
+  recentDocuments: RecentDocument[]
   isLoading: boolean
   error: Error | null
 }
 
 export function useDashboardAnalytics(): UseDashboardAnalyticsResult {
-  const [chartPeriod, setChartPeriod] = useState<ChartPeriod>('week')
-  const [summaryData, setSummaryData] = useState<{
-    totalCases: number
-    totalDrafts: number
-    totalClients: number
-    hrsSaved: number
-  } | null>(null)
-  const [chartDataRaw, setChartDataRaw] = useState<{
-    weekly: ChartDataPointApi[]
-    monthly: ChartDataPointApi[]
-  } | null>(null)
-  const [activityData, setActivityData] = useState<
-    { type: string; caseTitle: string; description: string; timestamp: string }[]
-  >([])
+  const [totalCases, setTotalCases] = useState(0)
+  const [activeCases, setActiveCases] = useState(0)
+  const [totalClients, setTotalClients] = useState(0)
   const [recentCases, setRecentCases] = useState<RecentCase[]>([])
   const [recentClients, setRecentClients] = useState<RecentClient[]>([])
+  const [recentDocuments, setRecentDocuments] = useState<RecentDocument[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
+    let cancelled = false
+
+    async function fetch() {
       setIsLoading(true)
       setError(null)
 
       try {
-        // Fetch all dashboard data in parallel
-        const [summaryRes, chartRes, activityRes] = await Promise.all([
+        const [summaryRes, activityRes] = await Promise.all([
           dashboardApi.getSummary(),
-          dashboardApi.getActivityChart(),
           dashboardApi.getRecentActivity(),
         ])
 
-        if (summaryRes.data) {
-          setSummaryData({
-            totalCases: summaryRes.data.totalCases,
-            totalDrafts: summaryRes.data.totalDrafts,
-            totalClients: summaryRes.data.totalClients,
-            hrsSaved: summaryRes.data.hrsSaved,
-          })
-          setRecentCases(summaryRes.data.recentCases || [])
-          setRecentClients(summaryRes.data.recentClients || [])
-        }
+        if (cancelled) return
 
-        if (chartRes.data) {
-          setChartDataRaw(chartRes.data)
+        if (summaryRes.data) {
+          setTotalCases(summaryRes.data.totalCases)
+          setActiveCases(summaryRes.data.activeCases)
+          setTotalClients(summaryRes.data.totalClients)
         }
 
         if (activityRes.data) {
-          setActivityData(activityRes.data)
+          setRecentCases(activityRes.data.recentCases ?? [])
+          setRecentClients(activityRes.data.recentClients ?? [])
+          setRecentDocuments(activityRes.data.recentDocuments ?? [])
         }
       } catch (err) {
-        setError(err instanceof Error ? err : new Error('Failed to fetch dashboard data'))
+        if (!cancelled) setError(err instanceof Error ? err : new Error('Failed to fetch dashboard data'))
       } finally {
-        setIsLoading(false)
+        if (!cancelled) setIsLoading(false)
       }
     }
 
-    fetchDashboardData()
+    fetch()
+    return () => { cancelled = true }
   }, [])
 
-  const chartData = useMemo(() => {
-    if (!chartDataRaw) return []
-    const data = chartPeriod === 'week' ? chartDataRaw.weekly : chartDataRaw.monthly
-    return mapChartData(data)
-  }, [chartDataRaw, chartPeriod])
-
-  const aiStats: AiProductivityStats = useMemo(() => {
-    if (!summaryData) {
-      return {
-        timeSavedHours: 0,
-        draftsGenerated: 0,
-        docsProcessed: 0,
-        successRate: 0,
-      }
-    }
-    return {
-      timeSavedHours: Math.round(summaryData.hrsSaved * 10) / 10,
-      draftsGenerated: summaryData.totalDrafts,
-      docsProcessed: summaryData.totalCases,
-      successRate: 100,
-    }
-  }, [summaryData])
-
-  const activityFeed: ActivityFeedItem[] = useMemo(() => {
-    return activityData.map((item, index) => ({
-      id: String(index),
-      type: mapActivityType(item.type),
-      title: item.caseTitle,
-      description: item.description,
-      timestamp: item.timestamp,
-    }))
-  }, [activityData])
-
   return {
-    aiStats,
+    totalCases,
+    activeCases,
+    totalClients,
     recentCases,
     recentClients,
-    totalCases: summaryData?.totalCases ?? 0,
-    totalClients: summaryData?.totalClients ?? 0,
-    chartData,
-    chartPeriod,
-    setChartPeriod,
-    activityFeed,
+    recentDocuments,
     isLoading,
     error,
   }

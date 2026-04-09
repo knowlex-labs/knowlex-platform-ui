@@ -1,12 +1,11 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { CalendarDays, Bell, PenLine, FolderOpen, Scale, Sparkles, FileText, File, Search } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useNavigate } from 'react-router-dom'
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'
 import { StatsOverview } from './stats-overview'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
-import { listAllDocuments, type DocumentRecord } from '@/services/api/doc-processing-api'
-import { caseApi } from '@/services/api/case-api'
+import type { RecentDocument } from '@/services/api/dashboard-api'
 
 function getGreeting(): string {
   const hour = new Date().getHours()
@@ -31,7 +30,7 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function DocTypeBadge({ doc }: { doc: DocumentRecord }) {
+function DocTypeBadge({ doc }: { doc: RecentDocument }) {
   const isGenerated = doc.type !== 'USER_UPLOADED'
   const fileType = doc.fileType?.toUpperCase()
   if (isGenerated) {
@@ -63,18 +62,17 @@ export function DashboardHome() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const {
+    totalCases,
+    activeCases,
+    totalClients,
     recentCases,
     recentClients,
-    totalCases,
-    totalClients,
+    recentDocuments,
     isLoading,
   } = useDashboardAnalytics()
 
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
-  const [recentDocs, setRecentDocs] = useState<DocumentRecord[]>([])
-  const [docsLoading, setDocsLoading] = useState(true)
-  const [activeCases, setActiveCases] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
 
   const displayName = user?.firstName || user?.username || 'there'
@@ -87,19 +85,6 @@ export function DashboardHome() {
     if (notifOpen) document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [notifOpen])
-
-  useEffect(() => {
-    listAllDocuments({ page: 0, size: 5, sort: 'createdAt,desc' })
-      .then(res => setRecentDocs(res.documents ?? []))
-      .catch(() => {})
-      .finally(() => setDocsLoading(false))
-  }, [])
-
-  useEffect(() => {
-    caseApi.getAll({ size: 1, status: 'ACTIVE' })
-      .then(res => setActiveCases(res.data?.totalElements ?? 0))
-      .catch(() => {})
-  }, [])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -213,7 +198,7 @@ export function DashboardHome() {
               </div>
             </div>
 
-            {docsLoading ? (
+            {isLoading ? (
               <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="flex items-center gap-3 py-2">
@@ -225,11 +210,11 @@ export function DashboardHome() {
                   </div>
                 ))}
               </div>
-            ) : recentDocs.length === 0 ? (
+            ) : recentDocuments.length === 0 ? (
               <p className="text-xs text-ledger-gray-400 italic py-2">No documents yet. Create a draft or upload a file.</p>
             ) : (
               <div className="space-y-0.5">
-                {recentDocs.map(doc => (
+                {recentDocuments.map(doc => (
                   <div
                     key={doc.id}
                     onClick={() => navigate(`/documents?open=${doc.id}`)}
@@ -245,7 +230,7 @@ export function DashboardHome() {
                           {doc.caseTitle || 'Standalone'}
                         </span>
                         <span className="text-[10px] text-ledger-gray-400 flex-shrink-0">
-                          {formatRelativeTime(doc.createdAt)}
+                          {formatRelativeTime(doc.updatedAt)}
                         </span>
                       </div>
                     </div>
@@ -281,7 +266,7 @@ export function DashboardHome() {
               <p className="text-xs text-ledger-gray-400 italic py-1">No cases yet.</p>
             ) : (
               <div className="space-y-1">
-                {recentCases.slice(0, 3).map(c => (
+                {recentCases.map(c => (
                   <div
                     key={c.id}
                     onClick={() => navigate(`/cases/${c.id}`)}
@@ -331,7 +316,7 @@ export function DashboardHome() {
               <p className="text-xs text-ledger-gray-400 italic py-1">No clients yet.</p>
             ) : (
               <div className="space-y-1">
-                {recentClients.slice(0, 3).map(cl => (
+                {recentClients.map(cl => (
                   <div
                     key={cl.id}
                     onClick={() => navigate(`/clients/${cl.id}`)}

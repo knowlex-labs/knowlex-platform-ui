@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Plus, Search, MoreVertical, FileText,
   Loader2, ExternalLink, Pencil, Trash2, Check, X,
-  AlertCircle, PanelLeft,
+  AlertCircle, PanelLeft, Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { workspaceApi } from '@/services/api/workspace-api'
@@ -42,25 +42,33 @@ function FileIconBadge({ name }: { name: string }) {
 }
 
 function IndexingDot({ status }: { status?: string | null }) {
-  const s = (status ?? '').toLowerCase()
-  if (s === 'indexing_running' || s === 'indexing_pending') {
-    return <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" />
-  }
-  if (s === 'indexing_failed') {
-    return <AlertCircle className="h-3 w-3 text-red-400 flex-shrink-0" />
-  }
+  const s = (status ?? '').toUpperCase()
+  if (s === 'INDEXING_RUNNING') return <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" title="Indexing" />
+  if (s === 'INDEXING_PENDING') return <span className="h-1.5 w-1.5 rounded-full bg-ledger-gray-400 flex-shrink-0" title="Pending" />
+  if (s === 'INDEXING_FAILED')  return <AlertCircle className="h-3 w-3 text-red-400 flex-shrink-0" aria-label="Index failed" />
   return null
 }
 
 // ─── Three-dots menu ──────────────────────────────────────────────────────────
 
+function statusLabel(indexingStatus?: string | null): { label: string; color: string } | null {
+  const s = (indexingStatus ?? '').toUpperCase()
+  if (s === 'INDEXING_RUNNING')   return { label: 'Indexing', color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/30' }
+  if (s === 'INDEXING_PENDING')   return { label: 'Pending', color: 'text-ledger-gray-500 bg-ledger-gray-100 dark:bg-ledger-gray-800' }
+  if (s === 'INDEXING_COMPLETED') return { label: 'Indexed', color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30' }
+  if (s === 'INDEXING_FAILED')    return { label: 'Index Failed', color: 'text-red-600 bg-red-50 dark:bg-red-950/30' }
+  return null
+}
+
 interface ItemMenuProps {
+  indexingStatus?: string | null
   onOpenInNewTab: () => void
   onRename: () => void
+  onReindex: () => void
   onDelete: () => void
 }
 
-function ItemMenu({ onOpenInNewTab, onRename, onDelete }: ItemMenuProps) {
+function ItemMenu({ indexingStatus, onOpenInNewTab, onRename, onReindex, onDelete }: ItemMenuProps) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -99,10 +107,20 @@ function ItemMenu({ onOpenInNewTab, onRename, onDelete }: ItemMenuProps) {
       {open && pos && (
         <div
           ref={menuRef}
-          className="fixed z-[9999] w-40 rounded-lg border border-nb-panel-border bg-nb-panel shadow-lg py-1"
+          className="fixed z-[9999] w-44 rounded-lg border border-nb-panel-border bg-nb-panel shadow-lg py-1"
           style={{ top: pos.top, left: pos.left }}
           onClick={e => e.stopPropagation()}
         >
+          {statusLabel(indexingStatus) && (() => {
+            const { label, color } = statusLabel(indexingStatus)!
+            return (
+              <div className="px-3 py-2 border-b border-nb-panel-border">
+                <span className={cn('inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide', color)}>
+                  {label}
+                </span>
+              </div>
+            )
+          })()}
           <button type="button" onClick={() => { setOpen(false); onOpenInNewTab() }}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
             <ExternalLink className="h-3.5 w-3.5 text-ledger-gray-400" /> Open in new tab
@@ -110,6 +128,10 @@ function ItemMenu({ onOpenInNewTab, onRename, onDelete }: ItemMenuProps) {
           <button type="button" onClick={() => { setOpen(false); onRename() }}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
             <Pencil className="h-3.5 w-3.5 text-ledger-gray-400" /> Rename
+          </button>
+          <button type="button" onClick={() => { setOpen(false); onReindex() }}
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
+            <Sparkles className="h-3.5 w-3.5 text-ledger-gray-400" /> Reindex
           </button>
           <button type="button" onClick={() => { setOpen(false); onDelete() }}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
@@ -172,6 +194,7 @@ interface WorkspaceSourcesPanelProps {
   sources: CaseDocument[]
   isSourcesLoading: boolean
   selectedSourceIds: Set<string>
+  caseId: string
   onAddSource: () => void
   onDeleteSource: (id: string) => Promise<void>
   onRenameDocument: (id: string, name: string) => Promise<void>
@@ -186,6 +209,7 @@ export function WorkspaceSourcesPanel({
   sources,
   isSourcesLoading,
   selectedSourceIds,
+  caseId,
   onAddSource,
   onDeleteSource,
   onRenameDocument,
@@ -327,8 +351,17 @@ export function WorkspaceSourcesPanel({
                   {!isRenaming && (
                     <>
                       <ItemMenu
+                        indexingStatus={doc.indexingStatus}
                         onOpenInNewTab={() => handleOpenInNewTab(doc)}
                         onRename={() => setRenamingId(doc.id)}
+                        onReindex={async () => {
+                          try {
+                            await workspaceApi.triggerIndexing(caseId, doc.id)
+                            toast({ title: 'Reindexing started' })
+                          } catch {
+                            toast({ title: 'Failed to reindex', variant: 'destructive' })
+                          }
+                        }}
                         onDelete={async () => { await onDeleteSource(doc.id) }}
                       />
                       <button

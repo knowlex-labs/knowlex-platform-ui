@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TagInput } from '@/components/admin/blog/tag-input'
 import { CoverImageUpload } from '@/components/admin/blog/cover-image-upload'
-import { MarkdownRenderer } from '@/components/ai-research/markdown-renderer'
+import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, Save } from 'lucide-react'
 

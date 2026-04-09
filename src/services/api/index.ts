@@ -15,8 +15,7 @@ export type {
   DashboardSummary,
   RecentCase,
   RecentClient,
-  RecentActivityItem,
-  ChartDataPoint as ChartDataPointApi,
-  ChartData as ChartDataApi,
+  RecentDocument,
+  RecentActivity,
   UpcomingHearing,
 } from './dashboard-api'
