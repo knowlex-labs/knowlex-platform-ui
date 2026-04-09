@@ -134,48 +134,19 @@ function formatClientDetails(c: Client): string {
 // ─── A4 skeleton used in preview pending state ────────────────────────────────
 function PreviewSkeleton() {
   return (
-    <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
-      <div className="sticky top-3 z-10 h-0 overflow-visible flex justify-center pointer-events-none">
-        <div className="flex items-center gap-2 bg-kx-primary-700/90 text-white text-xs px-4 py-1.5 rounded-full shadow-lg font-medium select-none backdrop-blur-sm">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-white/90" />
-          </span>
-          Generating draft — this usually takes 1–2 minutes
+    <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-5 text-center max-w-sm">
+        <div className="h-14 w-14 rounded-full bg-kx-primary-50 dark:bg-kx-primary-900/30 flex items-center justify-center">
+          <FileClock className="h-7 w-7 text-kx-primary-600 dark:text-kx-primary-400 animate-pulse" />
         </div>
-      </div>
-      <div className="bg-white mx-auto my-4 shadow-sm" style={{ width: 794, maxWidth: 'calc(100% - 48px)', minHeight: 900, padding: '72px 96px' }}>
-        <div className="flex flex-col items-center gap-3 mb-8">
-          <div className="h-4 w-48 rounded bg-ledger-gray-200 animate-pulse" />
-          <div className="h-4 w-64 rounded bg-ledger-gray-200 animate-pulse" />
-          <div className="h-px w-full bg-ledger-gray-200 mt-2" />
+        <div className="space-y-2">
+          <p className="text-base font-semibold text-ledger-gray-800 dark:text-ledger-gray-100">
+            Generating your draft
+          </p>
+          <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400">
+            This usually takes 1–2 minutes. You can navigate away and come back — your draft will be ready when you return.
+          </p>
         </div>
-        <div className="flex flex-col items-center gap-2 mb-8">
-          <div className="h-6 w-72 rounded bg-ledger-gray-300 animate-pulse" />
-          <div className="h-4 w-48 rounded bg-ledger-gray-200 animate-pulse" />
-        </div>
-        <div className="flex gap-8 mb-8">
-          <div className="flex-1 space-y-2">
-            {[20, 100, 75, 85].map((w, i) => (
-              <div key={i} className="h-4 rounded bg-ledger-gray-200 animate-pulse" style={{ width: `${w}%` }} />
-            ))}
-          </div>
-          <div className="w-px bg-ledger-gray-200" />
-          <div className="flex-1 space-y-2">
-            {[20, 100, 66, 83].map((w, i) => (
-              <div key={i} className="h-4 rounded bg-ledger-gray-200 animate-pulse" style={{ width: `${w}%` }} />
-            ))}
-          </div>
-        </div>
-        <div className="h-px w-full bg-ledger-gray-200 mb-8" />
-        {[[100, 88, 95, 75], [92, 100, 80, 88], [100, 72, 90, 85]].map((widths, i) => (
-          <div key={i} className="mb-6 space-y-2">
-            <div className="h-3.5 w-28 rounded bg-ledger-gray-300 animate-pulse mb-3" />
-            {widths.map((w, j) => (
-              <div key={j} className="h-3.5 rounded bg-ledger-gray-200 animate-pulse" style={{ width: `${w}%` }} />
-            ))}
-          </div>
-        ))}
       </div>
     </div>
   )

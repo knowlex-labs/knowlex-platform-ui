@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { Trash2, AlertCircle, RotateCw } from 'lucide-react'
+import { Trash2, AlertCircle, RotateCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
@@ -144,117 +144,32 @@ export function DraftPreviewTab({
   onDirtyChange,
   onRetry,
 }: DraftPreviewTabProps) {
-  // --- Pending state: A4 skeleton document ---
+  // --- Pending state ---
   if (draft.status === 'pending') {
     return (
       <div className="flex flex-col h-full">
         {/* Greyed-out toolbar placeholder */}
-        <div className="flex-shrink-0 h-9 border-b border-ledger-gray-200 border-ledger-gray-200 bg-nb-panel flex items-center px-3 gap-2 opacity-40 pointer-events-none select-none">
+        <div className="flex-shrink-0 h-9 border-b border-ledger-gray-200 bg-nb-panel flex items-center px-3 gap-2 opacity-40 pointer-events-none select-none">
           {[28, 28, 28, 16, 28, 28, 28, 16, 36, 16, 28, 28].map((w, i) => (
             <div key={i} className="h-4 rounded bg-ledger-gray-200 animate-pulse" style={{ width: w }} />
           ))}
         </div>
 
-        {/* Outer paper background */}
-        <div className="flex-1 overflow-auto bg-ledger-gray-100 relative">
-          {/* Floating status pill */}
-          <div className="sticky top-3 z-10 h-0 overflow-visible flex justify-center pointer-events-none">
-            <div className="flex items-center gap-2 bg-kx-primary-700/90 text-white text-xs px-4 py-1.5 rounded-full shadow-lg font-medium tracking-wide select-none backdrop-blur-sm">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white/90" />
-              </span>
-              Generating draft — this usually takes 1–2 minutes
+        <div className="flex-1 overflow-auto bg-ledger-gray-100 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-5 text-center max-w-sm">
+            <div className="h-14 w-14 rounded-full bg-kx-primary-50 dark:bg-kx-primary-900/30 flex items-center justify-center">
+              <Loader2 className="h-7 w-7 text-kx-primary-600 dark:text-kx-primary-400 animate-spin" />
             </div>
-          </div>
-
-          {/* A4 paper skeleton */}
-          <div
-            className="bg-white mx-auto my-4 shadow-sm"
-            style={{
-              width: '794px',
-              maxWidth: 'calc(100% - 48px)',
-              minHeight: '1122px',
-              padding: '96px 106px',
-            }}
-          >
-            {/* Case caption / court header */}
-            <div className="flex flex-col items-center gap-3 mb-10">
-              <div className="h-4 w-48 rounded bg-ledger-gray-200 animate-pulse" />
-              <div className="h-4 w-64 rounded bg-ledger-gray-200 animate-pulse" />
-              <div className="h-px w-full bg-ledger-gray-200 mt-2" />
-            </div>
-
-            {/* Document title */}
-            <div className="flex flex-col items-center gap-2 mb-8">
-              <div className="h-6 w-72 rounded bg-ledger-gray-300 animate-pulse" />
-              <div className="h-4 w-48 rounded bg-ledger-gray-200 animate-pulse" />
-            </div>
-
-            {/* Parties section */}
-            <div className="flex gap-8 mb-8">
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-20 rounded bg-ledger-gray-300 animate-pulse" />
-                <div className="h-4 w-full rounded bg-ledger-gray-200 animate-pulse" />
-                <div className="h-4 w-3/4 rounded bg-ledger-gray-200 animate-pulse" />
-                <div className="h-4 w-5/6 rounded bg-ledger-gray-200 animate-pulse" />
-              </div>
-              <div className="w-px bg-ledger-gray-200" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-20 rounded bg-ledger-gray-300 animate-pulse" />
-                <div className="h-4 w-full rounded bg-ledger-gray-200 animate-pulse" />
-                <div className="h-4 w-2/3 rounded bg-ledger-gray-200 animate-pulse" />
-                <div className="h-4 w-5/6 rounded bg-ledger-gray-200 animate-pulse" />
-              </div>
-            </div>
-
-            <div className="h-px w-full bg-ledger-gray-200 mb-8" />
-
-            {/* Body paragraphs */}
-            {[
-              [100, 88, 95, 75],
-              [92, 100, 80, 88, 60],
-              [100, 72, 90, 85, 95, 50],
-              [88, 100, 78, 92, 65],
-            ].map((widths, paraIdx) => (
-              <div key={paraIdx} className="mb-6 space-y-2">
-                <div className="h-3.5 w-28 rounded bg-ledger-gray-300 animate-pulse mb-3" />
-                {widths.map((w, lineIdx) => (
-                  <div
-                    key={lineIdx}
-                    className="h-3.5 rounded bg-ledger-gray-200 animate-pulse"
-                    style={{ width: `${w}%` }}
-                  />
-                ))}
-              </div>
-            ))}
-
-            {/* Prayer section */}
-            <div className="mt-10 space-y-2">
-              <div className="h-3.5 w-36 rounded bg-ledger-gray-300 animate-pulse mb-3" />
-              {[95, 80, 88, 70, 60].map((w, i) => (
-                <div
-                  key={i}
-                  className="h-3.5 rounded bg-ledger-gray-200 animate-pulse"
-                  style={{ width: `${w}%` }}
-                />
-              ))}
-            </div>
-
-            {/* Signature block */}
-            <div className="mt-16 flex justify-between">
-              <div className="space-y-2">
-                <div className="h-3.5 w-32 rounded bg-ledger-gray-200 animate-pulse" />
-                <div className="h-3.5 w-24 rounded bg-ledger-gray-200 animate-pulse" />
-              </div>
-              <div className="space-y-2">
-                <div className="h-3.5 w-32 rounded bg-ledger-gray-200 animate-pulse" />
-                <div className="h-3.5 w-24 rounded bg-ledger-gray-200 animate-pulse" />
-              </div>
+            <div className="space-y-2">
+              <p className="text-base font-semibold text-ledger-gray-800 dark:text-ledger-gray-100">
+                Generating your draft
+              </p>
+              <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400">
+                This usually takes 1–2 minutes. You can navigate away and come back — your draft will be ready when you return.
+              </p>
             </div>
           </div>
         </div>
-
       </div>
     )
   }
