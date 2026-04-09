@@ -64,12 +64,13 @@ export function useCauseLists(): UseCauseListsResult {
         size: DEFAULT_PAGE_SIZE,
       })
       const pageData = response.data
+      const meta = pageData.page ?? pageData
       setItems(pageData.content)
       setPagination({
-        page: pageData.number,
-        size: pageData.size,
-        totalElements: pageData.totalElements,
-        totalPages: pageData.totalPages,
+        page: meta.number ?? 0,
+        size: meta.size ?? 20,
+        totalElements: meta.totalElements ?? 0,
+        totalPages: meta.totalPages ?? 0,
       })
     } catch {
       setError('Failed to load cause lists. Please try again.')
