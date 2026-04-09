@@ -17,6 +17,7 @@ import { mapBackendClient } from '@/services/mappers'
 import { useCaseTypes } from '@/hooks/use-case-types'
 import { AddClientModal } from '@/components/clients/add-client-modal'
 import type { BackendCaseType, BackendCaseStatus } from '@/types'
+import { STATES, STATE_BENCH_MAP } from '@/lib/courts'
 
 interface AddCaseModalProps {
   open: boolean
@@ -181,77 +182,61 @@ export function AddCaseModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="caseNumber">Case Number</Label>
-              <Input
-                id="caseNumber"
-                name="caseNumber"
-                value={formData.caseNumber}
-                onChange={handleChange}
-                placeholder="e.g., CIV/2026/001"
+              <Label htmlFor="courtLocation">State</Label>
+              <Select
+                id="courtLocation"
+                name="courtLocation"
+                value={formData.courtLocation}
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, courtLocation: e.target.value, courtName: '' }))
+                  setError(null)
+                }}
                 disabled={isSubmitting}
-              />
+                searchable
+                searchPlaceholder="Search state..."
+              >
+                <option value="">Select state</option>
+                {STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="caseType">Case Type</Label>
+              <Label htmlFor="courtName">Bench</Label>
               <Select
-                id="caseType"
-                name="caseType"
-                value={formData.caseType}
+                id="courtName"
+                name="courtName"
+                value={formData.courtName}
                 onChange={handleChange}
-                disabled={isSubmitting}
+                disabled={isSubmitting || !formData.courtLocation}
                 searchable
-                searchPlaceholder="Search type..."
+                searchPlaceholder="Search bench..."
               >
-                <option value="">Select type</option>
-                {caseTypes.map((t) => (
-                  <option key={t.value} value={t.value}>{t.displayName}</option>
+                <option value="">Select bench</option>
+                {(STATE_BENCH_MAP[formData.courtLocation] ?? []).map((b) => (
+                  <option key={b} value={b}>{b}</option>
                 ))}
               </Select>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="caseStatus">Case Status</Label>
+            <Label htmlFor="caseType">Case Type</Label>
             <Select
-              id="caseStatus"
-              name="caseStatus"
-              value={formData.caseStatus}
+              id="caseType"
+              name="caseType"
+              value={formData.caseType}
               onChange={handleChange}
               disabled={isSubmitting}
+              searchable
+              searchPlaceholder="Search type..."
             >
-              <option value="PENDING">Pending</option>
-              <option value="ACTIVE">Active</option>
-              <option value="CLOSED">Closed</option>
-              <option value="APPEALED">Appealed</option>
-              <option value="BLOCKED">Blocked</option>
+              <option value="">Select type</option>
+              {caseTypes.map((t) => (
+                <option key={t.value} value={t.value}>{t.displayName}</option>
+              ))}
             </Select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="courtName">Court Name</Label>
-              <Input
-                id="courtName"
-                name="courtName"
-                value={formData.courtName}
-                onChange={handleChange}
-                placeholder="e.g., District Court"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="courtLocation">Court Location</Label>
-              <Input
-                id="courtLocation"
-                name="courtLocation"
-                value={formData.courtLocation}
-                onChange={handleChange}
-                placeholder="e.g., Mumbai"
-                disabled={isSubmitting}
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -275,6 +260,37 @@ export function AddCaseModal({
                 type="date"
                 value={formData.nextHearingDate}
                 onChange={handleChange}
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="caseStatus">Case Status</Label>
+              <Select
+                id="caseStatus"
+                name="caseStatus"
+                value={formData.caseStatus}
+                onChange={handleChange}
+                disabled={isSubmitting}
+              >
+                <option value="PENDING">Pending</option>
+                <option value="ACTIVE">Active</option>
+                <option value="CLOSED">Closed</option>
+                <option value="APPEALED">Appealed</option>
+                <option value="BLOCKED">Blocked</option>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="caseNumber">Case Number</Label>
+              <Input
+                id="caseNumber"
+                name="caseNumber"
+                value={formData.caseNumber}
+                onChange={handleChange}
+                placeholder="e.g., CIV/2026/001"
                 disabled={isSubmitting}
               />
             </div>

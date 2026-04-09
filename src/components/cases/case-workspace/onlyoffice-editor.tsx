@@ -72,38 +72,26 @@ export function OnlyOfficeEditor({ documentId, caseId, onClose }: OnlyOfficeEdit
           throw new Error('OnlyOffice SDK did not load correctly.')
         }
 
-        const userId = localStorage.getItem('auth_user_id') ?? 'user'
-        const userName = user
-          ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email
-          : 'User'
+        console.debug('[OnlyOffice] session response:', JSON.stringify(session, null, 2))
 
         editorRef.current = new window.DocsAPI.DocEditor('onlyoffice-editor-mount', {
+          token: session.onlyOfficeToken,
           document: {
             fileType: session.fileType,
             title: session.title,
             url: session.docxDownloadUrl,
             key: session.editSessionKey,
-            permissions: {
-              edit: true,
-              download: false,
-              print: false,
-            },
           },
           editorConfig: {
             callbackUrl: session.callbackUrl,
             mode: 'edit',
-            lang: 'en',
-            user: {
-              id: userId,
-              name: userName,
-            },
           },
           events: {
             onDocumentReady: () => {
               if (!cancelled) setStatus('ready')
             },
             onError: (event: { data: string }) => {
-              console.error('OnlyOffice error:', event.data)
+              console.error('OnlyOffice error:', JSON.stringify(event))
             },
             onRequestClose: handleClose,
           },

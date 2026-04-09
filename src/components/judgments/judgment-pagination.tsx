@@ -8,16 +8,18 @@ interface JudgmentPaginationProps {
     totalElements: number
     size: number
     onPageChange: (page: number) => void
+    label?: string
 }
 
 export function JudgmentPagination({
     page,
     totalPages,
-    totalElements,
-    size,
+    totalElements = 0,
+    size = 10,
     onPageChange,
+    label = 'judgments',
 }: JudgmentPaginationProps) {
-    if (totalPages <= 1) return null
+    if (!totalPages || totalPages <= 1) return null
 
     const startItem = page * size + 1
     const endItem = Math.min((page + 1) * size, totalElements)
@@ -45,7 +47,7 @@ export function JudgmentPagination({
                 <span className="font-medium text-kx-text-primary">{endItem.toLocaleString()}</span>
                 {' '}of{' '}
                 <span className="font-medium text-kx-text-primary">{totalElements.toLocaleString()}</span>
-                {' '}judgments
+                {' '}{label}
             </p>
 
             {/* Pagination buttons */}

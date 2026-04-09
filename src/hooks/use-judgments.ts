@@ -127,12 +127,13 @@ export function useJudgments(): UseJudgmentsResult {
                 sort: formatSort(currentSort),
             })
             const pageData = response.data
+            const meta = pageData.page ?? pageData
             setJudgments(pageData.content)
             setPagination({
-                page: pageData.number,
-                size: pageData.size,
-                totalElements: pageData.totalElements,
-                totalPages: pageData.totalPages,
+                page: meta.number ?? 0,
+                size: meta.size ?? 20,
+                totalElements: meta.totalElements ?? 0,
+                totalPages: meta.totalPages ?? 0,
             })
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to fetch judgments'

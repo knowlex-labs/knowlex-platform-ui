@@ -282,6 +282,7 @@ export interface EditSessionResponse {
   title: string
   fileType: string
   onlyOfficeServerUrl: string
+  onlyOfficeToken: string
 }
 
 export async function openEditSession(

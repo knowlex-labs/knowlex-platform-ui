@@ -30,6 +30,20 @@ function extractOptions(children: React.ReactNode): OptionData[] {
   return options
 }
 
+/**
+ * Find the nearest scrollable ancestor so we can close the dropdown when it scrolls
+ * (prevents the dropdown from staying in place while the trigger scrolls away).
+ */
+function getScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let node = el?.parentElement ?? null
+  while (node) {
+    const { overflow, overflowY } = getComputedStyle(node)
+    if (/auto|scroll/.test(overflow + overflowY)) return node
+    node = node.parentElement
+  }
+  return null
+}
+
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, children, value, onChange, disabled, id, name, searchable, searchPlaceholder, ...props }, ref) => {
     const [open, setOpen] = React.useState(false)
@@ -50,17 +64,15 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       ? options.filter((o) => o.label.toLowerCase().includes(search.toLowerCase()))
       : options
 
-    // Auto-scroll dropdown into view & focus search input when opened
+    // Focus search input when opened (use preventScroll to avoid parent scroll shift)
     React.useEffect(() => {
       if (!open) {
         setSearch('')
         return
       }
-      // Small delay to let the dropdown render
       requestAnimationFrame(() => {
-        dropdownRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
         if (searchable) {
-          searchInputRef.current?.focus()
+          searchInputRef.current?.focus({ preventScroll: true })
         }
       })
     }, [open, searchable])
@@ -85,6 +97,16 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       }
       document.addEventListener('keydown', handleKey)
       return () => document.removeEventListener('keydown', handleKey)
+    }, [open])
+
+    // Close when a scrollable ancestor scrolls (so dropdown doesn't float detached)
+    React.useEffect(() => {
+      if (!open) return
+      const scrollParent = getScrollParent(containerRef.current)
+      if (!scrollParent) return
+      const handleScroll = () => setOpen(false)
+      scrollParent.addEventListener('scroll', handleScroll, { passive: true })
+      return () => scrollParent.removeEventListener('scroll', handleScroll)
     }, [open])
 
     const handleSelect = (optionValue: string) => {

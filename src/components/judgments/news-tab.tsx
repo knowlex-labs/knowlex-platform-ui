@@ -139,6 +139,7 @@ export function NewsTab() {
                                 totalElements={pagination.totalElements}
                                 size={pagination.size}
                                 onPageChange={setPage}
+                                label="news"
                             />
                         </div>
                     )}

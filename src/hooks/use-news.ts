@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { newsApi } from '@/services/api/news-api'
 import type { NewsItem, NewsFilters } from '@/types'
 
-const DEFAULT_PAGE_SIZE = 20
+const DEFAULT_PAGE_SIZE = 21
 
 interface Pagination {
     page: number
@@ -53,14 +53,15 @@ export function useNews(): UseNewsResult {
                 size: DEFAULT_PAGE_SIZE,
             })
             const pageData = response.data
+            const meta = pageData.page ?? pageData
             setNewsItems(pageData.content)
             setPagination({
-                page: pageData.number,
-                size: pageData.size,
-                totalElements: pageData.totalElements,
-                totalPages: pageData.totalPages,
-                first: pageData.first,
-                last: pageData.last,
+                page: meta.number ?? 0,
+                size: meta.size ?? DEFAULT_PAGE_SIZE,
+                totalElements: meta.totalElements ?? 0,
+                totalPages: meta.totalPages ?? 0,
+                first: meta.first ?? (meta.number === 0),
+                last: meta.last ?? (meta.number === meta.totalPages - 1),
             })
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to fetch news'
