@@ -13,6 +13,7 @@ import { useCaseDocuments } from '@/hooks/use-case-sources'
 import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
 import { useSummary } from '@/hooks/use-summary'
+import { useSynopsis } from '@/hooks/use-synopsis'
 import { DraftChatPanel } from './draft-chat-panel'
 import { AddSourceModal } from './add-source-modal'
 import { OnlyOfficeEditor } from './onlyoffice-editor'
@@ -180,6 +181,14 @@ export function CaseWorkspace() {
     deleteSummary,
   } = useSummary(caseId)
 
+  const {
+    synopsis,
+    isLoading: isSynopsisLoading,
+    fetchSynopsis,
+    generateSynopsis,
+    deleteSynopsis,
+  } = useSynopsis(caseId)
+
   // ── Case data loading ──
   const refreshCaseData = useCallback(() => {
     caseApi.getById(caseId).then((response) => {
@@ -251,6 +260,21 @@ export function CaseWorkspace() {
     if (!existing || existing.status === 'failed') generateSummary()
   }
 
+  const handleGenerateSynopsis = async () => {
+    if (synopsis && synopsis.status !== 'failed') return
+    const existing = await fetchSynopsis()
+    if (!existing || existing.status === 'failed') generateSynopsis()
+  }
+
+  const handleDeleteSynopsis = async () => {
+    try {
+      await deleteSynopsis()
+      toast({ title: 'Synopsis deleted' })
+    } catch {
+      toast({ title: 'Failed to delete synopsis', variant: 'destructive' })
+    }
+  }
+
   const handleFindPrecedents = () => navigate('/ai-research')
 
   // ── Draft management ──
@@ -266,7 +290,6 @@ export function CaseWorkspace() {
   const handleRenameDraft = async (id: string, title: string) => {
     await renameDocument(id, title)
   }
-
 
   return (
     <div className="h-full flex flex-col bg-nb-separator overflow-hidden">
@@ -405,7 +428,7 @@ export function CaseWorkspace() {
                 />
               )}
             </div>
-            {/* Resize handle — positioned at right edge, sits in the gap, keeps same gap as right side */}
+            {/* Resize handle */}
             <div
               className="absolute top-0 right-0 w-0 h-full cursor-col-resize z-10"
               style={{ transform: 'translateX(50%)' }}
@@ -480,15 +503,18 @@ export function CaseWorkspace() {
             <CaseStudioPanel
               onClose={() => setStudioOpen(false)}
               onGenerateSummary={handleGenerateSummary}
+              onGenerateSynopsis={handleGenerateSynopsis}
               onSendToChat={(msg) => handleSendMessage(msg)}
               onFindPrecedents={handleFindPrecedents}
               sourceCount={sources.length}
               caseId={caseId}
               drafts={drafts}
               summary={isSummaryLoading ? null : summary}
+              synopsis={isSynopsisLoading ? null : synopsis}
               onDeleteDraft={handleDeleteDraft}
               onRenameDraft={handleRenameDraft}
               onDeleteSummary={deleteSummary}
+              onDeleteSynopsis={handleDeleteSynopsis}
             />
           </div>
         ) : (

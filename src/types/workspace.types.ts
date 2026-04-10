@@ -2,6 +2,7 @@ export enum DocumentType {
   USER_UPLOADED = 'USER_UPLOADED',
   DRAFT        = 'DRAFT',
   SUMMARY      = 'SUMMARY',
+  SYNOPSIS     = 'SYNOPSIS',
   JUDGMENT     = 'JUDGMENT',
   BRIEF        = 'BRIEF',
 }
@@ -10,6 +11,7 @@ export enum DocumentType {
 export const GENERATED_DOC_TYPES = new Set<DocumentType>([
   DocumentType.DRAFT,
   DocumentType.SUMMARY,
+  DocumentType.SYNOPSIS,
 ])
 
 export enum IndexingStatus {
@@ -157,10 +159,19 @@ export interface CaseSummary {
   updatedAt: Date
 }
 
+// Case synopsis
+export interface CaseSynopsis {
+  id: string
+  status: 'pending' | 'completed' | 'failed'
+  content: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 // IDE-like tab system for workspace
 export interface WorkspaceTabItem {
   id: string
-  type: 'chat' | 'draft' | 'summary' | 'source' | 'judgment'
+  type: 'chat' | 'draft' | 'summary' | 'synopsis' | 'source' | 'judgment'
   label: string
   draftId?: string
   sourceId?: string
