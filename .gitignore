@@ -39,3 +39,7 @@ coverage/
 
 # Vite
 .vite/
+
+# Local git backup
+.git_disabled/
+.git_temp_backup/
