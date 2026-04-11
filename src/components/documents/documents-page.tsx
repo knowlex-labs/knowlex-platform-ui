@@ -264,7 +264,11 @@ function DocumentViewer({
   const Icon = meta.icon
   const isTextual = GENERATED_DOC_TYPES.has(doc.type)
   const isPdf = doc.fileType === 'PDF'
-  const isImage = !isPdf && /\.(png|jpe?g)$/i.test(doc.name)
+  const IMAGE_TYPES = new Set(['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'IMAGE'])
+  const isImage = !isPdf && (
+    IMAGE_TYPES.has((doc.fileType ?? '').toUpperCase()) ||
+    /\.(png|jpe?g|gif|webp)$/i.test(doc.originalFilename ?? doc.name)
+  )
   const isDraft = doc.type === DocumentType.DRAFT
   const isSummary = doc.type === DocumentType.SUMMARY
   const isMarkdownOrText = doc.type === DocumentType.USER_UPLOADED && /\.(md|txt)$/i.test(displayName)
@@ -303,6 +307,34 @@ function DocumentViewer({
         } else if (isTextual) {
           const text = await workspaceApi.fetchDocumentContent({ id: doc.id, signedUrl: doc.storageUrl, downloadUrl: doc.downloadUrl })
           if (!cancelled) setTextContent(text)
+        } else if (isImage) {
+          // For images: use S3 signed URL directly if available (avoids MIME mismatch),
+          // otherwise fetch and re-wrap blob with explicit image/* type so <img> renders inline.
+          if (doc.storageUrl) {
+            if (!cancelled) setBlobUrl(doc.storageUrl)
+          } else {
+            const ft = (doc.fileType ?? '').toUpperCase()
+            const mime = ft === 'PNG' ? 'image/png'
+              : ft === 'JPEG' || ft === 'JPG' ? 'image/jpeg'
+              : ft === 'GIF' ? 'image/gif'
+              : ft === 'WEBP' ? 'image/webp'
+              : 'image/jpeg'
+            const token = localStorage.getItem('auth_token')
+            const userId = localStorage.getItem('auth_user_id')
+            const headers: Record<string, string> = {}
+            if (token) headers['Authorization'] = `Bearer ${token}`
+            if (userId) headers['x-user-id'] = userId
+            const endpoint = doc.downloadUrl
+              ? `${config.apiBaseUrl}${doc.downloadUrl}`
+              : `${config.apiBaseUrl}/api/v1/documents/${doc.id}/download`
+            const res = await fetch(endpoint, { headers })
+            if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`)
+            const rawBlob = await res.blob()
+            const typed = rawBlob.type && rawBlob.type !== 'application/octet-stream'
+              ? rawBlob
+              : new Blob([rawBlob], { type: mime })
+            if (!cancelled) setBlobUrl(URL.createObjectURL(typed))
+          }
         } else {
           const url = await workspaceApi.resolveDocumentUrl({ id: doc.id, downloadUrl: doc.downloadUrl, signedUrl: doc.storageUrl })
           if (!cancelled) setBlobUrl(url)
@@ -1139,15 +1171,33 @@ export function DocumentsPage() {
           </div>
         </div>
       ) : (
-        <div
-          className="w-7 flex-shrink-0 border-l border-kx-card-border bg-kx-surface flex items-center justify-center cursor-pointer hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 transition-colors group"
-          onClick={() => setToolsPanelOpen(true)}
-          title="Open Tools"
-        >
-          <span className="text-[9px] font-medium uppercase tracking-widest text-ledger-gray-300 group-hover:text-ledger-gray-500 select-none transition-colors"
-            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
-            Tools
-          </span>
+        <div className="w-14 flex-shrink-0 border-l border-kx-card-border bg-kx-surface flex flex-col items-center py-3 gap-1.5">
+          <button
+            type="button"
+            onClick={() => setToolsPanelOpen(true)}
+            title="Open Tools"
+            className="h-8 w-8 flex items-center justify-center rounded-lg border border-kx-primary-300 bg-kx-primary-50 text-kx-primary-600 hover:bg-kx-primary-100 transition-colors flex-shrink-0"
+          >
+            <PanelRight className="h-4 w-4" />
+          </button>
+          {TOOLS.map(tool => {
+            const Icon = tool.icon
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                onClick={() => { setToolsPanelOpen(true); handleToolClick(tool.id) }}
+                title={tool.label}
+                className={cn(
+                  'h-8 w-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0',
+                  tool.iconBg,
+                  'hover:opacity-80'
+                )}
+              >
+                <Icon className={cn('h-4 w-4', tool.iconColor)} />
+              </button>
+            )
+          })}
         </div>
       )}
 
