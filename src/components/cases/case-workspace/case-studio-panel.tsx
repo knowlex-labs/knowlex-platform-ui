@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
-import type { Draft, CaseSummary } from '@/types'
+import type { Draft, CaseSummary, CaseSynopsis } from '@/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -230,25 +230,31 @@ function ToolCard({ icon: Icon, iconColor, iconBg, title, locked, onClick }: Too
 interface CaseStudioPanelProps {
   onClose: () => void
   onGenerateSummary: () => void
+  onGenerateSynopsis: () => void
   onSendToChat: (message: string) => void
   onFindPrecedents: () => void
   sourceCount: number
   caseId: string
   drafts: Draft[]
   summary: CaseSummary | null
+  synopsis: CaseSynopsis | null
   onDeleteDraft: (id: string) => void
   onRenameDraft: (id: string, title: string) => Promise<void>
   onDeleteSummary?: () => void
+  onDeleteSynopsis: () => void
 }
 
 export function CaseStudioPanel({
   onClose,
   onGenerateSummary,
+  onGenerateSynopsis,
   drafts,
   summary,
+  synopsis,
   onDeleteDraft,
   onRenameDraft,
   onDeleteSummary,
+  onDeleteSynopsis,
 }: CaseStudioPanelProps) {
   const navigate = useNavigate()
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -282,6 +288,12 @@ export function CaseStudioPanel({
     }
   }
 
+  const handleOpenSynopsis = () => {
+    if (!synopsis || synopsis.status !== 'completed') return
+    const html = renderDraftToHtml(synopsis.content)
+    setPreviewDoc({ title: 'Case Synopsis', html })
+  }
+
   const tools: (ToolCardProps & { key: string })[] = [
     {
       key: 'summary',
@@ -297,7 +309,7 @@ export function CaseStudioPanel({
       iconColor: 'text-teal-600',
       iconBg: 'bg-teal-50 dark:bg-teal-950/40',
       title: 'Synopsis',
-      locked: true,
+      onClick: onGenerateSynopsis,
     },
     {
       key: 'timeline',
@@ -333,7 +345,7 @@ export function CaseStudioPanel({
     },
   ]
 
-  const generatedCount = drafts.length + (summary ? 1 : 0)
+  const generatedCount = drafts.length + (summary ? 1 : 0) + (synopsis ? 1 : 0)
 
   const handleOpenDraft = (draft: Draft) => {
     if (draft.status !== 'completed') return
@@ -427,6 +439,41 @@ export function CaseStudioPanel({
                     onDownloadPdf={summary.status === 'completed' ? handleDownloadSummaryPdf : undefined}
                   />
                 )}
+              </div>
+            )}
+
+            {/* Synopsis */}
+            {synopsis && (
+              <div
+                className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-colors cursor-pointer"
+                onDoubleClick={handleOpenSynopsis}
+              >
+                <div className="flex-shrink-0 h-7 w-7 rounded-md bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center">
+                  <BookOpen className="h-3.5 w-3.5 text-teal-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">Case Synopsis</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {synopsis.status === 'pending' && (
+                      <span className="flex items-center gap-1 text-[10px] text-teal-600">
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                        Generating...
+                      </span>
+                    )}
+                    {synopsis.status === 'failed' && (
+                      <span className="flex items-center gap-1 text-[10px] text-red-500">
+                        <AlertCircle className="h-2.5 w-2.5" />
+                        Failed
+                      </span>
+                    )}
+                    {synopsis.status === 'completed' && (
+                      <span className="text-[10px] text-ledger-gray-500">
+                        {formatRelativeTime(synopsis.createdAt)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <GeneratedItemMenu onDelete={onDeleteSynopsis} />
               </div>
             )}
 
