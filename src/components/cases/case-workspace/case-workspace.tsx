@@ -177,6 +177,7 @@ export function CaseWorkspace() {
     isLoading: isSummaryLoading,
     fetchSummary,
     generateSummary,
+    deleteSummary,
   } = useSummary(caseId)
 
   // ── Case data loading ──
@@ -487,6 +488,7 @@ export function CaseWorkspace() {
               summary={isSummaryLoading ? null : summary}
               onDeleteDraft={handleDeleteDraft}
               onRenameDraft={handleRenameDraft}
+              onDeleteSummary={deleteSummary}
             />
           </div>
         ) : (

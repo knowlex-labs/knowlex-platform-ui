@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Upload, Scissors, Minimize2, Layers,
-  FileText, File, Download, FolderInput,
-  Trash2, Loader2, PenLine, Languages, Scale,
-  BookOpen, X, Search, SlidersHorizontal, Settings2,
-  ChevronLeft, ChevronRight, AlertCircle,
+  FileText, File, Download,
+  Loader2, PenLine, Languages, Scale,
+  BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2,
+  AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
+  ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -18,12 +19,13 @@ import {
   uploadToolboxFile,
   downloadDocument,
   triggerDirectDownload,
+  linkDocumentToCase,
   type DocumentRecordType,
 } from '@/services/api/doc-processing-api'
 import { workspaceApi } from '@/services/api/workspace-api'
 import { config } from '@/config/env'
 import { caseApi } from '@/services/api/case-api'
-import { apiClient, ApiError } from '@/services/api/api-client'
+import { ApiError } from '@/services/api/api-client'
 import { OnlyOfficeEditor } from '@/components/cases/case-workspace/onlyoffice-editor'
 import { toast } from '@/hooks/use-toast'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
@@ -34,8 +36,6 @@ import { MergerDialog } from '@/components/toolbox/merger-dialog'
 import { ConverterDialog } from '@/components/toolbox/converter-dialog'
 import { CompressorDialog } from '@/components/toolbox/compressor-dialog'
 import { TranslationDialog } from '@/components/toolbox/translation-dialog'
-import { AssignCaseDialog } from './assign-case-dialog'
-import { useUIState } from '@/contexts/ui-context'
 import { useSearchParams } from 'react-router-dom'
 import type {
   DocumentRecord,
@@ -46,15 +46,13 @@ import { DocumentType, JobStatus, GENERATED_DOC_TYPES } from '@/types'
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ActiveToolId = null | 'split' | 'merge' | 'convert' | 'compress' | 'translation'
-type DocRowAction = 'download' | 'assign' | 'split' | 'convert' | 'compress' | 'translate' | 'delete'
-
 interface ToolContext {
   id: ActiveToolId
   initialDoc?: ProcessedDocumentInfo
   initialDocs?: ProcessedDocumentInfo[]
 }
 
-const PAGE_SIZE = 20
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,15 +66,6 @@ function formatDate(dateStr: string | null | undefined) {
 }
 
 
-function toProcessedDoc(doc: DocumentRecord): ProcessedDocumentInfo {
-  return {
-    id: doc.id,
-    fileName: doc.originalFilename || doc.name,
-    fileSize: doc.fileSize ?? 0,
-    pageCount: 0,
-    downloadUrl: doc.downloadUrl ?? undefined,
-  }
-}
 
 // ─── File icon ────────────────────────────────────────────────────────────────
 
@@ -110,140 +99,153 @@ const TYPE_META: Record<DocumentType, {
 
 // ─── Tools config ─────────────────────────────────────────────────────────────
 
-const TOOLS: { id: Exclude<ActiveToolId, null>; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'merge',       label: 'Merge',     icon: Layers },
-  { id: 'split',       label: 'Split',     icon: Scissors },
-  { id: 'translation', label: 'Translate', icon: Languages },
-  { id: 'compress',    label: 'Compress',  icon: Minimize2 },
-  { id: 'convert',     label: 'Convert',   icon: BookOpen },
+const TOOLS: {
+  id: Exclude<ActiveToolId, null>
+  label: string
+  description: string
+  icon: React.ComponentType<{ className?: string }>
+  iconColor: string
+  iconBg: string
+}[] = [
+  { id: 'merge',       label: 'Merge',     description: 'Combine multiple PDFs',    icon: Layers,    iconColor: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/40' },
+  { id: 'split',       label: 'Split',     description: 'Split a PDF into parts',   icon: Scissors,  iconColor: 'text-violet-600',  iconBg: 'bg-violet-50 dark:bg-violet-950/40' },
+  { id: 'translation', label: 'Translate', description: 'Translate document text',  icon: Languages, iconColor: 'text-teal-600',    iconBg: 'bg-teal-50 dark:bg-teal-950/40' },
+  { id: 'compress',    label: 'Compress',  description: 'Reduce file size',         icon: Minimize2, iconColor: 'text-orange-600',  iconBg: 'bg-orange-50 dark:bg-orange-950/40' },
+  { id: 'convert',     label: 'Convert',   description: 'Convert to another format',icon: BookOpen,  iconColor: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40' },
 ]
 
 // ─── DocTableRow ──────────────────────────────────────────────────────────────
 
 function DocTableRow({
-  doc, selected, onSelect, onAction: _onAction, checked, onCheck, compact,
+  doc, selected, checked, onSelect, onCheck, onDelete, onAssignToCase,
 }: {
   doc: DocumentRecord
   selected: boolean
-  onSelect: () => void
-  onAction: (action: DocRowAction) => void
   checked: boolean
-  onCheck: (checked: boolean) => void
-  compact?: boolean
+  onSelect: () => void
+  onCheck: (e: React.MouseEvent) => void
+  onDelete: () => void
+  onAssignToCase: () => void
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
   const displayName = doc.originalFilename || doc.name
-  const caseLabel = doc.caseTitle
-  const isStandalone = !doc.caseId
+  const meta = TYPE_META[doc.type]
   const isGenerating = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.PROCESSING
   const isGenFailed   = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.FAILED
+  const isUnassigned  = !doc.caseId
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handle(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [menuOpen])
 
   return (
-    <div
+    <tr
       onClick={onSelect}
       className={cn(
-        'group grid items-center gap-4 px-4 py-3 border-b border-ledger-gray-100 dark:border-ledger-gray-800',
-        'cursor-pointer transition-colors last:border-0',
-        compact
-          ? 'grid-cols-[20px_36px_1fr_28px]'
-          : 'grid-cols-[28px_40px_1fr_100px_180px_130px]',
-        selected
+        'cursor-pointer transition-all duration-150 group bg-kx-card',
+        'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-50',
+        selected || checked
           ? 'bg-kx-primary-50 dark:bg-kx-primary-950/20 border-l-2 border-l-kx-primary-500'
-          : checked
-            ? 'bg-kx-primary-50/50'
-            : 'hover:bg-ledger-gray-50/70 dark:hover:bg-ledger-gray-800/40'
+          : 'border-l-2 border-l-transparent hover:border-l-kx-primary-500'
       )}
     >
       {/* Checkbox */}
-      <div onClick={e => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={() => onCheck(!checked)}
-          className={cn(
-            'h-4 w-4 rounded border flex items-center justify-center transition-colors flex-shrink-0',
-            checked
-              ? 'bg-kx-primary-600 border-kx-primary-600 text-white'
-              : 'border-ledger-gray-300 dark:border-ledger-gray-600 hover:border-kx-primary-400'
-          )}
-        >
-          {checked && (
-            <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
-              <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </button>
-      </div>
-
-      {/* File icon */}
-      <FileIcon fileType={doc.fileType} />
-
+      <td className="pl-4 pr-2 py-3 w-10 align-middle" onClick={onCheck}>
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => {}}
+          className="h-4 w-4 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-400 cursor-pointer"
+        />
+      </td>
       {/* Name */}
-      <div className="min-w-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="truncate text-sm font-medium text-kx-text-primary leading-none">
-            {displayName}
-          </span>
-          {isGenerating && (
-            <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-kx-primary-600 bg-kx-primary-50 dark:bg-kx-primary-950/40 dark:text-kx-primary-400 px-1.5 py-0.5 rounded-full">
-              <span className="h-1.5 w-1.5 rounded-full bg-kx-primary-500 animate-pulse" />
-              Generating
-            </span>
-          )}
-          {isGenFailed && (
-            <span className="flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-red-600 bg-red-50 dark:bg-red-950/40 dark:text-red-400 px-1.5 py-0.5 rounded-full">
-              Failed
-            </span>
-          )}
-        </div>
-        {compact && caseLabel && (
-          <span className="text-[11px] text-ledger-gray-400 truncate block mt-0.5">{caseLabel}</span>
-        )}
-      </div>
-
-      {!compact && (
-        <>
-          {/* Type badge */}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <FileIcon fileType={doc.fileType} className="flex-shrink-0" />
           <div className="min-w-0">
-            {(() => {
-              const meta = TYPE_META[doc.type]
-              return (
-                <span className={cn('inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full', meta.className)}>
-                  <meta.icon className="h-2.5 w-2.5" />
-                  {meta.label}
-                </span>
-              )
-            })()}
-          </div>
-
-          {/* Case badge */}
-          <div className="min-w-0">
-            {isStandalone ? (
-              <span className="text-xs text-ledger-gray-400 italic">Standalone</span>
-            ) : (
-              <span className="inline-block truncate max-w-full text-xs px-2 py-0.5 rounded bg-ledger-gray-100 dark:bg-ledger-gray-800 text-ledger-gray-600 dark:text-ledger-gray-300">
-                {caseLabel}
+            <p className={cn(
+              'text-sm font-medium truncate max-w-xs',
+              selected || checked ? 'text-kx-primary-900 dark:text-kx-primary-100' : 'text-kx-text-primary'
+            )}>
+              {displayName}
+            </p>
+            {isGenerating && (
+              <span className="flex items-center gap-1 text-[10px] text-kx-primary-600 mt-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-kx-primary-500 animate-pulse" />
+                Generating
               </span>
             )}
+            {isGenFailed && <span className="text-[10px] text-red-500 mt-0.5 block">Failed</span>}
           </div>
-
-          {/* Date */}
-          <span className="text-sm text-ledger-gray-400 tabular-nums">
-            {formatDate(doc.createdAt)}
-          </span>
-
-        </>
-      )}
-    </div>
+        </div>
+      </td>
+      {/* Type */}
+      <td className="px-4 py-3">
+        <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap', meta.className)}>
+          {meta.label}
+        </span>
+      </td>
+      {/* Case */}
+      <td className="px-4 py-3 text-sm text-kx-text-secondary max-w-[160px] truncate">
+        {doc.caseTitle ?? <span className="text-ledger-gray-300">—</span>}
+      </td>
+      {/* Date */}
+      <td className="px-4 py-3 text-xs text-ledger-gray-400 whitespace-nowrap tabular-nums">
+        {formatDate(doc.createdAt)}
+      </td>
+      {/* Three-dot actions */}
+      <td className="pr-3 py-3 w-10 align-middle" onClick={e => e.stopPropagation()}>
+        <div className="relative flex justify-center" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(o => !o)}
+            className="h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-8 z-50 min-w-[160px] rounded-lg border border-kx-card-border bg-kx-card shadow-lg py-1">
+              {isUnassigned && (
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onAssignToCase() }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800 transition-colors"
+                >
+                  <Link2 className="h-3.5 w-3.5 text-ledger-gray-400" />
+                  Assign to case
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => { setMenuOpen(false); onDelete() }}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
   )
 }
 
 // ─── DocumentViewer ───────────────────────────────────────────────────────────
 
 function DocumentViewer({
-  doc, onClose, onOpenTool: _onOpenTool,
+  doc, onClose, onOpenTool: _onOpenTool, autoEdit = false,
 }: {
   doc: DocumentRecord
   onClose: () => void
   onOpenTool: (id: ActiveToolId, ctx?: Omit<ToolContext, 'id'>) => void
+  autoEdit?: boolean
 }) {
   const [viewerMode, setViewerMode] = useState<'view' | 'text-edit'>('view')
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
@@ -264,6 +266,7 @@ function DocumentViewer({
   const isPdf = doc.fileType === 'PDF'
   const isImage = !isPdf && /\.(png|jpe?g)$/i.test(doc.name)
   const isDraft = doc.type === DocumentType.DRAFT
+  const isSummary = doc.type === DocumentType.SUMMARY
   const isMarkdownOrText = doc.type === DocumentType.USER_UPLOADED && /\.(md|txt)$/i.test(displayName)
 
   const canDownload = !!(doc.downloadUrl || doc.storageUrl)
@@ -318,7 +321,7 @@ function DocumentViewer({
 
   // Populate contentEditable after it mounts (viewerMode === 'text-edit' renders the div)
   useEffect(() => {
-    if (viewerMode === 'text-edit' && isDraft && editorRef.current && textContent) {
+    if (viewerMode === 'text-edit' && (isDraft || isSummary) && editorRef.current && textContent) {
       editorRef.current.innerHTML = renderDraftToHtml(textContent)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -328,12 +331,20 @@ function DocumentViewer({
     if (isMarkdownOrText && textContent !== null) {
       setRawTextEdit(textContent)
       setViewerMode('text-edit')
-    } else if (isDraft && textContent !== null) {
+    } else if ((isDraft || isSummary) && textContent !== null) {
       setViewerMode('text-edit')
     } else {
       setOnlyOfficeOpen(true)
     }
   }
+
+  // Auto-enter edit mode when navigated here with ?edit=true
+  useEffect(() => {
+    if (autoEdit && !isLoadingContent && (isDraft || isSummary) && textContent !== null) {
+      setViewerMode('text-edit')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoEdit, isLoadingContent, textContent])
 
   const handleSave = async () => {
     setIsSaving(true)
@@ -379,15 +390,21 @@ function DocumentViewer({
   }
 
   return (
-    <div className="flex flex-col h-full border-l border-kx-card-border">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-kx-card-border flex-shrink-0">
-        <button type="button" onClick={onClose} className="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors">
-          <X className="h-4 w-4" />
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-kx-card-border flex-shrink-0 bg-kx-card">
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors font-medium"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Documents
         </button>
-        <FileIcon fileType={doc.fileType} className="h-6 w-6 text-xs" />
+        <span className="text-ledger-gray-300 text-sm flex-shrink-0">/</span>
+        <FileIcon fileType={doc.fileType} className="h-6 w-6 text-xs flex-shrink-0" />
         <span className="flex-1 min-w-0 text-sm font-medium text-kx-text-primary truncate">{displayName}</span>
-        <span className={cn('flex-shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase tracking-wide', meta.className)}>
+        <span className={cn('flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide', meta.className)}>
           {meta.label}
         </span>
         {doc.type === DocumentType.USER_UPLOADED && isMarkdownOrText && viewerMode === 'view' && (
@@ -396,13 +413,13 @@ function DocumentViewer({
           </Button>
         )}
         {canDownload && viewerMode === 'view' && (
-          <button type="button" onClick={handleDownload} title="Download" className="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors">
+          <button type="button" onClick={handleDownload} title="Download" className="flex-shrink-0 h-7 w-7 flex items-center justify-center rounded-lg text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors">
             <Download className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {isDraft && (
+      {(isDraft || isSummary) && (
         <FormattingToolbar
           isEditing={viewerMode === 'text-edit'} onEdit={handleEdit} onSave={handleSave} onCancel={handleCancelEdit}
           onBold={formatting.handleBold} onItalic={formatting.handleItalic} onUnderline={formatting.handleUnderline}
@@ -474,9 +491,13 @@ function DocumentViewer({
             </div>
           )
         ) : isMarkdownOrText && textContent !== null ? (
-          <pre className="w-full h-full overflow-auto p-6 text-sm text-kx-text-primary font-mono whitespace-pre-wrap break-words leading-relaxed">
-            {textContent}
-          </pre>
+          <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
+            <div
+              className="legal-document bg-white mx-auto my-4 shadow-sm"
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+              dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }}
+            />
+          </div>
         ) : isTextual && textContent !== null ? (
           <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
             <div
@@ -635,26 +656,40 @@ export function DocumentsPage() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [typeFilters, setTypeFilters] = useState<Set<DocumentRecordType>>(new Set())
-  const [typeFilterOpen, setTypeFilterOpen] = useState(false)
-  const typeFilterRef = useRef<HTMLDivElement>(null)
   const [caseFilter, setCaseFilter] = useState('') // '' = all, 'standalone' = unlinked, uuid = specific case
   const [sort, setSort] = useState('createdAt,desc')
   const [page, setPage] = useState(0) // 0-based
+  const [pageSize, setPageSize] = useState(20)
 
   // Cases for dropdown
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
 
-  // Multi-select
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [assignDialog, setAssignDialog] = useState<{ open: boolean; doc: DocumentRecord | null }>({ open: false, doc: null })
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [assignDocId, setAssignDocId] = useState<string | null>(null)
+  const [assignCaseId, setAssignCaseId] = useState('')
+  const [isAssigning, setIsAssigning] = useState(false)
 
-  const { setSidebarCollapsed } = useUIState()
-  const prevSidebarCollapsedRef = useRef<boolean | null>(null)
+  const [toolsPanelOpen, setToolsPanelOpen] = useState(true)
+  const prevToolsPanelOpenRef = useRef<boolean>(true)
+
   const [searchParams] = useSearchParams()
   const openDocId = searchParams.get('open')
+  const autoEditParam = searchParams.get('edit') === 'true'
 
   const selectedDoc = allDocs.find(d => d.id === selectedDocId) ?? null
-  const viewerOpen = selectedDocId !== null && toolCtx.id === null
+  const viewerOpen = selectedDocId !== null
+
+  // Auto-collapse tools panel when a doc is selected, restore when deselected
+  useEffect(() => {
+    if (selectedDocId !== null) {
+      prevToolsPanelOpenRef.current = toolsPanelOpen
+      setToolsPanelOpen(false)
+    } else {
+      setToolsPanelOpen(prevToolsPanelOpenRef.current)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDocId])
 
   // Debounce search input
   useEffect(() => {
@@ -670,18 +705,6 @@ export function DocumentsPage() {
     }).catch(() => {})
   }, [])
 
-  // Auto-collapse sidebar when viewer opens
-  useEffect(() => {
-    if (viewerOpen) {
-      if (prevSidebarCollapsedRef.current === null) prevSidebarCollapsedRef.current = false
-      setSidebarCollapsed(true)
-    } else if (prevSidebarCollapsedRef.current !== null) {
-      setSidebarCollapsed(prevSidebarCollapsedRef.current)
-      prevSidebarCollapsedRef.current = null
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewerOpen])
-
   const fetchDocs = useCallback(async () => {
     setIsLoading(true)
     setError(null)
@@ -690,7 +713,7 @@ export function DocumentsPage() {
       const caseId = caseFilter && caseFilter !== 'standalone' ? caseFilter : undefined
       const { documents, total: t, totalPages: tp } = await listAllDocuments({
         page,
-        size: PAGE_SIZE,
+        size: pageSize,
         type: typeFilters.size === 1 ? Array.from(typeFilters)[0] : undefined,
         caseId,
         linked,
@@ -705,7 +728,7 @@ export function DocumentsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [page, typeFilters, caseFilter, debouncedSearch, sort])
+  }, [page, pageSize, typeFilters, caseFilter, debouncedSearch, sort])
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
@@ -716,384 +739,417 @@ export function DocumentsPage() {
     }
   }, [openDocId, allDocs, selectedDocId])
 
-  // Reset page when filters change
-  useEffect(() => { setPage(0) }, [typeFilters, caseFilter, sort])
+  // Reset page when filters or page size change
+  useEffect(() => { setPage(0) }, [typeFilters, caseFilter, sort, pageSize])
 
-  // Close type filter dropdown on outside click
-  useEffect(() => {
-    if (!typeFilterOpen) return
-    const handler = (e: MouseEvent) => {
-      if (typeFilterRef.current && !typeFilterRef.current.contains(e.target as Node)) setTypeFilterOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [typeFilterOpen])
-
-  const toggleTypeFilter = (type: DocumentRecordType) => {
-    setTypeFilters(prev => {
-      const next = new Set(prev)
-      next.has(type) ? next.delete(type) : next.add(type)
-      return next
+  const handleSort = (field: string) => {
+    setSort(prev => {
+      const [prevField, prevDir] = prev.split(',')
+      if (prevField === field) return `${field},${prevDir === 'desc' ? 'asc' : 'desc'}`
+      return `${field},desc`
     })
     setPage(0)
   }
 
-  const handleSort = (field: string) => {
-    const [currentField, currentDir] = sort.split(',')
-    if (currentField === field) {
-      setSort(`${field},${currentDir === 'asc' ? 'desc' : 'asc'}`)
-    } else {
-      setSort(`${field},asc`)
-    }
-    setPage(0)
-  }
-
-  const sortField = sort.split(',')[0]
-  const sortDir = sort.split(',')[1] as 'asc' | 'desc'
-
-  const toggleDocCheck = (docId: string, checked: boolean) => {
-    setSelectedIds(prev => { const next = new Set(prev); checked ? next.add(docId) : next.delete(docId); return next })
-  }
-  const toggleSelectAll = () => {
-    setSelectedIds(prev => prev.size === allDocs.length && allDocs.length > 0 ? new Set() : new Set(allDocs.map(d => d.id)))
-  }
-  const clearSelection = () => setSelectedIds(new Set())
-  const selectedPdfs = allDocs.filter(d => selectedIds.has(d.id) && d.fileType === 'PDF')
-
-  const handleBulkDelete = async () => {
-    const ids = Array.from(selectedIds)
+  const handleDeleteDocs = async (ids: string[]) => {
+    setIsDeleting(true)
     try {
       await workspaceApi.batchDeleteDocuments(ids)
-      toast({ title: `${ids.length} document${ids.length > 1 ? 's' : ''} deleted` })
-      clearSelection()
+      toast({ title: `${ids.length} document${ids.length !== 1 ? 's' : ''} deleted` })
+      setCheckedIds(new Set())
+      if (ids.includes(selectedDocId ?? '')) setSelectedDocId(null)
       fetchDocs()
-    } catch { toast({ title: 'Delete failed', variant: 'destructive' }) }
+    } catch (e) {
+      toast({ title: 'Delete failed', description: e instanceof Error ? e.message : 'Try again', variant: 'destructive' })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
-  const openTool = (id: ActiveToolId, ctx?: Omit<ToolContext, 'id'>) => { setSelectedDocId(null); setToolCtx({ id, ...ctx }) }
+  const toggleCheck = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setCheckedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const allChecked = allDocs.length > 0 && allDocs.every(d => checkedIds.has(d.id))
+  const someChecked = allDocs.some(d => checkedIds.has(d.id))
+
+  const toggleAll = () => {
+    if (allChecked) {
+      setCheckedIds(new Set())
+    } else {
+      setCheckedIds(new Set(allDocs.map(d => d.id)))
+    }
+  }
+
+  const handleAssignToCase = async () => {
+    if (!assignDocId || !assignCaseId) return
+    setIsAssigning(true)
+    try {
+      await linkDocumentToCase(assignDocId, assignCaseId)
+      toast({ title: 'Document assigned to case' })
+      setAssignDocId(null)
+      setAssignCaseId('')
+      fetchDocs()
+    } catch (e) {
+      toast({ title: 'Failed to assign', description: e instanceof Error ? e.message : 'Try again', variant: 'destructive' })
+    } finally { setIsAssigning(false) }
+  }
+
+  const openTool = (id: ActiveToolId, ctx?: Omit<ToolContext, 'id'>) => { setToolCtx({ id, ...ctx }) }
   const closeTool = () => { setToolCtx({ id: null }); fetchDocs() }
   const closeViewer = () => setSelectedDocId(null)
 
-  const handleDownload = async (doc: DocumentRecord) => {
-    try {
-      if (doc.downloadUrl) await downloadDocument(doc.downloadUrl, doc.name)
-      else if (doc.storageUrl) triggerDirectDownload(doc.storageUrl, doc.originalFilename || doc.name)
-      else toast({ title: 'Download not available' })
-    } catch { toast({ title: 'Download failed', variant: 'destructive' }) }
+  const handleToolClick = (id: Exclude<ActiveToolId, null>) => {
+    if (!selectedDoc) {
+      toast({ title: id === 'merge' ? 'Select two or more documents to merge' : 'Please select a document first' })
+      return
+    }
+    const asProcessed: import('@/services/api/doc-processing-api').ProcessedDocumentInfo = {
+      id: selectedDoc.id,
+      fileName: selectedDoc.originalFilename || selectedDoc.name,
+      fileSize: selectedDoc.fileSize ?? 0,
+      pageCount: 0,
+      createdAt: selectedDoc.createdAt ?? undefined,
+      downloadUrl: selectedDoc.downloadUrl ?? undefined,
+    }
+    if (id === 'merge') {
+      openTool('merge', { initialDocs: [asProcessed] })
+    } else {
+      openTool(id, { initialDoc: asProcessed })
+    }
   }
 
-  const handleDelete = async (doc: DocumentRecord) => {
-    try {
-      await apiClient.delete(`/api/v1/documents/${doc.id}`)
-      toast({ title: 'Document deleted' })
-      fetchDocs()
-    } catch { toast({ title: 'Delete failed', variant: 'destructive' }) }
+
+
+  const [sortField] = sort.split(',')
+
+  const [, sortDir] = sort.split(',')
+
+  const SortableHeader = ({ field, label, className, withIconSpacer }: { field: string; label: string; className?: string; withIconSpacer?: boolean }) => {
+    const isActive = sortField === field
+    const SortIcon = isActive ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+    return (
+      <th
+        className={cn('px-4 py-3 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:text-kx-primary-600 transition-colors', className)}
+        onClick={() => handleSort(field)}
+      >
+        <span className="inline-flex items-center gap-3">
+          {withIconSpacer && <span className="h-8 w-8 flex-shrink-0 inline-block" />}
+          <span className="inline-flex items-center gap-1">
+            {label}
+            <SortIcon className={cn('h-3 w-3', isActive ? 'text-kx-primary-600' : 'text-ledger-gray-400')} />
+          </span>
+        </span>
+      </th>
+    )
   }
-
-  const handleRowAction = (doc: DocumentRecord, action: DocRowAction) => {
-    if (action === 'download')  { handleDownload(doc); return }
-    if (action === 'delete')    { handleDelete(doc); return }
-    if (action === 'assign')    { setAssignDialog({ open: true, doc }); return }
-    if (action === 'split')     { openTool('split',       { initialDoc: toProcessedDoc(doc) }); return }
-    if (action === 'convert')   { openTool('convert',     { initialDoc: toProcessedDoc(doc) }); return }
-    if (action === 'compress')  { openTool('compress',    { initialDoc: toProcessedDoc(doc) }); return }
-    if (action === 'translate') { openTool('translation', { initialDoc: toProcessedDoc(doc) }); return }
-  }
-
-  const from = page * PAGE_SIZE + 1
-  const to = Math.min((page + 1) * PAGE_SIZE, total)
-
-  const SortBtn = ({ field, label }: { field: string; label: string }) => (
-    <button type="button" onClick={() => handleSort(field)}
-      className={cn('flex items-center gap-0.5 text-[11px] font-semibold uppercase tracking-wide transition-colors select-none',
-        sortField === field ? 'text-kx-primary-600 dark:text-kx-primary-400' : 'text-ledger-gray-400 hover:text-kx-text-primary')}>
-      {label}
-      <span className="ml-0.5 text-[9px]">
-        {sortField === field ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}
-      </span>
-    </button>
-  )
 
   return (
-    <div className="flex flex-col h-full">
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between px-6 pt-6 pb-4 flex-shrink-0">
-        <div>
-          <h1 className="text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">Documents</h1>
-          <p className="text-sm text-ledger-gray-400 mt-0.5">Manage, analyze, and process your legal files.</p>
-        </div>
-        <Button size="sm" className="gap-2 h-9 px-4" onClick={() => setUploadDialogOpen(true)}>
-          <Upload className="h-4 w-4" />
-          Upload Files
-        </Button>
+    <div className="h-full overflow-hidden bg-kx-surface flex">
+
+      {/* ── MAIN PANEL ── */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {viewerOpen ? (
+          /* Full-screen document viewer */
+          <DocumentViewer doc={selectedDoc!} onClose={closeViewer} onOpenTool={openTool} autoEdit={autoEditParam} />
+        ) : (
+          /* Full-screen document listing */
+          <>
+            {/* Sticky header + filters */}
+            <div className="flex-shrink-0 px-6 pt-6 pb-4 space-y-4 border-b border-kx-card-border bg-kx-surface">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">
+                    Documents
+                  </h2>
+                  <p className="text-sm text-ledger-gray-500 mt-1">
+                    {total > 0
+                      ? `${total.toLocaleString()} document${total !== 1 ? 's' : ''} across your workspace`
+                      : 'Manage, preview, and process your case documents'}
+                  </p>
+                </div>
+                <Button size="sm" className="gap-1.5 h-9 px-3 text-xs w-full sm:w-auto" onClick={() => setUploadDialogOpen(true)}>
+                  <Upload className="h-3.5 w-3.5" /> Upload
+                </Button>
+              </div>
+
+              {error && (
+                <div className="px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+                  {error}
+                </div>
+              )}
+
+              {/* Filters pill */}
+              <div className="flex items-center gap-2 p-3 bg-ledger-gray-50 dark:bg-ledger-gray-900 rounded-lg border border-ledger-gray-200 min-w-0">
+                <div className="relative flex-1 min-w-[160px]">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search by name..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full h-9 pl-9 pr-8 text-sm border border-kx-card-border rounded-lg bg-nb-input text-kx-text-primary placeholder-ledger-gray-400 focus:outline-none focus:ring-1 focus:ring-kx-primary-400"
+                  />
+                  {search && (
+                    <button type="button" onClick={() => setSearch('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ledger-gray-400 hover:text-ledger-gray-600 transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                <Select value={caseFilter} onChange={e => setCaseFilter(e.target.value)}
+                  searchable searchPlaceholder="Search cases..." className="w-[160px] h-9 text-sm">
+                  <option value="">All Cases</option>
+                  <option value="standalone">Standalone only</option>
+                  {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </Select>
+                <Select
+                  value={typeFilters.size === 1 ? Array.from(typeFilters)[0] : ''}
+                  onChange={e => { const v = e.target.value as DocumentRecordType; setTypeFilters(v ? new Set([v]) : new Set()); setPage(0) }}
+                  className="w-[130px] h-9 text-sm">
+                  <option value="">All Types</option>
+                  {(Object.keys(TYPE_META) as DocumentType[]).map(t => (
+                    <option key={t} value={t}>{TYPE_META[t].label}</option>
+                  ))}
+                </Select>
+              </div>
+
+            </div>
+
+            {/* Scrollable table area */}
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+              <div className="px-6 py-4">
+                <div className="rounded-lg border border-kx-card-border">
+                  {isLoading ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                          {['', 'Name', 'Type', 'Case', 'Date Added', ''].map((_h, i) => (
+                            <th key={i} className="px-4 py-3"><div className="h-3 w-16 bg-ledger-gray-200 rounded animate-pulse" /></th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-kx-card-border">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <tr key={i} className="bg-kx-card">
+                            <td className="pl-4 pr-2 py-3 w-8"><div className="h-4 w-4 rounded bg-ledger-gray-100 animate-pulse" /></td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-lg bg-ledger-gray-100 animate-pulse flex-shrink-0" />
+                                <div className="h-4 w-48 bg-ledger-gray-100 rounded animate-pulse" />
+                              </div>
+                            </td>
+                            <td className="px-4 py-3"><div className="h-5 w-16 bg-ledger-gray-100 rounded-full animate-pulse" /></td>
+                            <td className="px-4 py-3"><div className="h-4 w-28 bg-ledger-gray-100 rounded animate-pulse" /></td>
+                            <td className="px-4 py-3"><div className="h-4 w-20 bg-ledger-gray-100 rounded animate-pulse" /></td>
+                            <td className="pr-3 py-3 w-8" />
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : allDocs.length === 0 ? (
+                    <div className="flex flex-col items-center gap-3 py-20 text-center">
+                      <div className="h-16 w-16 rounded-full bg-ledger-gray-100 dark:bg-ledger-gray-200 flex items-center justify-center">
+                        <BookOpen className="h-7 w-7 text-ledger-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-serif font-semibold text-kx-text-primary">No documents found</h3>
+                      <p className="text-sm text-ledger-gray-500 max-w-sm">
+                        {search || typeFilters.size > 0 || caseFilter ? 'Try adjusting your filters.' : 'Upload a document to get started.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                            <th className="pl-4 pr-2 py-3 w-10 align-middle" onClick={toggleAll}>
+                              <input
+                                type="checkbox"
+                                checked={allChecked}
+                                ref={el => { if (el) el.indeterminate = someChecked && !allChecked }}
+                                onChange={toggleAll}
+                                className="h-4 w-4 rounded border-ledger-gray-300 text-kx-primary-600 focus:ring-kx-primary-400 cursor-pointer"
+                              />
+                            </th>
+                            {someChecked ? (
+                              <th colSpan={4} className="px-4 py-3 text-left">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs font-semibold text-kx-primary-700 dark:text-kx-primary-300">
+                                    {checkedIds.size} selected
+                                  </span>
+                                  <button
+                                    type="button"
+                                    disabled={isDeleting}
+                                    onClick={() => handleDeleteDocs(Array.from(checkedIds))}
+                                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-medium transition-colors disabled:opacity-50"
+                                  >
+                                    {isDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                                    Delete
+                                  </button>
+                                  <button type="button" onClick={() => setCheckedIds(new Set())}
+                                    className="text-xs text-ledger-gray-400 hover:text-kx-text-primary transition-colors ml-2">
+                                    Clear
+                                  </button>
+                                </div>
+                              </th>
+                            ) : (
+                              <>
+                                <SortableHeader field="name" label="Name" className="w-[38%]" withIconSpacer />
+                                <th className="px-4 py-3 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Type</th>
+                                <SortableHeader field="caseTitle" label="Case" />
+                                <SortableHeader field="createdAt" label="Date Added" />
+                              </>
+                            )}
+                            <th className="pr-3 py-3 w-10" />
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-kx-card-border">
+                          {allDocs.map(doc => (
+                            <DocTableRow
+                              key={doc.id}
+                              doc={doc}
+                              selected={selectedDocId === doc.id}
+                              checked={checkedIds.has(doc.id)}
+                              onSelect={() => setSelectedDocId(prev => prev === doc.id ? null : doc.id)}
+                              onCheck={e => toggleCheck(doc.id, e)}
+                              onDelete={() => handleDeleteDocs([doc.id])}
+                              onAssignToCase={() => { setAssignDocId(doc.id); setAssignCaseId('') }}
+                            />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {!isLoading && total > 0 && (
+                    <div className="px-4 py-3 border-t border-ledger-gray-200 flex flex-wrap items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-ledger-gray-500 whitespace-nowrap">Rows per page</label>
+                          <div className="w-20">
+                            <Select value={String(pageSize)} onChange={e => setPageSize(Number(e.target.value))} className="h-8 text-xs">
+                              {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={String(n)}>{n}</option>)}
+                            </Select>
+                          </div>
+                        </div>
+                        <p className="text-sm text-ledger-gray-500 whitespace-nowrap">
+                          <span className="font-medium text-kx-text-primary">{(page * pageSize + 1).toLocaleString()}</span>
+                          {'–'}
+                          <span className="font-medium text-kx-text-primary">{Math.min((page + 1) * pageSize, total).toLocaleString()}</span>
+                          {' of '}
+                          <span className="font-medium text-kx-text-primary">{total.toLocaleString()}</span>
+                          {' documents'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(0)} disabled={page === 0} title="First page">
+                          <ChevronsLeft className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p - 1)} disabled={page === 0} title="Previous page">
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        {(() => {
+                          const start = Math.max(0, page - 2)
+                          const end = Math.min(Math.max(totalPages - 1, 0), page + 2)
+                          const pages: number[] = []
+                          for (let i = start; i <= end; i++) pages.push(i)
+                          return (
+                            <>
+                              {start > 0 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
+                              {pages.map(p => (
+                                <Button key={p} variant={p === page ? 'primary' : 'ghost'} size="sm"
+                                  onClick={() => setPage(p)}
+                                  className={cn('h-8 w-8 p-0 text-xs font-medium', p === page && 'pointer-events-none')}>
+                                  {p + 1}
+                                </Button>
+                              ))}
+                              {end < totalPages - 1 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
+                            </>
+                          )
+                        })()}
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1} title="Next page">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(Math.max(totalPages - 1, 0))} disabled={page >= totalPages - 1} title="Last page">
+                          <ChevronsRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
-      {/* ── Tools tab bar — hidden when viewer open ── */}
-      {!viewerOpen && (
-        <div className="px-6 mb-4 flex-shrink-0">
-          <div className="flex items-center gap-1 border border-kx-card-border rounded-xl px-2 py-1.5 bg-kx-card w-fit">
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-ledger-gray-100 dark:bg-ledger-gray-800 mr-1">
-              <Settings2 className="h-3.5 w-3.5 text-ledger-gray-500" />
-              <span className="text-xs font-semibold text-ledger-gray-600 dark:text-ledger-gray-300">Tools</span>
-            </div>
+      {/* ── RIGHT TOOLS PANEL ── */}
+      {toolsPanelOpen ? (
+        <div className="w-56 flex-shrink-0 border-l border-kx-card-border bg-nb-panel flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-nb-panel-border flex-shrink-0">
+            <h3 className="text-base font-bold text-kx-text-primary">Tools</h3>
+            <button
+              type="button"
+              onClick={() => setToolsPanelOpen(false)}
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-nb-text-muted hover:text-kx-text-primary hover:bg-nb-sidebar-hover transition-colors flex-shrink-0"
+              title="Close Tools"
+            >
+              <PanelRight className="h-4 w-4" />
+            </button>
+          </div>
+          {/* Tool cards */}
+          <div className="flex flex-col gap-2 p-3 overflow-y-auto flex-1">
             {TOOLS.map(tool => {
-              const ToolIcon = tool.icon
-              const isActive = toolCtx.id === tool.id
+              const Icon = tool.icon
+              const isDisabled = tool.id === 'merge' && viewerOpen
               return (
                 <button
                   key={tool.id}
                   type="button"
-                  onClick={() => isActive ? closeTool() : openTool(tool.id)}
+                  onClick={() => !isDisabled && handleToolClick(tool.id)}
+                  disabled={isDisabled}
+                  title={isDisabled ? 'Select multiple documents to merge' : undefined}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all',
-                    isActive
-                      ? 'bg-kx-primary-600 text-white shadow-sm'
-                      : 'text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 hover:text-kx-primary-700'
+                    'flex flex-col items-start gap-2 px-3 py-3 rounded-xl border bg-nb-sidebar text-left w-full transition-all',
+                    isDisabled
+                      ? 'border-ledger-gray-200 opacity-40 cursor-not-allowed'
+                      : 'border-kx-primary-200 hover:border-kx-primary-400 hover:bg-nb-sidebar-hover cursor-pointer group'
                   )}
                 >
-                  <ToolIcon className="h-3.5 w-3.5" />
-                  {tool.label}
+                  <div className="flex items-center justify-between w-full">
+                    <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', tool.iconBg)}>
+                      <Icon className={cn('h-4 w-4', tool.iconColor)} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-kx-text-primary group-hover:text-kx-primary-700 leading-tight">
+                      {tool.label}
+                    </p>
+                    <p className="text-[10px] text-ledger-gray-400 mt-0.5 leading-snug">{tool.description}</p>
+                  </div>
                 </button>
               )
             })}
           </div>
         </div>
-      )}
-
-      {/* ── Search + filter row — hidden when viewer open ── */}
-      {!viewerOpen && (
-        <div className="px-6 mb-3 flex items-center gap-3 flex-shrink-0">
-          {/* Search */}
-          <div className="relative flex-1 max-w-lg">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search documents..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full h-9 pl-9 pr-3 text-sm border border-kx-card-border rounded-lg bg-kx-card text-kx-text-primary placeholder-ledger-gray-400 focus:outline-none focus:ring-1 focus:ring-kx-primary-400"
-            />
-          </div>
-
-          {/* Case filter */}
-          <div className="w-52">
-            <Select value={caseFilter} onChange={e => setCaseFilter(e.target.value)} searchable searchPlaceholder="Search cases..." className="h-9">
-              <option value="">All Cases</option>
-              <option value="standalone">Standalone only</option>
-              {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </Select>
-          </div>
-
-          {/* Type multi-select dropdown */}
-          <div ref={typeFilterRef} className="relative">
-            <button
-              type="button"
-              onClick={() => setTypeFilterOpen(v => !v)}
-              className={cn(
-                'flex items-center gap-1.5 h-9 px-3 rounded-lg border text-sm font-medium transition-colors whitespace-nowrap',
-                typeFilters.size > 0 || typeFilterOpen
-                  ? 'border-kx-primary-400 bg-kx-primary-50 text-kx-primary-700 dark:bg-kx-primary-950/30'
-                  : 'border-kx-card-border text-ledger-gray-500 hover:border-kx-primary-300 hover:text-kx-primary-700'
-              )}
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5 flex-shrink-0" />
-              <span className="max-w-[140px] truncate">
-                {typeFilters.size === 0
-                  ? 'All Types'
-                  : Array.from(typeFilters).map(t => TYPE_META[t].label).join(', ')}
-              </span>
-              {typeFilters.size > 0 && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-kx-primary-600 text-white text-[9px] font-bold flex-shrink-0">
-                  {typeFilters.size}
-                </span>
-              )}
-            </button>
-            {typeFilterOpen && (
-              <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card shadow-lg py-1">
-                {([DocumentType.USER_UPLOADED, DocumentType.DRAFT, DocumentType.SUMMARY, DocumentType.JUDGMENT] as const).map(t => {
-                  const isChecked = typeFilters.has(t)
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => toggleTypeFilter(t)}
-                      className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800 transition-colors"
-                    >
-                      <div className={cn(
-                        'h-4 w-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors',
-                        isChecked ? 'bg-kx-primary-600 border-kx-primary-600 text-white' : 'border-ledger-gray-300 dark:border-ledger-gray-600'
-                      )}>
-                        {isChecked && (
-                          <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
-                            <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        )}
-                      </div>
-                      {TYPE_META[t].label}
-                    </button>
-                  )
-                })}
-                {typeFilters.size > 0 && (
-                  <div className="border-t border-ledger-gray-100 dark:border-ledger-gray-800 mt-1 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => { setTypeFilters(new Set()); setPage(0) }}
-                      className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800 transition-colors"
-                    >
-                      Clear filters
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+      ) : (
+        <div
+          className="w-7 flex-shrink-0 border-l border-kx-card-border bg-kx-surface flex items-center justify-center cursor-pointer hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 transition-colors group"
+          onClick={() => setToolsPanelOpen(true)}
+          title="Open Tools"
+        >
+          <span className="text-[9px] font-medium uppercase tracking-widest text-ledger-gray-300 group-hover:text-ledger-gray-500 select-none transition-colors"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}>
+            Tools
+          </span>
         </div>
       )}
-
-      {/* ── Main content ── */}
-      <div className="flex flex-1 min-h-0 border-t border-kx-card-border">
-
-        {/* List — LEFT always, narrows to 380px when viewer open */}
-        <div className={cn(
-          'flex flex-col overflow-hidden',
-          viewerOpen ? 'w-[380px] flex-shrink-0 border-r border-kx-card-border' : 'flex-1'
-        )}>
-
-          {/* Selection action bar */}
-          {selectedIds.size > 0 && (
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-kx-primary-50 dark:bg-kx-primary-950/30 border-b border-kx-primary-200 dark:border-kx-primary-800 flex-shrink-0">
-              <span className="text-sm font-medium text-kx-primary-700 dark:text-kx-primary-300">{selectedIds.size} selected</span>
-              {selectedPdfs.length >= 2 && (
-                <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs border border-kx-card-border"
-                  onClick={() => { const docs = selectedPdfs.map(toProcessedDoc); clearSelection(); openTool('merge', { initialDocs: docs }) }}>
-                  <Layers className="h-3.5 w-3.5" /> Merge
-                </Button>
-              )}
-              <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs border border-kx-card-border"
-                onClick={() => { const doc = allDocs.find(d => selectedIds.has(d.id)); if (doc) setAssignDialog({ open: true, doc }) }}>
-                <FolderInput className="h-3.5 w-3.5" /> Assign
-              </Button>
-              <Button size="sm" variant="ghost" className="gap-1.5 h-7 text-xs text-red-600 border border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={handleBulkDelete}>
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </Button>
-              <button type="button" onClick={clearSelection} className="ml-auto h-6 w-6 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          )}
-
-          {/* Column headers */}
-          {!isLoading && !error && allDocs.length > 0 && selectedIds.size === 0 && (
-            <div className={cn(
-              'grid items-center gap-4 px-4 py-2.5 border-b border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-900/20 flex-shrink-0 text-[11px] font-semibold uppercase tracking-wide text-ledger-gray-400',
-              viewerOpen
-                ? 'grid-cols-[20px_36px_1fr_28px]'
-                : 'grid-cols-[28px_40px_1fr_100px_180px_130px]'
-            )}>
-              <button type="button" onClick={toggleSelectAll}
-                className={cn('h-4 w-4 rounded border flex items-center justify-center transition-colors',
-                  selectedIds.size === allDocs.length && allDocs.length > 0
-                    ? 'bg-kx-primary-600 border-kx-primary-600 text-white'
-                    : 'border-ledger-gray-300 dark:border-ledger-gray-600 hover:border-kx-primary-400')}>
-                {selectedIds.size === allDocs.length && allDocs.length > 0 && (
-                  <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none">
-                    <path d="M2.5 6L5 8.5L9.5 3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </button>
-              <div />
-              <SortBtn field="fileName" label="Name" />
-              {!viewerOpen && (
-                <>
-                  <div>Type</div>
-                  <SortBtn field="caseTitle" label="Case" />
-                  <SortBtn field="createdAt" label="Date Added" />
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Table body */}
-          <div className="flex-1 min-h-0 overflow-y-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-6 w-6 animate-spin text-ledger-gray-400" />
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center gap-3 py-20 text-center px-6">
-                <p className="text-sm text-ledger-gray-500">{error}</p>
-                <Button variant="ghost" size="sm" onClick={fetchDocs}>Try again</Button>
-              </div>
-            ) : allDocs.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-16 text-center px-6">
-                <BookOpen className="h-8 w-8 text-ledger-gray-300" />
-                <p className="font-medium text-kx-primary-900 dark:text-kx-primary-100">No documents found</p>
-                <p className="text-sm text-ledger-gray-400">
-                  {search || typeFilters.size > 0 || caseFilter ? 'Try adjusting your filters.' : 'Upload a document to get started.'}
-                </p>
-                {!search && typeFilters.size === 0 && !caseFilter && (
-                  <Button size="sm" variant="ghost" className="mt-1 border border-kx-card-border gap-1.5" onClick={() => setUploadDialogOpen(true)}>
-                    <Upload className="h-3.5 w-3.5" /> Upload a file
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div>
-                {allDocs.map(doc => (
-                  <DocTableRow
-                    key={doc.id}
-                    doc={doc}
-                    selected={selectedDocId === doc.id}
-                    onSelect={() => setSelectedDocId(prev => prev === doc.id ? null : doc.id)}
-                    onAction={action => handleRowAction(doc, action)}
-                    checked={selectedIds.has(doc.id)}
-                    onCheck={checked => toggleDocCheck(doc.id, checked)}
-                    compact={viewerOpen}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* ── Pagination footer ── */}
-          {total > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-kx-card-border flex-shrink-0 bg-kx-card">
-              <p className="text-sm text-ledger-gray-400">
-                Showing <span className="font-medium text-kx-text-primary">{from}</span> to{' '}
-                <span className="font-medium text-kx-text-primary">{to}</span> of{' '}
-                <span className="font-medium text-kx-text-primary">{total}</span> entries
-              </p>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 px-3 border border-kx-card-border gap-1"
-                  onClick={() => setPage(p => p - 1)}
-                  disabled={page === 0}
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" /> Prev
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 px-3 border border-kx-card-border gap-1"
-                  onClick={() => setPage(p => p + 1)}
-                  disabled={page >= totalPages - 1}
-                >
-                  Next <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Viewer — RIGHT side when open */}
-        {viewerOpen && selectedDoc && (
-          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-            <DocumentViewer doc={selectedDoc} onClose={closeViewer} onOpenTool={openTool} />
-          </div>
-        )}
-      </div>
 
       {/* Tool dialogs */}
       {TOOLS.map(tool => (
@@ -1115,12 +1171,27 @@ export function DocumentsPage() {
 
       <UploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} onUploaded={fetchDocs} />
 
-      <AssignCaseDialog
-        open={assignDialog.open}
-        onOpenChange={v => { if (!v) setAssignDialog({ open: false, doc: null }) }}
-        document={assignDialog.doc ? toProcessedDoc(assignDialog.doc) : null}
-        onAssigned={() => { fetchDocs(); setAssignDialog({ open: false, doc: null }) }}
-      />
+      {/* Assign to case dialog */}
+      <Dialog open={assignDocId !== null} onOpenChange={open => { if (!open) { setAssignDocId(null); setAssignCaseId('') } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Assign to case</DialogTitle>
+            <DialogDescription>Select a case to link this document to.</DialogDescription>
+          </DialogHeader>
+          <Select value={assignCaseId} onChange={e => setAssignCaseId(e.target.value)} searchable searchPlaceholder="Search cases...">
+            <option value="">Select a case…</option>
+            {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </Select>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setAssignDocId(null); setAssignCaseId('') }} disabled={isAssigning}>Cancel</Button>
+            <Button onClick={handleAssignToCase} disabled={!assignCaseId || isAssigning} className="gap-1.5">
+              {isAssigning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   PanelRight, FileText, Clock, Gavel, MessageSquare, Search, Sparkles,
   Lock, MoreVertical, Trash2, Pencil, Check, X, Loader2,
-  AlertCircle, ExternalLink, BookOpen,
+  AlertCircle, ExternalLink, BookOpen, Download, SquarePen,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -75,7 +75,7 @@ function InlineRenameInput({
 
 // ─── Draft/Summary item menu ──────────────────────────────────────────────────
 
-function GeneratedItemMenu({ onRename, onDelete }: { onRename?: () => void; onDelete: () => void }) {
+function GeneratedItemMenu({ onRename, onDelete, onDownloadPdf }: { onRename?: () => void; onDelete: () => void; onDownloadPdf?: () => void }) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -125,6 +125,12 @@ function GeneratedItemMenu({ onRename, onDelete }: { onRename?: () => void; onDe
               <Pencil className="h-3.5 w-3.5 text-ledger-gray-400" /> Rename
             </button>
           )}
+          {onDownloadPdf && (
+            <button type="button" onClick={() => { setOpen(false); onDownloadPdf() }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
+              <Download className="h-3.5 w-3.5 text-ledger-gray-400" /> Download
+            </button>
+          )}
           <button type="button" onClick={() => { setOpen(false); onDelete() }}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
             <Trash2 className="h-3.5 w-3.5" /> Delete
@@ -142,17 +148,31 @@ function DocumentPreviewDialog({
   onClose,
   title,
   htmlContent,
+  onEdit,
 }: {
   open: boolean
   onClose: () => void
   title: string
   htmlContent: string
+  onEdit?: () => void
 }) {
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
       <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
         <DialogHeader className="px-6 py-4 border-b border-ledger-gray-200 flex-shrink-0">
-          <DialogTitle className="truncate pr-4">{title}</DialogTitle>
+          <div className="flex items-center justify-between pr-8">
+            <DialogTitle className="truncate">{title}</DialogTitle>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kx-primary-600 hover:bg-kx-primary-50 border border-kx-primary-200 hover:border-kx-primary-400 transition-colors flex-shrink-0"
+              >
+                <SquarePen className="h-3.5 w-3.5" />
+                Edit
+              </button>
+            )}
+          </div>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto px-8 py-6">
           <div
@@ -218,6 +238,7 @@ interface CaseStudioPanelProps {
   summary: CaseSummary | null
   onDeleteDraft: (id: string) => void
   onRenameDraft: (id: string, title: string) => Promise<void>
+  onDeleteSummary?: () => void
 }
 
 export function CaseStudioPanel({
@@ -227,15 +248,30 @@ export function CaseStudioPanel({
   summary,
   onDeleteDraft,
   onRenameDraft,
+  onDeleteSummary,
 }: CaseStudioPanelProps) {
   const navigate = useNavigate()
   const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [previewDoc, setPreviewDoc] = useState<{ title: string; html: string } | null>(null)
+  const [previewDoc, setPreviewDoc] = useState<{ title: string; html: string; isSummary?: boolean } | null>(null)
 
   const handleOpenSummary = () => {
     if (!summary || summary.status !== 'completed') return
     const html = renderDraftToHtml(summary.content)
-    setPreviewDoc({ title: 'Summary', html })
+    setPreviewDoc({ title: 'Summary', html, isSummary: true })
+  }
+
+  const handleDownloadSummaryPdf = () => {
+    if (!summary?.content) return
+    const html = renderDraftToHtml(summary.content)
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html><head><title>Summary</title><style>
+      body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 24px; color: #111; font-size: 14px; line-height: 1.7; }
+      @media print { body { margin: 0; } }
+    </style></head><body>${html}</body></html>`)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print() }, 300)
   }
 
   const handleSummaryClick = () => {
@@ -385,6 +421,12 @@ export function CaseStudioPanel({
                     )}
                   </div>
                 </div>
+                {onDeleteSummary && (
+                  <GeneratedItemMenu
+                    onDelete={onDeleteSummary}
+                    onDownloadPdf={summary.status === 'completed' ? handleDownloadSummaryPdf : undefined}
+                  />
+                )}
               </div>
             )}
 
@@ -463,6 +505,9 @@ export function CaseStudioPanel({
           onClose={() => setPreviewDoc(null)}
           title={previewDoc.title}
           htmlContent={previewDoc.html}
+          onEdit={previewDoc.isSummary && summary?.id && summary.id !== 'pending'
+            ? () => { setPreviewDoc(null); navigate(`/documents?open=${summary.id}&edit=true`) }
+            : undefined}
         />
       )}
     </div>
