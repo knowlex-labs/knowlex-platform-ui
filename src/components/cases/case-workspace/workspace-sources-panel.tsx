@@ -78,6 +78,11 @@ function statusLabel(indexingStatus?: string | null): { label: string; color: st
   return null
 }
 
+/** Reindex is only offered after a failed index; not while pending/running or when already indexed. */
+function showReindexInMenu(indexingStatus?: string | null): boolean {
+  return (indexingStatus ?? '').toUpperCase() === 'INDEXING_FAILED'
+}
+
 interface ItemMenuProps {
   indexingStatus?: string | null
   onOpenInNewTab: () => void
@@ -147,10 +152,12 @@ function ItemMenu({ indexingStatus, onOpenInNewTab, onRename, onReindex, onDelet
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
             <Pencil className="h-3.5 w-3.5 text-ledger-gray-400" /> Rename
           </button>
-          <button type="button" onClick={() => { setOpen(false); onReindex() }}
-            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
-            <Sparkles className="h-3.5 w-3.5 text-ledger-gray-400" /> Reindex
-          </button>
+          {showReindexInMenu(indexingStatus) ? (
+            <button type="button" onClick={() => { setOpen(false); onReindex() }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
+              <Sparkles className="h-3.5 w-3.5 text-ledger-gray-400" /> Reindex
+            </button>
+          ) : null}
           <button type="button" onClick={() => { setOpen(false); onDelete() }}
             className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
             <Trash2 className="h-3.5 w-3.5" /> Delete
