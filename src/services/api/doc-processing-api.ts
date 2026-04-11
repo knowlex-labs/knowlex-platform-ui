@@ -48,6 +48,8 @@ export interface ConvertRequest {
   documentId: string
   targetFormat: ConvertTargetFormat
   dpi?: number
+  /** Pre-rendered HTML body (used for MD→PDF to avoid raw markdown in output) */
+  htmlContent?: string
 }
 
 export interface ConvertResponse {
@@ -112,14 +114,25 @@ interface SpringPage<T> {
  * @param opts.type   Document category (default: USER_UPLOADED)
  * @param opts.caseId Optional case to attach the document to
  */
+function inferFileType(fileName: string): string | null {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? ''
+  const map: Record<string, string> = {
+    pdf: 'PDF', png: 'PNG', jpg: 'JPEG', jpeg: 'JPEG',
+    docx: 'DOCX', doc: 'DOC', md: 'MD',
+  }
+  return map[ext] ?? null
+}
+
 export async function uploadToolboxFile(
   file: File,
-  opts?: { type?: string; caseId?: string }
+  opts?: { type?: string; caseId?: string; fileType?: string }
 ): Promise<string> {
   const formData = new FormData()
   formData.append('file', file)
   if (opts?.type)   formData.append('type', opts.type)
   if (opts?.caseId) formData.append('caseId', opts.caseId)
+  const ft = opts?.fileType ?? inferFileType(file.name)
+  if (ft) formData.append('fileType', ft)
 
   const response = await fetch(`${API_BASE_URL}/api/v1/documents/upload`, {
     method: 'POST',

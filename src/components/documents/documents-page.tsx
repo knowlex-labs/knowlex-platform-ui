@@ -93,6 +93,7 @@ const TYPE_META: Record<DocumentType, {
   [DocumentType.USER_UPLOADED]: { label: 'Uploaded', className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300', icon: File },
   [DocumentType.DRAFT]:         { label: 'Draft',    className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300', icon: PenLine },
   [DocumentType.SUMMARY]:       { label: 'Summary',  className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', icon: FileText },
+  [DocumentType.SYNOPSIS]:      { label: 'Synopsis', className: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300', icon: FileText },
   [DocumentType.JUDGMENT]:      { label: 'Judgment', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: Scale },
   [DocumentType.BRIEF]:         { label: 'Brief',    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
 }
@@ -107,11 +108,11 @@ const TOOLS: {
   iconColor: string
   iconBg: string
 }[] = [
-  { id: 'merge',       label: 'Merge',     description: 'Combine multiple PDFs',    icon: Layers,    iconColor: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/40' },
   { id: 'split',       label: 'Split',     description: 'Split a PDF into parts',   icon: Scissors,  iconColor: 'text-violet-600',  iconBg: 'bg-violet-50 dark:bg-violet-950/40' },
   { id: 'translation', label: 'Translate', description: 'Translate document text',  icon: Languages, iconColor: 'text-teal-600',    iconBg: 'bg-teal-50 dark:bg-teal-950/40' },
   { id: 'compress',    label: 'Compress',  description: 'Reduce file size',         icon: Minimize2, iconColor: 'text-orange-600',  iconBg: 'bg-orange-50 dark:bg-orange-950/40' },
   { id: 'convert',     label: 'Convert',   description: 'Convert to another format',icon: BookOpen,  iconColor: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40' },
+  { id: 'merge',       label: 'Merge',     description: 'Combine multiple PDFs',    icon: Layers,    iconColor: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/40' },
 ]
 
 // ─── DocTableRow ──────────────────────────────────────────────────────────────
@@ -836,24 +837,44 @@ export function DocumentsPage() {
   const closeTool = () => { setToolCtx({ id: null }); fetchDocs() }
   const closeViewer = () => setSelectedDocId(null)
 
+  const toProcessed = (doc: DocumentRecord): import('@/services/api/doc-processing-api').ProcessedDocumentInfo => ({
+    id: doc.id,
+    fileName: doc.originalFilename || doc.name,
+    fileSize: doc.fileSize ?? 0,
+    pageCount: 0,
+    createdAt: doc.createdAt ?? undefined,
+    downloadUrl: doc.downloadUrl ?? undefined,
+  })
+
   const handleToolClick = (id: Exclude<ActiveToolId, null>) => {
-    if (!selectedDoc) {
-      toast({ title: id === 'merge' ? 'Select two or more documents to merge' : 'Please select a document first' })
+    const checkedDocs = allDocs.filter(d => checkedIds.has(d.id))
+
+    if (id === 'merge') {
+      // Merge: requires 2+ checked, or 0 checked (open blank for user to pick)
+      if (checkedDocs.length >= 2) {
+        openTool('merge', { initialDocs: checkedDocs.map(toProcessed) })
+      } else if (checkedDocs.length === 0) {
+        openTool('merge')
+      } else {
+        // 1 checked — disabled, should not reach here
+        toast({ title: 'Select two or more documents to merge' })
+      }
       return
     }
-    const asProcessed: import('@/services/api/doc-processing-api').ProcessedDocumentInfo = {
-      id: selectedDoc.id,
-      fileName: selectedDoc.originalFilename || selectedDoc.name,
-      fileSize: selectedDoc.fileSize ?? 0,
-      pageCount: 0,
-      createdAt: selectedDoc.createdAt ?? undefined,
-      downloadUrl: selectedDoc.downloadUrl ?? undefined,
+
+    // Single-doc tools — blocked when 2+ are checked
+    if (checkedDocs.length > 1) {
+      toast({ title: 'Select only one document for this action' })
+      return
     }
-    if (id === 'merge') {
-      openTool('merge', { initialDocs: [asProcessed] })
-    } else {
-      openTool(id, { initialDoc: asProcessed })
+
+    // Resolve source: viewer > single checked > nothing
+    const source = selectedDoc ?? (checkedDocs.length === 1 ? checkedDocs[0] : null)
+    if (!source) {
+      toast({ title: 'Please select a document first' })
+      return
     }
+    openTool(id, { initialDoc: toProcessed(source) })
   }
 
 
@@ -1011,6 +1032,7 @@ export function DocumentsPage() {
                             {someChecked ? (
                               <th colSpan={4} className="px-4 py-3 text-left">
                                 <div className="flex items-center gap-3">
+                                  <span className="h-8 w-8 flex-shrink-0 inline-block" />
                                   <span className="text-xs font-semibold text-kx-primary-700 dark:text-kx-primary-300">
                                     {checkedIds.size} selected
                                   </span>
@@ -1139,20 +1161,13 @@ export function DocumentsPage() {
           <div className="flex flex-col gap-2 p-3 overflow-y-auto flex-1">
             {TOOLS.map(tool => {
               const Icon = tool.icon
-              const isDisabled = tool.id === 'merge' && viewerOpen
               return (
                 <button
                   key={tool.id}
                   type="button"
-                  onClick={() => !isDisabled && handleToolClick(tool.id)}
-                  disabled={isDisabled}
-                  title={isDisabled ? 'Select multiple documents to merge' : undefined}
-                  className={cn(
-                    'flex flex-col items-start gap-2 px-3 py-3 rounded-xl border bg-nb-sidebar text-left w-full transition-all',
-                    isDisabled
-                      ? 'border-ledger-gray-200 opacity-40 cursor-not-allowed'
-                      : 'border-kx-primary-200 hover:border-kx-primary-400 hover:bg-nb-sidebar-hover cursor-pointer group'
-                  )}
+                  onClick={() => handleToolClick(tool.id)}
+                  title={tool.label}
+                  className="flex flex-col items-start gap-2 px-3 py-3 rounded-xl border border-kx-primary-200 bg-nb-sidebar text-left w-full transition-all hover:border-kx-primary-400 hover:bg-nb-sidebar-hover cursor-pointer group"
                 >
                   <div className="flex items-center justify-between w-full">
                     <div className={cn('h-8 w-8 rounded-lg flex items-center justify-center', tool.iconBg)}>
@@ -1189,9 +1204,8 @@ export function DocumentsPage() {
                 onClick={() => { setToolsPanelOpen(true); handleToolClick(tool.id) }}
                 title={tool.label}
                 className={cn(
-                  'h-8 w-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0',
-                  tool.iconBg,
-                  'hover:opacity-80'
+                  'h-8 w-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0 hover:opacity-80',
+                  tool.iconBg
                 )}
               >
                 <Icon className={cn('h-4 w-4', tool.iconColor)} />

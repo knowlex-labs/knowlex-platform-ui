@@ -12,14 +12,17 @@ import {
 import { ApiError } from '@/services/api/api-client'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
+import { markdownToHtml } from '@/lib/markdown-to-html'
 import type { ProcessedDocumentInfo, ConvertTargetFormat } from '@/services/api/doc-processing-api'
 
 type Stage = 'upload' | 'processing' | 'done' | 'error'
 
-function getFileType(fileName: string): 'pdf' | 'image' | 'other' {
+function getFileType(fileName: string): 'pdf' | 'image' | 'docx' | 'md' | 'other' {
   const name = fileName.toLowerCase()
   if (name.endsWith('.pdf')) return 'pdf'
   if (name.endsWith('.png') || name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image'
+  if (name.endsWith('.docx') || name.endsWith('.doc')) return 'docx'
+  if (name.endsWith('.md')) return 'md'
   return 'other'
 }
 
@@ -34,7 +37,7 @@ interface FormatOption {
   label: string
 }
 
-function getFormatOptions(fileType: 'pdf' | 'image' | 'other'): FormatOption[] {
+function getFormatOptions(fileType: 'pdf' | 'image' | 'docx' | 'md' | 'other'): FormatOption[] {
   if (fileType === 'pdf') return [
     { value: 'PNG', label: 'PNG images (one per page)' },
     { value: 'JPEG', label: 'JPEG images (one per page)' },
@@ -42,6 +45,14 @@ function getFormatOptions(fileType: 'pdf' | 'image' | 'other'): FormatOption[] {
   ]
   if (fileType === 'image') return [
     { value: 'PDF', label: 'PDF document' },
+  ]
+  if (fileType === 'docx') return [
+    { value: 'PDF', label: 'PDF document' },
+    { value: 'TEXT', label: 'Plain text (extract content)' },
+  ]
+  if (fileType === 'md') return [
+    { value: 'PDF', label: 'PDF document' },
+    { value: 'TEXT', label: 'Plain text' },
   ]
   return []
 }
@@ -93,10 +104,35 @@ export function ConverterDialog({ onBack, initialDoc }: ConverterDialogProps) {
     try {
       // Use existing doc ID if pre-loaded, otherwise upload the file first
       const documentId = preloadedDoc ? preloadedDoc.id : await uploadToolboxFile(file!)
+
+      // For MD→PDF: pre-render markdown to styled HTML so the backend
+      // produces a formatted document instead of raw markdown text.
+      let htmlContent: string | undefined
+      if (targetFormat === 'PDF' && fileType === 'md') {
+        let markdownSource = ''
+        if (file) {
+          markdownSource = await file.text()
+        } else if (preloadedDoc) {
+          // preloaded docs don't carry content — htmlContent stays undefined,
+          // backend will fall back to raw text (acceptable for now)
+        }
+        if (markdownSource) {
+          const bodyHtml = markdownToHtml(markdownSource)
+          const title = (preloadedDoc?.fileName ?? file?.name ?? 'Document').replace(/\.md$/i, '')
+          htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>` +
+            `<style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.6;` +
+            `margin:72pt 90pt;color:#000}h1,h2,h3{font-family:inherit;page-break-after:avoid}` +
+            `p{margin:0 0 6pt}ul,ol{margin:0 0 6pt;padding-left:24pt}li{margin-bottom:3pt}` +
+            `strong{font-weight:bold}em{font-style:italic}</style></head>` +
+            `<body>${bodyHtml}</body></html>`
+        }
+      }
+
       const res = await docProcessingApi.convert({
         documentId,
         targetFormat,
         dpi: showDpi ? Number(dpi) || 150 : undefined,
+        htmlContent,
       })
       setResultDocs(res.data?.documents ?? [])
       setTextContent(res.data?.textContent ?? null)
@@ -170,8 +206,8 @@ export function ConverterDialog({ onBack, initialDoc }: ConverterDialogProps) {
                   </div>
                 ) : (
                   <FileUploadZone
-                    accept=".pdf,.png,.jpg,.jpeg"
-                    label="Drop a PDF or image here, or click to browse"
+                    accept=".pdf,.png,.jpg,.jpeg,.docx,.doc,.md"
+                    label="Drop a PDF, image, DOCX, or Markdown file here, or click to browse"
                     selectedFiles={file ? [file] : []}
                     onFilesSelected={handleFileSelected}
                     onRemoveFile={() => { setFile(null); setTargetFormat('') }}
