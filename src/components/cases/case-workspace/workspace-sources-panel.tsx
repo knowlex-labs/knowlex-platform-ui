@@ -9,8 +9,6 @@ import { workspaceApi } from '@/services/api/workspace-api'
 import type { CaseDocument } from '@/types'
 import { toast } from '@/hooks/use-toast'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function getFileExt(name: string): string {
   return name.split('.').pop()?.toUpperCase() || 'FILE'
 }
@@ -41,12 +39,32 @@ function FileIconBadge({ name }: { name: string }) {
   )
 }
 
-function IndexingDot({ status }: { status?: string | null }) {
+/** Always-visible indexing line under the filename (⋯ menu also shows status). */
+function IndexingStatusInline({ status }: { status?: string | null }) {
   const s = (status ?? '').toUpperCase()
-  if (s === 'INDEXING_RUNNING') return <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse flex-shrink-0" title="Indexing" />
-  if (s === 'INDEXING_PENDING') return <span className="h-1.5 w-1.5 rounded-full bg-ledger-gray-400 flex-shrink-0" title="Pending" />
-  if (s === 'INDEXING_FAILED')  return <AlertCircle className="h-3 w-3 text-red-400 flex-shrink-0" aria-label="Index failed" />
-  return null
+  if (s === 'INDEXING_RUNNING') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse shrink-0" aria-hidden />
+        Indexing…
+      </span>
+    )
+  }
+  if (s === 'INDEXING_PENDING') {
+    return <span className="text-[10px] font-medium text-ledger-gray-500">Pending</span>
+  }
+  if (s === 'INDEXING_COMPLETED') {
+    return <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">Indexed</span>
+  }
+  if (s === 'INDEXING_FAILED') {
+    return (
+      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+        <AlertCircle className="h-3 w-3 shrink-0" aria-hidden />
+        Failed
+      </span>
+    )
+  }
+  return <span className="text-[10px] font-medium text-ledger-gray-500">Pending</span>
 }
 
 // ─── Three-dots menu ──────────────────────────────────────────────────────────
@@ -336,14 +354,20 @@ export function WorkspaceSourcesPanel({
                         <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">
                           {name}
                         </p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[10px] text-ledger-gray-500 font-medium">
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-w-0">
+                          <span className="text-[10px] text-ledger-gray-500 font-medium shrink-0">
                             {getFileExt(name)}
                           </span>
-                          <IndexingDot status={doc.indexingStatus} />
-                          <span className="text-[10px] text-ledger-gray-500">
-                            {doc.createdAt ? formatRelativeTime(doc.createdAt) : ''}
-                          </span>
+                          <span className="text-[10px] text-ledger-gray-400 shrink-0" aria-hidden>·</span>
+                          <IndexingStatusInline status={doc.indexingStatus} />
+                          {doc.createdAt ? (
+                            <>
+                              <span className="text-[10px] text-ledger-gray-400 shrink-0" aria-hidden>·</span>
+                              <span className="text-[10px] text-ledger-gray-500 shrink-0">
+                                {formatRelativeTime(doc.createdAt)}
+                              </span>
+                            </>
+                          ) : null}
                         </div>
                       </>
                     )}
