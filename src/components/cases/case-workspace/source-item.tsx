@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { workspaceApi } from '@/services/api/workspace-api'
-import { DocumentType } from '@/types'
+import { DocumentType, GENERATED_DOC_TYPES } from '@/types'
 import type { CaseDocument } from '@/types'
 
 interface SourceItemProps {
@@ -85,6 +85,12 @@ export function SourceItem({
   const Icon = getFileIcon(displayName)
   const fileExt = displayName.split('.').pop()?.toUpperCase() || ''
   const isEditable = ['DOCX', 'DOC', 'MD'].includes(fileExt)
+
+  const isGenerated = GENERATED_DOC_TYPES.has(source.type as DocumentType)
+  const linkLifecycleStatus = (isGenerated ? source.jobStatus : source.indexingStatus) ?? ''
+  const showReindexButton =
+    linkLifecycleStatus.toUpperCase() === 'FAILED' ||
+    linkLifecycleStatus.toUpperCase() === 'INDEXING_FAILED'
 
   useEffect(() => {
     if (isRenaming && renameInputRef.current) {
@@ -263,14 +269,16 @@ export function SourceItem({
               <Pencil className="h-4 w-4" />
               Rename
             </button>
-            <button
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-600 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950 transition-colors disabled:opacity-50"
-              onClick={handleLinkContent}
-              disabled={isLinking}
-            >
-              <RefreshCw className="h-4 w-4" />
-              {isLinking ? 'Re-indexing...' : 'Re-index'}
-            </button>
+            {showReindexButton ? (
+              <button
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-primary-600 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950 transition-colors disabled:opacity-50"
+                onClick={handleLinkContent}
+                disabled={isLinking}
+              >
+                <RefreshCw className="h-4 w-4" />
+                {isLinking ? 'Re-indexing...' : 'Re-index'}
+              </button>
+            ) : null}
             <button
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-50 rounded-b-lg"
               onClick={handleDelete}
