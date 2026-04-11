@@ -181,7 +181,9 @@ export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) 
                   <div className="rounded-lg border border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-800/40 p-4 space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="text-ledger-gray-500">Original size</span>
-                      <span className="text-kx-primary-900">{formatSize(originalSize)}</span>
+                      <span className="text-kx-primary-900">
+                        {originalSize > 0 ? formatSize(originalSize) : '—'}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-ledger-gray-500">Compressed size</span>

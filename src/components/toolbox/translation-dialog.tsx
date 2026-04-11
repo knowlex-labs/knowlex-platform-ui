@@ -41,12 +41,18 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isPreparingFile, setIsPreparingFile] = useState(false)
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const jobIdRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    setPreloadedDoc(initialDoc ?? null)
+    setFile(null)
+  }, [initialDoc])
 
   useEffect(() => {
     caseApi.getAll({ size: 50 }).then(res => {
@@ -86,14 +92,42 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
     e.preventDefault()
     setIsDragging(false)
     const dropped = e.dataTransfer.files[0]
-    if (dropped) setFile(dropped)
+    if (dropped) {
+      setFile(dropped)
+      setPreloadedDoc(null)
+    }
   }
 
   const handleSubmit = async () => {
-    if (!file) return
+    let uploadFile = file
+    if (!uploadFile && preloadedDoc) {
+      setIsPreparingFile(true)
+      try {
+        const blob = await fetchDocumentBlob(preloadedDoc.downloadUrl ?? preloadedDoc.id)
+        const ext = preloadedDoc.fileName.split('.').pop()?.toLowerCase() ?? ''
+        const mimeFromName =
+          ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            : ext === 'txt' ? 'text/plain'
+              : ext === 'pdf' ? 'application/pdf'
+                : blob.type || 'application/octet-stream'
+        uploadFile = new File([blob], preloadedDoc.fileName, {
+          type: blob.type && blob.type !== 'application/octet-stream' ? blob.type : mimeFromName,
+        })
+      } catch {
+        toast({
+          title: 'Could not load document',
+          description: 'Download failed. Try uploading a file instead.',
+          variant: 'destructive',
+        })
+        return
+      } finally {
+        setIsPreparingFile(false)
+      }
+    }
+    if (!uploadFile) return
     setIsSubmitting(true)
     try {
-      const job = await submitTranslation(file, targetLang, {
+      const job = await submitTranslation(uploadFile, targetLang, {
         sourceLanguage: sourceLang || undefined,
         caseId: caseId || undefined,
       })
@@ -115,14 +149,18 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
     stopPolling()
     setStage('upload')
     setFile(null)
+    setPreloadedDoc(initialDoc ?? null)
     setSignedUrl(null)
     setErrorMsg(null)
     jobIdRef.current = null
   }
 
-  const downloadFileName = file
-    ? `${file.name.replace(/\.[^.]+$/, '')}_${targetLang.toLowerCase()}.pdf`
+  const sourceLabel = file?.name ?? preloadedDoc?.fileName ?? ''
+  const downloadFileName = sourceLabel
+    ? `${sourceLabel.replace(/\.[^.]+$/, '')}_${targetLang.toLowerCase()}.pdf`
     : `translated_${targetLang.toLowerCase()}.pdf`
+
+  const hasSource = file !== null || preloadedDoc !== null
 
   return (
     <div>
@@ -144,45 +182,69 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
               <p className="text-sm text-ledger-gray-500 mt-0.5">Upload a PDF, DOCX, or TXT file to translate</p>
             </div>
 
-            {/* Drop zone */}
-            <div
-              onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
-              onDragLeave={() => setIsDragging(false)}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
-                isDragging
-                  ? 'border-kx-primary-400 bg-kx-primary-50 dark:bg-kx-primary-950/20'
-                  : 'border-kx-card-border hover:border-kx-primary-300 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800/40'
-              }`}
-            >
-              {file ? (
-                <div className="flex items-center justify-center gap-3">
-                  <FileText className="h-5 w-5 text-kx-primary-500 flex-shrink-0" />
-                  <span className="text-sm font-medium text-kx-text-primary truncate max-w-xs">{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); setFile(null) }}
-                    className="text-ledger-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <Upload className="h-6 w-6 mx-auto mb-2 text-ledger-gray-400" />
-                  <p className="text-sm font-medium text-kx-text-primary">Drop file here or click to browse</p>
-                  <p className="text-xs text-ledger-gray-400 mt-1">PDF, DOCX, TXT — max 50 MB</p>
-                </>
-              )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.txt"
-                className="hidden"
-                onChange={e => { if (e.target.files?.[0]) setFile(e.target.files[0]) }}
-              />
-            </div>
+            {/* Selected workspace doc or upload */}
+            {preloadedDoc && !file ? (
+              <div className="flex items-center gap-3 rounded-lg border border-kx-primary-200 dark:border-kx-primary-800 bg-kx-primary-50 dark:bg-kx-primary-950/20 px-3 py-2.5">
+                <FileText className="h-4 w-4 flex-shrink-0 text-kx-primary-500" />
+                <span className="flex-1 truncate text-sm font-medium text-kx-primary-900">{preloadedDoc.fileName}</span>
+                {preloadedDoc.fileSize > 0 && (
+                  <span className="text-xs text-ledger-gray-400 flex-shrink-0">{formatSize(preloadedDoc.fileSize)}</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPreloadedDoc(null)}
+                  className="flex-shrink-0 rounded p-0.5 text-ledger-gray-400 hover:text-red-500 transition-colors"
+                  title="Remove and upload a different file"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onDragOver={e => { e.preventDefault(); setIsDragging(true) }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                  isDragging
+                    ? 'border-kx-primary-400 bg-kx-primary-50 dark:bg-kx-primary-950/20'
+                    : 'border-kx-card-border hover:border-kx-primary-300 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800/40'
+                }`}
+              >
+                {file ? (
+                  <div className="flex items-center justify-center gap-3">
+                    <FileText className="h-5 w-5 text-kx-primary-500 flex-shrink-0" />
+                    <span className="text-sm font-medium text-kx-text-primary truncate max-w-xs">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setFile(null) }}
+                      className="text-ledger-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-6 w-6 mx-auto mb-2 text-ledger-gray-400" />
+                    <p className="text-sm font-medium text-kx-text-primary">Drop file here or click to browse</p>
+                    <p className="text-xs text-ledger-gray-400 mt-1">PDF, DOCX, TXT — max 50 MB</p>
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0]
+                    if (f) {
+                      setFile(f)
+                      setPreloadedDoc(null)
+                    }
+                  }}
+                />
+              </div>
+            )}
 
             {/* Language selectors */}
             <div className="grid grid-cols-2 gap-4">
@@ -212,14 +274,14 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
 
             <Button
               className="w-full gap-2"
-              disabled={!file || isSubmitting}
+              disabled={!hasSource || isSubmitting || isPreparingFile}
               onClick={handleSubmit}
             >
-              {isSubmitting
+              {isSubmitting || isPreparingFile
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Upload className="h-4 w-4" />
               }
-              {isSubmitting ? 'Submitting…' : 'Translate'}
+              {isPreparingFile ? 'Preparing…' : isSubmitting ? 'Submitting…' : 'Translate'}
             </Button>
           </div>
         )}
