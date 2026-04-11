@@ -309,33 +309,10 @@ function DocumentViewer({
           const text = await workspaceApi.fetchDocumentContent({ id: doc.id, signedUrl: doc.storageUrl, downloadUrl: doc.downloadUrl })
           if (!cancelled) setTextContent(text)
         } else if (isImage) {
-          // For images: use S3 signed URL directly if available (avoids MIME mismatch),
-          // otherwise fetch and re-wrap blob with explicit image/* type so <img> renders inline.
-          if (doc.storageUrl) {
-            if (!cancelled) setBlobUrl(doc.storageUrl)
-          } else {
-            const ft = (doc.fileType ?? '').toUpperCase()
-            const mime = ft === 'PNG' ? 'image/png'
-              : ft === 'JPEG' || ft === 'JPG' ? 'image/jpeg'
-              : ft === 'GIF' ? 'image/gif'
-              : ft === 'WEBP' ? 'image/webp'
-              : 'image/jpeg'
-            const token = localStorage.getItem('auth_token')
-            const userId = localStorage.getItem('auth_user_id')
-            const headers: Record<string, string> = {}
-            if (token) headers['Authorization'] = `Bearer ${token}`
-            if (userId) headers['x-user-id'] = userId
-            const endpoint = doc.downloadUrl
-              ? `${config.apiBaseUrl}${doc.downloadUrl}`
-              : `${config.apiBaseUrl}/api/v1/documents/${doc.id}/download`
-            const res = await fetch(endpoint, { headers })
-            if (!res.ok) throw new Error(`Failed to fetch image: ${res.status}`)
-            const rawBlob = await res.blob()
-            const typed = rawBlob.type && rawBlob.type !== 'application/octet-stream'
-              ? rawBlob
-              : new Blob([rawBlob], { type: mime })
-            if (!cancelled) setBlobUrl(URL.createObjectURL(typed))
-          }
+          // Always fetch images with auth headers (same as case studio file-viewer-modal).
+          // Avoids S3 Content-Disposition issues that can trigger a browser download instead of inline render.
+          const url = await workspaceApi.resolveDocumentUrl({ id: doc.id, downloadUrl: doc.downloadUrl, signedUrl: doc.storageUrl })
+          if (!cancelled) setBlobUrl(url)
         } else {
           const url = await workspaceApi.resolveDocumentUrl({ id: doc.id, downloadUrl: doc.downloadUrl, signedUrl: doc.storageUrl })
           if (!cancelled) setBlobUrl(url)
@@ -540,9 +517,9 @@ function DocumentViewer({
             />
           </div>
         ) : blobUrl && (isPdf || doc.type === DocumentType.JUDGMENT) ? (
-          <iframe src={blobUrl} className="w-full h-full border-0" title={displayName} />
+          <iframe src={blobUrl} className="absolute inset-0 w-full h-full border-0" title={displayName} />
         ) : blobUrl && isImage ? (
-          <div className="flex items-center justify-center p-6 h-full">
+          <div className="absolute inset-0 flex items-center justify-center p-6">
             <img src={blobUrl} alt={displayName} className="max-w-full max-h-full object-contain rounded" />
           </div>
         ) : (
@@ -1055,7 +1032,7 @@ export function DocumentsPage() {
                               <>
                                 <SortableHeader field="name" label="Name" className="w-[38%]" withIconSpacer />
                                 <th className="px-4 py-3 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Type</th>
-                                <SortableHeader field="caseTitle" label="Case" />
+                                <th className="px-4 py-3 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Case</th>
                                 <SortableHeader field="createdAt" label="Date Added" />
                               </>
                             )}
@@ -1080,70 +1057,80 @@ export function DocumentsPage() {
                     </div>
                   )}
 
-                  {!isLoading && total > 0 && (
-                    <div className="px-4 py-3 border-t border-ledger-gray-200 flex flex-wrap items-center justify-between gap-4">
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-ledger-gray-500 whitespace-nowrap">Rows per page</label>
-                          <div className="w-20">
-                            <Select value={String(pageSize)} onChange={e => setPageSize(Number(e.target.value))} className="h-8 text-xs">
-                              {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={String(n)}>{n}</option>)}
-                            </Select>
-                          </div>
-                        </div>
-                        <p className="text-sm text-ledger-gray-500 whitespace-nowrap">
-                          <span className="font-medium text-kx-text-primary">{(page * pageSize + 1).toLocaleString()}</span>
-                          {'–'}
-                          <span className="font-medium text-kx-text-primary">{Math.min((page + 1) * pageSize, total).toLocaleString()}</span>
-                          {' of '}
-                          <span className="font-medium text-kx-text-primary">{total.toLocaleString()}</span>
-                          {' documents'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(0)} disabled={page === 0} title="First page">
-                          <ChevronsLeft className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p - 1)} disabled={page === 0} title="Previous page">
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                        {(() => {
-                          const start = Math.max(0, page - 2)
-                          const end = Math.min(Math.max(totalPages - 1, 0), page + 2)
-                          const pages: number[] = []
-                          for (let i = start; i <= end; i++) pages.push(i)
-                          return (
-                            <>
-                              {start > 0 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
-                              {pages.map(p => (
-                                <Button key={p} variant={p === page ? 'primary' : 'ghost'} size="sm"
-                                  onClick={() => setPage(p)}
-                                  className={cn('h-8 w-8 p-0 text-xs font-medium', p === page && 'pointer-events-none')}>
-                                  {p + 1}
-                                </Button>
-                              ))}
-                              {end < totalPages - 1 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
-                            </>
-                          )
-                        })()}
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1} title="Next page">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(Math.max(totalPages - 1, 0))} disabled={page >= totalPages - 1} title="Last page">
-                          <ChevronsRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
+
+            {/* Sticky pagination footer — outside the scroll container so it's always visible */}
+            {!isLoading && total > 0 && (
+              <div className="flex-shrink-0 px-6 py-3 border-t border-kx-card-border bg-kx-surface flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex shrink-0 items-center gap-2">
+                    <label className="shrink-0 text-xs text-ledger-gray-500 whitespace-nowrap" htmlFor="documents-page-rows">
+                      Rows per page
+                    </label>
+                    <div className="w-20 shrink-0">
+                      <Select
+                        id="documents-page-rows"
+                        listPlacement="top"
+                        value={String(pageSize)}
+                        onChange={e => setPageSize(Number(e.target.value))}
+                        className="h-8 text-xs"
+                      >
+                        {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={String(n)}>{n}</option>)}
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="shrink-0 text-sm text-ledger-gray-500 whitespace-nowrap">
+                    <span className="font-medium text-kx-text-primary">{(page * pageSize + 1).toLocaleString()}</span>
+                    {'–'}
+                    <span className="font-medium text-kx-text-primary">{Math.min((page + 1) * pageSize, total).toLocaleString()}</span>
+                    {' of '}
+                    <span className="font-medium text-kx-text-primary">{total.toLocaleString()}</span>
+                    {' documents'}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(0)} disabled={page === 0} title="First page">
+                    <ChevronsLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p - 1)} disabled={page === 0} title="Previous page">
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  {(() => {
+                    const start = Math.max(0, page - 2)
+                    const end = Math.min(Math.max(totalPages - 1, 0), page + 2)
+                    const pages: number[] = []
+                    for (let i = start; i <= end; i++) pages.push(i)
+                    return (
+                      <>
+                        {start > 0 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
+                        {pages.map(p => (
+                          <Button key={p} variant={p === page ? 'primary' : 'ghost'} size="sm"
+                            onClick={() => setPage(p)}
+                            className={cn('h-8 w-8 p-0 text-xs font-medium', p === page && 'pointer-events-none')}>
+                            {p + 1}
+                          </Button>
+                        ))}
+                        {end < totalPages - 1 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
+                      </>
+                    )
+                  })()}
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1} title="Next page">
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(Math.max(totalPages - 1, 0))} disabled={page >= totalPages - 1} title="Last page">
+                    <ChevronsRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
 
       {/* ── RIGHT TOOLS PANEL ── */}
-      {toolsPanelOpen ? (
+      {toolsPanelOpen && !viewerOpen ? (
         <div className="w-56 flex-shrink-0 border-l border-kx-card-border bg-nb-panel flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-nb-panel-border flex-shrink-0">
@@ -1225,7 +1212,7 @@ export function DocumentsPage() {
                 case 'merge':       return <MergerDialog     onBack={closeTool} initialDocs={toolCtx.initialDocs} />
                 case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
-                case 'translation': return <TranslationDialog onBack={closeTool} />
+                case 'translation': return <TranslationDialog onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 default:            return null
               }
             })()}

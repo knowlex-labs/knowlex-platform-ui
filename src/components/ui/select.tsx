@@ -7,6 +7,11 @@ export interface SelectProps
   onChange?: React.ChangeEventHandler<HTMLSelectElement>
   searchable?: boolean
   searchPlaceholder?: string
+  /**
+   * Where the custom list attaches to the trigger.
+   * Use `top` at the bottom of scroll/overflow-hidden regions so the menu is not clipped.
+   */
+  listPlacement?: 'top' | 'bottom'
 }
 
 interface OptionData {
@@ -30,22 +35,8 @@ function extractOptions(children: React.ReactNode): OptionData[] {
   return options
 }
 
-/**
- * Find the nearest scrollable ancestor so we can close the dropdown when it scrolls
- * (prevents the dropdown from staying in place while the trigger scrolls away).
- */
-function getScrollParent(el: HTMLElement | null): HTMLElement | null {
-  let node = el?.parentElement ?? null
-  while (node) {
-    const { overflow, overflowY } = getComputedStyle(node)
-    if (/auto|scroll/.test(overflow + overflowY)) return node
-    node = node.parentElement
-  }
-  return null
-}
-
 const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, children, value, onChange, disabled, id, name, searchable, searchPlaceholder, ...props }, ref) => {
+  ({ className, children, value, onChange, disabled, id, name, searchable, searchPlaceholder, listPlacement = 'bottom', ...props }, ref) => {
     const [open, setOpen] = React.useState(false)
     const [search, setSearch] = React.useState('')
     const containerRef = React.useRef<HTMLDivElement>(null)
@@ -97,16 +88,6 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       }
       document.addEventListener('keydown', handleKey)
       return () => document.removeEventListener('keydown', handleKey)
-    }, [open])
-
-    // Close when a scrollable ancestor scrolls (so dropdown doesn't float detached)
-    React.useEffect(() => {
-      if (!open) return
-      const scrollParent = getScrollParent(containerRef.current)
-      if (!scrollParent) return
-      const handleScroll = () => setOpen(false)
-      scrollParent.addEventListener('scroll', handleScroll, { passive: true })
-      return () => scrollParent.removeEventListener('scroll', handleScroll)
     }, [open])
 
     const handleSelect = (optionValue: string) => {
@@ -175,7 +156,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             ref={dropdownRef}
             role="listbox"
             className={cn(
-              'absolute z-50 mt-1 min-w-full w-max max-w-xs rounded border border-ledger-gray-200 bg-ledger-white shadow-lg',
+              'absolute left-0 z-50 min-w-full w-max max-w-xs rounded border border-ledger-gray-200 bg-ledger-white shadow-lg',
+              listPlacement === 'top' ? 'bottom-full mb-1' : 'top-full mt-1',
               'animate-in fade-in-0 zoom-in-95 duration-100'
             )}
           >

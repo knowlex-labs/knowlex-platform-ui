@@ -97,15 +97,15 @@ export interface DocumentRecord {
   updatedAt: string
 }
 
-// Spring Page wrapper (shared shape)
+// Spring Page wrapper — pagination metadata is nested under a "page" key
 interface SpringPage<T> {
   content: T[]
-  totalElements: number
-  totalPages: number
-  number: number
-  size: number
-  first: boolean
-  last: boolean
+  page: {
+    size: number
+    number: number
+    totalElements: number
+    totalPages: number
+  }
 }
 
 /**
@@ -193,6 +193,23 @@ export async function downloadDocument(
 }
 
 /**
+ * Fetch document bytes with auth (e.g. build a `File` for translation from an existing document).
+ */
+export async function fetchDocumentBlob(idOrPath: string): Promise<Blob> {
+  const path = idOrPath.startsWith('/')
+    ? idOrPath
+    : `/api/v1/documents/${idOrPath}/download`
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  })
+  if (!response.ok) {
+    throw new Error(`Download failed: ${response.status}`)
+  }
+  return response.blob()
+}
+
+/**
  * Programmatically trigger a download from a presigned or public URL.
  * No auth headers — use this for storageUrl (presigned S3) values.
  */
@@ -237,8 +254,8 @@ export async function listAllDocuments(
   const res = await apiClient.get<ApiResponse<SpringPage<DocumentRecord>>>(`/api/v1/documents?${params}`)
   return {
     documents: res.data?.content ?? [],
-    total: res.data?.totalElements ?? 0,
-    totalPages: res.data?.totalPages ?? 0,
+    total: res.data?.page?.totalElements ?? 0,
+    totalPages: res.data?.page?.totalPages ?? 0,
   }
 }
 

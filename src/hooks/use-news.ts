@@ -2,7 +2,12 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { newsApi } from '@/services/api/news-api'
 import type { NewsItem, NewsFilters } from '@/types'
 
-const DEFAULT_PAGE_SIZE = 21
+const DEFAULT_PAGE_SIZE = 20
+const ALLOWED_PAGE_SIZES = [10, 20, 50, 100] as const
+
+function clampPageSize(n: number): number {
+    return (ALLOWED_PAGE_SIZES as readonly number[]).includes(n) ? n : DEFAULT_PAGE_SIZE
+}
 
 interface Pagination {
     page: number
@@ -19,6 +24,7 @@ export interface UseNewsResult {
     setFilters: (filters: NewsFilters) => void
     pagination: Pagination
     setPage: (page: number) => void
+    setPageSize: (size: number) => void
     isLoading: boolean
     error: string | null
     refresh: () => void
@@ -43,14 +49,15 @@ export function useNews(): UseNewsResult {
     const paginationRef = useRef(pagination)
     paginationRef.current = pagination
 
-    const fetchNews = useCallback(async (currentFilters: NewsFilters, page: number) => {
+    const fetchNews = useCallback(async (currentFilters: NewsFilters, page: number, pageSize?: number) => {
+        const size = pageSize ?? paginationRef.current.size
         setIsLoading(true)
         setError(null)
         try {
             const response = await newsApi.list({
                 ...currentFilters,
                 page,
-                size: DEFAULT_PAGE_SIZE,
+                size,
             })
             const pageData = response.data
             const meta = pageData.page ?? pageData
@@ -86,6 +93,12 @@ export function useNews(): UseNewsResult {
         fetchNews(filtersRef.current, page)
     }, [fetchNews])
 
+    const setPageSize = useCallback((newSize: number) => {
+        const size = clampPageSize(newSize)
+        setPagination((prev) => ({ ...prev, size, page: 0 }))
+        fetchNews(filtersRef.current, 0, size)
+    }, [fetchNews])
+
     const refresh = useCallback(() => {
         fetchNews(filtersRef.current, paginationRef.current.page)
     }, [fetchNews])
@@ -96,6 +109,7 @@ export function useNews(): UseNewsResult {
         setFilters,
         pagination,
         setPage,
+        setPageSize,
         isLoading,
         error,
         refresh,

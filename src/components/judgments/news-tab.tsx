@@ -93,7 +93,7 @@ function NewsEmptyState() {
 // ─── Main tab ──────────────────────────────────────────────────────────────────
 
 export function NewsTab() {
-    const { newsItems, filters, setFilters, pagination, setPage, isLoading, error, refresh } = useNews()
+    const { newsItems, filters, setFilters, pagination, setPage, setPageSize, isLoading, error, refresh } = useNews()
 
     return (
         <div className="px-2 py-4 space-y-5">
@@ -131,18 +131,18 @@ export function NewsTab() {
                 <>
                     <NewsFeed items={newsItems} />
 
-                    {pagination.totalPages > 1 && (
-                        <div className="border-t border-ledger-gray-200 pt-4">
-                            <JudgmentPagination
-                                page={pagination.page}
-                                totalPages={pagination.totalPages}
-                                totalElements={pagination.totalElements}
-                                size={pagination.size}
-                                onPageChange={setPage}
-                                label="news"
-                            />
-                        </div>
-                    )}
+                    <div className="border-t border-ledger-gray-200 pt-4">
+                        <JudgmentPagination
+                            page={pagination.page}
+                            totalPages={pagination.totalPages}
+                            totalElements={pagination.totalElements}
+                            size={pagination.size}
+                            onPageChange={setPage}
+                            onPageSizeChange={setPageSize}
+                            rowsSelectId="news-tab-page-size"
+                            label="news"
+                        />
+                    </div>
                 </>
             )}
         </div>

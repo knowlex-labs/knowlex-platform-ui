@@ -11,6 +11,7 @@ export function Judgments() {
         setFilters,
         pagination,
         setPage,
+        setPageSize,
         isLoading,
         error,
         sort,
@@ -64,6 +65,8 @@ export function Judgments() {
                                 totalElements={pagination.totalElements}
                                 size={pagination.size}
                                 onPageChange={setPage}
+                                onPageSizeChange={setPageSize}
+                                rowsSelectId="judgments-tab-page-size"
                             />
                         </div>
                     )}

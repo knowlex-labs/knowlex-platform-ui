@@ -3,8 +3,20 @@ import { ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, Download, RotateC
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { caseApi } from '@/services/api/case-api'
-import { submitTranslation, getTranslationStatus, triggerDirectDownload } from '@/services/api/doc-processing-api'
+import {
+  submitTranslation,
+  getTranslationStatus,
+  triggerDirectDownload,
+  fetchDocumentBlob,
+  type ProcessedDocumentInfo,
+} from '@/services/api/doc-processing-api'
 import { toast } from '@/hooks/use-toast'
+
+function formatSize(bytes: number) {
+  if (bytes <= 0) return null
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
 
 const LANGUAGES = [
   'Hindi', 'English', 'Tamil', 'Telugu', 'Bengali',
@@ -15,11 +27,14 @@ type Stage = 'upload' | 'processing' | 'done' | 'error'
 
 interface TranslationDialogProps {
   onBack: () => void
+  /** Workspace document selected when opening Translate from the tools panel */
+  initialDoc?: ProcessedDocumentInfo
 }
 
-export function TranslationDialog({ onBack }: TranslationDialogProps) {
+export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps) {
   const [stage, setStage] = useState<Stage>('upload')
   const [file, setFile] = useState<File | null>(null)
+  const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
   const [targetLang, setTargetLang] = useState('Hindi')
   const [sourceLang, setSourceLang] = useState('')
   const [caseId, setCaseId] = useState('')

@@ -4,6 +4,11 @@ import { judgmentsApi } from '@/services/api/judgments-api'
 import type { Judgment, JudgmentFilters, JudgmentSort, SortField } from '@/types'
 
 const DEFAULT_PAGE_SIZE = 20
+const ALLOWED_PAGE_SIZES = [10, 20, 50, 100] as const
+
+function clampPageSize(n: number): number {
+    return (ALLOWED_PAGE_SIZES as readonly number[]).includes(n) ? n : DEFAULT_PAGE_SIZE
+}
 
 interface Pagination {
     page: number
@@ -18,6 +23,7 @@ interface UseJudgmentsResult {
     setFilters: (filters: JudgmentFilters) => void
     pagination: Pagination
     setPage: (page: number) => void
+    setPageSize: (size: number) => void
     isLoading: boolean
     error: string | null
     sort: JudgmentSort | null
@@ -57,7 +63,8 @@ function parseSortFromParams(params: URLSearchParams): JudgmentSort | null {
 function buildSearchParams(
     filters: JudgmentFilters,
     page: number,
-    sort: JudgmentSort | null
+    sort: JudgmentSort | null,
+    pageSize: number
 ): URLSearchParams {
     const params = new URLSearchParams()
     if (filters.search) params.set('search', filters.search)
@@ -69,6 +76,7 @@ function buildSearchParams(
     if (filters.dateFrom) params.set('dateFrom', filters.dateFrom)
     if (filters.dateTo) params.set('dateTo', filters.dateTo)
     if (page > 0) params.set('page', String(page))
+    if (pageSize !== DEFAULT_PAGE_SIZE) params.set('size', String(pageSize))
     if (sort && (sort.field !== 'decisionDate' || sort.direction !== 'desc')) {
         params.set('sortField', sort.field)
         params.set('sortDir', sort.direction)
@@ -82,6 +90,7 @@ export function useJudgments(): UseJudgmentsResult {
     const initialFilters = parseFiltersFromParams(searchParams)
     const initialPage = Number(searchParams.get('page') || '0')
     const initialSort = parseSortFromParams(searchParams)
+    const initialSize = clampPageSize(Number(searchParams.get('size') || String(DEFAULT_PAGE_SIZE)))
 
     const [judgments, setJudgments] = useState<Judgment[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -90,7 +99,7 @@ export function useJudgments(): UseJudgmentsResult {
     const [sort, setSortState] = useState<JudgmentSort | null>(initialSort)
     const [pagination, setPagination] = useState<Pagination>({
         page: initialPage,
-        size: DEFAULT_PAGE_SIZE,
+        size: initialSize,
         totalElements: 0,
         totalPages: 0,
     })
@@ -102,8 +111,8 @@ export function useJudgments(): UseJudgmentsResult {
     const sortRef = useRef(sort)
     sortRef.current = sort
 
-    const updateUrl = useCallback((f: JudgmentFilters, page: number, s: JudgmentSort | null) => {
-        const params = buildSearchParams(f, page, s)
+    const updateUrl = useCallback((f: JudgmentFilters, page: number, s: JudgmentSort | null, pageSize?: number) => {
+        const params = buildSearchParams(f, page, s, pageSize ?? paginationRef.current.size)
         setSearchParams(params, { replace: true })
     }, [setSearchParams])
 
@@ -115,15 +124,17 @@ export function useJudgments(): UseJudgmentsResult {
     const fetchJudgments = useCallback(async (
         currentFilters: JudgmentFilters,
         page: number,
-        currentSort: JudgmentSort | null
+        currentSort: JudgmentSort | null,
+        pageSize?: number
     ) => {
+        const size = pageSize ?? paginationRef.current.size
         setIsLoading(true)
         setError(null)
         try {
             const response = await judgmentsApi.list({
                 ...currentFilters,
                 page,
-                size: DEFAULT_PAGE_SIZE,
+                size,
                 sort: formatSort(currentSort),
             })
             const pageData = response.data
@@ -161,6 +172,13 @@ export function useJudgments(): UseJudgmentsResult {
         fetchJudgments(filtersRef.current, page, sortRef.current)
     }, [fetchJudgments, updateUrl])
 
+    const setPageSize = useCallback((newSize: number) => {
+        const size = clampPageSize(newSize)
+        setPagination((prev) => ({ ...prev, size, page: 0 }))
+        updateUrl(filtersRef.current, 0, sortRef.current, size)
+        fetchJudgments(filtersRef.current, 0, sortRef.current, size)
+    }, [fetchJudgments, updateUrl])
+
     const setSort = useCallback((newSort: JudgmentSort | null) => {
         setSortState(newSort)
         updateUrl(filtersRef.current, 0, newSort)
@@ -191,6 +209,7 @@ export function useJudgments(): UseJudgmentsResult {
         setFilters,
         pagination,
         setPage,
+        setPageSize,
         isLoading,
         error,
         sort,

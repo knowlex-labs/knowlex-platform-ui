@@ -8,6 +8,7 @@ import {
   docProcessingApi,
   downloadDocument,
 } from '@/services/api/doc-processing-api'
+import { draftsApi } from '@/services/api/drafts-api'
 import { ApiError } from '@/services/api/api-client'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
@@ -54,10 +55,15 @@ export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) 
 
   const handleCompress = async () => {
     if (!preloadedDoc && !file) return
-    setOriginalSize(preloadedDoc ? preloadedDoc.fileSize : file!.size)
     setStage('processing')
     setError(null)
     try {
+      let orig = preloadedDoc ? preloadedDoc.fileSize : file!.size
+      if (preloadedDoc && (!orig || orig <= 0)) {
+        const meta = await draftsApi.getStandalone(preloadedDoc.id)
+        orig = meta.data?.fileSize ?? 0
+      }
+      setOriginalSize(orig)
       // Use existing doc ID if pre-loaded, otherwise upload the file first
       const documentId = preloadedDoc ? preloadedDoc.id : await uploadToolboxFile(file!)
       const res = await docProcessingApi.compress({ documentId, quality })

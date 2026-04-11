@@ -20,15 +20,15 @@ interface ApiResponse<T> {
   data: T
 }
 
-// Spring Boot Page response shape returned by GET /api/v1/documents
+// Spring Boot Page (VIA_DTO) — metadata under `page`, see @EnableSpringDataWebSupport on the API
 interface SpringPage<T> {
   content: T[]
-  totalElements: number
-  totalPages: number
-  number: number   // 0-based current page
-  size: number
-  first: boolean
-  last: boolean
+  page: {
+    size: number
+    number: number
+    totalElements: number
+    totalPages: number
+  }
 }
 
 // Presigned URL response from backend
@@ -131,8 +131,11 @@ export const workspaceApi = {
     const response = await apiClient.get<ApiResponse<SpringPage<CaseDocument>>>(
       `/api/v1/documents?${params}`
     )
-    const page = response.data
-    return { documents: page?.content ?? [], total: page?.totalElements ?? 0 }
+    const body = response.data
+    return {
+      documents: body?.content ?? [],
+      total: body?.page?.totalElements ?? 0,
+    }
   },
 
   /**
