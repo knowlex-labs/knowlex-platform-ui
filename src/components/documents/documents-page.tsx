@@ -1209,72 +1209,72 @@ export function DocumentsPage() {
 
                 </div>
               </div>
-            </div>
 
-            {/* Sticky pagination footer — outside the scroll container so it's always visible */}
-            {!isLoading && total > 0 && (
-              <div className="flex-shrink-0 px-6 py-3 border-t border-kx-card-border bg-kx-surface flex flex-wrap items-center justify-between gap-4">
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex shrink-0 items-center gap-2">
-                    <label className="shrink-0 text-xs text-ledger-gray-500 whitespace-nowrap" htmlFor="documents-page-rows">
-                      Rows per page
-                    </label>
-                    <div className="w-20 shrink-0">
-                      <Select
-                        id="documents-page-rows"
-                        listPlacement="top"
-                        value={String(pageSize)}
-                        onChange={e => setPageSize(Number(e.target.value))}
-                        className="h-8 text-xs"
-                      >
-                        {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={String(n)}>{n}</option>)}
-                      </Select>
+              {/* Pagination — flows with content, not sticky */}
+              {!isLoading && total > 0 && (
+                <div className="px-6 py-4 mt-2 border-t border-kx-card-border flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex shrink-0 items-center gap-2">
+                      <label className="shrink-0 text-xs text-ledger-gray-500 whitespace-nowrap" htmlFor="documents-page-rows">
+                        Rows per page
+                      </label>
+                      <div className="w-20 shrink-0">
+                        <Select
+                          id="documents-page-rows"
+                          listPlacement="top"
+                          value={String(pageSize)}
+                          onChange={e => setPageSize(Number(e.target.value))}
+                          className="h-8 text-xs"
+                        >
+                          {PAGE_SIZE_OPTIONS.map(n => <option key={n} value={String(n)}>{n}</option>)}
+                        </Select>
+                      </div>
                     </div>
+                    <p className="shrink-0 text-sm text-ledger-gray-500 whitespace-nowrap">
+                      <span className="font-medium text-kx-text-primary">{(page * pageSize + 1).toLocaleString()}</span>
+                      {'–'}
+                      <span className="font-medium text-kx-text-primary">{Math.min((page + 1) * pageSize, total).toLocaleString()}</span>
+                      {' of '}
+                      <span className="font-medium text-kx-text-primary">{total.toLocaleString()}</span>
+                      {' documents'}
+                    </p>
                   </div>
-                  <p className="shrink-0 text-sm text-ledger-gray-500 whitespace-nowrap">
-                    <span className="font-medium text-kx-text-primary">{(page * pageSize + 1).toLocaleString()}</span>
-                    {'–'}
-                    <span className="font-medium text-kx-text-primary">{Math.min((page + 1) * pageSize, total).toLocaleString()}</span>
-                    {' of '}
-                    <span className="font-medium text-kx-text-primary">{total.toLocaleString()}</span>
-                    {' documents'}
-                  </p>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(0)} disabled={page === 0} title="First page">
+                      <ChevronsLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p - 1)} disabled={page === 0} title="Previous page">
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    {(() => {
+                      const start = Math.max(0, page - 2)
+                      const end = Math.min(Math.max(totalPages - 1, 0), page + 2)
+                      const pages: number[] = []
+                      for (let i = start; i <= end; i++) pages.push(i)
+                      return (
+                        <>
+                          {start > 0 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
+                          {pages.map(p => (
+                            <Button key={p} variant={p === page ? 'primary' : 'ghost'} size="sm"
+                              onClick={() => setPage(p)}
+                              className={cn('h-8 w-8 p-0 text-xs font-medium', p === page && 'pointer-events-none')}>
+                              {p + 1}
+                            </Button>
+                          ))}
+                          {end < totalPages - 1 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
+                        </>
+                      )
+                    })()}
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1} title="Next page">
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(Math.max(totalPages - 1, 0))} disabled={page >= totalPages - 1} title="Last page">
+                      <ChevronsRight className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(0)} disabled={page === 0} title="First page">
-                    <ChevronsLeft className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p - 1)} disabled={page === 0} title="Previous page">
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  {(() => {
-                    const start = Math.max(0, page - 2)
-                    const end = Math.min(Math.max(totalPages - 1, 0), page + 2)
-                    const pages: number[] = []
-                    for (let i = start; i <= end; i++) pages.push(i)
-                    return (
-                      <>
-                        {start > 0 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
-                        {pages.map(p => (
-                          <Button key={p} variant={p === page ? 'primary' : 'ghost'} size="sm"
-                            onClick={() => setPage(p)}
-                            className={cn('h-8 w-8 p-0 text-xs font-medium', p === page && 'pointer-events-none')}>
-                            {p + 1}
-                          </Button>
-                        ))}
-                        {end < totalPages - 1 && <span className="text-xs text-ledger-gray-400 px-1">…</span>}
-                      </>
-                    )
-                  })()}
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1} title="Next page">
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setPage(Math.max(totalPages - 1, 0))} disabled={page >= totalPages - 1} title="Last page">
-                    <ChevronsRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>

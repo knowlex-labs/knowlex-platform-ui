@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Download, RotateCcw, ArrowLeft, FileText, X } from 'lucide-react'
+import { Loader2, Download, RotateCcw, ArrowLeft, FileText, X, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,6 +9,7 @@ import {
   docProcessingApi,
   downloadDocument,
 } from '@/services/api/doc-processing-api'
+import { workspaceApi } from '@/services/api/workspace-api'
 import { ApiError } from '@/services/api/api-client'
 import { toast } from '@/hooks/use-toast'
 import type { ProcessedDocumentInfo } from '@/services/api/doc-processing-api'
@@ -28,20 +29,20 @@ interface SplitterDialogProps {
 
 export function SplitterDialog({ onBack, initialDoc }: SplitterDialogProps) {
   const [stage, setStage] = useState<Stage>('upload')
-  // When initialDoc is provided, start with it pre-loaded; null means user must upload
   const [file, setFile] = useState<File | null>(null)
   const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
   const [pageRanges, setPageRanges] = useState('')
-  const [results, setResults] = useState<ProcessedDocumentInfo[]>([])
+  const [result, setResult] = useState<ProcessedDocumentInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [downloadingId, setDownloadingId] = useState<string | null>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
+  const [isDiscarding, setIsDiscarding] = useState(false)
 
   const reset = () => {
     setStage('upload')
     setFile(null)
     setPreloadedDoc(initialDoc ?? null)
     setPageRanges('')
-    setResults([])
+    setResult(null)
     setError(null)
   }
 
@@ -50,15 +51,11 @@ export function SplitterDialog({ onBack, initialDoc }: SplitterDialogProps) {
     setStage('processing')
     setError(null)
     try {
-      // Use existing doc ID if pre-loaded, otherwise upload the file first
       const documentId = preloadedDoc ? preloadedDoc.id : await uploadToolboxFile(file!)
-      const res = await docProcessingApi.split({
-        documentId,
-        pageRanges: pageRanges.trim() || undefined,
-      })
-      setResults(res.data?.documents ?? [])
+      const res = await docProcessingApi.split({ documentId, pageRanges: pageRanges.trim() || undefined })
+      const doc = res.data?.documents?.[0] ?? null
+      setResult(doc)
       setStage('done')
-      toast({ title: 'Split complete', description: `Created ${res.data?.documents.length ?? 0} document(s).` })
     } catch (e) {
       const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Something went wrong'
       setError(msg)
@@ -66,14 +63,29 @@ export function SplitterDialog({ onBack, initialDoc }: SplitterDialogProps) {
     }
   }
 
-  const handleDownload = async (doc: ProcessedDocumentInfo) => {
-    setDownloadingId(doc.id)
+  const handleDownload = async () => {
+    if (!result) return
+    setIsDownloading(true)
     try {
-      await downloadDocument(doc.downloadUrl ?? doc.id, doc.fileName)
+      await downloadDocument(result.downloadUrl ?? result.id, result.fileName)
     } catch {
       toast({ title: 'Download failed', variant: 'destructive' })
     } finally {
-      setDownloadingId(null)
+      setIsDownloading(false)
+    }
+  }
+
+  const handleDiscard = async () => {
+    if (!result) return
+    setIsDiscarding(true)
+    try {
+      await workspaceApi.deleteDocuments([result.id])
+      toast({ title: 'Document discarded' })
+      reset()
+    } catch {
+      toast({ title: 'Failed to discard', variant: 'destructive' })
+    } finally {
+      setIsDiscarding(false)
     }
   }
 
@@ -147,38 +159,39 @@ export function SplitterDialog({ onBack, initialDoc }: SplitterDialogProps) {
                 <Loader2 className="h-8 w-8 animate-spin text-kx-primary-500" />
                 <p className="text-sm text-kx-primary-900">Splitting your PDF…</p>
               </div>
-            ) : (
+            ) : result ? (
               <>
-                <p className="text-sm text-kx-primary-900">{results.length} document(s) created. Download each below.</p>
-                <ul className="space-y-2 max-h-72 overflow-y-auto">
-                  {results.map((doc) => (
-                    <li
-                      key={doc.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-800/40 px-3 py-2"
-                    >
-                      <span className="truncate text-sm text-kx-primary-900">{doc.fileName}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1.5 flex-shrink-0"
-                        disabled={downloadingId === doc.id}
-                        onClick={() => handleDownload(doc)}
-                      >
-                        {downloadingId === doc.id
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <Download className="h-3.5 w-3.5" />
-                        }
-                        Download
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <div className="flex items-center gap-2 rounded-lg border border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-800/40 px-3 py-2.5">
+                  <FileText className="h-4 w-4 flex-shrink-0 text-kx-primary-500" />
+                  <span className="flex-1 truncate text-sm text-kx-primary-900">{result.fileName}</span>
+                  <span className="text-xs text-ledger-gray-400 flex-shrink-0">{formatSize(result.fileSize)}</span>
+                </div>
+
+                <Button
+                  className="w-full gap-2"
+                  disabled={isDownloading}
+                  onClick={handleDownload}
+                >
+                  {isDownloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  Download
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  className="w-full gap-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  disabled={isDiscarding}
+                  onClick={handleDiscard}
+                >
+                  {isDiscarding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Discard
+                </Button>
+
                 <Button variant="ghost" className="w-full gap-2" onClick={reset}>
                   <RotateCcw className="h-4 w-4" />
                   Split another file
                 </Button>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
