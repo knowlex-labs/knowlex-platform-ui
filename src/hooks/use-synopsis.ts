@@ -154,7 +154,7 @@ export function useSynopsis(caseId: string) {
     try {
       const id = documentIdRef.current ?? synopsis?.id
       if (!id || id === 'pending') return
-      await workspaceApi.deleteDocument(caseId, id)
+      await workspaceApi.deleteDocuments([id])
       documentIdRef.current = null
       setSynopsis(null)
     } catch {

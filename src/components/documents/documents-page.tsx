@@ -897,7 +897,7 @@ export function DocumentsPage() {
   const handleDeleteDocs = async (ids: string[]) => {
     setIsDeleting(true)
     try {
-      await workspaceApi.batchDeleteDocuments(ids)
+      await workspaceApi.deleteDocuments(ids)
       toast({ title: `${ids.length} document${ids.length !== 1 ? 's' : ''} deleted` })
       setCheckedIds(new Set())
       if (ids.includes(selectedDocId ?? '')) setSelectedDocId(null)

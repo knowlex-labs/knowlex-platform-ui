@@ -136,7 +136,7 @@ export function useSummary(caseId: string) {
     try {
       const id = documentIdRef.current ?? summary?.id
       if (!id || id === 'pending') return
-      await workspaceApi.deleteDocument(caseId, id)
+      await workspaceApi.deleteDocuments([id])
       documentIdRef.current = null
       setSummary(null)
     } catch {

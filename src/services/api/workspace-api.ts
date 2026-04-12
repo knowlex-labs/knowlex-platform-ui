@@ -202,13 +202,14 @@ export const workspaceApi = {
   },
 
   /**
-   * Delete a single document
+   * Delete one or more documents
+   * DELETE /api/v1/documents  { documentIds: [...] }
    */
-  async deleteCaseDocument(_caseId: string, documentId: string): Promise<void> {
+  async deleteDocuments(documentIds: string[]): Promise<void> {
     await fetch(`${API_BASE_URL}/api/v1/documents`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ documentIds: [documentId] }),
+      body: JSON.stringify({ documentIds }),
     }).then(async (res) => {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -217,22 +218,6 @@ export const workspaceApi = {
     })
   },
 
-  /**
-   * Batch delete documents — one request for all IDs
-   * DELETE /api/v1/documents  { documentIds: [...] }
-   */
-  async batchDeleteDocuments(documentIds: string[]): Promise<void> {
-    await fetch(`${API_BASE_URL}/api/v1/documents`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ documentIds }),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body?.message ?? `Batch delete failed: ${res.status}`)
-      }
-    })
-  },
 
   /**
    * Send a chat query about the case documents
@@ -336,23 +321,6 @@ export const workspaceApi = {
       data
     )
     return response.data
-  },
-
-  /**
-   * Delete a document
-   * DELETE /api/v1/documents  { documentIds: [documentId] }
-   */
-  async deleteDocument(_caseId: string, documentId: string): Promise<void> {
-    await fetch(`${API_BASE_URL}/api/v1/documents`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify({ documentIds: [documentId] }),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body?.message ?? `Delete failed: ${res.status}`)
-      }
-    })
   },
 
   /**
