@@ -397,10 +397,7 @@ export const workspaceApi = {
     }
 
     if (doc.signedUrl) {
-      const res = await fetch(doc.signedUrl)
-      if (!res.ok) throw new Error(`Failed to fetch document: ${res.status}`)
-      const blob = await res.blob()
-      return URL.createObjectURL(blob)
+      return doc.signedUrl
     }
 
     // Fallback: authenticated download endpoint
