@@ -18,7 +18,7 @@ export function DashboardMockup() {
       }}
     >
       {/* Title bar */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#2d1518]">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-kx-primary-950">
         <div className="flex gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
@@ -30,11 +30,11 @@ export function DashboardMockup() {
       {/* Content area */}
       <div className="flex bg-white h-[280px] sm:h-[320px]">
         {/* Sidebar */}
-        <div className="w-12 bg-[#1e0f11] flex flex-col items-center pt-4 gap-4 shrink-0">
+        <div className="w-12 bg-kx-primary-950 flex flex-col items-center pt-4 gap-4 shrink-0">
           {sidebarIcons.map(({ icon: Icon, label }) => (
             <div
               key={label}
-              className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-[#3a1a1d] transition-colors"
+              className="w-8 h-8 rounded-md flex items-center justify-center hover:bg-kx-primary-900 transition-colors"
               title={label}
             >
               <Icon className="w-4 h-4 text-orange-300" />

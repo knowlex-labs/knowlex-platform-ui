@@ -8,7 +8,7 @@ export function HeroSection() {
   const navigate = useNavigate()
 
   return (
-    <section className="relative py-16 sm:py-20 md:py-24 lg:py-32 bg-[#2d1518] overflow-hidden">
+    <section className="relative py-16 sm:py-20 md:py-24 lg:py-32 bg-kx-primary-950 overflow-hidden">
       {/* Subtle dot grid */}
       <div
         className="absolute inset-0 opacity-[0.03]"
@@ -54,7 +54,7 @@ export function HeroSection() {
             <div className="flex flex-wrap gap-3 mt-8 justify-center lg:justify-start">
               <button
                 onClick={() => navigate('/login')}
-                className="inline-flex items-center gap-2 text-base font-semibold bg-white text-[#7a2e2e] rounded-full px-6 py-2.5 hover:bg-gray-100 transition-all"
+                className="inline-flex items-center gap-2 text-base font-semibold bg-white text-kx-primary-600 rounded-full px-6 py-2.5 hover:bg-ledger-gray-100 transition-all"
               >
                 Try for Free <ArrowRight className="w-4 h-4" />
               </button>

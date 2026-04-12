@@ -295,15 +295,6 @@ export interface EditPdfResponse {
   document: ProcessedDocumentInfo
 }
 
-export interface TranslationJob {
-  job_id: string
-}
-
-export interface TranslationStatus {
-  status: 'pending' | 'processing' | 'completed' | 'failed'
-  signed_url: string | null
-  error: string | null
-}
 
 export interface EditSessionResponse {
   editSessionKey: string
@@ -345,45 +336,29 @@ export const docProcessingApi = {
 
 /**
  * Submit a document translation job.
- * POST /api/v1/translations (multipart/form-data)
+ * POST /api/v1/translations → returns DocumentResponse (same shape as DocumentRecord)
  */
 export async function submitTranslation(
-  file: File,
+  docId: string,
   targetLanguage: string,
-  opts?: { sourceLanguage?: string; caseId?: string }
-): Promise<TranslationJob> {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('target_language', targetLanguage.toLowerCase())
-  if (opts?.sourceLanguage) formData.append('source_language', opts.sourceLanguage.toLowerCase())
-  if (opts?.caseId) formData.append('case_folder_id', opts.caseId)
-
-  const response = await fetch(`${API_BASE_URL}/api/v1/translations`, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: formData,
-  })
-
-  if (!response.ok) {
-    let message = `Translation failed: ${response.status}`
-    try {
-      const data = await response.json()
-      if (data?.message) message = data.message
-    } catch { /* ignore */ }
-    throw new Error(message)
+  opts?: { sourceLanguage?: string; model?: string }
+): Promise<DocumentRecord> {
+  const body: Record<string, string> = {
+    doc_id: docId,
+    target_language: targetLanguage.toLowerCase(),
   }
+  if (opts?.sourceLanguage) body.source_language = opts.sourceLanguage.toLowerCase()
+  if (opts?.model) body.model = opts.model
 
-  return response.json()
+  const res = await apiClient.post<ApiResponse<DocumentRecord>>('/api/v1/translations', body)
+  return res.data
 }
 
 /**
- * Poll translation job status.
- * GET /api/v1/translations/{job_id}
+ * Fetch a single document by ID.
+ * GET /api/v1/documents/{id} — used to poll translation/generation status.
  */
-export async function getTranslationStatus(jobId: string): Promise<TranslationStatus> {
-  const response = await fetch(`${API_BASE_URL}/api/v1/translations/${jobId}`, {
-    headers: getAuthHeaders(),
-  })
-  if (!response.ok) throw new Error(`Status check failed: ${response.status}`)
-  return response.json()
+export async function getDocument(id: string): Promise<DocumentRecord> {
+  const res = await apiClient.get<ApiResponse<DocumentRecord>>(`/api/v1/documents/${id}`)
+  return res.data
 }

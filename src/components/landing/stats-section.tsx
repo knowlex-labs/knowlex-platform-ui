@@ -26,7 +26,7 @@ export function StatsSection() {
   return (
     <section className="py-12 sm:py-16 md:py-24 bg-white">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
-        <div className="bg-[#2d1518] rounded-2xl sm:rounded-3xl p-8 sm:p-12">
+        <div className="bg-kx-primary-950 rounded-2xl sm:rounded-3xl p-8 sm:p-12">
           <h3 className="text-xl sm:text-2xl font-serif font-semibold text-white mb-8 text-center">
             Trusted by legal professionals across India
           </h3>

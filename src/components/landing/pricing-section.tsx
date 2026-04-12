@@ -123,7 +123,7 @@ export function PricingSection() {
               onClick={() => setBilling('monthly')}
               className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium transition-colors ${
                 billing === 'monthly'
-                  ? 'bg-[#7a2e2e] text-white shadow-sm'
+                  ? 'bg-kx-primary-600 text-white shadow-sm'
                   : 'text-kx-text-secondary hover:text-kx-text-primary'
               }`}
             >
@@ -133,7 +133,7 @@ export function PricingSection() {
               onClick={() => setBilling('annual')}
               className={`px-4 sm:px-6 py-2 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
                 billing === 'annual'
-                  ? 'bg-[#7a2e2e] text-white shadow-sm'
+                  ? 'bg-kx-primary-600 text-white shadow-sm'
                   : 'text-kx-text-secondary hover:text-kx-text-primary'
               }`}
             >
@@ -191,8 +191,8 @@ export function PricingSection() {
               <Button
                 className={`w-full mb-6 sm:mb-8 ${
                   plan.planType === 'FREE'
-                    ? 'border-[#7a2e2e] text-[#7a2e2e] hover:bg-red-50 bg-transparent'
-                    : 'bg-[#7a2e2e] text-white hover:bg-[#5e2323]'
+                    ? 'border-kx-primary-600 text-kx-primary-600 hover:bg-red-50 bg-transparent'
+                    : 'bg-kx-primary-600 text-white hover:bg-kx-primary-700'
                 }`}
                 variant={plan.planType === 'FREE' ? 'outline' : 'primary'}
                 disabled={config.enablePayment && plan.planType !== 'FREE' && isSubscribing}
@@ -206,7 +206,7 @@ export function PricingSection() {
               <ul className="space-y-2 sm:space-y-3 flex-1">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2">
-                    <Check className="w-4 h-4 sm:w-5 sm:h-5 text-[#7a2e2e] flex-shrink-0 mt-0.5" />
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5 text-kx-primary-600 flex-shrink-0 mt-0.5" />
                     <span className="text-sm sm:text-base text-kx-text-secondary">{feature}</span>
                   </li>
                 ))}

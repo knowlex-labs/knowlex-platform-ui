@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { CalendarDays, Bell, PenLine, FolderOpen, Scale, Sparkles, FileText, File, Search } from 'lucide-react'
+import { CalendarDays, Bell, PenLine, Files, Languages, Scale, Sparkles, FileText, File, Search, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useNavigate } from 'react-router-dom'
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'
 import { StatsOverview } from './stats-overview'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
+import { EmptyState } from '@/components/ui/empty-state'
 import type { RecentDocument } from '@/services/api/dashboard-api'
 
 function getGreeting(): string {
@@ -118,6 +119,16 @@ export function DashboardHome() {
               className="w-44 h-9 pl-8 pr-3 text-xs rounded-lg border border-kx-card-border bg-kx-card text-kx-primary-900 placeholder:text-ledger-gray-400 focus:outline-none focus:border-kx-primary-400 focus:w-56 transition-all"
             />
           </form>
+          {/* All Documents shortcut */}
+          <button
+            type="button"
+            onClick={() => navigate('/documents')}
+            className="h-9 w-9 flex items-center justify-center rounded-lg border border-kx-card-border bg-kx-card shadow-sm hover:bg-ledger-gray-50 dark:hover:bg-white/5 transition-colors"
+            title="All Documents"
+          >
+            <Files className="h-4 w-4 text-kx-primary-700" />
+          </button>
+
           {/* Notification bell */}
           <div className="relative" ref={notifRef}>
             <button
@@ -182,15 +193,15 @@ export function DashboardHome() {
             </button>
             <button
               type="button"
-              onClick={() => navigate('/documents')}
+              onClick={() => navigate('/documents?tool=translation')}
               className="flex-1 flex items-center gap-4 p-5 rounded-xl border border-kx-card-border bg-kx-card hover:border-kx-primary-300 hover:bg-kx-primary-50/40 dark:hover:bg-kx-primary-950/20 cursor-pointer transition-all shadow-sm text-left"
             >
-              <div className="h-11 w-11 rounded-xl bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
-                <FolderOpen className="h-5 w-5 text-blue-600" />
+              <div className="h-11 w-11 rounded-xl bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center flex-shrink-0">
+                <Languages className="h-5 w-5 text-teal-600" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-kx-primary-900">All Documents</p>
-                <p className="text-xs text-ledger-gray-500 mt-0.5">Browse your uploaded files</p>
+                <p className="text-sm font-bold text-kx-primary-900">Translate Document</p>
+                <p className="text-xs text-ledger-gray-500 mt-0.5">Translate to another language</p>
               </div>
             </button>
           </div>
@@ -217,7 +228,7 @@ export function DashboardHome() {
                 ))}
               </div>
             ) : recentDocuments.length === 0 ? (
-              <p className="text-xs text-ledger-gray-400 italic py-2">No documents yet. Create a draft or upload a file.</p>
+              <EmptyState size="sm" icon={FileText} title="No documents yet" description="Create a draft or upload a file to get started." />
             ) : (
               <div className="space-y-0.5">
                 {recentDocuments.map(doc => (
@@ -229,10 +240,13 @@ export function DashboardHome() {
                     <DocTypeBadge doc={doc} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium text-kx-text-primary truncate leading-snug">
-                        {doc.originalFilename || doc.name}
+                        {doc.title || doc.originalFilename || doc.name}
                       </p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate max-w-[140px] ${doc.caseTitle ? 'bg-kx-primary-50 dark:bg-kx-primary-950/30 text-kx-primary-600' : 'bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-400'}`}>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-500 capitalize flex-shrink-0">
+                          {doc.type.replace('_', ' ').toLowerCase()}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate max-w-[120px] ${doc.caseTitle ? 'bg-kx-primary-50 dark:bg-kx-primary-950/30 text-kx-primary-600' : 'bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-400'}`}>
                           {doc.caseTitle || 'Standalone'}
                         </span>
                         <span className="text-[10px] text-ledger-gray-400 flex-shrink-0">
@@ -269,7 +283,7 @@ export function DashboardHome() {
                 ))}
               </div>
             ) : recentCases.length === 0 ? (
-              <p className="text-xs text-ledger-gray-400 italic py-1">No cases yet.</p>
+              <EmptyState size="sm" icon={Scale} title="No cases yet" description="Create your first case to get started." />
             ) : (
               <div className="space-y-1">
                 {recentCases.map(c => (
@@ -319,7 +333,7 @@ export function DashboardHome() {
                 ))}
               </div>
             ) : recentClients.length === 0 ? (
-              <p className="text-xs text-ledger-gray-400 italic py-1">No clients yet.</p>
+              <EmptyState size="sm" icon={Users} title="No clients yet" description="Add your first client to get started." />
             ) : (
               <div className="space-y-1">
                 {recentClients.map(cl => (

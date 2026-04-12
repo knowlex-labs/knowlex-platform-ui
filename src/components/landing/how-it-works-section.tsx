@@ -95,7 +95,7 @@ export function HowItWorksSection() {
 
         {/* Differentiator callout */}
         <div
-          className={`scroll-reveal ${isVisible ? 'is-visible' : ''} bg-[#2d1518] rounded-2xl p-8 sm:p-10 text-center`}
+          className={`scroll-reveal ${isVisible ? 'is-visible' : ''} bg-kx-primary-950 rounded-2xl p-8 sm:p-10 text-center`}
           style={{ transitionDelay: '360ms' }}
         >
           <Database className="w-8 h-8 text-orange-400 mx-auto mb-4" />

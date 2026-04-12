@@ -52,10 +52,10 @@ export function FAQSection() {
 
         <div
           ref={ref}
-          className={`divide-y divide-[#2d1518]/15 scroll-reveal ${isVisible ? 'is-visible' : ''}`}
+          className={`divide-y divide-kx-primary-950/15 scroll-reveal ${isVisible ? 'is-visible' : ''}`}
         >
           {faqs.map((faq, index) => (
-            <div key={index} className="border-[#2d1518]/15 first:border-t">
+            <div key={index} className="border-kx-primary-950/15 first:border-t">
               <button
                 onClick={() => toggle(index)}
                 className="w-full flex items-center justify-between py-5 sm:py-6 text-left gap-4"
@@ -64,7 +64,7 @@ export function FAQSection() {
                   {faq.question}
                 </span>
                 <ChevronDown
-                  className={`w-5 h-5 text-[#2d1518]/40 flex-shrink-0 transition-transform duration-200 ${
+                  className={`w-5 h-5 text-kx-primary-950/40 flex-shrink-0 transition-transform duration-200 ${
                     openIndex === index ? 'rotate-180' : ''
                   }`}
                 />

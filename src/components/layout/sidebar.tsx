@@ -357,6 +357,7 @@ export function Sidebar() {
   const { sidebarCollapsed: collapsed, setSidebarCollapsed } = useUIState()
   const { subscription } = useSubscription()
   const planType = subscription?.planType ?? subscription?.planName
+  const navigate = useNavigate()
 
   return (
     <aside className={`fixed left-0 top-0 h-screen bg-kx-card border-r border-kx-card-border shadow-sm flex-col hidden md:flex transition-all duration-300 overscroll-contain ${collapsed ? 'w-16' : 'w-60'}`}>
@@ -376,8 +377,10 @@ export function Sidebar() {
         ) : (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
-              <span className="text-xl font-serif font-semibold text-kx-primary-900">{APP_NAME}</span>
+              <button type="button" onClick={() => navigate('/home')} className="flex items-center gap-1 hover:opacity-80 transition-opacity">
+                <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto dark:invert" />
+                <span className="text-xl font-serif font-semibold text-kx-primary-900">{APP_NAME}</span>
+              </button>
               <PlanBadge planType={planType} collapsed={false} />
             </div>
             <Button
