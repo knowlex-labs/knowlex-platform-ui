@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Upload, Scissors, Minimize2, Layers,
-  FileText, File, Download,
+  FileText, File, Download, Eye,
   Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2,
   AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -20,6 +20,7 @@ import {
   downloadDocument,
   triggerDirectDownload,
   linkDocumentToCase,
+  getDocument,
   type DocumentRecordType,
 } from '@/services/api/doc-processing-api'
 import { workspaceApi } from '@/services/api/workspace-api'
@@ -41,7 +42,7 @@ import type {
   DocumentRecord,
   ProcessedDocumentInfo,
 } from '@/services/api/doc-processing-api'
-import { DocumentType, JobStatus, GENERATED_DOC_TYPES } from '@/types'
+import { DocumentType, JobStatus, GENERATED_DOC_TYPES, TEXT_DOC_TYPES } from '@/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,6 +54,7 @@ interface ToolContext {
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
+const IMAGE_TYPES = new Set(['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'IMAGE'])
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -94,8 +96,9 @@ const TYPE_META: Record<DocumentType, {
   [DocumentType.DRAFT]:         { label: 'Draft',    className: 'bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300', icon: PenLine },
   [DocumentType.SUMMARY]:       { label: 'Summary',  className: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300', icon: FileText },
   [DocumentType.SYNOPSIS]:      { label: 'Synopsis', className: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300', icon: FileText },
-  [DocumentType.JUDGMENT]:      { label: 'Judgment', className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: Scale },
-  [DocumentType.BRIEF]:         { label: 'Brief',    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
+  [DocumentType.JUDGMENT]:      { label: 'Judgment',    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: Scale },
+  [DocumentType.BRIEF]:         { label: 'Brief',       className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
+  [DocumentType.TRANSLATION]:   { label: 'Translation', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', icon: Languages },
 }
 
 // ─── Tools config ─────────────────────────────────────────────────────────────
@@ -238,6 +241,82 @@ function DocTableRow({
   )
 }
 
+// ─── GeneratingState ──────────────────────────────────────────────────────────
+
+const GENERATING_PHRASES: Record<string, string[]> = {
+  Translation: ['Translating document…', 'Converting language…', 'Reviewing translation…', 'Almost there…'],
+  Draft:       ['Analysing case details…', 'Drafting legal content…', 'Reviewing structure…', 'Finalising document…'],
+  Summary:     ['Reading document…', 'Extracting key points…', 'Composing summary…'],
+  Synopsis:    ['Processing document…', 'Building synopsis…', 'Finalising…'],
+  default:     ['Processing…', 'Working on it…', 'Almost ready…'],
+}
+
+function GeneratingState({ label }: { label: string }) {
+  const phrases = GENERATING_PHRASES[label] ?? GENERATING_PHRASES.default
+  const [phraseIdx, setPhraseIdx] = useState(0)
+  const [displayed, setDisplayed] = useState('')
+  const [typing, setTyping] = useState(true)
+
+  useEffect(() => {
+    const target = phrases[phraseIdx]
+    if (typing) {
+      if (displayed.length < target.length) {
+        const t = setTimeout(() => setDisplayed(target.slice(0, displayed.length + 1)), 38)
+        return () => clearTimeout(t)
+      } else {
+        const t = setTimeout(() => setTyping(false), 1600)
+        return () => clearTimeout(t)
+      }
+    } else {
+      if (displayed.length > 0) {
+        const t = setTimeout(() => setDisplayed(d => d.slice(0, -1)), 18)
+        return () => clearTimeout(t)
+      } else {
+        setPhraseIdx(i => (i + 1) % phrases.length)
+        setTyping(true)
+      }
+    }
+  }, [displayed, typing, phraseIdx, phrases])
+
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-8 p-8 bg-kx-surface">
+      {/* Animated ring */}
+      <div className="relative flex items-center justify-center h-16 w-16">
+        <svg className="animate-spin absolute inset-0 h-16 w-16 text-kx-primary-200" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" />
+          <path d="M32 4 a28 28 0 0 1 28 28" stroke="var(--color-kx-primary-600)" strokeWidth="4" strokeLinecap="round" />
+        </svg>
+        <FileText className="h-6 w-6 text-kx-primary-600" />
+      </div>
+
+      {/* Typewriter text */}
+      <div className="text-center space-y-2">
+        <p className="text-base font-semibold text-kx-primary-900">Generating {label}</p>
+        <p className="text-sm text-kx-primary-600 font-medium min-h-[1.5rem]">
+          {displayed}<span className="animate-pulse opacity-70">|</span>
+        </p>
+        <p className="text-xs text-ledger-gray-400">This usually takes 1–2 minutes</p>
+      </div>
+
+      {/* Fake document preview */}
+      <div className="w-full max-w-lg bg-white dark:bg-ledger-gray-800 border border-ledger-gray-100 dark:border-ledger-gray-700 rounded-xl shadow-sm p-6 space-y-4">
+        {[
+          { w: 55, lines: [100, 92, 78] },
+          { w: 40, lines: [100, 88, 95, 60] },
+          { w: 48, lines: [100, 85, 72] },
+        ].map((s, si) => (
+          <div key={si} className="space-y-1.5">
+            <div className="h-2.5 rounded-full bg-kx-primary-100 dark:bg-kx-primary-900/40 animate-pulse" style={{ width: `${s.w}%`, animationDelay: `${si * 0.2}s` }} />
+            {s.lines.map((w, li) => (
+              <div key={li} className="h-2 rounded-full bg-ledger-gray-100 dark:bg-ledger-gray-700 animate-pulse" style={{ width: `${w}%`, animationDelay: `${(si * 3 + li) * 0.07}s` }} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── DocumentViewer ───────────────────────────────────────────────────────────
 
 function DocumentViewer({
@@ -263,11 +342,12 @@ function DocumentViewer({
   const displayName = doc.originalFilename || doc.name
   const meta = TYPE_META[doc.type]
   const Icon = meta.icon
-  const isTextual = GENERATED_DOC_TYPES.has(doc.type)
-  const isPdf = doc.fileType === 'PDF'
-  const IMAGE_TYPES = new Set(['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'IMAGE'])
+  const isTextual = TEXT_DOC_TYPES.has(doc.type)
+  const isGeneratedDoc = GENERATED_DOC_TYPES.has(doc.type)
+  const isPdf = doc.fileType === 'PDF' || /^application\/pdf$/i.test(doc.fileType ?? '') || /\.pdf$/i.test(doc.originalFilename ?? doc.name ?? '')
   const isImage = !isPdf && (
     IMAGE_TYPES.has((doc.fileType ?? '').toUpperCase()) ||
+    /^image\//i.test(doc.fileType ?? '') ||
     /\.(png|jpe?g|gif|webp)$/i.test(doc.originalFilename ?? doc.name)
   )
   const isDraft = doc.type === DocumentType.DRAFT
@@ -275,8 +355,8 @@ function DocumentViewer({
   const isMarkdownOrText = doc.type === DocumentType.USER_UPLOADED && /\.(md|txt)$/i.test(displayName)
 
   const canDownload = !!(doc.downloadUrl || doc.storageUrl)
-  const isGenerating = isTextual && doc.jobStatus === JobStatus.PROCESSING
-  const isGenFailed  = isTextual && doc.jobStatus === JobStatus.FAILED
+  const isGenerating = isGeneratedDoc && doc.jobStatus === JobStatus.PROCESSING
+  const isGenFailed  = isGeneratedDoc && doc.jobStatus === JobStatus.FAILED
 
   useEffect(() => {
     let cancelled = false
@@ -308,11 +388,6 @@ function DocumentViewer({
         } else if (isTextual) {
           const text = await workspaceApi.fetchDocumentContent({ id: doc.id, signedUrl: doc.storageUrl, downloadUrl: doc.downloadUrl })
           if (!cancelled) setTextContent(text)
-        } else if (isImage) {
-          // Always fetch images with auth headers (same as case studio file-viewer-modal).
-          // Avoids S3 Content-Disposition issues that can trigger a browser download instead of inline render.
-          const url = await workspaceApi.resolveDocumentUrl({ id: doc.id, downloadUrl: doc.downloadUrl, signedUrl: doc.storageUrl })
-          if (!cancelled) setBlobUrl(url)
         } else {
           const url = await workspaceApi.resolveDocumentUrl({ id: doc.id, downloadUrl: doc.downloadUrl, signedUrl: doc.storageUrl })
           if (!cancelled) setBlobUrl(url)
@@ -325,7 +400,7 @@ function DocumentViewer({
     }
     load()
     return () => { cancelled = true }
-  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isGenerating, isGenFailed])
+  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isGenerating, isGenFailed, isGeneratedDoc])
 
   useEffect(() => { return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) } }, [blobUrl])
 
@@ -450,41 +525,23 @@ function DocumentViewer({
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-auto relative">
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
         {isGenerating ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-8">
-            <div className="flex items-center gap-2 bg-kx-primary-700/90 text-white text-xs px-4 py-1.5 rounded-full font-medium select-none">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-60" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white/90" />
-              </span>
-              Generating {meta.label} — this usually takes 1-2 minutes
-            </div>
-            <div className="w-full max-w-sm space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="space-y-1.5">
-                  <div className="h-3 w-24 rounded bg-ledger-gray-200 dark:bg-ledger-gray-700 animate-pulse" />
-                  {[100, 88, 75].map((w, j) => (
-                    <div key={j} className="h-2.5 rounded bg-ledger-gray-100 dark:bg-ledger-gray-800 animate-pulse" style={{ width: `${w}%` }} />
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
+          <GeneratingState label={meta.label} />
         ) : isGenFailed ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">
             <AlertCircle className="h-10 w-10 text-red-400" />
             <p className="text-sm font-medium text-kx-text-primary">{meta.label} generation failed</p>
             <p className="text-xs text-ledger-gray-400 max-w-xs">This {meta.label.toLowerCase()} could not be generated. Please try creating it again.</p>
           </div>
         ) : isLoadingContent ? (
-          <div className="flex items-center justify-center h-full py-20">
+          <div className="flex-1 flex items-center justify-center">
             <Loader2 className="h-6 w-6 animate-spin text-ledger-gray-400" />
           </div>
         ) : viewerMode === 'text-edit' ? (
           isMarkdownOrText ? (
             <textarea
-              className="w-full h-full p-6 font-mono text-sm text-kx-text-primary bg-nb-input resize-none focus:outline-none"
+              className="flex-1 w-full p-6 font-mono text-sm text-kx-text-primary bg-nb-input resize-none focus:outline-none"
               value={rawTextEdit}
               onChange={e => { setRawTextEdit(e.target.value); setIsDirty(true) }}
             />
@@ -500,7 +557,7 @@ function DocumentViewer({
               />
             </div>
           )
-        ) : isMarkdownOrText && textContent !== null ? (
+        ) : (isMarkdownOrText || isTextual) && textContent !== null ? (
           <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
             <div
               className="legal-document bg-white mx-auto my-4 shadow-sm"
@@ -508,22 +565,40 @@ function DocumentViewer({
               dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }}
             />
           </div>
-        ) : isTextual && textContent !== null ? (
-          <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
-            <div
-              className="legal-document bg-white mx-auto my-4 shadow-sm"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
-              dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }}
-            />
+        ) : doc.type === DocumentType.TRANSLATION && !isPdf && (doc.storageUrl || doc.downloadUrl) ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-6 p-8">
+            <div className="h-16 w-16 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+              <Languages className="h-8 w-8 text-orange-600" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-semibold text-kx-text-primary">{displayName}</p>
+              <p className="text-xs text-ledger-gray-400">This file cannot be previewed inline</p>
+            </div>
+            <div className="flex gap-3">
+              {doc.storageUrl && (
+                <Button variant="outline" className="gap-2" onClick={() => window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(doc.storageUrl!)}`, '_blank')}>
+                  <Eye className="h-4 w-4" />
+                  View in Google Docs
+                </Button>
+              )}
+              {canDownload && (
+                <Button className="gap-2" onClick={handleDownload}>
+                  <Download className="h-4 w-4" />
+                  Download
+                </Button>
+              )}
+            </div>
           </div>
         ) : blobUrl && (isPdf || doc.type === DocumentType.JUDGMENT) ? (
-          <iframe src={blobUrl} className="absolute inset-0 w-full h-full border-0" title={displayName} />
+          <div className="flex-1 min-h-0">
+            <iframe src={blobUrl} className="w-full h-full border-0" title={displayName} />
+          </div>
         ) : blobUrl && isImage ? (
-          <div className="absolute inset-0 flex items-center justify-center p-6">
+          <div className="flex-1 flex items-center justify-center p-6">
             <img src={blobUrl} alt={displayName} className="max-w-full max-h-full object-contain rounded" />
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-8">
+          <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8">
             <Icon className="h-10 w-10 text-ledger-gray-300" />
             <p className="text-sm font-medium text-kx-text-primary">Preview not available</p>
             {canDownload && (
@@ -683,12 +758,23 @@ export function DocumentsPage() {
   const [toolsPanelOpen, setToolsPanelOpen] = useState(true)
   const prevToolsPanelOpenRef = useRef<boolean>(true)
 
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const openDocId = searchParams.get('open')
   const autoEditParam = searchParams.get('edit') === 'true'
+  const autoToolParam = searchParams.get('tool') as ActiveToolId | null
 
   const selectedDoc = allDocs.find(d => d.id === selectedDocId) ?? null
   const viewerOpen = selectedDocId !== null
+
+  // Sync selectedDocId → URL param so refresh reopens the same doc
+  useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (selectedDocId) next.set('open', selectedDocId)
+      else next.delete('open')
+      return next
+    }, { replace: true })
+  }, [selectedDocId, setSearchParams])
 
   // Auto-collapse tools panel when a doc is selected, restore when deselected
   useEffect(() => {
@@ -742,12 +828,59 @@ export function DocumentsPage() {
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
+  // Auto-open a tool when navigated here with ?tool=<toolId> (e.g., from dashboard Translate button)
+  useEffect(() => {
+    if (autoToolParam && TOOLS.some(t => t.id === autoToolParam)) {
+      setToolCtx({ id: autoToolParam })
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev)
+        next.delete('tool')
+        return next
+      }, { replace: true })
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // run once on mount
+
+  const bgPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const bgJobsRef = useRef<Map<string, string>>(new Map()) // jobId → targetLang
+
+  useEffect(() => () => { if (bgPollRef.current) clearInterval(bgPollRef.current) }, [])
+
+  const handleTranslationJobStarted = useCallback((jobId: string, targetLang: string) => {
+    setSelectedDocId(null)
+    fetchDocs() // show the PROCESSING doc immediately
+
+    bgJobsRef.current.set(jobId, targetLang)
+    if (bgPollRef.current) return // already polling
+
+    bgPollRef.current = setInterval(async () => {
+      for (const [documentId, lang] of bgJobsRef.current) {
+        try {
+          const doc = await getDocument(documentId)
+          if (doc.jobStatus === 'COMPLETED') {
+            bgJobsRef.current.delete(documentId)
+            toast({ title: 'Translation complete', description: `Translated to ${lang}.` })
+            fetchDocs()
+          } else if (doc.jobStatus === 'FAILED' || doc.jobStatus === 'CANCELLED') {
+            bgJobsRef.current.delete(documentId)
+            toast({ title: 'Translation failed', description: `Could not translate to ${lang}.`, variant: 'destructive' })
+          }
+        } catch { /* transient */ }
+      }
+      if (bgJobsRef.current.size === 0) {
+        clearInterval(bgPollRef.current!)
+        bgPollRef.current = null
+      }
+    }, 5000)
+  }, [fetchDocs])
+
   // Auto-open doc from ?open= param once docs are loaded
   useEffect(() => {
     if (openDocId && allDocs.length > 0 && !selectedDocId) {
       setSelectedDocId(openDocId)
     }
-  }, [openDocId, allDocs, selectedDocId])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openDocId, allDocs])
 
   // Reset page when filters or page size change
   useEffect(() => { setPage(0) }, [typeFilters, caseFilter, sort, pageSize])
@@ -764,7 +897,7 @@ export function DocumentsPage() {
   const handleDeleteDocs = async (ids: string[]) => {
     setIsDeleting(true)
     try {
-      await workspaceApi.batchDeleteDocuments(ids)
+      await workspaceApi.deleteDocuments(ids)
       toast({ title: `${ids.length} document${ids.length !== 1 ? 's' : ''} deleted` })
       setCheckedIds(new Set())
       if (ids.includes(selectedDocId ?? '')) setSelectedDocId(null)
@@ -1212,7 +1345,7 @@ export function DocumentsPage() {
                 case 'merge':       return <MergerDialog     onBack={closeTool} initialDocs={toolCtx.initialDocs} />
                 case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
-                case 'translation': return <TranslationDialog onBack={closeTool} initialDoc={toolCtx.initialDoc} />
+                case 'translation': return <TranslationDialog onBack={closeTool} initialDoc={toolCtx.initialDoc} onJobStarted={handleTranslationJobStarted} />
                 default:            return null
               }
             })()}

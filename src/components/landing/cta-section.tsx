@@ -11,7 +11,7 @@ export function CTASection() {
   return (
     <section
       ref={ref}
-      className={`py-16 sm:py-20 md:py-28 bg-[#2d1518] scroll-reveal ${isVisible ? 'is-visible' : ''}`}
+      className={`py-16 sm:py-20 md:py-28 bg-kx-primary-950 scroll-reveal ${isVisible ? 'is-visible' : ''}`}
     >
       <div className="max-w-6xl mx-auto px-4 md:px-8 text-center">
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-white mb-3 sm:mb-4">
@@ -24,7 +24,7 @@ export function CTASection() {
           <Button
             size="lg"
             onClick={() => navigate('/login')}
-            className="w-full sm:w-auto bg-white text-[#2d1518] hover:bg-gray-100 font-semibold"
+            className="w-full sm:w-auto bg-white text-kx-primary-950 hover:bg-ledger-gray-100 font-semibold"
           >
             Try for Free
           </Button>

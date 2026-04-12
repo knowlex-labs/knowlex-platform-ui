@@ -241,7 +241,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   const deleteSource = useCallback(async (sourceId: string) => {
     try {
       stopPolling(sourceId)
-      await workspaceApi.deleteCaseDocument(caseId!, sourceId)
+      await workspaceApi.deleteDocuments([sourceId])
       setPaginatedSources((prev) => prev.filter((d) => d.id !== sourceId))
       setSourceTotal((t) => Math.max(0, t - 1))
       setSelectedSourceIds((prev) => { const next = new Set(prev); next.delete(sourceId); return next })
@@ -282,7 +282,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   const batchDelete = useCallback(async (sourceIds: string[]) => {
     try {
       for (const id of sourceIds) stopPolling(id)
-      await workspaceApi.batchDeleteDocuments(sourceIds)
+      await workspaceApi.deleteDocuments(sourceIds)
       setPaginatedSources((prev) => prev.filter((d) => !sourceIds.includes(d.id)))
       setSourceTotal((t) => Math.max(0, t - sourceIds.length))
       setSelectedSourceIds(new Set())

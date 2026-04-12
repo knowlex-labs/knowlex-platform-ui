@@ -5,10 +5,19 @@ export enum DocumentType {
   SYNOPSIS     = 'SYNOPSIS',
   JUDGMENT     = 'JUDGMENT',
   BRIEF        = 'BRIEF',
+  TRANSLATION  = 'TRANSLATION',
 }
 
-/** Document types whose content is AI-generated (have a jobStatus lifecycle). */
+/** Document types that have a jobStatus lifecycle (show generating/failed states). */
 export const GENERATED_DOC_TYPES = new Set<DocumentType>([
+  DocumentType.DRAFT,
+  DocumentType.SUMMARY,
+  DocumentType.SYNOPSIS,
+  DocumentType.TRANSLATION,
+])
+
+/** Generated doc types whose content is rendered as rich text (DRAFT/SUMMARY). */
+export const TEXT_DOC_TYPES = new Set<DocumentType>([
   DocumentType.DRAFT,
   DocumentType.SUMMARY,
   DocumentType.SYNOPSIS,

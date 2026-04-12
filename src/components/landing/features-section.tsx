@@ -1,8 +1,9 @@
-import { FileText, Scale, Users } from 'lucide-react'
+import { FileText, Scale, Users, Languages } from 'lucide-react'
 import { FeatureShowcase } from './feature-showcase'
 import { DraftPanel } from './mockup-panels/draft-panel'
 import { ResearchPanel } from './mockup-panels/research-panel'
 import { CaseListPanel } from './mockup-panels/case-list-panel'
+import { TranslationPanel } from './mockup-panels/translation-panel'
 
 export function FeaturesSection() {
   return (
@@ -59,6 +60,21 @@ export function FeaturesSection() {
             iconBg="bg-amber-100"
             iconColor="text-amber-600"
             mockup={<CaseListPanel />}
+          />
+
+          <FeatureShowcase
+            title="Document Translation"
+            description="Translate legal documents between English and major Indian languages instantly. Hindi, Tamil, Telugu, Kannada, and more — with AI precision."
+            bullets={[
+              'Supports PDF, DOCX, and TXT files',
+              'Translates to and from 10 Indian languages',
+              'Preserves legal terminology and formatting',
+            ]}
+            icon={Languages}
+            iconBg="bg-teal-100"
+            iconColor="text-teal-600"
+            mockup={<TranslationPanel />}
+            reversed
           />
         </div>
       </div>

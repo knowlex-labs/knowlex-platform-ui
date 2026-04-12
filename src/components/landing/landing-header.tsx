@@ -35,7 +35,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-[#7a2e2e] border-b-0 shadow-[0_4px_20px_rgba(45,21,24,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <header className="sticky top-0 z-50 bg-kx-primary-600 border-b-0 shadow-[0_4px_20px_rgba(45,21,24,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="flex items-center justify-center h-[48px] relative">
             {/* Logo — left */}
@@ -84,7 +84,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
               </button>
               <button
                 onClick={() => navigate('/login')}
-                className="text-sm font-medium text-[#7a2e2e] bg-white/95 rounded-full px-4 py-1.5 hover:bg-white transition-all tracking-wide"
+                className="text-sm font-medium text-kx-primary-600 bg-white/95 rounded-full px-4 py-1.5 hover:bg-white transition-all tracking-wide"
               >
                 Sign In
               </button>

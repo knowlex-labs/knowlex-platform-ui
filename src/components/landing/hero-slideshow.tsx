@@ -54,7 +54,7 @@ export function HeroSlideshow() {
       onMouseLeave={() => setPaused(false)}
     >
       {/* Title bar */}
-      <div className="flex items-center gap-2 px-4 py-2.5 bg-[#2d1518]">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-kx-primary-950">
         <div className="flex gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />

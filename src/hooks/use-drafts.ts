@@ -510,7 +510,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     }
 
     try {
-      await workspaceApi.deleteCaseDocument(caseId, id)
+      await workspaceApi.deleteDocuments([id])
     } catch {
       // job may already be completed — safe to ignore
     }

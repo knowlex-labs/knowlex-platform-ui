@@ -19,7 +19,7 @@ export function CaseListPanel({ imageSrc }: CaseListPanelProps) {
   return (
     <div className="p-3 h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold text-[#2d1518]">Cases</span>
+        <span className="text-xs font-semibold text-kx-primary-950">Cases</span>
         <span className="text-[10px] text-ledger-gray-400">4 cases</span>
       </div>
       <div className="grid grid-cols-2 gap-2 flex-1">
@@ -34,7 +34,7 @@ export function CaseListPanel({ imageSrc }: CaseListPanelProps) {
               </div>
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-medium text-[#2d1518] line-clamp-1">{c.name}</p>
+              <p className="text-[10px] font-medium text-kx-primary-950 line-clamp-1">{c.name}</p>
               <p className="text-[8px] font-mono text-ledger-gray-400">{c.number}</p>
             </div>
             <div className="pt-1 border-t border-ledger-gray-100 space-y-0.5">

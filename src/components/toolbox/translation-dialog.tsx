@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
-import { ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, Download, RotateCcw, FileText, X } from 'lucide-react'
+import { ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, Download, RotateCcw, FileText, X, Eye, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { caseApi } from '@/services/api/case-api'
 import {
   submitTranslation,
-  getTranslationStatus,
+  getDocument,
   triggerDirectDownload,
-  fetchDocumentBlob,
+  uploadToolboxFile,
   type ProcessedDocumentInfo,
 } from '@/services/api/doc-processing-api'
 import { toast } from '@/hooks/use-toast'
@@ -27,21 +27,25 @@ type Stage = 'upload' | 'processing' | 'done' | 'error'
 
 interface TranslationDialogProps {
   onBack: () => void
+  onJobStarted?: (jobId: string, targetLang: string) => void
   /** Workspace document selected when opening Translate from the tools panel */
   initialDoc?: ProcessedDocumentInfo
 }
 
-export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps) {
+export function TranslationDialog({ onBack, onJobStarted, initialDoc }: TranslationDialogProps) {
   const [stage, setStage] = useState<Stage>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
   const [targetLang, setTargetLang] = useState('Hindi')
   const [sourceLang, setSourceLang] = useState('')
+  const [model, setModel] = useState('gemini')
   const [caseId, setCaseId] = useState('')
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isPreparingFile, setIsPreparingFile] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
   const [signedUrl, setSignedUrl] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
@@ -68,18 +72,18 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
   }
 
-  const startPolling = (jobId: string) => {
+  const startPolling = (documentId: string) => {
     stopPolling()
     pollRef.current = setInterval(async () => {
       try {
-        const status = await getTranslationStatus(jobId)
-        if (status.status === 'completed') {
+        const doc = await getDocument(documentId)
+        if (doc.jobStatus === 'COMPLETED') {
           stopPolling()
-          setSignedUrl(status.signed_url)
+          setSignedUrl(doc.storageUrl ?? doc.signedUrl ?? doc.downloadUrl)
           setStage('done')
-        } else if (status.status === 'failed') {
+        } else if (doc.jobStatus === 'FAILED' || doc.jobStatus === 'CANCELLED') {
           stopPolling()
-          setErrorMsg(status.error ?? 'Translation failed')
+          setErrorMsg('Translation failed')
           setStage('error')
         }
       } catch {
@@ -99,41 +103,45 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
   }
 
   const handleSubmit = async () => {
-    let uploadFile = file
-    if (!uploadFile && preloadedDoc) {
-      setIsPreparingFile(true)
+    let docId: string | null = null
+
+    if (preloadedDoc && !file) {
+      // Existing document from workspace — use its id directly
+      docId = preloadedDoc.id
+    } else if (file) {
+      // New file picked by user — upload it first to obtain a doc_id
+      setIsUploading(true)
       try {
-        const blob = await fetchDocumentBlob(preloadedDoc.downloadUrl ?? preloadedDoc.id)
-        const ext = preloadedDoc.fileName.split('.').pop()?.toLowerCase() ?? ''
-        const mimeFromName =
-          ext === 'docx' ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            : ext === 'txt' ? 'text/plain'
-              : ext === 'pdf' ? 'application/pdf'
-                : blob.type || 'application/octet-stream'
-        uploadFile = new File([blob], preloadedDoc.fileName, {
-          type: blob.type && blob.type !== 'application/octet-stream' ? blob.type : mimeFromName,
-        })
-      } catch {
+        docId = await uploadToolboxFile(file, { caseId: caseId || undefined })
+      } catch (e) {
         toast({
-          title: 'Could not load document',
-          description: 'Download failed. Try uploading a file instead.',
+          title: 'Upload failed',
+          description: e instanceof Error ? e.message : 'Please try again',
           variant: 'destructive',
         })
         return
       } finally {
-        setIsPreparingFile(false)
+        setIsUploading(false)
       }
     }
-    if (!uploadFile) return
+
+    if (!docId) return
+
     setIsSubmitting(true)
     try {
-      const job = await submitTranslation(uploadFile, targetLang, {
+      const doc = await submitTranslation(docId, targetLang, {
         sourceLanguage: sourceLang || undefined,
-        caseId: caseId || undefined,
+        model,
       })
-      jobIdRef.current = job.job_id
-      setStage('processing')
-      startPolling(job.job_id)
+      jobIdRef.current = doc.jobId ?? doc.id
+      if (onJobStarted) {
+        onJobStarted(doc.id, targetLang)
+        toast({ title: `Translating to ${targetLang}…`, description: 'We\'ll notify you when it\'s ready.' })
+        onBack()
+      } else {
+        setStage('processing')
+        startPolling(doc.id)
+      }
     } catch (e) {
       toast({
         title: 'Submission failed',
@@ -145,6 +153,30 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
     }
   }
 
+  const handleView = () => {
+    if (!signedUrl) return
+    window.open(`https://docs.google.com/viewer?url=${encodeURIComponent(signedUrl)}`, '_blank')
+  }
+
+  const handleSave = async () => {
+    if (!signedUrl) return
+    setIsSaving(true)
+    try {
+      const res = await fetch(signedUrl)
+      if (!res.ok) throw new Error()
+      const blob = await res.blob()
+      const savedFile = new File([blob], downloadFileName, { type: blob.type })
+      const fileType = blob.type.includes('pdf') ? 'PDF' : 'DOCX'
+      await uploadToolboxFile(savedFile, { caseId: caseId || undefined, fileType })
+      setIsSaved(true)
+      toast({ title: 'Saved to Documents' })
+    } catch {
+      toast({ title: 'Save failed', variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const reset = () => {
     stopPolling()
     setStage('upload')
@@ -152,6 +184,11 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
     setPreloadedDoc(initialDoc ?? null)
     setSignedUrl(null)
     setErrorMsg(null)
+    setIsUploading(false)
+    setIsSubmitting(false)
+    setIsSaving(false)
+    setIsSaved(false)
+    setModel('gemini')
     jobIdRef.current = null
   }
 
@@ -263,6 +300,15 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
               </div>
             </div>
 
+            {/* Model selector */}
+            <div>
+              <label className="text-xs font-medium text-ledger-gray-500 mb-1.5 block">AI Model <span className="text-ledger-gray-400">(optional)</span></label>
+              <Select value={model} onChange={e => setModel(e.target.value)}>
+                <option value="gemini">Gemini (default)</option>
+                <option value="openai">GPT (OpenAI)</option>
+              </Select>
+            </div>
+
             {/* Case selector */}
             <div>
               <label className="text-xs font-medium text-ledger-gray-500 mb-1.5 block">Save to Case <span className="text-ledger-gray-400">(optional)</span></label>
@@ -274,14 +320,14 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
 
             <Button
               className="w-full gap-2"
-              disabled={!hasSource || isSubmitting || isPreparingFile}
+              disabled={!hasSource || isSubmitting || isUploading}
               onClick={handleSubmit}
             >
-              {isSubmitting || isPreparingFile
+              {isSubmitting || isUploading
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Upload className="h-4 w-4" />
               }
-              {isPreparingFile ? 'Preparing…' : isSubmitting ? 'Submitting…' : 'Translate'}
+              {isUploading ? 'Uploading…' : isSubmitting ? 'Submitting…' : 'Translate'}
             </Button>
           </div>
         )}
@@ -302,13 +348,25 @@ export function TranslationDialog({ onBack, initialDoc }: TranslationDialogProps
             <p className="text-base font-semibold text-kx-primary-900">Translation complete</p>
             <p className="text-sm text-ledger-gray-500">Your document has been translated to {targetLang}.</p>
             {signedUrl && (
-              <Button
-                className="gap-2 px-6"
-                onClick={() => triggerDirectDownload(signedUrl, downloadFileName)}
-              >
-                <Download className="h-4 w-4" />
-                Download Translated Document
-              </Button>
+              <>
+                <div className="flex gap-3">
+                  <Button variant="outline" className="gap-2 px-5" onClick={handleView}>
+                    <Eye className="h-4 w-4" />
+                    View
+                  </Button>
+                  <Button className="gap-2 px-5" onClick={() => triggerDirectDownload(signedUrl, downloadFileName)}>
+                    <Download className="h-4 w-4" />
+                    Download
+                  </Button>
+                  <Button variant="outline" className="gap-2 px-5" disabled={isSaving || isSaved} onClick={handleSave}>
+                    {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {isSaved ? 'Saved' : 'Save'}
+                  </Button>
+                </div>
+                <p className="text-xs text-ledger-gray-400">
+                  Saves to {cases.find(c => c.id === caseId)?.label ?? 'Standalone Documents'}
+                </p>
+              </>
             )}
             <Button variant="ghost" className="gap-1.5 text-sm" onClick={reset}>
               <RotateCcw className="h-3.5 w-3.5" />

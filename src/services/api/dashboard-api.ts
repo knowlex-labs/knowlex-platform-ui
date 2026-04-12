@@ -26,6 +26,7 @@ export interface RecentClient {
 export interface RecentDocument {
   id: string
   name: string
+  title: string | null
   originalFilename: string | null
   fileType: string | null
   type: string
