@@ -3,11 +3,15 @@
 # ─────────────────────────────────────────────
 FROM node:20-alpine AS builder
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
 # Install deps first (better layer caching)
-COPY package.json package-lock.json ./
-RUN npm ci --prefer-offline
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY packages/core/package.json packages/core/
+COPY packages/web/package.json packages/web/
+RUN pnpm install --frozen-lockfile
 
 # Copy source
 COPY . .
@@ -25,7 +29,7 @@ ENV VITE_AWS_REGION=$VITE_AWS_REGION
 ENV VITE_S3_BUCKET_NAME=$VITE_S3_BUCKET_NAME
 ENV VITE_S3_LEGAL_DOCS_BUCKET_NAME=$VITE_S3_LEGAL_DOCS_BUCKET_NAME
 
-RUN npm run build
+RUN pnpm --filter @knowlex/web build
 
 # ─────────────────────────────────────────────
 # Stage 2: Serve
@@ -39,7 +43,7 @@ RUN sed -i 's/user  nginx;//g' /etc/nginx/nginx.conf && \
     chmod -R 755 /var/cache/nginx
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/packages/web/dist /usr/share/nginx/html
 # Ensure nginx user can read built files (COPY leaves them root-owned)
 RUN chown -R nginx:nginx /usr/share/nginx/html
 

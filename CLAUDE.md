@@ -5,10 +5,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run dev       # Start Vite dev server (port 5173)
-npm run build     # TypeScript compile + Vite production build
-npm run lint      # ESLint — fails on any warning (--max-warnings 0)
-npm run preview   # Preview production build
+pnpm install                        # Install all workspace dependencies
+pnpm dev                            # Start Vite dev server (port 5173) via Turborepo
+pnpm build                          # TypeScript compile + Vite production build
+pnpm lint                           # ESLint — fails on any warning (--max-warnings 0)
+pnpm --filter @knowlex/web dev      # Start web dev server directly
+pnpm --filter @knowlex/core type-check  # Type-check core package only
 ```
 
 No test framework is configured — there are no unit or integration tests.
@@ -17,11 +19,52 @@ No test framework is configured — there are no unit or integration tests.
 
 Legal tech SaaS platform. The core feature is a **case workspace** where lawyers manage cases, upload documents, and use AI to generate legal drafts (20+ Indian legal document templates: notices, affidavits, bail applications, writ petitions, plaints, etc.). The draft pipeline: template selection → form submission → AI generation → live preview → chat-based refinement.
 
-## Architecture
+## Monorepo Structure
+
+**Tooling:** pnpm workspaces + Turborepo
+
+```
+packages/
+  core/   — @knowlex/core — platform-agnostic shared code (types, API, mappers)
+  web/    — @knowlex/web  — React web application
+```
 
 **Stack:** React 18 + TypeScript 5.3 + Vite 5 + Tailwind CSS 3.4 + React Router 7 + Radix UI / shadcn/ui
 
-**Path alias:** `@/*` maps to `src/*` — always use `@/` imports, never relative paths.
+### `packages/core` — Shared Platform-Agnostic Code
+
+Contains types, API services, and mappers. Has **zero browser dependencies** — all platform-specific APIs (localStorage, window, document) are abstracted via adapter interfaces.
+
+**Key pattern — Dependency Inversion:**
+- `src/api/ports.ts` — defines `StorageAdapter`, `EventBusAdapter`, `EnvironmentConfig`, `FileHandlerAdapter` interfaces
+- `src/api/runtime.ts` — `initCore(adapters)` / `getAdapters()` module-scoped singleton
+- `src/api/auth-headers.ts` — consolidated auth header helper (single source, uses storage adapter)
+- Platform consumers (web, future mobile) provide adapter implementations and call `initCore()` at boot
+
+**Directories:**
+- `src/types/` — one file per domain, barrel via `index.ts`
+- `src/mappers/` — backend-to-frontend data transforms
+- `src/api/` — HTTP client + all domain API services
+
+### `packages/web` — React Web Application
+
+**Path alias:** `@/*` maps to `packages/web/src/*` — use `@/` for web-local imports, `@knowlex/core/*` for shared code.
+
+**Adapters:** `src/adapters/` provides browser implementations of core adapter interfaces. `init-core.ts` wires them, called from `main.tsx` before React renders.
+
+### Import Convention
+
+```typescript
+// Shared types, API, mappers — from core
+import type { Case } from '@knowlex/core/types'
+import { caseApi } from '@knowlex/core/api'
+import { mapBackendCase } from '@knowlex/core/mappers'
+
+// Web-local code — from @/
+import { SomeComponent } from '@/components/some-component'
+```
+
+## Architecture
 
 ### State Management
 
@@ -35,23 +78,29 @@ Five React Contexts (no external state library):
 | `ThemeContext` | Dark/light mode |
 | `UIContext` | Toast notifications |
 
-Provider nesting order in `main.tsx`: `ThemeProvider → AuthProvider → AdminAuthProvider → UIStateProvider → RouterProvider`.
+Provider nesting order in `main.tsx`: `bootstrapCore() → ThemeProvider → AuthProvider → AdminAuthProvider → UIStateProvider → RouterProvider`.
 
-### API Layer (`src/services/api/`)
+### API Layer (`packages/core/src/api/`)
 
-- `api-client.ts` — base HTTP client: injects `Authorization: Bearer {token}` and `x-user-id` headers, emits `auth:session-expired` event on 401
-- Individual service files per domain: `auth-api.ts`, `case-api.ts`, `client-api.ts`, `workspace-api.ts`, `drafts-api.ts`, `draft-chat-api.ts`, `judgments-api.ts`, `research-api.ts`, `case-sources.ts`, `summary-api.ts`, `cause-list-api.ts`, `blog-api.ts`, `subscription-api.ts`, `user-api.ts`, `dashboard-api.ts`
-- Base URL from `src/config/env.ts` → `VITE_API_BASE_URL` (fallback: `http://localhost:8080`)
+- `api-client.ts` — base HTTP client: uses adapters for auth headers, event dispatching (401 → `auth:session-expired`), and environment config
+- `auth-headers.ts` — consolidated `getAuthHeaders()` / `getAdminAuthHeaders()` (replaces duplicated functions)
+- One service file per domain — follow existing naming when adding new endpoints
 
-**Backend ↔ Frontend convention:** Backend uses `UPPER_CASE` enum values; `src/services/mappers/` converts them to lowercase for frontend use.
+**Backend ↔ Frontend convention:** Backend uses `UPPER_CASE` enum values; `packages/core/src/mappers/` converts them to lowercase for frontend use. Never use raw API response types directly in components.
 
-### Environment & Feature Flags (`src/config/env.ts`)
+### Types (`packages/core/src/types/`)
 
+- One file per domain (e.g., `case.types.ts`, `client.types.ts`), re-exported via barrel `index.ts`
+- `api.types.ts` holds backend contract types; other files hold frontend-facing types
+
+### Environment & Feature Flags
+
+Configured via `EnvironmentConfig` adapter interface. Web implementation reads from Vite's `import.meta.env`:
 - `VITE_API_BASE_URL` — backend API base (default `http://localhost:8080`)
 - `VITE_GOOGLE_CLIENT_ID` — Google OAuth
 - `VITE_ENABLE_PAYMENT` — gates subscription/billing features (string `'true'` to enable)
 
-### Custom Hooks (`src/hooks/`)
+### Custom Hooks (`packages/web/src/hooks/`)
 
 Standard return shape: `{ data, isLoading, error, refresh, ...domainMethods }`.
 
@@ -61,17 +110,16 @@ Standard return shape: `{ data, isLoading, error, refresh, ...domainMethods }`.
 - Poll function removes terminal IDs, clears interval when Set is empty
 - Clean up via `useEffect` return
 
-### Case Workspace (`src/components/cases/case-workspace/`)
+### Case Workspace (`packages/web/src/components/cases/case-workspace/`)
 
 The most complex feature area (~34 components) with an IDE-like interface:
 
 - `case-workspace.tsx` — main container managing modes, panels, resizable chat
 - `left-sidebar.tsx` — navigation between documents, sources, notes
-- `center-panel.tsx` — main content area with tab system (`workspace-tab-bar.tsx`, managed by `use-workspace-tabs.ts`)
+- `center-panel.tsx` — main content area with tab system
 - `draft-chat-panel.tsx` — right-side resizable AI assistant panel
 - `draft-creation-wizard.tsx` — multi-step form for creating legal documents from templates
 - `draft-preview-tab.tsx` — preview and editing of generated drafts with formatting toolbar
-- `template-form-modal.tsx` — form for template-based document generation
 
 ### Draft System
 
@@ -87,11 +135,19 @@ The most complex feature area (~34 components) with an IDE-like interface:
 3. `POST /api/v1/documents` — register document
 4. Poll `GET /api/v1/documents/{id}/indexing-status` every 3 s until `INDEXED` or `INDEXING_FAILED`
 
-### Routing (`src/router.tsx`)
+### Routing (`packages/web/src/router.tsx`)
 
 All routes except `/`, `/login`, `/signup`, `/blogs`, and `/admin/*` are wrapped in `ProtectedLayout` (auth guard + `DashboardLayout`). Unauthenticated access redirects to `/login`. Admin routes use a separate `AdminAuthContext`.
 
 Key protected routes: `/home` (dashboard), `/cases/:caseId` (workspace), `/ai-research`, `/clients/:clientId`, `/judgments/:judgmentId`, `/cause-lists`, `/settings/*`.
+
+### UI Components (`packages/web/src/components/ui/`)
+
+shadcn/ui components customized with project design tokens (not default shadcn colors). Use the `cn()` utility from `@/lib/utils` for all Tailwind class composition (clsx + tailwind-merge).
+
+### Toolbox (`packages/web/src/components/toolbox/`)
+
+Standalone document utility tools (compressor, converter, translator, merger, splitter). Each is a dialog wrapping a shared `FileUploadZone` component with drag-drop and imperative handle via `forwardRef`.
 
 ### Styling
 

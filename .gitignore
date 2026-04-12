@@ -1,9 +1,14 @@
 # Dependencies
 node_modules/
+packages/*/node_modules/
 
 # Build output
 dist/
 build/
+packages/*/dist/
+
+# Turborepo
+.turbo/
 
 # Environment files
 .env
