@@ -284,7 +284,7 @@ function GeneratingState({ label }: { label: string }) {
       <div className="relative flex items-center justify-center h-16 w-16">
         <svg className="animate-spin absolute inset-0 h-16 w-16 text-kx-primary-200" viewBox="0 0 64 64" fill="none">
           <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" />
-          <path d="M32 4 a28 28 0 0 1 28 28" stroke="rgb(122 46 46)" strokeWidth="4" strokeLinecap="round" />
+          <path d="M32 4 a28 28 0 0 1 28 28" stroke="var(--color-kx-primary-600)" strokeWidth="4" strokeLinecap="round" />
         </svg>
         <FileText className="h-6 w-6 text-kx-primary-600" />
       </div>

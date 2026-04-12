@@ -247,7 +247,7 @@ export function DashboardHome() {
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-500 capitalize flex-shrink-0">
-                          {doc.type.replace('_', ' ').toLowerCase()}
+                          {doc.type.replace(/_/g, ' ').toLowerCase()}
                         </span>
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium truncate max-w-[120px] ${doc.caseTitle ? 'bg-kx-primary-50 dark:bg-kx-primary-950/30 text-kx-primary-600' : 'bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-400'}`}>
                           {doc.caseTitle || 'Standalone'}
