@@ -165,8 +165,9 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
       const res = await fetch(signedUrl)
       if (!res.ok) throw new Error()
       const blob = await res.blob()
-      const file = new File([blob], downloadFileName, { type: blob.type })
-      await uploadToolboxFile(file, { caseId: caseId || undefined, fileType: 'DOCX' })
+      const savedFile = new File([blob], downloadFileName, { type: blob.type })
+      const fileType = blob.type.includes('pdf') ? 'PDF' : 'DOCX'
+      await uploadToolboxFile(savedFile, { caseId: caseId || undefined, fileType })
       setIsSaved(true)
       toast({ title: 'Saved to Documents' })
     } catch {

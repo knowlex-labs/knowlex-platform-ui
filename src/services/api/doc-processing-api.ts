@@ -336,7 +336,7 @@ export const docProcessingApi = {
 
 /**
  * Submit a document translation job.
- * POST /api/v1/translations → returns DocumentResponse (same shape as DocumentRecord)
+ * POST /api/v1/documents with document_type: "TRANSLATION"
  */
 export async function submitTranslation(
   docId: string,
@@ -346,11 +346,12 @@ export async function submitTranslation(
   const body: Record<string, string> = {
     doc_id: docId,
     target_language: targetLanguage.toLowerCase(),
+    document_type: 'TRANSLATION',
   }
   if (opts?.sourceLanguage) body.source_language = opts.sourceLanguage.toLowerCase()
   if (opts?.model) body.model = opts.model
 
-  const res = await apiClient.post<ApiResponse<DocumentRecord>>('/api/v1/translations', body)
+  const res = await apiClient.post<ApiResponse<DocumentRecord>>('/api/v1/documents', body)
   return res.data
 }
 

@@ -213,6 +213,9 @@ export function DashboardHome() {
                 <FileText className="h-4 w-4 text-kx-primary-600" />
                 <h2 className="text-base font-semibold text-kx-primary-900">Recent Documents</h2>
               </div>
+              <button type="button" onClick={() => navigate('/documents')} className="text-xs text-kx-primary-600 hover:text-kx-primary-700 font-medium transition-colors">
+                View all →
+              </button>
             </div>
 
             {isLoading ? (

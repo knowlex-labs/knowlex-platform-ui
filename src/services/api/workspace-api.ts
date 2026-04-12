@@ -204,8 +204,17 @@ export const workspaceApi = {
   /**
    * Delete a single document
    */
-  async deleteCaseDocument(caseId: string, documentId: string): Promise<void> {
-    await apiClient.delete(`/api/v1/cases/${caseId}/documents/${documentId}`)
+  async deleteCaseDocument(_caseId: string, documentId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/api/v1/documents`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ documentIds: [documentId] }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.message ?? `Delete failed: ${res.status}`)
+      }
+    })
   },
 
   /**
@@ -283,23 +292,23 @@ export const workspaceApi = {
 
   /**
    * Create a document using the unified document generation API
-   * POST /api/v1/cases/{caseId}/documents
+   * POST /api/v1/documents
    */
   async createDocument(caseId: string, data: CreateDocumentRequest): Promise<CreateDocumentResponse> {
     const response = await apiClient.post<ApiResponse<CreateDocumentResponse>>(
-      `/api/v1/cases/${caseId}/documents`,
-      data
+      '/api/v1/documents',
+      { ...data, case_id: caseId }
     )
     return response.data
   },
 
   /**
    * Get a document by ID (for polling status)
-   * GET /api/v1/cases/{caseId}/documents/{documentId}
+   * GET /api/v1/documents/{documentId}
    */
-  async getDocument(caseId: string, documentId: string): Promise<CreateDocumentResponse> {
+  async getDocument(_caseId: string, documentId: string): Promise<CreateDocumentResponse> {
     const response = await apiClient.get<ApiResponse<CreateDocumentResponse>>(
-      `/api/v1/cases/${caseId}/documents/${documentId}`
+      `/api/v1/documents/${documentId}`
     )
     return response.data
   },
@@ -331,12 +340,19 @@ export const workspaceApi = {
 
   /**
    * Delete a document
-   * DELETE /api/v1/cases/{caseId}/documents/{documentId}
+   * DELETE /api/v1/documents  { documentIds: [documentId] }
    */
-  async deleteDocument(caseId: string, documentId: string): Promise<void> {
-    await apiClient.delete<ApiResponse<null>>(
-      `/api/v1/cases/${caseId}/documents/${documentId}`
-    )
+  async deleteDocument(_caseId: string, documentId: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/api/v1/documents`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ documentIds: [documentId] }),
+    }).then(async (res) => {
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.message ?? `Delete failed: ${res.status}`)
+      }
+    })
   },
 
   /**

@@ -81,7 +81,7 @@ export const draftsApi = {
 
   // Create a draft without a case (standalone toolbox use)
   createStandalone: async (data: CreateDraftRequest): Promise<ApiResponse<CreateDraftResponse>> => {
-    return apiClient.post<ApiResponse<CreateDraftResponse>>('/api/v1/drafts', data)
+    return apiClient.post<ApiResponse<CreateDraftResponse>>('/api/v1/documents', data)
   },
 
   // Poll a standalone draft by document ID using the /documents endpoint
