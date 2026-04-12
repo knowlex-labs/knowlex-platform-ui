@@ -304,7 +304,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
             <div>
               <label className="text-xs font-medium text-ledger-gray-500 mb-1.5 block">AI Model <span className="text-ledger-gray-400">(optional)</span></label>
               <Select value={model} onChange={e => setModel(e.target.value)}>
-                <option value="gemini">Gemini (default)</option>
+                <option value="gemini">Gemini</option>
                 <option value="openai">GPT (OpenAI)</option>
               </Select>
             </div>

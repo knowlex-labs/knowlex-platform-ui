@@ -121,7 +121,7 @@ const TOOLS: {
 // ─── DocTableRow ──────────────────────────────────────────────────────────────
 
 function DocTableRow({
-  doc, selected, checked, onSelect, onCheck, onDelete, onAssignToCase,
+  doc, selected, checked, onSelect, onCheck, onDelete, onAssignToCase, onDownload,
 }: {
   doc: DocumentRecord
   selected: boolean
@@ -130,6 +130,7 @@ function DocTableRow({
   onCheck: (e: React.MouseEvent) => void
   onDelete: () => void
   onAssignToCase: () => void
+  onDownload: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -223,6 +224,16 @@ function DocTableRow({
                 >
                   <Link2 className="h-3.5 w-3.5 text-ledger-gray-400" />
                   Assign to case
+                </button>
+              )}
+              {(doc.downloadUrl || doc.storageUrl) && (
+                <button
+                  type="button"
+                  onClick={() => { setMenuOpen(false); onDownload() }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800 transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5 text-ledger-gray-400" />
+                  Download
                 </button>
               )}
               <button
@@ -1183,6 +1194,12 @@ export function DocumentsPage() {
                               onCheck={e => toggleCheck(doc.id, e)}
                               onDelete={() => handleDeleteDocs([doc.id])}
                               onAssignToCase={() => { setAssignDocId(doc.id); setAssignCaseId('') }}
+                              onDownload={async () => {
+                                try {
+                                  if (doc.downloadUrl) await downloadDocument(doc.downloadUrl, doc.originalFilename || doc.name)
+                                  else if (doc.storageUrl) triggerDirectDownload(doc.storageUrl, doc.originalFilename || doc.name)
+                                } catch { toast({ title: 'Download failed', variant: 'destructive' }) }
+                              }}
                             />
                           ))}
                         </tbody>
