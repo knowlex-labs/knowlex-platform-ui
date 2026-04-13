@@ -6,7 +6,6 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "splash": {
       "backgroundColor": "#7A2E2E"
     },
@@ -27,7 +26,11 @@
     },
     "extra": {
       "apiBaseUrl": "http://localhost:8080",
-      "googleClientId": ""
+      "googleClientId": "",
+      "router": {},
+      "eas": {
+        "projectId": "cc351fef-689d-4999-bfee-8ebdf394e744"
+      }
     }
   }
 }

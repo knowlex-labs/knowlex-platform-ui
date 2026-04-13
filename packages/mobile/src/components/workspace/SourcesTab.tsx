@@ -17,7 +17,7 @@ interface SourcesTabProps {
 }
 
 export function SourcesTab({ caseId }: SourcesTabProps) {
-  const { colors, spacing, radius } = useTheme();
+  const { colors, typography, spacing, radius } = useTheme();
   const router = useRouter();
   const [sources, setSources] = useState<CaseDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +55,7 @@ export function SourcesTab({ caseId }: SourcesTabProps) {
           uri: asset.uri,
           name: asset.name,
           type: asset.mimeType ?? 'application/octet-stream',
-        } as any;
+        } as unknown as Blob;
 
         const formData = new FormData();
         formData.append('file', file);
@@ -70,13 +70,13 @@ export function SourcesTab({ caseId }: SourcesTabProps) {
         });
 
         if (!response.ok) {
-          const err = await response.json().catch(() => ({}));
-          throw new Error((err as any)?.message ?? `Upload failed: ${response.status}`);
+          const errBody = await response.json().catch(() => ({} as Record<string, unknown>));
+          throw new Error((errBody as Record<string, unknown>)?.message as string ?? `Upload failed: ${response.status}`);
         }
       }
       await fetchSources();
-    } catch (err: any) {
-      Alert.alert('Upload Failed', err?.message ?? 'Could not upload file');
+    } catch (err: unknown) {
+      Alert.alert('Upload Failed', err instanceof Error ? err.message : 'Could not upload file');
     } finally {
       setUploading(false);
     }
@@ -150,7 +150,7 @@ export function SourcesTab({ caseId }: SourcesTabProps) {
         >
           {uploading && (
             <View style={{ paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, backgroundColor: colors.kxPrimary[50] }}>
-              <Text style={{ fontSize: 13, color: colors.kxPrimary[600], textAlign: 'center' }}>Uploading document...</Text>
+              <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxPrimary[600], textAlign: 'center' }}>Uploading document...</Text>
             </View>
           )}
           {sources.map((source) => (

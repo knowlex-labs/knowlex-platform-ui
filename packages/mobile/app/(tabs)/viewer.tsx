@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import { View, Text, Pressable, ActivityIndicator, Image, ScrollView, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as Sharing from 'expo-sharing';
 import { WebView } from 'react-native-webview';
 import { workspaceApi } from '@knowlex/core/api/workspace-api';
 import { useTheme } from '@/theme/useTheme';
@@ -85,6 +83,8 @@ export default function ViewerScreen() {
       const url = viewUrl ?? (params.signedUrl || '');
       if (!url) { Alert.alert('No URL available'); return; }
 
+      const FileSystem = await import('expo-file-system');
+      const Sharing = await import('expo-sharing');
       const fileName = params.name ?? `document_${params.docId}`;
       const cacheUri = (FileSystem.cacheDirectory ?? '') + fileName;
       const result = await FileSystem.downloadAsync(url, cacheUri);
@@ -117,7 +117,7 @@ export default function ViewerScreen() {
           </Text>
         </View>
         <Pressable onPress={() => setMenuVisible(true)} accessibilityLabel="More options" style={{ paddingLeft: spacing.md }}>
-          <Text style={{ fontSize: 20, color: colors.kxTextSecondary }}>⋯</Text>
+          <Text style={{ fontSize: typography.fontSize.xl, color: colors.kxTextSecondary }}>⋯</Text>
         </Pressable>
       </View>
 

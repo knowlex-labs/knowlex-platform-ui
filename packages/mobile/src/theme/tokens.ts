@@ -58,6 +58,25 @@ export const lightColors = {
   infoBg: '#eff6ff',
   onPrimary: '#ffffff',
   backdrop: 'rgba(0,0,0,0.4)',
+  // Document type colors
+  docType: {
+    uploaded: '#2563eb',
+    draft: '#7A2E2E',
+    summary: '#16a34a',
+    judgment: '#d97706',
+    synopsis: '#8b5cf6',
+    other: '#6b7280',
+  },
+  // Tool accent colors
+  toolAccent: {
+    split: '#7c3aed',
+    merge: '#2563eb',
+    compress: '#059669',
+    convert: '#d97706',
+    translate: '#0891b2',
+    summary: '#2563eb',
+    synopsis: '#0d9488',
+  },
   // Status colors
   status: {
     active: '#16a34a',
@@ -131,6 +150,23 @@ export const darkColors = {
   infoBg: '#1e3a5f',
   onPrimary: '#ffffff',
   backdrop: 'rgba(0,0,0,0.6)',
+  docType: {
+    uploaded: '#60a5fa',
+    draft: '#E09C9C',
+    summary: '#4ade80',
+    judgment: '#fbbf24',
+    synopsis: '#a78bfa',
+    other: '#9ca3af',
+  },
+  toolAccent: {
+    split: '#a78bfa',
+    merge: '#60a5fa',
+    compress: '#34d399',
+    convert: '#fbbf24',
+    translate: '#22d3ee',
+    summary: '#60a5fa',
+    synopsis: '#2dd4bf',
+  },
   status: {
     active: '#4ade80',
     activeBg: '#14532d',

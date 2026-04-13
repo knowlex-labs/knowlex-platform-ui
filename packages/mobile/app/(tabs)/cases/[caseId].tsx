@@ -2,51 +2,38 @@ import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { caseApi } from '@knowlex/core/api/case-api';
 import { mapBackendCase } from '@knowlex/core/mappers';
 import type { Case } from '@knowlex/core/types';
 import { useTheme } from '@/theme/useTheme';
 import { Badge } from '@/components/ui/Badge';
-import { SegmentedControl } from '@/components/ui/SegmentedControl';
-import { SourcesTab } from '@/components/workspace/SourcesTab';
-import { ToolsTab } from '@/components/workspace/ToolsTab';
 import { ChatTab } from '@/components/workspace/ChatTab';
+import { SourcesSheet } from '@/components/workspace/SourcesSheet';
+import { StudioSheet } from '@/components/workspace/StudioSheet';
 import { NotesTab } from '@/components/workspace/NotesTab';
-
-interface CaseOverview {
-  documentCount: number;
-  judgmentCount: number;
-  draftCount: number;
-  summaryCount: number;
-}
-
-const SEGMENTS = [
-  { key: 'docs', label: 'Docs' },
-  { key: 'tools', label: 'Tools' },
-  { key: 'chat', label: 'Chat' },
-  { key: 'notes', label: 'Notes' },
-];
 
 export default function CaseWorkspaceScreen() {
   const { caseId } = useLocalSearchParams<{ caseId: string }>();
-  const { colors, typography, spacing } = useTheme();
+  const { colors, typography, spacing, radius } = useTheme();
   const router = useRouter();
 
   const [caseData, setCaseData] = useState<Case | null>(null);
-  const [overview, setOverview] = useState<CaseOverview | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('docs');
+  const [sourcesVisible, setSourcesVisible] = useState(false);
+  const [studioVisible, setStudioVisible] = useState(false);
+  const [notesVisible, setNotesVisible] = useState(false);
+  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
+  const [sourceCount, setSourceCount] = useState(0);
 
   useEffect(() => {
     if (!caseId) return;
     const fetchCase = async () => {
       try {
-        const [caseRes, overviewRes] = await Promise.all([
+        const [caseRes] = await Promise.all([
           caseApi.getById(caseId),
-          caseApi.getOverviewSummary(caseId),
         ]);
         if (caseRes.data) setCaseData(mapBackendCase(caseRes.data));
-        if (overviewRes.data) setOverview(overviewRes.data);
       } catch {
         // Silently fail
       } finally {
@@ -55,6 +42,11 @@ export default function CaseWorkspaceScreen() {
     };
     fetchCase();
   }, [caseId]);
+
+  // Track source count from the sources sheet selections
+  useEffect(() => {
+    setSourceCount(selectedDocIds.size);
+  }, [selectedDocIds]);
 
   if (loading) {
     return (
@@ -77,17 +69,23 @@ export default function CaseWorkspaceScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.kxSurface }}>
-      {/* Header — compact */}
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: 2, paddingBottom: 6 }}>
-        <Pressable onPress={() => router.back()} style={{ marginBottom: 2 }}>
-          <Text style={{ color: colors.kxPrimary[600], fontSize: 13 }}>← Cases</Text>
-        </Pressable>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Header */}
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: 2, paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Pressable onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="chevron-back" size={20} color={colors.kxPrimary[600]} />
+            <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.sm }}>Cases</Text>
+          </Pressable>
+          <Pressable onPress={() => setNotesVisible(true)} accessibilityLabel="Notes">
+            <Ionicons name="create-outline" size={20} color={colors.kxTextSecondary} />
+          </Pressable>
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
           <View style={{ flex: 1, marginRight: spacing.sm }}>
             <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }} numberOfLines={1}>
               {caseData.caseTitle || 'Untitled Case'}
             </Text>
-            <Text style={{ fontSize: 11, color: colors.kxTextSecondary, marginTop: 1 }} numberOfLines={1}>
+            <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 1 }} numberOfLines={1}>
               {[caseData.caseNumber, caseData.courtName].filter(Boolean).join(' • ')}
             </Text>
           </View>
@@ -95,16 +93,84 @@ export default function CaseWorkspaceScreen() {
         </View>
       </View>
 
-      {/* Segmented Control */}
-      <SegmentedControl segments={SEGMENTS} activeKey={activeTab} onChange={setActiveTab} />
+      {/* Toolbar — Sources & Studio buttons */}
+      <View style={{
+        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        paddingHorizontal: spacing.lg, paddingVertical: spacing.sm,
+        backgroundColor: colors.kxCardBg, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder,
+      }}>
+        <Pressable
+          onPress={() => setSourcesVisible(true)}
+          style={({ pressed }) => ({
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+            borderRadius: radius.md,
+            backgroundColor: pressed ? colors.kxPrimary[50] : 'transparent',
+            borderWidth: 1, borderColor: colors.kxCardBorder,
+          })}
+        >
+          <Ionicons name="folder-outline" size={16} color={colors.kxPrimary[600]} />
+          <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.kxPrimary[600] }}>
+            Sources
+          </Text>
+          {sourceCount > 0 && (
+            <View style={{ backgroundColor: colors.kxPrimary[600], borderRadius: radius.full, paddingHorizontal: 6, paddingVertical: 1 }}>
+              <Text style={{ fontSize: 10, fontWeight: typography.fontWeight.bold, color: colors.onPrimary }}>{sourceCount}</Text>
+            </View>
+          )}
+        </Pressable>
 
-      {/* Tab Content */}
-      <View style={{ flex: 1 }}>
-        {activeTab === 'docs' && <SourcesTab caseId={caseId!} />}
-        {activeTab === 'tools' && <ToolsTab caseId={caseId!} overview={overview} />}
-        {activeTab === 'chat' && <ChatTab caseId={caseId!} />}
-        {activeTab === 'notes' && <NotesTab caseId={caseId!} />}
+        <Pressable
+          onPress={() => setStudioVisible(true)}
+          style={({ pressed }) => ({
+            flexDirection: 'row', alignItems: 'center', gap: 6,
+            paddingHorizontal: spacing.md, paddingVertical: spacing.xs,
+            borderRadius: radius.md,
+            backgroundColor: pressed ? colors.kxPrimary[50] : 'transparent',
+            borderWidth: 1, borderColor: colors.kxCardBorder,
+          })}
+        >
+          <Ionicons name="sparkles-outline" size={16} color={colors.kxPrimary[600]} />
+          <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.kxPrimary[600] }}>
+            Studio
+          </Text>
+        </Pressable>
       </View>
+
+      {/* Chat — the center of the workspace */}
+      <View style={{ flex: 1 }}>
+        <ChatTab caseId={caseId!} externalSelectedDocIds={selectedDocIds} />
+      </View>
+
+      {/* Bottom Sheets */}
+      <SourcesSheet
+        visible={sourcesVisible}
+        onClose={() => setSourcesVisible(false)}
+        caseId={caseId!}
+        selectedDocIds={selectedDocIds}
+        onSelectionChange={setSelectedDocIds}
+      />
+
+      <StudioSheet
+        visible={studioVisible}
+        onClose={() => setStudioVisible(false)}
+        caseId={caseId!}
+      />
+
+      {/* Notes Modal */}
+      {notesVisible && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: colors.kxSurface, zIndex: 100 }}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.xl, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
+              <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }}>Notes</Text>
+              <Pressable onPress={() => setNotesVisible(false)}>
+                <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold }}>Done</Text>
+              </Pressable>
+            </View>
+            <NotesTab caseId={caseId!} />
+          </SafeAreaView>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

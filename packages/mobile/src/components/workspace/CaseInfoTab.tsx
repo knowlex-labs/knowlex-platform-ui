@@ -51,16 +51,16 @@ export function CaseInfoTab({ caseData, overview }: CaseInfoTabProps) {
   );
 }
 
-function StatCard({ label, value, colors, typography }: { label: string; value: number; colors: any; typography: any }) {
+function StatCard({ label, value, colors, typography }: { label: string; value: number; colors: typeof import('@/theme/tokens').lightColors; typography: typeof import('@/theme/tokens').typography }) {
   return (
     <Card style={{ flex: 1, alignItems: 'center', paddingVertical: 12, paddingHorizontal: 6 }}>
       <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxPrimary[600] }}>{value}</Text>
-      <Text style={{ fontSize: 10, color: colors.kxTextSecondary, marginTop: 2, textAlign: 'center' }}>{label}</Text>
+      <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2, textAlign: 'center' }}>{label}</Text>
     </Card>
   );
 }
 
-function DetailRow({ label, value, colors, typography, last }: { label: string; value: string; colors: any; typography: any; last?: boolean }) {
+function DetailRow({ label, value, colors, typography, last }: { label: string; value: string; colors: typeof import('@/theme/tokens').lightColors; typography: typeof import('@/theme/tokens').typography; last?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: last ? 0 : 1, borderBottomColor: colors.kxCardBorder }}>
       <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextSecondary }}>{label}</Text>

@@ -48,17 +48,17 @@ export function SourceItem({ name, indexingStatus, fileType, onPress, onLongPres
         borderBottomColor: colors.kxCardBorder,
       })}
     >
-      <Text style={{ fontSize: 24, marginRight: spacing.md }}>{getFileIcon(fileType)}</Text>
+      <Text style={{ fontSize: typography.fontSize['2xl'], marginRight: spacing.md }}>{getFileIcon(fileType)}</Text>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.kxTextPrimary }} numberOfLines={1}>
           {name}
         </Text>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 4 }}>
           <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: status.color }} />
-          <Text style={{ fontSize: 11, color: status.color }}>{status.label}</Text>
+          <Text style={{ fontSize: typography.fontSize.xs, color: status.color }}>{status.label}</Text>
         </View>
       </View>
-      <Text style={{ fontSize: 18, color: colors.ledgerGray[400], paddingLeft: spacing.sm }}>⋯</Text>
+      <Text style={{ fontSize: typography.fontSize.lg, color: colors.ledgerGray[400], paddingLeft: spacing.sm }}>⋯</Text>
     </Pressable>
   );
 }

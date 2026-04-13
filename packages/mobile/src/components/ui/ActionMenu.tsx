@@ -19,6 +19,7 @@ interface ActionMenuProps {
 export function ActionMenu({ visible, onClose, title, items }: ActionMenuProps) {
   const { colors, typography, spacing } = useTheme();
 
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <Pressable
@@ -77,7 +78,7 @@ export function ActionMenu({ visible, onClose, title, items }: ActionMenuProps) 
                 })}
               >
                 {item.icon && (
-                  <Text style={{ fontSize: 18, marginRight: spacing.md }}>{item.icon}</Text>
+                  <Text style={{ fontSize: typography.fontSize.lg, marginRight: spacing.md }}>{item.icon}</Text>
                 )}
                 <Text
                   style={{

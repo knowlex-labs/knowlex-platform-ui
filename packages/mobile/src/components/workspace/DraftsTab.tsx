@@ -7,6 +7,9 @@ import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Button } from '@/components/ui/Button';
+import { FAB } from '@/components/ui/FAB';
+import { CreateDraftSheet } from './CreateDraftSheet';
 
 interface DraftsTabProps {
   caseId: string;
@@ -25,6 +28,7 @@ export function DraftsTab({ caseId }: DraftsTabProps) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [createVisible, setCreateVisible] = useState(false);
   const [draftContent, setDraftContent] = useState<Record<string, string>>({});
   const [loadingContent, setLoadingContent] = useState<string | null>(null);
 
@@ -76,7 +80,11 @@ export function DraftsTab({ caseId }: DraftsTabProps) {
           {[1, 2, 3].map((i) => <SkeletonLoader key={i} height={64} borderRadius={radius.lg} />)}
         </View>
       ) : drafts.length === 0 ? (
-        <EmptyState title="No drafts yet" message="Generate legal drafts from the web app to see them here" />
+        <EmptyState
+          title="No drafts yet"
+          message="Generate AI-powered legal documents from templates"
+          action={<Button title="Create Draft" onPress={() => setCreateVisible(true)} />}
+        />
       ) : (
         <ScrollView
           contentContainerStyle={{ padding: spacing.xl, gap: spacing.md }}
@@ -101,7 +109,7 @@ export function DraftsTab({ caseId }: DraftsTabProps) {
                       )}
                     </View>
                     {status === 'pending' && <ActivityIndicator size="small" color={colors.kxAccent[500]} />}
-                    {status === 'completed' && <Text style={{ fontSize: 14, color: colors.ledgerGray[400] }}>{isExpanded ? '▲' : '▼'}</Text>}
+                    {status === 'completed' && <Text style={{ fontSize: typography.fontSize.sm, color: colors.ledgerGray[400] }}>{isExpanded ? '▲' : '▼'}</Text>}
                     {status === 'failed' && <Badge label="Failed" status="blocked" />}
                   </View>
 
@@ -123,6 +131,15 @@ export function DraftsTab({ caseId }: DraftsTabProps) {
           })}
         </ScrollView>
       )}
+
+      {drafts.length > 0 && <FAB icon="+" onPress={() => setCreateVisible(true)} accessibilityLabel="Create draft" />}
+
+      <CreateDraftSheet
+        visible={createVisible}
+        onClose={() => setCreateVisible(false)}
+        caseId={caseId}
+        onCreated={() => { setCreateVisible(false); fetchDrafts(); }}
+      />
     </View>
   );
 }

@@ -155,7 +155,7 @@ export default function DashboardScreen() {
   );
 }
 
-function StatCard({ label, value, colors, typography, accent }: { label: string; value: number; colors: any; typography: any; accent?: boolean }) {
+function StatCard({ label, value, colors, typography, accent }: { label: string; value: number; colors: typeof import('@/theme/tokens').lightColors; typography: typeof import('@/theme/tokens').typography; accent?: boolean }) {
   return (
     <Card style={{ flex: 1, alignItems: 'center', paddingVertical: 14 }}>
       <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: accent ? colors.kxPrimary[600] : colors.kxTextPrimary }}>
@@ -170,7 +170,7 @@ function StatCard({ label, value, colors, typography, accent }: { label: string;
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '600',
   },
 });

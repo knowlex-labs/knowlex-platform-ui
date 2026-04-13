@@ -24,9 +24,11 @@ interface ChatMessage {
 
 interface ChatTabProps {
   caseId: string;
+  /** When provided, uses these doc IDs for context instead of the built-in selector */
+  externalSelectedDocIds?: Set<string>;
 }
 
-export function ChatTab({ caseId }: ChatTabProps) {
+export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
   const { colors, typography, spacing, radius } = useTheme();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -34,10 +36,14 @@ export function ChatTab({ caseId }: ChatTabProps) {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Document context
+  // Document context (internal — used when no externalSelectedDocIds)
   const [indexedDocs, setIndexedDocs] = useState<CaseDocument[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [docsExpanded, setDocsExpanded] = useState(false);
+
+  // Use external doc IDs if provided
+  const effectiveDocIds = externalSelectedDocIds ?? selectedDocIds;
+  const showBuiltInSelector = !externalSelectedDocIds;
 
   const scrollViewRef = useRef<ScrollView>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -154,7 +160,7 @@ export function ChatTab({ caseId }: ChatTabProps) {
         message: text,
         tone: 'professional',
         style: 'detailed',
-        file_ids: Array.from(selectedDocIds),
+        file_ids: Array.from(effectiveDocIds),
         model: 'openai',
       },
       callbacks
@@ -176,20 +182,20 @@ export function ChatTab({ caseId }: ChatTabProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={140}
     >
-      {/* Document Context Selector */}
-      {indexedDocs.length > 0 && (
+      {/* Document Context Selector (only when not controlled externally) */}
+      {showBuiltInSelector && indexedDocs.length > 0 && (
         <View style={{ borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
           <Pressable
             onPress={() => setDocsExpanded(!docsExpanded)}
             style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <Text style={{ fontSize: 14 }}>📄</Text>
+              <Text style={{ fontSize: typography.fontSize.sm }}>📄</Text>
               <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium, color: colors.kxTextPrimary }}>
                 {selectedDocIds.size} of {indexedDocs.length} documents selected
               </Text>
             </View>
-            <Text style={{ color: colors.ledgerGray[400], fontSize: 12 }}>{docsExpanded ? '▲' : '▼'}</Text>
+            <Text style={{ color: colors.ledgerGray[400], fontSize: typography.fontSize.xs }}>{docsExpanded ? '▲' : '▼'}</Text>
           </Pressable>
 
           {docsExpanded && (
@@ -209,7 +215,7 @@ export function ChatTab({ caseId }: ChatTabProps) {
                       backgroundColor: isSelected ? colors.kxPrimary[600] : 'transparent',
                       justifyContent: 'center', alignItems: 'center',
                     }}>
-                      {isSelected && <Text style={{ color: colors.onPrimary, fontSize: 11, fontWeight: '700' }}>✓</Text>}
+                      {isSelected && <Text style={{ color: colors.onPrimary, fontSize: typography.fontSize.xs, fontWeight: '700' }}>✓</Text>}
                     </View>
                     <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextPrimary, flex: 1 }} numberOfLines={1}>
                       {doc.name ?? doc.originalFilename ?? 'Document'}
@@ -231,7 +237,7 @@ export function ChatTab({ caseId }: ChatTabProps) {
       >
         {messages.length === 0 && (
           <View style={{ alignItems: 'center', paddingVertical: spacing['4xl'] }}>
-            <Text style={{ fontSize: 40, marginBottom: spacing.lg }}>💬</Text>
+            <Text style={{ fontSize: typography.fontSize['4xl'], marginBottom: spacing.lg }}>💬</Text>
             <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary, textAlign: 'center' }}>
               Case AI Assistant
             </Text>
@@ -316,7 +322,7 @@ export function ChatTab({ caseId }: ChatTabProps) {
             marginBottom: 2,
           })}
         >
-          <Text style={{ color: colors.onPrimary, fontSize: 18 }}>↑</Text>
+          <Text style={{ color: colors.onPrimary, fontSize: typography.fontSize.lg }}>↑</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

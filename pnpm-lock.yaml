@@ -32,11 +32,6 @@ importers:
       '@shopify/flash-list':
         specifier: ^2.0.2
         version: 2.0.2(@babel/runtime@7.29.2)(react-native@0.81.5(@babel/core@7.29.0)(@react-native/metro-config@0.85.0(@babel/core@7.29.0))(@types/react@19.1.17)(react@19.1.0))(react@19.1.0)
-      "async-storage\n":
-        specifier: |
-          link:@react-native-async-storage/async-storage
-        version: |
-          link:@react-native-async-storage/async-storage
       base-64:
         specifier: ^1.0.0
         version: 1.0.0

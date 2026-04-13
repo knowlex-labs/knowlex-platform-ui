@@ -20,7 +20,7 @@ export function SegmentedControl({ segments, activeKey, onChange }: SegmentedCon
     <View
       style={{
         flexDirection: 'row',
-        backgroundColor: isDark ? colors.ledgerGray[200] : colors.ledgerGray[100],
+        backgroundColor: isDark ? colors.ledgerGray[100] : colors.ledgerGray[200],
         borderRadius: radius.lg,
         padding: 3,
         marginHorizontal: spacing.lg,
@@ -43,7 +43,7 @@ export function SegmentedControl({ segments, activeKey, onChange }: SegmentedCon
             accessibilityLabel={seg.label}
             style={{
               flex: 1,
-              paddingVertical: 8,
+              paddingVertical: spacing.sm,
               borderRadius: radius.md,
               backgroundColor: isActive ? colors.kxCardBg : 'transparent',
               alignItems: 'center',

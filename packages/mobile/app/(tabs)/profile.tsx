@@ -72,7 +72,7 @@ export default function ProfileScreen() {
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ fontSize: 20, marginBottom: 4 }}>{opt.icon}</Text>
+                  <Text style={{ fontSize: typography.fontSize.xl, marginBottom: spacing.xs }}>{opt.icon}</Text>
                   <Text style={{
                     fontSize: typography.fontSize.xs,
                     fontWeight: isActive ? typography.fontWeight.semibold : typography.fontWeight.normal,
@@ -102,10 +102,10 @@ export default function ProfileScreen() {
   );
 }
 
-function MenuItem({ label, colors, typography, spacing, last }: { label: string; colors: any; typography: any; spacing: any; last?: boolean }) {
+function MenuItem({ label, colors, typography, spacing, last }: { label: string; colors: typeof import('@/theme/tokens').lightColors; typography: typeof import('@/theme/tokens').typography; spacing: typeof import('@/theme/tokens').spacing; last?: boolean }) {
   return (
     <Pressable style={{
-      paddingVertical: 14,
+      paddingVertical: spacing.md,
       borderBottomWidth: last ? 0 : 1,
       borderBottomColor: colors.kxCardBorder,
     }}>

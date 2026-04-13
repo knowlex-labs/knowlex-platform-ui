@@ -106,7 +106,7 @@ export function NotesTab({ caseId }: NotesTabProps) {
                     {note.content}
                   </Text>
                 )}
-                <Text style={{ fontSize: 10, color: colors.ledgerGray[400], marginTop: spacing.sm }}>
+                <Text style={{ fontSize: typography.fontSize.xs, color: colors.ledgerGray[400], marginTop: spacing.sm }}>
                   {new Date(note.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </Card>

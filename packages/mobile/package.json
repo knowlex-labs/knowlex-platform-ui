@@ -13,7 +13,6 @@
     "@knowlex/core": "workspace:*",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@shopify/flash-list": "^2.0.2",
-    "async-storage\n": "link:@react-native-async-storage/async-storage\n",
     "base-64": "^1.0.0",
     "date-fns": "^4.1.0",
     "expo": "~54.0.0",

@@ -9,7 +9,7 @@ interface FABProps {
 }
 
 export function FAB({ icon = '+', onPress, accessibilityLabel = 'Add' }: FABProps) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, typography } = useTheme();
 
   return (
     <Pressable
@@ -37,7 +37,7 @@ export function FAB({ icon = '+', onPress, accessibilityLabel = 'Add' }: FABProp
         transform: [{ scale: pressed ? 0.92 : 1 }],
       })}
     >
-      <Text style={{ color: colors.onPrimary, fontSize: 28, fontWeight: '300', marginTop: -2 }}>{icon}</Text>
+      <Text style={{ color: colors.onPrimary, fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.normal, marginTop: -2 }}>{icon}</Text>
     </Pressable>
   );
 }

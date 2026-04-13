@@ -63,7 +63,7 @@ export function ConvertSheet({ visible, onClose, documentId, documentName }: Pro
                     backgroundColor: format === f.key ? colors.kxPrimary[50] : colors.kxCardBg,
                   }}
                 >
-                  <Text style={{ fontSize: 24, marginBottom: spacing.xs }}>{f.icon}</Text>
+                  <Text style={{ fontSize: typography.fontSize['2xl'], marginBottom: spacing.xs }}>{f.icon}</Text>
                   <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.medium, color: colors.kxTextPrimary }}>{f.label}</Text>
                 </Pressable>
               ))}
@@ -83,7 +83,7 @@ export function ConvertSheet({ visible, onClose, documentId, documentName }: Pro
             ))}
             {textContent && (
               <Card style={{ marginTop: spacing.md, maxHeight: 200 }}>
-                <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextPrimary, fontFamily: 'monospace' }} numberOfLines={20}>{textContent}</Text>
+                <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextPrimary, fontFamily: typography.fontFamily.mono }} numberOfLines={20}>{textContent}</Text>
               </Card>
             )}
             <Button title="Done" onPress={reset} variant="outline" style={{ marginTop: spacing.xl }} />

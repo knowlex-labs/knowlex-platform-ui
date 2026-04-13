@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, Pressable, Modal } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '@/theme/useTheme';
@@ -12,6 +12,8 @@ interface ToolboxSheetProps {
   onClose: () => void;
   documentId: string;
   documentName: string;
+  /** If set, skip the picker modal and directly open this tool */
+  autoOpenTool?: string;
 }
 
 const TOOLS = [
@@ -23,9 +25,16 @@ const TOOLS = [
 
 type ToolKey = typeof TOOLS[number]['key'];
 
-export function ToolboxSheet({ visible, onClose, documentId, documentName }: ToolboxSheetProps) {
+export function ToolboxSheet({ visible, onClose, documentId, documentName, autoOpenTool }: ToolboxSheetProps) {
   const { colors, typography, spacing, radius } = useTheme();
   const [activeTool, setActiveTool] = useState<ToolKey | null>(null);
+
+  // Auto-open a specific tool when triggered from the documents page tool bar
+  useEffect(() => {
+    if (visible && autoOpenTool && TOOLS.some((t) => t.key === autoOpenTool)) {
+      setActiveTool(autoOpenTool as ToolKey);
+    }
+  }, [visible, autoOpenTool]);
 
   const openTool = (key: ToolKey) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -33,9 +42,27 @@ export function ToolboxSheet({ visible, onClose, documentId, documentName }: Too
     setTimeout(() => setActiveTool(key), 300);
   };
 
+  const handleToolClose = () => {
+    setActiveTool(null);
+    // If we auto-opened, also close the parent
+    if (autoOpenTool) onClose();
+  };
+
+  // If auto-opening, skip the picker modal entirely
+  if (autoOpenTool && visible) {
+    return (
+      <>
+        <SplitSheet visible={activeTool === 'split'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
+        <CompressSheet visible={activeTool === 'compress'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
+        <ConvertSheet visible={activeTool === 'convert'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
+        <TranslateSheet visible={activeTool === 'translate'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
+      </>
+    );
+  }
+
   return (
     <>
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Modal visible={visible && !autoOpenTool} transparent animationType="slide" onRequestClose={onClose}>
         <Pressable style={{ flex: 1, backgroundColor: colors.backdrop, justifyContent: 'flex-end' }} onPress={onClose}>
           <Pressable style={{ backgroundColor: colors.kxCardBg, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 40 }} onPress={() => {}}>
             <View style={{ alignItems: 'center', paddingTop: spacing.md }}>
@@ -58,13 +85,13 @@ export function ToolboxSheet({ visible, onClose, documentId, documentName }: Too
                 style={({ pressed }) => ({
                   flexDirection: 'row',
                   alignItems: 'center',
-                  paddingVertical: 14,
+                  paddingVertical: spacing.md,
                   paddingHorizontal: spacing.xl,
                   backgroundColor: pressed ? colors.ledgerGray[50] : 'transparent',
                 })}
               >
                 <View style={{ width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.kxPrimary[50], justifyContent: 'center', alignItems: 'center', marginRight: spacing.lg }}>
-                  <Text style={{ fontSize: 18 }}>{tool.icon}</Text>
+                  <Text style={{ fontSize: typography.fontSize.lg }}>{tool.icon}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.medium, color: colors.kxTextPrimary }}>{tool.label}</Text>
@@ -76,10 +103,10 @@ export function ToolboxSheet({ visible, onClose, documentId, documentName }: Too
         </Pressable>
       </Modal>
 
-      <SplitSheet visible={activeTool === 'split'} onClose={() => setActiveTool(null)} documentId={documentId} documentName={documentName} />
-      <CompressSheet visible={activeTool === 'compress'} onClose={() => setActiveTool(null)} documentId={documentId} documentName={documentName} />
-      <ConvertSheet visible={activeTool === 'convert'} onClose={() => setActiveTool(null)} documentId={documentId} documentName={documentName} />
-      <TranslateSheet visible={activeTool === 'translate'} onClose={() => setActiveTool(null)} documentId={documentId} documentName={documentName} />
+      <SplitSheet visible={activeTool === 'split'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
+      <CompressSheet visible={activeTool === 'compress'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
+      <ConvertSheet visible={activeTool === 'convert'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
+      <TranslateSheet visible={activeTool === 'translate'} onClose={handleToolClose} documentId={documentId} documentName={documentName} />
     </>
   );
 }

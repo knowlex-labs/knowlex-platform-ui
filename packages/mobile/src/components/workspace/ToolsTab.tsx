@@ -112,8 +112,8 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
       });
       await fetchGenerated();
       if (res.id) startPolling(res.id);
-    } catch (err: any) {
-      Alert.alert('Error', err?.message ?? `Failed to generate ${docType.toLowerCase()}`);
+    } catch (err: unknown) {
+      Alert.alert('Error', err instanceof Error ? err.message : `Failed to generate ${docType.toLowerCase()}`);
     } finally {
       setter(false);
     }
@@ -187,7 +187,7 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
           onPress={() => handleGenerate('SUMMARY')}
           loading={generatingSummary}
           disabled={hasSummary}
-          accentColor="#2563eb"
+          accentColor={colors.toolAccent.summary}
           colors={colors}
           typography={typography}
           spacing={spacing}
@@ -200,7 +200,7 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
           onPress={() => handleGenerate('SYNOPSIS')}
           loading={generatingSynopsis}
           disabled={hasSynopsis}
-          accentColor="#0d9488"
+          accentColor={colors.toolAccent.synopsis}
           colors={colors}
           typography={typography}
           spacing={spacing}
@@ -226,7 +226,7 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
                           {doc.type === 'SUMMARY' ? '📋 Summary' : '📖 Synopsis'}
                         </Text>
                         {doc.createdAt && (
-                          <Text style={{ fontSize: 11, color: colors.kxTextSecondary, marginTop: 2 }}>
+                          <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>
                             {new Date(doc.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </Text>
                         )}
@@ -265,16 +265,30 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
   );
 }
 
-function MiniStat({ label, value, colors, typography }: { label: string; value: number; colors: any; typography: any }) {
+function MiniStat({ label, value, colors, typography }: { label: string; value: number; colors: typeof import('@/theme/tokens').lightColors; typography: typeof import('@/theme/tokens').typography }) {
   return (
-    <View style={{ flex: 1, alignItems: 'center', paddingVertical: 8, backgroundColor: colors.kxCardBg, borderRadius: 8, borderWidth: 1, borderColor: colors.kxCardBorder }}>
+    <View style={{ flex: 1, alignItems: 'center', paddingVertical: spacing.sm, backgroundColor: colors.kxCardBg, borderRadius: radius.md, borderWidth: 1, borderColor: colors.kxCardBorder }}>
       <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.kxPrimary[600] }}>{value}</Text>
-      <Text style={{ fontSize: 10, color: colors.kxTextSecondary }}>{label}</Text>
+      <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }}>{label}</Text>
     </View>
   );
 }
 
-function ToolCard({ icon, title, subtitle, onPress, loading, disabled, accentColor, colors, typography, spacing, radius }: any) {
+interface ToolCardProps {
+  icon: string;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  loading: boolean;
+  disabled: boolean;
+  accentColor: string;
+  colors: typeof import('@/theme/tokens').lightColors;
+  typography: typeof import('@/theme/tokens').typography;
+  spacing: typeof import('@/theme/tokens').spacing;
+  radius: typeof import('@/theme/tokens').radius;
+}
+
+function ToolCard({ icon, title, subtitle, onPress, loading, disabled, accentColor, colors, typography, spacing, radius }: ToolCardProps) {
   return (
     <Pressable
       onPress={disabled ? undefined : onPress}
@@ -288,13 +302,13 @@ function ToolCard({ icon, title, subtitle, onPress, loading, disabled, accentCol
         opacity: pressed && !disabled ? 0.85 : 1,
       })}
     >
-      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: accentColor + '15', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm }}>
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
+      <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: accentColor + '15', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm }}>
+        <Text style={{ fontSize: typography.fontSize.lg }}>{icon}</Text>
       </View>
       <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>
         {title}
       </Text>
-      <Text style={{ fontSize: 11, color: disabled ? accentColor : colors.kxTextSecondary, marginTop: 2 }}>
+      <Text style={{ fontSize: typography.fontSize.xs, color: disabled ? accentColor : colors.kxTextSecondary, marginTop: 2 }}>
         {loading ? 'Generating...' : subtitle}
       </Text>
       {loading && <ActivityIndicator size="small" color={accentColor} style={{ marginTop: spacing.sm }} />}

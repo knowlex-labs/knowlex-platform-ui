@@ -69,7 +69,7 @@ export function SplitSheet({ visible, onClose, documentId, documentName }: Props
               <Card key={doc.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextPrimary }} numberOfLines={1}>{doc.fileName}</Text>
-                  <Text style={{ fontSize: 11, color: colors.kxTextSecondary }}>{doc.pageCount} pages</Text>
+                  <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }}>{doc.pageCount} pages</Text>
                 </View>
                 <Pressable onPress={() => handleDownload(doc)}>
                   <Text style={{ color: colors.kxPrimary[600], fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>Save</Text>
