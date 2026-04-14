@@ -25,10 +25,27 @@ export interface FileHandlerAdapter {
   revokeObjectUrl(url: string): void
 }
 
+/** Server-Sent-Events transport.
+ *  Web uses fetch + ReadableStream; React Native must use XHR because RN fetch
+ *  does not implement response.body.getReader(). */
+export interface SseAdapter {
+  stream(
+    url: string,
+    init: { method: 'POST'; headers: Record<string, string>; body: string },
+    handlers: {
+      onEvent: (event: string, data: string) => void
+      onError: (msg: string) => void
+      onEnd: () => void
+      onUnauthorized?: () => void
+    }
+  ): AbortController
+}
+
 /** Combined runtime dependencies — passed to initCore() */
 export interface CoreAdapters {
   storage: StorageAdapter
   eventBus: EventBusAdapter
   env: EnvironmentConfig
   fileHandler: FileHandlerAdapter
+  sse: SseAdapter
 }

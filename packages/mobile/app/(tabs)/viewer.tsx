@@ -46,6 +46,21 @@ export default function ViewerScreen() {
     loadDocument();
   }, [params.docId]);
 
+  // Fallback: download the doc via authenticated API endpoint into local cache,
+  // returns a file:// URI that WebView/Image can load without auth.
+  const downloadToCache = async (): Promise<string> => {
+    const FileSystem = await import('expo-file-system');
+    const { env } = (await import('@knowlex/core/api/runtime')).getAdapters();
+    const { getAuthHeaders } = await import('@knowlex/core/api/auth-headers');
+    const path = params.downloadUrl || `/api/v1/documents/${params.docId}/download`;
+    const fullUrl = path.startsWith('http') ? path : `${env.apiBaseUrl}${path}`;
+    const safeName = (params.name ?? `document_${params.docId}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const cacheUri = (FileSystem.cacheDirectory ?? '') + safeName;
+    const result = await FileSystem.downloadAsync(fullUrl, cacheUri, { headers: getAuthHeaders() });
+    if (result.status >= 400) throw new Error(`Download failed: ${result.status}`);
+    return result.uri;
+  };
+
   const loadDocument = async () => {
     setLoading(true);
     setError(null);
@@ -59,16 +74,25 @@ export default function ViewerScreen() {
         });
         setTextContent(content);
       } else {
-        // PDF/images: get an HTTP URL (not file://)
-        // Priority: signedUrl (already HTTP) > getDownloadUrl (presigned S3)
-        let url: string;
-        if (params.signedUrl) {
-          url = params.signedUrl;
+        // PDF/images: WebView/Image need a self-authenticating URL.
+        // 1) Trust signedUrl only if it is an absolute http(s) URL
+        // 2) Try a presigned S3 URL via workspaceApi.getDownloadUrl
+        // 3) Fall back to authenticated API download saved to the local file cache
+        const isAbsolute = params.signedUrl?.startsWith('http');
+        if (isAbsolute) {
+          setViewUrl(params.signedUrl!);
         } else {
-          // Get a presigned download URL from the API
-          url = await workspaceApi.getDownloadUrl(params.docId!);
+          let url: string | null = null;
+          try {
+            url = await workspaceApi.getDownloadUrl(params.docId!);
+          } catch {
+            url = null;
+          }
+          if (!url) {
+            url = await downloadToCache();
+          }
+          setViewUrl(url);
         }
-        setViewUrl(url);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to load document';
@@ -101,7 +125,7 @@ export default function ViewerScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.kxSurface }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       {/* Header */}
       <View style={{
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

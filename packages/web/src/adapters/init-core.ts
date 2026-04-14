@@ -3,6 +3,7 @@ import { browserStorageAdapter } from './storage'
 import { browserEventBusAdapter } from './event-bus'
 import { browserEnvConfig } from './env-config'
 import { browserFileHandlerAdapter } from './file-handler'
+import { browserSseAdapter } from './sse-adapter'
 
 export function bootstrapCore() {
   initCore({
@@ -10,5 +11,6 @@ export function bootstrapCore() {
     eventBus: browserEventBusAdapter,
     env: browserEnvConfig,
     fileHandler: browserFileHandlerAdapter,
+    sse: browserSseAdapter,
   })
 }

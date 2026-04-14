@@ -77,6 +77,9 @@ export default function DocumentsScreen() {
   const [mergeDocIds, setMergeDocIds] = useState<string[]>([]);
   const [mergeDocNames, setMergeDocNames] = useState<string[]>([]);
 
+  // Tools visibility
+  const [toolsVisible, setToolsVisible] = useState(true);
+
   // Selection mode
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -178,7 +181,7 @@ export default function DocumentsScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.kxSurface }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       {/* Header */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
         {selectMode ? (
@@ -219,9 +222,69 @@ export default function DocumentsScreen() {
 
       {/* Filters */}
       {!selectMode && (
-        <View style={{ marginTop: spacing.sm, marginBottom: spacing.xs }}>
+        <View style={{ marginTop: spacing.xs }}>
           <FilterChipBar filters={TYPE_FILTERS} activeValue={typeFilter} onChange={setTypeFilter} />
         </View>
+      )}
+
+      {/* Tools Row — below filters, collapsible */}
+      {(toolsVisible || selectMode) && (
+        <View style={{
+          backgroundColor: colors.kxCardBg,
+          borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder,
+          paddingVertical: 4, paddingHorizontal: spacing.md,
+        }}>
+          {selectMode && selectedIds.size > 0 && (
+            <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginBottom: spacing.xs, marginLeft: 4 }}>
+              {selectedIds.size} selected — choose a tool:
+            </Text>
+          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, alignItems: 'center', flexGrow: 1 }}>
+              {!selectMode && <Ionicons name="build-outline" size={13} color={colors.kxTextSecondary} style={{ marginRight: 2 }} />}
+              {TOOLS.map((tool) => (
+                <Pressable
+                  key={tool.key}
+                  onPress={() => selectMode ? applyToolToSelected(tool.key) : handleToolTap(tool.key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={tool.label}
+                  style={({ pressed }) => ({
+                    flexDirection: 'row', alignItems: 'center', gap: 4,
+                    paddingHorizontal: 10, paddingVertical: 5,
+                    borderRadius: 12,
+                    backgroundColor: pressed ? colors.toolAccent[tool.key] + '20' : colors.kxSurface,
+                    borderWidth: 1, borderColor: colors.toolAccent[tool.key] + '40',
+                  })}
+                >
+                  <Ionicons name={tool.ionicon as any} size={13} color={colors.toolAccent[tool.key]} />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: colors.toolAccent[tool.key] }}>{tool.label}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            {!selectMode && (
+              <Pressable onPress={() => setToolsVisible(false)} hitSlop={8} style={{ paddingLeft: spacing.sm }}>
+                <Ionicons name="close-circle-outline" size={18} color={colors.kxTextSecondary} />
+              </Pressable>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Show tools pill when hidden */}
+      {!toolsVisible && !selectMode && (
+        <Pressable
+          onPress={() => setToolsVisible(true)}
+          style={{
+            flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start',
+            marginLeft: spacing.lg, marginVertical: spacing.xs,
+            paddingHorizontal: spacing.md, paddingVertical: 4,
+            backgroundColor: colors.kxCardBg, borderRadius: radius.full,
+            borderWidth: 1, borderColor: colors.kxCardBorder, gap: 4,
+          }}
+        >
+          <Ionicons name="build-outline" size={12} color={colors.kxTextSecondary} />
+          <Text style={{ fontSize: 11, color: colors.kxTextSecondary, fontWeight: '500' }}>Tools</Text>
+        </Pressable>
       )}
 
       {/* Document List */}
@@ -242,7 +305,7 @@ export default function DocumentsScreen() {
           <EmptyState title="No documents found" message={search ? 'Try a different search term' : 'Upload documents to get started'} />
         ) : (
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: selectMode ? 80 : spacing.md, gap: spacing.sm }}
+            contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.sm, gap: spacing.sm }}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); setPage(0); fetchDocs(0, true); }} tintColor={colors.kxPrimary[600]} />}
           >
             {documents.map((doc) => {
@@ -296,39 +359,6 @@ export default function DocumentsScreen() {
             )}
           </ScrollView>
         )}
-      </View>
-
-      {/* Tool Bar — shows tool chips; in select mode shows "pick a tool" for selected doc */}
-      <View style={{
-        backgroundColor: colors.kxCardBg, borderTopWidth: 1, borderTopColor: colors.kxCardBorder,
-        paddingTop: spacing.sm, paddingBottom: spacing.md, paddingHorizontal: spacing.md,
-      }}>
-        {selectMode && selectedIds.size > 0 && (
-          <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginBottom: spacing.xs, marginLeft: 4 }}>
-            {selectedIds.size} selected — choose a tool:
-          </Text>
-        )}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, alignItems: 'center' }}>
-          {!selectMode && <Ionicons name="build-outline" size={13} color={colors.kxTextSecondary} style={{ marginRight: 2 }} />}
-          {TOOLS.map((tool) => (
-            <Pressable
-              key={tool.key}
-              onPress={() => selectMode ? applyToolToSelected(tool.key) : handleToolTap(tool.key)}
-              accessibilityRole="button"
-              accessibilityLabel={tool.label}
-              style={({ pressed }) => ({
-                flexDirection: 'row', alignItems: 'center', gap: 4,
-                paddingHorizontal: 10, paddingVertical: 5,
-                borderRadius: 12,
-                backgroundColor: pressed ? colors.toolAccent[tool.key] + '20' : colors.kxSurface,
-                borderWidth: 1, borderColor: colors.toolAccent[tool.key] + '40',
-              })}
-            >
-              <Ionicons name={tool.ionicon as any} size={13} color={colors.toolAccent[tool.key]} />
-              <Text style={{ fontSize: 11, fontWeight: '600', color: colors.toolAccent[tool.key] }}>{tool.label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
       </View>
 
       {/* Sheets */}

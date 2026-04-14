@@ -35,8 +35,8 @@ export default function CaseListScreen() {
       const res = await caseApi.getAll({ page: 0, size: 50, status: activeFilter as string | undefined });
       const content = res?.data?.content ?? [];
       setCases(content.map(mapBackendCase));
-    } catch (err) {
-      console.log('Failed to fetch cases:', err);
+    } catch {
+      // Keep prior list; error surfaces as empty state if first load.
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -53,7 +53,7 @@ export default function CaseListScreen() {
     : cases;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.kxSurface }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       {/* Header + Search */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
         <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }}>
@@ -92,7 +92,7 @@ export default function CaseListScreen() {
         <EmptyState title="No cases found" message={search ? 'Try a different search term' : 'Create your first case to get started'} />
       ) : (
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing['2xl'], gap: spacing.sm }}
+          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchCases(); }} tintColor={colors.kxPrimary[600]} />}
         >
           {filtered.map((item) => (

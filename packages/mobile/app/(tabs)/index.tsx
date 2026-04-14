@@ -56,7 +56,7 @@ export default function DashboardScreen() {
   const onRefresh = () => { setRefreshing(true); fetchData(); };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.kxSurface }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       <ScrollView
         contentContainerStyle={{ padding: spacing.xl }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.kxPrimary[600]} />}

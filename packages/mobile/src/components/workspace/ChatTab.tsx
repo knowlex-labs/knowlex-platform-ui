@@ -40,6 +40,8 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
   const [indexedDocs, setIndexedDocs] = useState<CaseDocument[]>([]);
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [docsExpanded, setDocsExpanded] = useState(false);
+  const [docsError, setDocsError] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
 
   // Use external doc IDs if provided
   const effectiveDocIds = externalSelectedDocIds ?? selectedDocIds;
@@ -50,49 +52,54 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
   const contentRef = useRef('');
 
   // Fetch indexed documents
-  useEffect(() => {
-    const fetchDocs = async () => {
-      try {
-        const res = await workspaceApi.getCaseDocumentsPaginated(caseId, { page: 1, limit: 100 });
-        const indexed = (res.documents ?? []).filter(
-          (d) => d.indexingStatus === 'INDEXING_COMPLETED' || d.indexingStatus === 'INDEXED'
-        );
-        setIndexedDocs(indexed);
-        setSelectedDocIds(new Set(indexed.map((d) => d.id)));
-      } catch { /* ignore */ }
-    };
-    fetchDocs();
+  const fetchIndexedDocs = useCallback(async () => {
+    setDocsError(false);
+    try {
+      const res = await workspaceApi.getCaseDocumentsPaginated(caseId, { page: 1, limit: 100 });
+      const indexed = (res.documents ?? []).filter(
+        (d) => d.indexingStatus === 'INDEXING_COMPLETED' || d.indexingStatus === 'INDEXED'
+      );
+      setIndexedDocs(indexed);
+      setSelectedDocIds(new Set(indexed.map((d) => d.id)));
+    } catch {
+      setDocsError(true);
+    }
   }, [caseId]);
+
+  useEffect(() => { fetchIndexedDocs(); }, [fetchIndexedDocs]);
 
   // Initialize chat session
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const sessions = await draftChatApi.listSessions(caseId);
-        let sid: string;
-        if (sessions.length > 0) {
-          sid = sessions[0].id;
-        } else {
-          const newSession = await draftChatApi.createSession(caseId);
-          sid = newSession.id;
-        }
-        setSessionId(sid);
-
-        const history = await draftChatApi.getHistory(caseId, sid);
-        setMessages(history.map((msg, i) => ({
-          id: `hist-${i}`,
-          role: msg.role,
-          content: msg.content,
-        })));
-      } catch (err) {
-        console.log('Chat init error:', err);
-      } finally {
-        setIsLoading(false);
+  const initSession = useCallback(async () => {
+    setInitError(null);
+    setIsLoading(true);
+    try {
+      const sessions = await draftChatApi.listSessions(caseId);
+      let sid: string;
+      if (sessions.length > 0) {
+        sid = sessions[0].id;
+      } else {
+        const newSession = await draftChatApi.createSession(caseId);
+        sid = newSession.id;
       }
-    };
-    init();
-    return () => { abortRef.current?.abort(); };
+      setSessionId(sid);
+
+      const history = await draftChatApi.getHistory(caseId, sid);
+      setMessages(history.map((msg, i) => ({
+        id: `hist-${i}`,
+        role: msg.role,
+        content: msg.content,
+      })));
+    } catch (err: unknown) {
+      setInitError(err instanceof Error ? err.message : 'Failed to start chat');
+    } finally {
+      setIsLoading(false);
+    }
   }, [caseId]);
+
+  useEffect(() => {
+    initSession();
+    return () => { abortRef.current?.abort(); };
+  }, [initSession]);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
@@ -158,8 +165,8 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
       sessionId,
       {
         message: text,
-        tone: 'professional',
-        style: 'detailed',
+        tone: 'formal',
+        style: 'balanced',
         file_ids: Array.from(effectiveDocIds),
         model: 'openai',
       },
@@ -182,6 +189,28 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={140}
     >
+      {/* Init error banner */}
+      {initError && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.kxCardBg, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
+          <Text style={{ flex: 1, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }} numberOfLines={2}>
+            Couldn’t start chat: {initError}
+          </Text>
+          <Pressable onPress={initSession} hitSlop={8} accessibilityLabel="Retry chat init">
+            <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, marginLeft: spacing.sm }}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {/* Docs error banner */}
+      {showBuiltInSelector && docsError && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, backgroundColor: colors.kxCardBg, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
+          <Text style={{ flex: 1, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }}>Could not load documents</Text>
+          <Pressable onPress={fetchIndexedDocs} hitSlop={8} accessibilityLabel="Retry loading documents">
+            <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold }}>Retry</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* Document Context Selector (only when not controlled externally) */}
       {showBuiltInSelector && indexedDocs.length > 0 && (
         <View style={{ borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
@@ -314,6 +343,8 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
         <Pressable
           onPress={sendMessage}
           disabled={!input.trim() || isStreaming}
+          accessibilityLabel="Send message"
+          accessibilityRole="button"
           style={({ pressed }) => ({
             width: 40, height: 40, borderRadius: 20,
             backgroundColor: input.trim() && !isStreaming ? colors.kxPrimary[600] : colors.ledgerGray[200],

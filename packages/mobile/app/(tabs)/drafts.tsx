@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { CasePickerSheet } from '@/components/workspace/CasePickerSheet';
 import { CreateDraftSheet } from '@/components/workspace/CreateDraftSheet';
+import { CustomDraftSheet } from '@/components/workspace/CustomDraftSheet';
 
 const TEMPLATES = [
   { id: 'notice', name: 'Legal Notice', docType: 'legal_notice', subType: 'demand', icon: 'document-text-outline' },
@@ -39,6 +40,7 @@ export default function DraftsScreen() {
   const [mode, setMode] = useState<Mode>('predefined');
   const [recentDrafts, setRecentDrafts] = useState<DocumentRecord[]>([]);
   const [loadingDrafts, setLoadingDrafts] = useState(true);
+  const [draftsError, setDraftsError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   // Flow state: template → case picker → create draft sheet
@@ -46,13 +48,17 @@ export default function DraftsScreen() {
   const [casePickerVisible, setCasePickerVisible] = useState(false);
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [createSheetVisible, setCreateSheetVisible] = useState(false);
+  const [customSheetVisible, setCustomSheetVisible] = useState(false);
+  // Tracks whether the case picker is feeding a template flow or a custom flow
+  const [pickerIntent, setPickerIntent] = useState<'template' | 'custom'>('template');
 
   const fetchRecentDrafts = useCallback(async () => {
+    setDraftsError(null);
     try {
       const res = await listAllDocuments({ page: 0, size: 10, type: 'DRAFT' as string, sort: 'createdAt,desc' });
       setRecentDrafts(res.documents);
-    } catch {
-      // Show empty
+    } catch (err: unknown) {
+      setDraftsError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
       setLoadingDrafts(false);
       setRefreshing(false);
@@ -62,18 +68,28 @@ export default function DraftsScreen() {
   useEffect(() => { fetchRecentDrafts(); }, [fetchRecentDrafts]);
 
   const handleTemplateTap = (template: typeof TEMPLATES[number]) => {
+    setPickerIntent('template');
     setSelectedTemplate(template);
+    setCasePickerVisible(true);
+  };
+
+  const handleStartCustom = () => {
+    setPickerIntent('custom');
     setCasePickerVisible(true);
   };
 
   const handleCaseSelected = (caseItem: Case) => {
     setSelectedCase(caseItem);
     setCasePickerVisible(false);
-    setTimeout(() => setCreateSheetVisible(true), 300);
+    setTimeout(() => {
+      if (pickerIntent === 'custom') setCustomSheetVisible(true);
+      else setCreateSheetVisible(true);
+    }, 300);
   };
 
   const handleDraftCreated = () => {
     setCreateSheetVisible(false);
+    setCustomSheetVisible(false);
     setSelectedTemplate(null);
     setSelectedCase(null);
     fetchRecentDrafts();
@@ -87,7 +103,7 @@ export default function DraftsScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.kxSurface }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       {/* Header */}
       <View style={{ paddingHorizontal: spacing.xl, paddingTop: spacing.md, marginBottom: spacing.sm }}>
         <Text style={{ fontSize: typography.fontSize.xl, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }}>
@@ -121,7 +137,7 @@ export default function DraftsScreen() {
         <Pressable
           onPress={() => setMode('custom')}
           style={{
-            flex: 1, paddingVertical: 8, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 4,
+            flex: 1, paddingVertical: 8, alignItems: 'center',
             backgroundColor: mode === 'custom' ? colors.kxPrimary[600] : 'transparent',
           }}
         >
@@ -131,7 +147,6 @@ export default function DraftsScreen() {
           }}>
             Custom
           </Text>
-          <Ionicons name="lock-closed" size={10} color={mode === 'custom' ? colors.onPrimary : colors.ledgerGray[400]} />
         </Pressable>
       </View>
 
@@ -210,23 +225,54 @@ export default function DraftsScreen() {
               {[1, 2, 3].map((i) => <SkeletonLoader key={i} height={56} borderRadius={radius.md} />)}
             </View>
           )}
+
+          {draftsError && !loadingDrafts && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.md, backgroundColor: colors.kxCardBg, borderWidth: 1, borderColor: colors.kxCardBorder }}>
+              <Text style={{ flex: 1, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }} numberOfLines={2}>
+                Couldn’t load drafts: {draftsError}
+              </Text>
+              <Pressable onPress={() => { setLoadingDrafts(true); fetchRecentDrafts(); }} hitSlop={8}>
+                <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.xs, fontWeight: '600', marginLeft: spacing.sm }}>Retry</Text>
+              </Pressable>
+            </View>
+          )}
         </ScrollView>
       ) : (
-        /* Custom Mode — Locked */
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: spacing['3xl'] }}>
+        /* Custom Mode — freeform draft creation */
+        <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.lg }}>
           <View style={{
-            width: 64, height: 64, borderRadius: 32, backgroundColor: colors.kxPrimary[50],
-            justifyContent: 'center', alignItems: 'center', marginBottom: spacing.xl,
+            backgroundColor: colors.kxCardBg, borderRadius: radius.lg,
+            borderWidth: 1, borderColor: colors.kxCardBorder,
+            padding: spacing.xl, alignItems: 'center', marginBottom: spacing.lg,
           }}>
-            <Ionicons name="lock-closed" size={28} color={colors.kxPrimary[600]} />
+            <View style={{
+              width: 56, height: 56, borderRadius: 28, backgroundColor: colors.kxPrimary[50],
+              justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md,
+            }}>
+              <Ionicons name="create-outline" size={26} color={colors.kxPrimary[600]} />
+            </View>
+            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, textAlign: 'center' }}>
+              Custom Draft
+            </Text>
+            <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextSecondary, textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 18 }}>
+              Write a freeform draft with your own title, type, and instructions.
+            </Text>
+            <Pressable
+              onPress={handleStartCustom}
+              style={({ pressed }) => ({
+                flexDirection: 'row', alignItems: 'center', gap: 6,
+                paddingHorizontal: spacing.xl, paddingVertical: spacing.md,
+                backgroundColor: pressed ? colors.kxPrimary[700] : colors.kxPrimary[600],
+                borderRadius: radius.md,
+              })}
+            >
+              <Ionicons name="add" size={16} color={colors.onPrimary} />
+              <Text style={{ color: colors.onPrimary, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
+                Start Custom Draft
+              </Text>
+            </Pressable>
           </View>
-          <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, textAlign: 'center' }}>
-            Coming Soon
-          </Text>
-          <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextSecondary, textAlign: 'center', marginTop: spacing.sm, lineHeight: 20 }}>
-            Custom draft creation will let you write free-form legal documents with AI assistance. This feature is currently in development.
-          </Text>
-        </View>
+        </ScrollView>
       )}
 
       {/* Case Picker → Create Draft flow */}
@@ -241,6 +287,16 @@ export default function DraftsScreen() {
           visible={createSheetVisible}
           onClose={() => { setCreateSheetVisible(false); setSelectedTemplate(null); setSelectedCase(null); }}
           caseId={selectedCase.id}
+          onCreated={handleDraftCreated}
+        />
+      )}
+
+      {selectedCase && (
+        <CustomDraftSheet
+          visible={customSheetVisible}
+          onClose={() => { setCustomSheetVisible(false); setSelectedCase(null); }}
+          caseId={selectedCase.id}
+          caseTitle={selectedCase.caseTitle ?? undefined}
           onCreated={handleDraftCreated}
         />
       )}

@@ -162,111 +162,52 @@ export const draftChatApi = {
     payload: { message: string; tone: string; style: string; file_ids: string[]; model: string },
     callbacks: DraftChatSSECallbacks
   ): AbortController => {
-    const controller = new AbortController()
-
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'text/event-stream',
       ...getAuthHeaders(),
     }
 
-    fetch(`${getBaseUrl()}${chatBase(caseId)}/${sessionId}/messages`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          if (response.status === 401) {
-            getAdapters().eventBus.dispatch('auth:session-expired')
-          }
-          const errorData: { message?: string } | null = await response.json().catch(() => null)
-          const errorMsg = errorData?.message || `HTTP error ${response.status}`
-          callbacks.onError(errorMsg)
-          return
-        }
+    // Dispatch SSE events to the right callback. Returns 'error' to stop early.
+    const handleEvent = (event: string, data: string): 'error' | null => {
+      if (event === 'end') {
+        // Don't call onEnd yet — document_citations may follow after end.
+        return null
+      }
+      if (event === 'error') {
+        callbacks.onError(data.trim())
+        return 'error'
+      }
+      if (event === 'answer') callbacks.onAnswer(data)
+      else if (event === 'tool_call') callbacks.onToolCall(data)
+      else if (event === 'tool_result') callbacks.onToolResult(data)
+      else if (event === 'document_citations') callbacks.onDocumentCitations?.(data)
+      return null
+    }
 
-        const reader = response.body?.getReader()
-        if (!reader) {
-          callbacks.onError('No response body')
-          return
-        }
-
-        const decoder = new TextDecoder()
-        let currentEvent: string | null = null
-        let currentData: string | null = null
-        let buffer = ''
-        const dispatchEvent = () => {
-          if (currentEvent && currentData !== null) {
-            if (currentEvent === 'end') {
-              // Don't call onEnd yet — document_citations may follow after end
-              currentEvent = null
-              currentData = null
-              return 'end'
-            }
-            if (currentEvent === 'error') {
-              callbacks.onError(currentData.trim())
-              currentEvent = null
-              currentData = null
-              return 'error'
-            }
-            if (currentEvent === 'answer') {
-              callbacks.onAnswer(currentData)
-            } else if (currentEvent === 'tool_call') {
-              callbacks.onToolCall(currentData)
-            } else if (currentEvent === 'tool_result') {
-              callbacks.onToolResult(currentData)
-            } else if (currentEvent === 'document_citations') {
-              callbacks.onDocumentCitations?.(currentData)
-            }
-          }
-          currentEvent = null
-          currentData = null
-          return null
-        }
-
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
-          const allLines = buffer.split('\n')
-          buffer = allLines.pop() ?? ''
-
-          for (const rawLine of allLines) {
-            const line = rawLine.replace(/\r$/, '')
-
-            if (line === '') {
-              const result = dispatchEvent()
-              if (result === 'error') return
-              // Don't return on 'end' — keep reading for document_citations
-              continue
-            }
-
-            if (line.startsWith('event:')) {
-              currentEvent = line.substring(6).trim()
-            } else if (line.startsWith('data:')) {
-              const dataValue = line.substring(5)
-              if (currentData === null) {
-                currentData = dataValue
-              } else {
-                currentData += '\n' + dataValue
-              }
-            }
-          }
-        }
-
-        // Process any remaining buffered event
-        dispatchEvent()
-        // Always call onEnd once stream is fully consumed
-        callbacks.onEnd()
-      })
-      .catch((err) => {
-        if (err.name === 'AbortError') return
-        callbacks.onError(err.message || 'Network error')
-      })
-
-    return controller
+    let stopped = false
+    return getAdapters().sse.stream(
+      `${getBaseUrl()}${chatBase(caseId)}/${sessionId}/messages`,
+      { method: 'POST', headers, body: JSON.stringify(payload) },
+      {
+        onEvent: (event, data) => {
+          if (stopped) return
+          if (handleEvent(event, data) === 'error') stopped = true
+        },
+        onError: (msg) => {
+          if (stopped) return
+          stopped = true
+          callbacks.onError(msg)
+        },
+        onEnd: () => {
+          if (stopped) return
+          stopped = true
+          callbacks.onEnd()
+        },
+        onUnauthorized: () => {
+          getAdapters().eventBus.dispatch('auth:session-expired')
+        },
+      }
+    )
   },
 }

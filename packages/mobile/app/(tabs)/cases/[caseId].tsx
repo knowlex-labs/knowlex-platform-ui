@@ -50,7 +50,7 @@ export default function CaseWorkspaceScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.kxSurface }}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.kxSurface }}>
         <ActivityIndicator size="large" color={colors.kxPrimary[600]} />
       </SafeAreaView>
     );
@@ -58,7 +58,7 @@ export default function CaseWorkspaceScreen() {
 
   if (!caseData) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.kxSurface }}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.kxSurface }}>
         <Text style={{ color: colors.kxTextSecondary, fontSize: typography.fontSize.base }}>Case not found</Text>
         <Pressable onPress={() => router.back()} style={{ marginTop: spacing.lg }}>
           <Text style={{ color: colors.kxPrimary[600], fontWeight: typography.fontWeight.semibold }}>Go back</Text>
@@ -68,7 +68,7 @@ export default function CaseWorkspaceScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.kxSurface }}>
+    <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       {/* Header */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: 2, paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>

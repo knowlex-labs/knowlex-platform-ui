@@ -36,12 +36,14 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
   const [generatedDocs, setGeneratedDocs] = useState<GeneratedDoc[]>([]);
   const [drafts, setDrafts] = useState<CaseDocument[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatingSynopsis, setGeneratingSynopsis] = useState(false);
   const [createDraftVisible, setCreateDraftVisible] = useState(false);
   const pollRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   const fetchAll = useCallback(async () => {
+    setError(null);
     try {
       const [summaries, synopses, draftRes] = await Promise.all([
         workspaceApi.getCaseDocuments(caseId, 'SUMMARY'),
@@ -58,8 +60,8 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
       }));
       setGeneratedDocs(gen);
       setDrafts(draftRes ?? []);
-    } catch {
-      // Silently fail
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
       setLoading(false);
     }
@@ -110,17 +112,17 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
           <Pressable
             style={{
               backgroundColor: colors.kxCardBg, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-              maxHeight: '80%', paddingBottom: 40,
+              maxHeight: '80%', paddingBottom: spacing.lg,
             }}
             onPress={() => {}}
           >
             {/* Handle */}
-            <View style={{ alignItems: 'center', paddingTop: spacing.md }}>
+            <View style={{ alignItems: 'center', paddingTop: 8 }}>
               <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: colors.ledgerGray[300] }} />
             </View>
 
             {/* Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.lg, paddingBottom: spacing.md }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.sm, paddingBottom: spacing.sm }}>
               <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }}>
                 Case Studio
               </Text>
@@ -129,12 +131,22 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
               </Pressable>
             </View>
 
-            <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.xl }}>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.md }}>
+              {error && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.sm, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: colors.kxSurface, borderWidth: 1, borderColor: colors.kxCardBorder, marginBottom: spacing.md }}>
+                  <Text style={{ flex: 1, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }} numberOfLines={2}>
+                    Couldn’t load: {error}
+                  </Text>
+                  <Pressable onPress={() => { setLoading(true); fetchAll(); }} hitSlop={8}>
+                    <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, marginLeft: spacing.sm }}>Retry</Text>
+                  </Pressable>
+                </View>
+              )}
               {/* AI Tools */}
               <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.kxTextSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: spacing.sm }}>
                 AI Tools
               </Text>
-              <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing['2xl'] }}>
+              <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg }}>
                 {/* Summary */}
                 <Pressable
                   onPress={hasSummary ? undefined : () => handleGenerate('SUMMARY')}
@@ -210,7 +222,7 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
               {/* Generated Documents */}
               {generatedDocs.length > 0 && (
                 <>
-                  <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.kxTextSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing['2xl'], marginBottom: spacing.sm }}>
+                  <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.kxTextSecondary, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: spacing.lg, marginBottom: spacing.sm }}>
                     Generated ({generatedDocs.length})
                   </Text>
                   {generatedDocs.map((doc) => (
