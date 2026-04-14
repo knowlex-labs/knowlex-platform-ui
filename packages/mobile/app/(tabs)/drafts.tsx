@@ -287,6 +287,7 @@ export default function DraftsScreen() {
           visible={createSheetVisible}
           onClose={() => { setCreateSheetVisible(false); setSelectedTemplate(null); setSelectedCase(null); }}
           caseId={selectedCase.id}
+          templateId={selectedTemplate.id}
           onCreated={handleDraftCreated}
         />
       )}

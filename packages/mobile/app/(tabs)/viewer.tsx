@@ -49,7 +49,8 @@ export default function ViewerScreen() {
   // Fallback: download the doc via authenticated API endpoint into local cache,
   // returns a file:// URI that WebView/Image can load without auth.
   const downloadToCache = async (): Promise<string> => {
-    const FileSystem = await import('expo-file-system');
+    // Use the legacy entrypoint — expo-file-system v19 deprecated the top-level downloadAsync.
+    const FileSystem = await import('expo-file-system/legacy');
     const { env } = (await import('@knowlex/core/api/runtime')).getAdapters();
     const { getAuthHeaders } = await import('@knowlex/core/api/auth-headers');
     const path = params.downloadUrl || `/api/v1/documents/${params.docId}/download`;
@@ -107,7 +108,7 @@ export default function ViewerScreen() {
       const url = viewUrl ?? (params.signedUrl || '');
       if (!url) { Alert.alert('No URL available'); return; }
 
-      const FileSystem = await import('expo-file-system');
+      const FileSystem = await import('expo-file-system/legacy');
       const Sharing = await import('expo-sharing');
       const fileName = params.name ?? `document_${params.docId}`;
       const cacheUri = (FileSystem.cacheDirectory ?? '') + fileName;

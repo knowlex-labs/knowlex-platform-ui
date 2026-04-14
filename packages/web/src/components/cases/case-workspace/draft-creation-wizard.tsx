@@ -14,93 +14,20 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import type { DraftTemplate, TemplateFormData, CaseDocument, Client, Draft } from '@knowlex/core/types'
 import { DRAFT_TEMPLATES } from '@knowlex/core/types'
-import type { CreateDraftRequest, DocumentType, Language } from '@knowlex/core/api/document-types'
+import type { CreateDraftRequest } from '@knowlex/core/api/document-types'
+import {
+  TEMPLATE_TO_DOC_CONFIG as CORE_TEMPLATE_TO_DOC_CONFIG,
+  TEMPLATE_TO_SUB_TYPE as CORE_TEMPLATE_TO_SUB_TYPE,
+  buildCreateDraftPayload,
+} from '@knowlex/core/api/draft-helpers'
 import { clientApi } from '@knowlex/core/api'
 import { mapBackendClient } from '@knowlex/core/mappers'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 
-// Maps each template to its API document_type and optional subtype
-export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
-  'notice': { documentType: 'legal_notice', subtype: 'demand' },
-  'patent': { documentType: 'patent' },
-  'application-draft': { documentType: 'application_draft' },
-  'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
-  'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
-  'bail-application': { documentType: 'bail_application' },
-  'criminal-appeal': { documentType: 'criminal_appeal' },
-  'plaint': { documentType: 'application', subtype: 'plaint' },
-  'written-statement': { documentType: 'written_statement' },
-  'written-arguments': { documentType: 'written_arguments' },
-  'writ-petition': { documentType: 'petition', subtype: 'writ_petition' },
-  'slp': { documentType: 'slp' },
-  'quashing-petition': { documentType: 'quashing_petition' },
-  'anticipatory-bail': { documentType: 'anticipatory_bail' },
-  'revision-petition': { documentType: 'revision_petition' },
-  'execution-petition': { documentType: 'execution_petition' },
-  'consumer-complaint': { documentType: 'consumer_complaint' },
-}
-
-export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
-  'notice': 'Notice',
-  'patent': 'Patent',
-  'application-draft': 'Application',
-  'interim-application': 'Interim',
-  'affidavit': 'Affidavit',
-  'bail-application': 'Bail',
-  'criminal-appeal': 'CriminalAppeal',
-  'plaint': 'Plaint',
-  'written-statement': 'WrittenStatement',
-  'written-arguments': 'WrittenArguments',
-  'writ-petition': 'WritPetition',
-  'slp': 'SLP',
-  'quashing-petition': 'QuashingPetition',
-  'anticipatory-bail': 'AnticipatoryBail',
-  'revision-petition': 'RevisionPetition',
-  'execution-petition': 'ExecutionPetition',
-  'consumer-complaint': 'ConsumerComplaint',
-}
-
-function assembleBody(templateId: string, formData: TemplateFormData): string {
-  const get = (key: string): string => (formData[key] as string) || ''
-  switch (templateId) {
-    case 'notice':
-      return `Draft a legal notice to ${get('recipient')}. ${get('body')}`.trim()
-    case 'patent':
-      return `Draft a patent application. Applicant: ${get('applicant')}. Inventor: ${get('inventor')}. Description: ${get('description')}`.trim()
-    case 'application-draft':
-      return `Draft an application for applicant ${get('applicant')}. ${get('body')}`.trim()
-    case 'interim-application':
-      return `Draft an interim application. Plaintiff: ${get('plaintiff')}. Defendant: ${get('defendant')}. Grounds: ${get('grounds')}`.trim()
-    case 'affidavit':
-      return `Draft an affidavit for deponent ${get('deponent')}. Statements: ${get('statements')}`.trim()
-    case 'bail-application':
-      return `Draft a bail application. Applicant: ${get('applicant')}. Opposite Party: ${get('opposite_party')}. Court: ${get('court_details')}. FIR Details: ${get('fir_details')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'criminal-appeal':
-      return `Draft a criminal appeal. Appellant: ${get('appellant')}. Respondent: ${get('respondent')}. Court: ${get('court_details')}. Impugned Order: ${get('impugned_order')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'plaint':
-      return `Draft a civil suit plaint. Plaintiff: ${get('plaintiff')}. Defendant: ${get('defendant')}. Court: ${get('court_details')}. Cause of Action: ${get('cause_of_action')}. Facts: ${get('facts')}. Valuation: ${get('valuation')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'written-statement':
-      return `Draft a written statement. Defendant: ${get('defendant')}. Plaintiff: ${get('plaintiff')}. Court: ${get('court_details')}. Preliminary Objections: ${get('preliminary_objections')}. Reply on Facts: ${get('reply_on_facts')}. Additional Pleas: ${get('additional_pleas')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'written-arguments':
-      return `Draft written arguments. Party: ${get('party')}. Court: ${get('court_details')}. Case: ${get('case_details')}. Issues: ${get('issues')}. Arguments: ${get('arguments')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'writ-petition':
-      return `Draft a writ petition. Nature of Writ: ${get('writ_type')}. Petitioner: ${get('petitioner')}. Respondent: ${get('respondent')}. Court: ${get('court_details')}. Impugned Order/Action: ${get('impugned_order')}. Grounds: ${get('grounds')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'slp':
-      return `Draft a Special Leave Petition under Article 136. Petitioner: ${get('petitioner')}. Respondent: ${get('respondent')}. Impugned Judgment: ${get('impugned_judgment')}. Grounds: ${get('grounds')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'quashing-petition':
-      return `Draft a petition for quashing of FIR/proceedings. Petitioner: ${get('petitioner')}. Respondent: ${get('respondent')}. Court: ${get('court_details')}. FIR Details: ${get('fir_details')}. Grounds for Quashing: ${get('grounds')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'anticipatory-bail':
-      return `Draft an anticipatory bail application. Applicant: ${get('applicant')}. Opposite Party: ${get('opposite_party')}. Court: ${get('court_details')}. FIR/Case Details: ${get('fir_details')}. Grounds: ${get('grounds')}. Facts: ${get('facts')}. Criminal History: ${get('criminal_history')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'revision-petition':
-      return `Draft a revision petition. Petitioner: ${get('petitioner')}. Respondent: ${get('respondent')}. Court: ${get('court_details')}. Impugned Order: ${get('impugned_order')}. Grounds for Revision: ${get('grounds')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    case 'execution-petition':
-      return `Draft an execution petition. Decree Holder: ${get('decree_holder')}. Judgment Debtor: ${get('judgment_debtor')}. Court: ${get('court_details')}. Decree Details: ${get('decree_details')}. Amount Due: ${get('amount_due')}. Mode of Execution: ${get('mode_of_execution')}. Property Details: ${get('property_details')}.`.trim()
-    case 'consumer-complaint':
-      return `Draft a consumer complaint. Complainant: ${get('complainant')}. Opposite Party: ${get('opposite_party')}. Forum: ${get('forum_details')}. Product/Service: ${get('product_service')}. Deficiency/Defect: ${get('deficiency')}. Facts: ${get('facts')}. Loss Suffered: ${get('loss_suffered')}. Relief Sought: ${get('relief_sought')}.`.trim()
-    default:
-      return 'Generate a legal document based on the provided information.'
-  }
-}
+// Re-exported for existing imports in use-drafts.ts / drafting-page.tsx.
+// The definitions now live in @knowlex/core/api/draft-helpers.
+export const TEMPLATE_TO_DOC_CONFIG = CORE_TEMPLATE_TO_DOC_CONFIG
+export const TEMPLATE_TO_SUB_TYPE = CORE_TEMPLATE_TO_SUB_TYPE
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileWarning, Lightbulb, FileText, FileClock, Scale, Gavel, ShieldAlert,
@@ -281,38 +208,13 @@ export function DraftCreationWizard({
 
   const handleGenerate = () => {
     if (!selectedTemplate) return
-    const config = TEMPLATE_TO_DOC_CONFIG[selectedTemplate.id] || { documentType: 'legal_notice' as DocumentType }
-    const title = titleValue.trim() || selectedTemplate.name
-    const body = assembleBody(selectedTemplate.id, formData)
-    const allFileIds = Array.from(localSourceIds)
-    const hasFiles = allFileIds.length > 0
-    const language = formData['language'] as Language | undefined
-    const isCriminal = [
-      'bail-application', 'criminal-appeal', 'anticipatory-bail',
-      'quashing-petition', 'revision-petition', 'writ-petition', 'slp',
-    ].includes(selectedTemplate.id)
-    const criminalConfigKeys = [
-      'fir_details', 'criminal_history', 'bail_history', 'co_accused_details',
-      'impugned_order', 'impugned_judgment', 'court_details', 'facts', 'relief_sought',
-      'applicant', 'opposite_party', 'appellant', 'respondent', 'petitioner', 'grounds', 'writ_type',
-    ]
-    let draftConfig: Record<string, string> | undefined
-    if (isCriminal) {
-      const entries = criminalConfigKeys
-        .filter((key) => typeof formData[key] === 'string' && (formData[key] as string).trim().length > 0)
-        .map((key) => [key, (formData[key] as string).trim()])
-      if (entries.length > 0) draftConfig = Object.fromEntries(entries)
-    }
-    onGenerate({
-      title,
-      document_type: config.documentType,
-      input_mode: hasFiles ? 'file' : 'freetext',
-      subtype: config.subtype,
-      freetext_body: body.length > 0 ? body : undefined,
-      file_ids: hasFiles ? allFileIds : undefined,
-      language: language || undefined,
-      config: draftConfig,
-    })
+    const payload = buildCreateDraftPayload(
+      selectedTemplate.id,
+      formData,
+      Array.from(localSourceIds),
+      selectedTemplate.name
+    )
+    onGenerate(payload)
   }
 
   const orderedFields = useMemo(() => {

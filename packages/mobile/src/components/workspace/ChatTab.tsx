@@ -14,6 +14,7 @@ import { workspaceApi } from '@knowlex/core/api/workspace-api';
 import type { DraftChatSSECallbacks } from '@knowlex/core/api/draft-chat-api';
 import type { CaseDocument } from '@knowlex/core/types';
 import { useTheme } from '@/theme/useTheme';
+import { MessageMarkdown } from './MessageMarkdown';
 
 interface ChatMessage {
   id: string;
@@ -297,9 +298,15 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
                 borderBottomLeftRadius: msg.role === 'assistant' ? 4 : radius.lg,
               }}
             >
-              <Text style={{ fontSize: typography.fontSize.sm, color: msg.role === 'user' ? colors.onPrimary : colors.kxTextPrimary, lineHeight: 20 }}>
-                {msg.content || (msg.isStreaming ? '...' : '')}
-              </Text>
+              {msg.role === 'user' ? (
+                <Text style={{ fontSize: typography.fontSize.sm, color: colors.onPrimary, lineHeight: 20 }}>
+                  {msg.content}
+                </Text>
+              ) : msg.content ? (
+                <MessageMarkdown content={msg.content} color={colors.kxTextPrimary} />
+              ) : msg.isStreaming ? (
+                <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextSecondary, lineHeight: 20 }}>...</Text>
+              ) : null}
               {msg.isStreaming && msg.content.length > 0 && (
                 <ActivityIndicator size="small" color={colors.kxPrimary[400]} style={{ marginTop: 4, alignSelf: 'flex-start' }} />
               )}
