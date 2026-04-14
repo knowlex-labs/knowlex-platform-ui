@@ -4,14 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api';
 import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api';
-import type { Case } from '@knowlex/core/types';
 import { useTheme } from '@/theme/useTheme';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
-import { CasePickerSheet } from '@/components/workspace/CasePickerSheet';
 import { CreateDraftSheet } from '@/components/workspace/CreateDraftSheet';
-import { CustomDraftSheet } from '@/components/workspace/CustomDraftSheet';
 
 const TEMPLATES = [
   { id: 'notice', name: 'Legal Notice', docType: 'legal_notice', subType: 'demand', icon: 'document-text-outline' },
@@ -43,14 +40,9 @@ export default function DraftsScreen() {
   const [draftsError, setDraftsError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Flow state: template → case picker → create draft sheet
+  // Flow state: tap template → form opens directly. Case selection lives inside the form.
   const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATES[number] | null>(null);
-  const [casePickerVisible, setCasePickerVisible] = useState(false);
-  const [selectedCase, setSelectedCase] = useState<Case | null>(null);
   const [createSheetVisible, setCreateSheetVisible] = useState(false);
-  const [customSheetVisible, setCustomSheetVisible] = useState(false);
-  // Tracks whether the case picker is feeding a template flow or a custom flow
-  const [pickerIntent, setPickerIntent] = useState<'template' | 'custom'>('template');
 
   const fetchRecentDrafts = useCallback(async () => {
     setDraftsError(null);
@@ -68,30 +60,13 @@ export default function DraftsScreen() {
   useEffect(() => { fetchRecentDrafts(); }, [fetchRecentDrafts]);
 
   const handleTemplateTap = (template: typeof TEMPLATES[number]) => {
-    setPickerIntent('template');
     setSelectedTemplate(template);
-    setCasePickerVisible(true);
-  };
-
-  const handleStartCustom = () => {
-    setPickerIntent('custom');
-    setCasePickerVisible(true);
-  };
-
-  const handleCaseSelected = (caseItem: Case) => {
-    setSelectedCase(caseItem);
-    setCasePickerVisible(false);
-    setTimeout(() => {
-      if (pickerIntent === 'custom') setCustomSheetVisible(true);
-      else setCreateSheetVisible(true);
-    }, 300);
+    setCreateSheetVisible(true);
   };
 
   const handleDraftCreated = () => {
     setCreateSheetVisible(false);
-    setCustomSheetVisible(false);
     setSelectedTemplate(null);
-    setSelectedCase(null);
     fetchRecentDrafts();
   };
 
@@ -238,69 +213,35 @@ export default function DraftsScreen() {
           )}
         </ScrollView>
       ) : (
-        /* Custom Mode — freeform draft creation */
+        /* Custom Mode — placeholder until the freeform flow ships. */
         <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.xl, paddingBottom: spacing.lg }}>
           <View style={{
             backgroundColor: colors.kxCardBg, borderRadius: radius.lg,
             borderWidth: 1, borderColor: colors.kxCardBorder,
-            padding: spacing.xl, alignItems: 'center', marginBottom: spacing.lg,
+            padding: spacing['2xl'], alignItems: 'center', marginTop: spacing.lg,
           }}>
             <View style={{
               width: 56, height: 56, borderRadius: 28, backgroundColor: colors.kxPrimary[50],
               justifyContent: 'center', alignItems: 'center', marginBottom: spacing.md,
             }}>
-              <Ionicons name="create-outline" size={26} color={colors.kxPrimary[600]} />
+              <Ionicons name="hourglass-outline" size={26} color={colors.kxPrimary[600]} />
             </View>
             <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, textAlign: 'center' }}>
-              Custom Draft
+              Custom drafts — coming soon
             </Text>
-            <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextSecondary, textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 18 }}>
-              Write a freeform draft with your own title, type, and instructions.
+            <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextSecondary, textAlign: 'center', marginTop: spacing.xs, lineHeight: 18 }}>
+              We’re building a freeform draft mode.{'\n'}For now, pick a template under Predefined.
             </Text>
-            <Pressable
-              onPress={handleStartCustom}
-              style={({ pressed }) => ({
-                flexDirection: 'row', alignItems: 'center', gap: 6,
-                paddingHorizontal: spacing.xl, paddingVertical: spacing.md,
-                backgroundColor: pressed ? colors.kxPrimary[700] : colors.kxPrimary[600],
-                borderRadius: radius.md,
-              })}
-            >
-              <Ionicons name="add" size={16} color={colors.onPrimary} />
-              <Text style={{ color: colors.onPrimary, fontWeight: typography.fontWeight.semibold, fontSize: typography.fontSize.sm }}>
-                Start Custom Draft
-              </Text>
-            </Pressable>
           </View>
         </ScrollView>
       )}
 
-      {/* Case Picker → Create Draft flow */}
-      <CasePickerSheet
-        visible={casePickerVisible}
-        onClose={() => { setCasePickerVisible(false); setSelectedTemplate(null); }}
-        onSelect={handleCaseSelected}
+      <CreateDraftSheet
+        visible={createSheetVisible}
+        onClose={() => { setCreateSheetVisible(false); setSelectedTemplate(null); }}
+        templateId={selectedTemplate?.id}
+        onCreated={handleDraftCreated}
       />
-
-      {selectedCase && selectedTemplate && (
-        <CreateDraftSheet
-          visible={createSheetVisible}
-          onClose={() => { setCreateSheetVisible(false); setSelectedTemplate(null); setSelectedCase(null); }}
-          caseId={selectedCase.id}
-          templateId={selectedTemplate.id}
-          onCreated={handleDraftCreated}
-        />
-      )}
-
-      {selectedCase && (
-        <CustomDraftSheet
-          visible={customSheetVisible}
-          onClose={() => { setCustomSheetVisible(false); setSelectedCase(null); }}
-          caseId={selectedCase.id}
-          caseTitle={selectedCase.caseTitle ?? undefined}
-          onCreated={handleDraftCreated}
-        />
-      )}
     </SafeAreaView>
   );
 }
