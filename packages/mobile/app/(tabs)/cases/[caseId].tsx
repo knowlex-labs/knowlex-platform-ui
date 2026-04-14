@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -20,28 +20,31 @@ export default function CaseWorkspaceScreen() {
 
   const [caseData, setCaseData] = useState<Case | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [sourcesVisible, setSourcesVisible] = useState(false);
   const [studioVisible, setStudioVisible] = useState(false);
   const [notesVisible, setNotesVisible] = useState(false);
   const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
   const [sourceCount, setSourceCount] = useState(0);
 
-  useEffect(() => {
+  const fetchCase = useCallback(async () => {
     if (!caseId) return;
-    const fetchCase = async () => {
-      try {
-        const [caseRes] = await Promise.all([
-          caseApi.getById(caseId),
-        ]);
-        if (caseRes.data) setCaseData(mapBackendCase(caseRes.data));
-      } catch {
-        // Silently fail
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCase();
+    setLoading(true);
+    setError(null);
+    try {
+      const caseRes = await caseApi.getById(caseId);
+      if (caseRes.data) setCaseData(mapBackendCase(caseRes.data));
+      else setCaseData(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load case');
+    } finally {
+      setLoading(false);
+    }
   }, [caseId]);
+
+  useEffect(() => {
+    fetchCase();
+  }, [fetchCase]);
 
   // Track source count from the sources sheet selections
   useEffect(() => {
@@ -52,6 +55,27 @@ export default function CaseWorkspaceScreen() {
     return (
       <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.kxSurface }}>
         <ActivityIndicator size="large" color={colors.kxPrimary[600]} />
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.kxSurface, paddingHorizontal: spacing.xl }}>
+        <Text style={{ color: colors.kxTextPrimary, fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, textAlign: 'center' }}>
+          Couldn’t load case
+        </Text>
+        <Text style={{ color: colors.kxTextSecondary, fontSize: typography.fontSize.sm, textAlign: 'center', marginTop: spacing.xs }} numberOfLines={3}>
+          {error}
+        </Text>
+        <View style={{ flexDirection: 'row', gap: spacing.lg, marginTop: spacing.lg }}>
+          <Pressable onPress={() => router.back()}>
+            <Text style={{ color: colors.kxTextSecondary, fontWeight: typography.fontWeight.semibold }}>Go back</Text>
+          </Pressable>
+          <Pressable onPress={fetchCase}>
+            <Text style={{ color: colors.kxPrimary[600], fontWeight: typography.fontWeight.semibold }}>Retry</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     );
   }
@@ -89,7 +113,7 @@ export default function CaseWorkspaceScreen() {
               {[caseData.caseNumber, caseData.courtName].filter(Boolean).join(' • ')}
             </Text>
           </View>
-          <Badge label={caseData.status ?? 'unknown'} status={caseData.status as any} />
+          <Badge label={caseData.status ?? 'unknown'} status={caseData.status} />
         </View>
       </View>
 

@@ -1,11 +1,19 @@
 import * as SecureStore from 'expo-secure-store';
 import type { StorageAdapter } from '@knowlex/core/api/ports';
+import { mobileEventBusAdapter } from './event-bus';
 
-// In-memory cache for synchronous reads.
+// In-memory cache backs the synchronous StorageAdapter contract.
 // Pre-hydrated from SecureStore at boot before initCore() is called.
 const cache = new Map<string, string>();
 
-const KNOWN_KEYS = [
+/** Reserved key holding a JSON-encoded list of every other key ever written. */
+const KEY_INDEX = '__kx_storage_keys';
+
+/**
+ * Fallback key list used only on first boot (before any write has persisted an
+ * index). Keeps pre-existing installs working through the migration.
+ */
+const LEGACY_FALLBACK_KEYS = [
   'auth_token',
   'auth_refresh_token',
   'auth_user_id',
@@ -13,19 +21,57 @@ const KNOWN_KEYS = [
   'admin_user_id',
 ];
 
+const persistedKeys = new Set<string>();
+let indexWriteScheduled = false;
+
+function handleWriteFailure(key: string, err: unknown): void {
+  // eslint-disable-next-line no-console
+  console.warn('[storage] persist failed', key, err);
+  mobileEventBusAdapter.dispatch('storage:write-failed', { key, error: String(err) });
+}
+
+function scheduleIndexWrite(): void {
+  if (indexWriteScheduled) return;
+  indexWriteScheduled = true;
+  Promise.resolve().then(() => {
+    indexWriteScheduled = false;
+    const payload = JSON.stringify([...persistedKeys]);
+    SecureStore.setItemAsync(KEY_INDEX, payload).catch((err) =>
+      handleWriteFailure(KEY_INDEX, err)
+    );
+  });
+}
+
 export async function hydrateStorage(): Promise<void> {
+  let keys: string[] | null = null;
+  try {
+    const raw = await SecureStore.getItemAsync(KEY_INDEX);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) keys = parsed.filter((k): k is string => typeof k === 'string');
+    }
+  } catch {
+    // Index unreadable — fall through to legacy fallback.
+  }
+
+  if (!keys) keys = LEGACY_FALLBACK_KEYS;
+
   await Promise.all(
-    KNOWN_KEYS.map(async (key) => {
+    keys.map(async (key) => {
       try {
         const value = await SecureStore.getItemAsync(key);
         if (value !== null) {
           cache.set(key, value);
+          persistedKeys.add(key);
         }
       } catch {
-        // SecureStore may fail on first run or if keychain is locked
+        // SecureStore may fail if the keychain is locked; skip this key.
       }
     })
   );
+
+  // Persist the hydrated set so subsequent boots don't rely on the legacy list.
+  scheduleIndexWrite();
 }
 
 export const mobileStorageAdapter: StorageAdapter = {
@@ -34,10 +80,15 @@ export const mobileStorageAdapter: StorageAdapter = {
   },
   setItem(key, value) {
     cache.set(key, value);
-    SecureStore.setItemAsync(key, value).catch(() => {});
+    const isNew = !persistedKeys.has(key);
+    persistedKeys.add(key);
+    SecureStore.setItemAsync(key, value).catch((err) => handleWriteFailure(key, err));
+    if (isNew) scheduleIndexWrite();
   },
   removeItem(key) {
     cache.delete(key);
-    SecureStore.deleteItemAsync(key).catch(() => {});
+    const existed = persistedKeys.delete(key);
+    SecureStore.deleteItemAsync(key).catch((err) => handleWriteFailure(key, err));
+    if (existed) scheduleIndexWrite();
   },
 };

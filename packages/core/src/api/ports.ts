@@ -31,7 +31,7 @@ export interface FileHandlerAdapter {
 export interface SseAdapter {
   stream(
     url: string,
-    init: { method: 'POST'; headers: Record<string, string>; body: string },
+    init: { method: 'POST' | 'GET'; headers: Record<string, string>; body: string },
     handlers: {
       onEvent: (event: string, data: string) => void
       onError: (msg: string) => void

@@ -91,6 +91,8 @@ export const lightColors = {
     appealedBg: '#eff6ff',
     blocked: '#dc2626',
     blockedBg: '#fef2f2',
+    archived: '#6b7280',
+    archivedBg: '#f3f4f6',
   },
 } as const;
 
@@ -180,6 +182,8 @@ export const darkColors = {
     appealedBg: '#1e3a5f',
     blocked: '#f87171',
     blockedBg: '#7f1d1d',
+    archived: '#9ca3af',
+    archivedBg: '#1f2937',
   },
 } as const;
 

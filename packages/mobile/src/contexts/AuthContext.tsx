@@ -132,10 +132,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const continueAsGuest = React.useCallback(async () => {
-    // No demo credentials on mobile — skip for now
-  }, []);
-
   const updateProfile = React.useCallback(async (data: { bench?: string }) => {
     await userApi.updateProfile(data);
     setAuthState((prev) =>
@@ -153,7 +149,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     login,
     signup,
     googleLogin,
-    continueAsGuest,
     logout,
     updateProfile,
     isRestoringSession,

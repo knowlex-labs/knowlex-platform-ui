@@ -4,31 +4,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api';
 import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api';
+import { DRAFT_TEMPLATES, DocumentType } from '@knowlex/core/types';
+import type { DraftTemplate } from '@knowlex/core/types';
 import { useTheme } from '@/theme/useTheme';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { CreateDraftSheet } from '@/components/workspace/CreateDraftSheet';
-
-const TEMPLATES = [
-  { id: 'notice', name: 'Legal Notice', docType: 'legal_notice', subType: 'demand', icon: 'document-text-outline' },
-  { id: 'patent', name: 'Patent', docType: 'patent', icon: 'bulb-outline' },
-  { id: 'application-draft', name: 'Application Draft', docType: 'application_draft', icon: 'create-outline' },
-  { id: 'interim-application', name: 'Interim Application', docType: 'affidavit', subType: 'interim_application', icon: 'time-outline' },
-  { id: 'affidavit', name: 'Affidavit', docType: 'affidavit', subType: 'plaint', icon: 'scale-outline' },
-  { id: 'bail-application', name: 'Bail Application', docType: 'bail_application', icon: 'hammer-outline' },
-  { id: 'criminal-appeal', name: 'Criminal Appeal', docType: 'criminal_appeal', icon: 'shield-outline' },
-  { id: 'plaint', name: 'Plaint', docType: 'application', subType: 'plaint', icon: 'reader-outline' },
-  { id: 'written-statement', name: 'Written Statement', docType: 'written_statement', icon: 'clipboard-outline' },
-  { id: 'written-arguments', name: 'Written Arguments', docType: 'written_arguments', icon: 'chatbubble-ellipses-outline' },
-  { id: 'writ-petition', name: 'Writ Petition', docType: 'petition', subType: 'writ_petition', icon: 'business-outline' },
-  { id: 'slp', name: 'SLP', docType: 'slp', icon: 'star-outline' },
-  { id: 'quashing-petition', name: 'Quashing Petition', docType: 'quashing_petition', icon: 'close-circle-outline' },
-  { id: 'anticipatory-bail', name: 'Anticipatory Bail', docType: 'anticipatory_bail', icon: 'shield-checkmark-outline' },
-  { id: 'revision-petition', name: 'Revision Petition', docType: 'revision_petition', icon: 'refresh-outline' },
-  { id: 'execution-petition', name: 'Execution Petition', docType: 'execution_petition', icon: 'construct-outline' },
-  { id: 'consumer-complaint', name: 'Consumer Complaint', docType: 'consumer_complaint', icon: 'people-outline' },
-] as const;
+import { TEMPLATE_ICONS, DEFAULT_TEMPLATE_ICON } from '@/lib/template-icons';
 
 type Mode = 'predefined' | 'custom';
 
@@ -41,13 +24,13 @@ export default function DraftsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Flow state: tap template → form opens directly. Case selection lives inside the form.
-  const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATES[number] | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null);
   const [createSheetVisible, setCreateSheetVisible] = useState(false);
 
   const fetchRecentDrafts = useCallback(async () => {
     setDraftsError(null);
     try {
-      const res = await listAllDocuments({ page: 0, size: 10, type: 'DRAFT' as string, sort: 'createdAt,desc' });
+      const res = await listAllDocuments({ page: 0, size: 10, type: DocumentType.DRAFT, sort: 'createdAt,desc' });
       setRecentDrafts(res.documents);
     } catch (err: unknown) {
       setDraftsError(err instanceof Error ? err.message : 'Failed to load');
@@ -59,7 +42,7 @@ export default function DraftsScreen() {
 
   useEffect(() => { fetchRecentDrafts(); }, [fetchRecentDrafts]);
 
-  const handleTemplateTap = (template: typeof TEMPLATES[number]) => {
+  const handleTemplateTap = (template: DraftTemplate) => {
     setSelectedTemplate(template);
     setCreateSheetVisible(true);
   };
@@ -135,7 +118,7 @@ export default function DraftsScreen() {
             Templates
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-            {TEMPLATES.map((t) => (
+            {DRAFT_TEMPLATES.map((t) => (
               <Pressable
                 key={t.id}
                 onPress={() => handleTemplateTap(t)}
@@ -152,7 +135,7 @@ export default function DraftsScreen() {
                   width: 32, height: 32, borderRadius: radius.md,
                   backgroundColor: colors.kxPrimary[50], justifyContent: 'center', alignItems: 'center',
                 }}>
-                  <Ionicons name={t.icon as any} size={16} color={colors.kxPrimary[600]} />
+                  <Ionicons name={TEMPLATE_ICONS[t.id] ?? DEFAULT_TEMPLATE_ICON} size={16} color={colors.kxPrimary[600]} />
                 </View>
                 <Text style={{ fontSize: 11, fontWeight: '500', color: colors.kxTextPrimary, flex: 1 }} numberOfLines={2}>
                   {t.name}

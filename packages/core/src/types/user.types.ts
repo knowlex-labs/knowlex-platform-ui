@@ -37,7 +37,8 @@ export interface AuthContextValue extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
   signup: (data: SignupData) => Promise<void>
   googleLogin: (idToken: string) => Promise<void>
-  continueAsGuest: () => Promise<void>
+  /** Optional — web-only demo login. Mobile omits this. */
+  continueAsGuest?: () => Promise<void>
   logout: () => void
   updateProfile: (data: { bench?: string }) => Promise<void>
   isRestoringSession?: boolean

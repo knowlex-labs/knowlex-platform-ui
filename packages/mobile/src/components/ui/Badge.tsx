@@ -1,9 +1,10 @@
 import { View, Text } from 'react-native';
+import type { CaseStatus } from '@knowlex/core/types';
 import { useTheme } from '@/theme/useTheme';
 
 interface BadgeProps {
   label: string;
-  status?: 'active' | 'pending' | 'closed' | 'on-hold' | 'appealed' | 'blocked';
+  status?: CaseStatus;
   size?: 'sm' | 'md';
 }
 
