@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api';
 import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api';
 import { useTheme } from '@/theme/useTheme';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { Badge } from '@/components/ui/Badge';
 import { FilterChipBar } from '@/components/ui/FilterChipBar';
 import { DocumentPickerSheet } from '@/components/toolbox/DocumentPickerSheet';
 import { ToolboxSheet } from '@/components/toolbox/ToolboxSheet';
@@ -106,6 +107,13 @@ export default function DocumentsScreen() {
   }, [typeFilter, search]);
 
   useEffect(() => { setLoading(true); setPage(0); fetchDocs(0, true); }, [typeFilter, fetchDocs]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setPage(0);
+      fetchDocs(0, true);
+    }, [fetchDocs])
+  );
 
   const handleSearch = () => { setLoading(true); setPage(0); fetchDocs(0, true); };
   const handleLoadMore = () => { if (!hasMore || loading) return; const n = page + 1; setPage(n); fetchDocs(n); };
@@ -345,9 +353,17 @@ export default function DocumentsScreen() {
                         {doc.caseTitle && <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }} numberOfLines={1}>{doc.caseTitle}</Text>}
                       </View>
                     </View>
-                    <Text style={{ fontSize: typography.fontSize.xs, color: colors.ledgerGray[400] }}>
-                      {new Date(doc.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                    </Text>
+                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                      <Text style={{ fontSize: typography.fontSize.xs, color: colors.ledgerGray[400] }}>
+                        {new Date(doc.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </Text>
+                      {doc.type === 'DRAFT' && doc.jobStatus && (
+                        <Badge
+                          label={doc.jobStatus === 'COMPLETED' ? 'Done' : doc.jobStatus === 'FAILED' ? 'Failed' : 'Pending'}
+                          status={doc.jobStatus === 'COMPLETED' ? 'active' : doc.jobStatus === 'FAILED' ? 'blocked' : 'pending'}
+                        />
+                      )}
+                    </View>
                   </View>
                 </Pressable>
               );

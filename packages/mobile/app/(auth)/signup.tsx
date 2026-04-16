@@ -1,21 +1,37 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { useTheme } from '@/theme/useTheme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function SignupScreen() {
-  const { signup } = useAuth();
+  const { signup, googleLogin } = useAuth();
   const { colors, typography, spacing, radius } = useTheme();
 
   const [form, setForm] = useState({
     firstName: '', lastName: '', username: '', email: '', password: '', mobileNumber: '',
   });
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleGoogleIdToken = useCallback(async (idToken: string) => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      await googleLogin(idToken);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [googleLogin]);
+
+  const { signIn: googleSignIn, isReady: googleReady } = useGoogleAuth(handleGoogleIdToken);
 
   const updateField = (field: string, value: string) => setForm((prev) => ({ ...prev, [field]: value }));
 
@@ -79,6 +95,14 @@ export default function SignupScreen() {
           <Input label="Mobile Number" placeholder="+91 9876543210" value={form.mobileNumber} onChangeText={(v) => updateField('mobileNumber', v)} keyboardType="phone-pad" />
 
           <Button title="Create Account" onPress={handleSignup} loading={loading} style={{ marginTop: spacing.sm }} />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: spacing['2xl'] }}>
+            <View style={{ flex: 1, height: 1, backgroundColor: colors.kxCardBorder }} />
+            <Text style={{ paddingHorizontal: spacing.md, fontSize: 13, color: colors.kxTextSecondary }}>or</Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: colors.kxCardBorder }} />
+          </View>
+
+          <Button title={googleLoading ? 'Signing in...' : 'Continue with Google'} onPress={googleSignIn} variant="outline" loading={googleLoading} disabled={!googleReady || googleLoading} />
 
           <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: spacing['2xl'], marginBottom: spacing['3xl'] }}>
             <Text style={{ color: colors.kxTextSecondary, fontSize: typography.fontSize.sm }}>Already have an account? </Text>

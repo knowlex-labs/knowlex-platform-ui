@@ -1,20 +1,36 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/contexts/AuthContext';
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { useTheme } from '@/theme/useTheme';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const { colors, typography, spacing, radius } = useTheme();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const handleGoogleIdToken = useCallback(async (idToken: string) => {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      await googleLogin(idToken);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  }, [googleLogin]);
+
+  const { signIn: googleSignIn, isReady: googleReady } = useGoogleAuth(handleGoogleIdToken);
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -100,7 +116,7 @@ export default function LoginScreen() {
               <View style={{ flex: 1, height: 1, backgroundColor: colors.kxCardBorder }} />
             </View>
 
-            <Button title="Continue with Google" onPress={() => {}} variant="outline" style={{ marginBottom: spacing['2xl'] }} />
+            <Button title={googleLoading ? 'Signing in...' : 'Continue with Google'} onPress={googleSignIn} variant="outline" loading={googleLoading} disabled={!googleReady || googleLoading} style={{ marginBottom: spacing['2xl'] }} />
 
             <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
               <Text style={{ color: colors.kxTextSecondary, fontSize: typography.fontSize.sm }}>

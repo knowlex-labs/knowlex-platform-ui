@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api';
 import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api';
@@ -41,6 +42,12 @@ export default function DraftsScreen() {
   }, []);
 
   useEffect(() => { fetchRecentDrafts(); }, [fetchRecentDrafts]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchRecentDrafts();
+    }, [fetchRecentDrafts])
+  );
 
   const handleTemplateTap = (template: DraftTemplate) => {
     setSelectedTemplate(template);
