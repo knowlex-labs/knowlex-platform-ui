@@ -458,7 +458,7 @@ export function DraftingPage() {
             </div>
             <h2 className="text-lg font-semibold text-kx-text-primary mb-1">Predefined Templates</h2>
             <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mb-4">
-              20+ legal document templates — notices, affidavits, petitions, bail applications, and more.
+              Legal document templates — notices, affidavits, petitions, bail applications, and more.
             </p>
             <span className="text-sm font-medium text-kx-primary-600 dark:text-kx-primary-400 group-hover:underline">
               Get Started &rarr;
