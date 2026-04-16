@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Knowlex",
+    "slug": "knowlex",
+    "scheme": "knowlex",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/splash-icon.png",
+    "android": {
+      "package": "com.knowlex.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/splash-icon.png",
+        "backgroundColor": "#7A2E2E"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.knowlex.app",
+      "supportsTablet": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#7A2E2E",
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:8080",
+      "googleClientId": "",
+      "router": {},
+      "eas": {
+        "projectId": "cc351fef-689d-4999-bfee-8ebdf394e744"
+      }
+    }
+  }
+}
