@@ -222,15 +222,36 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
     if (!caseId) return
     setIsUploading(true)
     setError(null)
+
+    const tempId = `pending-${Date.now()}`
+    const placeholder: CaseDocument = {
+      id: tempId,
+      name: file.name,
+      type: DocumentType.USER_UPLOADED,
+      indexingStatus: IndexingStatus.PENDING,
+      originalFilename: file.name,
+      fileType: file.type,
+      createdAt: new Date().toISOString(),
+    }
+    setPaginatedSources((prev) => [placeholder, ...prev])
+    setSourceTotal((t) => t + 1)
+    setSelectedSourceIds((prev) => new Set([...prev, tempId]))
+
     try {
       const { id: documentId } = await workspaceApi.uploadDocument(caseId, file)
       const newDoc = await workspaceApi.getDocument(caseId, documentId)
-      // Prepend to paginated sources and bump total
-      setPaginatedSources((prev) => [newDoc as unknown as CaseDocument, ...prev])
-      setSourceTotal((t) => t + 1)
-      setSelectedSourceIds((prev) => new Set([...prev, documentId]))
+      setPaginatedSources((prev) => prev.map((d) => d.id === tempId ? newDoc as unknown as CaseDocument : d))
+      setSelectedSourceIds((prev) => {
+        const next = new Set(prev)
+        next.delete(tempId)
+        next.add(documentId)
+        return next
+      })
       startPolling(documentId)
     } catch (err) {
+      setPaginatedSources((prev) => prev.filter((d) => d.id !== tempId))
+      setSourceTotal((t) => Math.max(0, t - 1))
+      setSelectedSourceIds((prev) => { const next = new Set(prev); next.delete(tempId); return next })
       setError(err instanceof Error ? err.message : 'Failed to upload file')
       throw err
     } finally {
