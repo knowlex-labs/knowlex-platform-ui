@@ -1,12 +1,12 @@
 import { Linkedin } from 'lucide-react'
-import { useScrollReveal } from '@/hooks/use-scroll-reveal'
+import { motion, useReducedMotion } from 'framer-motion'
 
 const team = [
   {
     name: 'Nakul Jain',
     role: 'Co-Founder',
     focus: 'Tech & Operations',
-    bio: 'Nakul is a Software Engineer at Raga AI and a Computer Science graduate from IIT Kanpur. He has built products across AI, gaming, and multiple startups. He wants to use technology to solve problems that matter.',
+    bio: 'Software Engineer at Raga AI. Computer Science graduate from IIT Kanpur. Has built products across AI, gaming, and multiple startups. Wants to use technology to solve problems that matter.',
     image: '/team/nakul.jpg',
     linkedin: 'https://www.linkedin.com/in/nakul-jain-453976b1/',
   },
@@ -14,34 +14,44 @@ const team = [
     name: 'Adv. Vaibhavi Jain',
     role: 'Co-Founder',
     focus: 'Product & Sales',
-    bio: 'Vaibhavi is a practicing Advocate with a Masters in Law. She has seen the challenges lawyers face every day and wants to build tools that actually help them and the people they serve.',
+    bio: 'Practicing Advocate with a Masters in Law. Has seen the challenges lawyers face every day and is building tools that actually help them and the people they serve.',
     image: '/team/vaibhavi.jpg',
     linkedin: 'https://www.linkedin.com/in/vaibhavijain/',
   },
 ]
 
 export function TeamSection() {
-  const { ref, isVisible } = useScrollReveal()
+  const reduceMotion = useReducedMotion()
 
   return (
-    <section id="team" className="py-12 sm:py-16 md:py-24 bg-white">
+    <section id="team" className="py-16 sm:py-20 md:py-24 bg-gradient-to-b from-[#fdf6ec] via-[#fefaf3] to-[#fdf6ec] relative overflow-hidden">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
-        <div className="text-center mb-8 sm:mb-12 md:mb-16">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-kx-text-primary mb-3 sm:mb-4">
-            Team
-          </h2>
-        </div>
-
-        <div
-          ref={ref}
-          className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-12 max-w-4xl mx-auto scroll-reveal-stagger"
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+          className="text-center mb-10 sm:mb-14"
         >
-          {team.map((member) => (
-            <div
+          <p className="text-xs font-semibold tracking-[0.2em] uppercase text-kx-primary-600 mb-3">
+            Team
+          </p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-kx-text-primary leading-tight">
+            The people behind Knowlex
+          </h2>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10 max-w-4xl mx-auto">
+          {team.map((member, i) => (
+            <motion.div
               key={member.name}
-              className={`scroll-reveal text-center ${isVisible ? 'is-visible' : ''}`}
+              initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-60px' }}
+              transition={{ duration: 0.55, ease: 'easeOut', delay: i * 0.1 }}
+              className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-ledger-gray-200 text-center"
             >
-              <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-48 md:h-48 bg-ledger-gray-200 rounded-full mx-auto mb-4 sm:mb-6 overflow-hidden">
+              <div className="w-32 h-32 sm:w-36 sm:h-36 bg-ledger-gray-200 rounded-full mx-auto mb-5 overflow-hidden ring-4 ring-amber-100">
                 <img
                   src={member.image}
                   alt={member.name}
@@ -49,14 +59,17 @@ export function TeamSection() {
                   onError={(e) => {
                     const target = e.target as HTMLImageElement
                     target.style.display = 'none'
-                    target.parentElement!.innerHTML = `<span class="flex items-center justify-center w-full h-full text-3xl sm:text-4xl font-serif font-semibold text-ledger-gray-500">${member.name.split(' ').map(n => n[0]).join('')}</span>`
+                    target.parentElement!.innerHTML = `<span class="flex items-center justify-center w-full h-full text-3xl font-serif font-semibold text-ledger-gray-500">${member.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')}</span>`
                   }}
                 />
               </div>
               <h3 className="text-lg sm:text-xl font-serif font-semibold text-kx-text-primary mb-1">
                 {member.name}
               </h3>
-              <p className="text-xs sm:text-sm font-medium text-kx-text-secondary mb-3 sm:mb-4">
+              <p className="text-xs sm:text-sm font-medium text-kx-primary-600 mb-4">
                 {member.role} · {member.focus}
               </p>
               <p className="text-sm sm:text-base text-kx-text-secondary mb-4 max-w-sm mx-auto leading-relaxed">
@@ -71,7 +84,7 @@ export function TeamSection() {
                 <Linkedin size={16} />
                 LinkedIn
               </a>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
