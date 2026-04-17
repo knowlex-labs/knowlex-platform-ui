@@ -16,7 +16,10 @@
     },
     "ios": {
       "bundleIdentifier": "com.knowlex.app",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "expo-router",

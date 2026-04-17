@@ -12,7 +12,7 @@ export function usePlans() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSubscribing, setIsSubscribing] = useState(false)
-  const { user } = useAuth()
+  const { user, isAuthenticated } = useAuth()
 
   const fetchPlans = useCallback(async () => {
     try {
@@ -28,8 +28,9 @@ export function usePlans() {
   }, [])
 
   useEffect(() => {
+    if (!isAuthenticated) return
     fetchPlans()
-  }, [fetchPlans])
+  }, [fetchPlans, isAuthenticated])
 
   const pollForActivation = useCallback(async (): Promise<boolean> => {
     for (let i = 0; i < MAX_POLL_ATTEMPTS; i++) {

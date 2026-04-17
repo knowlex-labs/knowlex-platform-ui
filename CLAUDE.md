@@ -5,12 +5,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-pnpm install                        # Install all workspace dependencies
-pnpm dev                            # Start Vite dev server (port 5173) via Turborepo
-pnpm build                          # TypeScript compile + Vite production build
-pnpm lint                           # ESLint — fails on any warning (--max-warnings 0)
-pnpm --filter @knowlex/web dev      # Start web dev server directly
-pnpm --filter @knowlex/core type-check  # Type-check core package only
+pnpm install                              # Install all workspace dependencies
+pnpm dev                                  # Run dev across all packages via Turborepo
+pnpm build                                # TypeScript compile + Vite production build
+pnpm lint                                 # ESLint — fails on any warning (--max-warnings 0)
+pnpm --filter @knowlex/web dev            # Web (Vite, port 5173)
+pnpm --filter @knowlex/mobile dev         # Mobile (Expo dev server)
+pnpm --filter @knowlex/mobile ios         # Run iOS build (expo run:ios)
+pnpm --filter @knowlex/mobile build:apk   # EAS preview APK build
+pnpm --filter @knowlex/core type-check    # Type-check core only
 ```
 
 No test framework is configured — there are no unit or integration tests.
@@ -25,11 +28,14 @@ Legal tech SaaS platform. The core feature is a **case workspace** where lawyers
 
 ```
 packages/
-  core/   — @knowlex/core — platform-agnostic shared code (types, API, mappers)
-  web/    — @knowlex/web  — React web application
+  core/    — @knowlex/core   — platform-agnostic shared code (types, API, mappers)
+  web/     — @knowlex/web    — React web application
+  mobile/  — @knowlex/mobile — Expo / React Native application
 ```
 
-**Stack:** React 18 + TypeScript 5.3 + Vite 5 + Tailwind CSS 3.4 + React Router 7 + Radix UI / shadcn/ui
+**Stack:**
+- Web: React 18 + TypeScript 5.3 + Vite 5 + Tailwind CSS 3.4 + React Router 7 + Radix UI / shadcn/ui
+- Mobile: React Native 0.81 + React 19 + Expo 54 + Expo Router 6
 
 ### `packages/core` — Shared Platform-Agnostic Code
 
@@ -39,7 +45,7 @@ Contains types, API services, and mappers. Has **zero browser dependencies** —
 - `src/api/ports.ts` — defines `StorageAdapter`, `EventBusAdapter`, `EnvironmentConfig`, `FileHandlerAdapter` interfaces
 - `src/api/runtime.ts` — `initCore(adapters)` / `getAdapters()` module-scoped singleton
 - `src/api/auth-headers.ts` — consolidated auth header helper (single source, uses storage adapter)
-- Platform consumers (web, future mobile) provide adapter implementations and call `initCore()` at boot
+- Platform consumers (web, mobile) provide adapter implementations and call `initCore()` at boot
 
 **Directories:**
 - `src/types/` — one file per domain, barrel via `index.ts`
@@ -51,6 +57,14 @@ Contains types, API services, and mappers. Has **zero browser dependencies** —
 **Path alias:** `@/*` maps to `packages/web/src/*` — use `@/` for web-local imports, `@knowlex/core/*` for shared code.
 
 **Adapters:** `src/adapters/` provides browser implementations of core adapter interfaces. `init-core.ts` wires them, called from `main.tsx` before React renders.
+
+### `packages/mobile` — Expo / React Native Application
+
+**Routing:** Expo Router (file-based) under `app/` — `(auth)` group for login/signup, `(tabs)` group for the authenticated shell (cases, documents, drafts, profile, viewer).
+
+**Adapters:** `src/adapters/` provides RN implementations of core ports — `storage.ts` (expo-secure-store / AsyncStorage), `event-bus.ts`, `env-config.ts` (reads from `expo-constants`), `file-handler.ts` (expo-document-picker / expo-file-system), `sse-adapter.ts`. `init-core.ts` wires them at boot.
+
+**Web-only code stays out:** never import `@/` (web alias) from mobile, and keep DOM/browser APIs out of `@knowlex/core`. Shared logic must go through the core ports.
 
 ### Import Convention
 

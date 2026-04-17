@@ -39,7 +39,7 @@ export function FAQSection() {
   }
 
   return (
-    <section id="faq" className="py-12 sm:py-16 md:py-24 bg-white">
+    <section id="faq" className="py-12 sm:py-16 md:py-24 bg-ledger-gray-50">
       <div className="max-w-3xl mx-auto px-4 md:px-8">
         <div className="text-center mb-8 sm:mb-12 md:mb-16">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-kx-text-primary mb-3 sm:mb-4">

@@ -88,6 +88,8 @@ const config: Config = {
         'float': 'float 6s ease-in-out infinite',
         'blink': 'blink 1s step-end infinite',
         'bounce-in': 'bounce-in 0.5s ease-out forwards',
+        'marquee': 'marquee 45s linear infinite',
+        'marquee-reverse': 'marquee-reverse 55s linear infinite',
       },
       keyframes: {
         'fade-in-up': {
@@ -115,6 +117,14 @@ const config: Config = {
           '60%': { opacity: '1', transform: 'translateY(-4px) scale(1.01)' },
           '80%': { transform: 'translateY(2px) scale(0.995)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'marquee': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'marquee-reverse': {
+          '0%': { transform: 'translateX(-50%)' },
+          '100%': { transform: 'translateX(0)' },
         },
       },
     },

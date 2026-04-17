@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Menu, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { motion, useReducedMotion } from 'framer-motion'
 import {
   Dialog,
   DialogContent,
@@ -15,8 +16,8 @@ interface LandingHeaderProps {
 
 const navLinks: { label: string; sectionId?: string; href?: string }[] = [
   { label: 'Features', sectionId: 'features' },
+  { label: 'About', sectionId: 'about' },
   { label: 'Pricing', sectionId: 'pricing' },
-  { label: 'About Us', sectionId: 'about' },
   { label: 'Blogs', href: '/blogs' },
 ]
 
@@ -24,6 +25,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
   const [calendlyOpen, setCalendlyOpen] = React.useState(false)
   const navigate = useNavigate()
+  const reduceMotion = useReducedMotion()
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId)
@@ -35,18 +37,20 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-kx-primary-600 border-b-0 shadow-[0_4px_20px_rgba(45,21,24,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <header
+        className="sticky top-0 z-50 bg-kx-primary-600 shadow-[0_4px_20px_rgba(45,21,24,0.5),inset_0_1px_0_rgba(255,255,255,0.08)]"
+      >
         <div className="max-w-6xl mx-auto px-4 md:px-8">
-          <div className="flex items-center justify-center h-[48px] relative">
+          <div className="flex items-center justify-center h-16 sm:h-[68px] relative">
             {/* Logo — left */}
             <div className="absolute left-0 flex items-center">
               <button
                 type="button"
                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+                className="flex items-center gap-2.5 hover:opacity-90 transition-opacity"
               >
-                <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto invert" />
-                <span className="text-xl font-serif font-bold text-white tracking-tight">Knowlex</span>
+                <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-8 w-auto invert" />
+                <span className="text-2xl font-serif font-bold text-white tracking-tight">Knowlex</span>
               </button>
             </div>
 
@@ -82,12 +86,19 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
               >
                 Book a Demo
               </button>
-              <button
+              <motion.button
+                whileHover={
+                  reduceMotion
+                    ? undefined
+                    : { y: -1.5, boxShadow: '0 8px 18px -6px rgba(255, 200, 100, 0.55)' }
+                }
+                whileTap={reduceMotion ? undefined : { y: 0 }}
+                transition={{ duration: 0.2 }}
                 onClick={() => navigate('/login')}
-                className="text-sm font-medium text-kx-primary-600 bg-white/95 rounded-full px-4 py-1.5 hover:bg-white transition-all tracking-wide"
+                className="text-sm font-semibold text-kx-primary-700 bg-white rounded-full px-4 py-1.5 hover:bg-amber-50 transition-colors tracking-wide"
               >
                 Sign In
-              </button>
+              </motion.button>
             </div>
 
             {/* Mobile Menu Button */}

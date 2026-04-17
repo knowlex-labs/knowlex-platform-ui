@@ -1,83 +1,139 @@
-import { FileText, Scale, Users, Languages } from 'lucide-react'
-import { FeatureShowcase } from './feature-showcase'
-import { DraftPanel } from './mockup-panels/draft-panel'
-import { ResearchPanel } from './mockup-panels/research-panel'
-import { CaseListPanel } from './mockup-panels/case-list-panel'
-import { TranslationPanel } from './mockup-panels/translation-panel'
+import type { LucideIcon } from 'lucide-react'
+import { FileText, Users, MessagesSquare } from 'lucide-react'
+import { motion, useReducedMotion } from 'framer-motion'
+
+interface Feature {
+  title: string
+  description: string
+  bullets: string[]
+  icon: LucideIcon
+  iconBg: string
+  iconColor: string
+}
+
+const FEATURES: Feature[] = [
+  {
+    title: 'Drafting Assistant',
+    description:
+      'Generate court-ready legal documents from 20+ Indian templates. Citations and provisions auto-sourced.',
+    bullets: [
+      'Notices, bail applications, writ petitions and more',
+      'Live preview while the AI drafts section by section',
+      'Refine any paragraph in chat — draft updates instantly',
+    ],
+    icon: FileText,
+    iconBg: 'bg-kx-primary-50',
+    iconColor: 'text-kx-primary-700',
+  },
+  {
+    title: 'Practice Management',
+    description:
+      'Run your entire practice in one place — cause lists, clients, billings and tasks, all connected.',
+    bullets: [
+      'Cause list automation — see your next hearing at a glance',
+      'All clients and cases in one organised dashboard',
+      'Generate invoices and manage billings per case',
+      'Pending and active task lists so nothing slips',
+    ],
+    icon: Users,
+    iconBg: 'bg-amber-50',
+    iconColor: 'text-amber-700',
+  },
+  {
+    title: 'Summaries & Case Studies',
+    description:
+      'Turn long documents into clean summaries, synopses, translations and case studies — with chat over your files for grounded answers.',
+    bullets: [
+      'Translate documents between English and Indian languages',
+      'Summarise long judgements and FIRs in seconds',
+      'Generate synopses and case studies in your voice',
+      'Chat with case files — answers cited to the source',
+    ],
+    icon: MessagesSquare,
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-700',
+  },
+]
 
 export function FeaturesSection() {
+  const reduceMotion = useReducedMotion()
+
   return (
     <section id="features" className="py-16 sm:py-20 md:py-28 bg-white">
       <div className="max-w-6xl mx-auto px-4 md:px-8">
-        <div className="text-center mb-12 sm:mb-16 md:mb-24">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-kx-text-primary mb-3 sm:mb-4">
-            Everything you need to practice law
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-100px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="text-center mb-14 sm:mb-16"
+        >
+          <p className="text-xs font-semibold tracking-[0.2em] uppercase text-kx-primary-600 mb-3">
+            Features
+          </p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-kx-text-primary mb-3 leading-tight">
+            Everything you need to practice law.
           </h2>
           <p className="text-base sm:text-lg text-kx-text-secondary max-w-2xl mx-auto">
             Powerful tools designed specifically for Indian legal professionals.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="space-y-24 md:space-y-32">
-          <FeatureShowcase
-            title="Drafting Assistant"
-            description="Generate court-ready legal documents from predefined templates. Citations and provisions auto-sourced — no manual lookup needed."
-            bullets={[
-              'Choose from predefined legal document templates',
-              'Adapts to different court formats automatically',
-              'Edit yourself or refine sections with AI assistance',
-            ]}
-            icon={FileText}
-            iconBg="bg-red-100"
-            iconColor="text-red-800"
-            mockup={<DraftPanel />}
-          />
-
-          <FeatureShowcase
-            title="Legal Research"
-            description="Search across your uploaded documents and our curated judgements database in one query. Every answer cited to its source."
-            bullets={[
-              'Natural language queries across all courts',
-              'Every answer cited to the source judgement',
-              'Search your own docs and the knowledge base together',
-            ]}
-            icon={Scale}
-            iconBg="bg-orange-100"
-            iconColor="text-orange-700"
-            mockup={<ResearchPanel />}
-            reversed
-          />
-
-          <FeatureShowcase
-            title="Client & Case Management"
-            description="Organize clients, cases, and deadlines in one place. Link drafts and research to specific cases so nothing falls through the cracks."
-            bullets={[
-              'All clients, cases, and deadlines in one dashboard',
-              'Drafts and research linked to their case automatically',
-              'Never miss a court date or filing deadline',
-            ]}
-            icon={Users}
-            iconBg="bg-amber-100"
-            iconColor="text-amber-600"
-            mockup={<CaseListPanel />}
-          />
-
-          <FeatureShowcase
-            title="Document Translation"
-            description="Translate legal documents between English and major Indian languages instantly. Hindi, Tamil, Telugu, Kannada, and more — with AI precision."
-            bullets={[
-              'Supports PDF, DOCX, and TXT files',
-              'Translates to and from 10 Indian languages',
-              'Preserves legal terminology and formatting',
-            ]}
-            icon={Languages}
-            iconBg="bg-teal-100"
-            iconColor="text-teal-600"
-            mockup={<TranslationPanel />}
-            reversed
-          />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
+          {FEATURES.map((f, i) => (
+            <FeatureCard key={f.title} feature={f} index={i} reduceMotion={!!reduceMotion} />
+          ))}
         </div>
       </div>
     </section>
+  )
+}
+
+function FeatureCard({
+  feature,
+  index,
+  reduceMotion,
+}: {
+  feature: Feature
+  index: number
+  reduceMotion: boolean
+}) {
+  const { title, description, bullets, icon: Icon, iconBg, iconColor } = feature
+
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-80px' }}
+      transition={{ duration: 0.5, ease: 'easeOut', delay: index * 0.08 }}
+      className="group relative rounded-2xl bg-white ring-1 ring-ledger-gray-200/80 p-7 sm:p-8 hover:ring-kx-primary-200 hover:shadow-lg hover:shadow-kx-primary-900/5 transition-all duration-300"
+    >
+      <div
+        className={`inline-flex items-center justify-center w-11 h-11 rounded-xl ${iconBg} mb-6`}
+      >
+        <Icon className={`w-5 h-5 ${iconColor}`} />
+      </div>
+
+      <h3 className="text-xl sm:text-[22px] font-serif font-semibold text-kx-text-primary mb-3 leading-snug">
+        {title}
+      </h3>
+      <p className="text-sm sm:text-[15px] text-kx-text-secondary leading-relaxed">
+        {description}
+      </p>
+
+      <div className="my-6 border-t border-ledger-gray-100" />
+
+      <ul className="space-y-2.5">
+        {bullets.map((bullet) => (
+          <li
+            key={bullet}
+            className="flex items-start gap-2.5 text-sm text-kx-text-secondary leading-relaxed"
+          >
+            <span className="mt-[7px] w-1 h-1 rounded-full bg-ledger-gray-400 shrink-0" />
+            <span>{bullet}</span>
+          </li>
+        ))}
+      </ul>
+    </motion.div>
   )
 }
