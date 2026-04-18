@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, type ChangeEvent } from 'react'
 import { ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, Download, RotateCcw, FileText, X, Eye, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
@@ -272,7 +272,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
                   type="file"
                   accept=".pdf,.docx,.txt"
                   className="hidden"
-                  onChange={e => {
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
                     const f = e.target.files?.[0]
                     if (f) {
                       setFile(f)
