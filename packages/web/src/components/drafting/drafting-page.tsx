@@ -361,7 +361,7 @@ export function DraftingPage() {
       config: draftConfig,
     }
     try {
-      const res = await draftsApi.createStandalone(request)
+      const res = await draftsApi.createStandalone(request, selectedCaseId || undefined)
       if (!res.data) throw new Error('No data returned')
       const draft = mapItemToDraft(res.data)
       setPreviewDraft(draft)

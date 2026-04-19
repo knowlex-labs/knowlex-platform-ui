@@ -229,6 +229,13 @@ export function useDraftChat(caseId: string) {
               scheduleFlush()
             }
           },
+          onSessionTitle: (title) => {
+            if (activeSessionId) {
+              setSessions((prev) =>
+                prev.map((s) => s.id === activeSessionId ? { ...s, title } : s)
+              )
+            }
+          },
           onDocumentCitations: (data) => {
             try {
               const citations = JSON.parse(data.trim())

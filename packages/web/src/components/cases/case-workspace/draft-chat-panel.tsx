@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import * as PopoverPrimitive from '@radix-ui/react-popover'
-import { Bot, Trash2, ChevronDown, MessageSquare, Eraser, Plus, Pencil, Check, X } from 'lucide-react'
+import { Bot, Trash2, MessageSquare, Eraser, Plus, Pencil, Check, X, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -149,28 +149,75 @@ export function DraftChatPanel({
   return (
     <div className="flex flex-col h-full bg-nb-sidebar">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-nb-panel-border flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <Bot className="h-4 w-4 text-kx-primary-600 flex-shrink-0" />
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-nb-panel-border flex-shrink-0">
+        <Bot className="h-4 w-4 text-kx-primary-600 flex-shrink-0" />
 
-          {/* Session switcher — only in draft mode (research mode has ResearchSidebar) */}
-          {!isResearchMode ? (
+        {!isResearchMode ? (
+          <>
+            {/* Session tabs — last 4 most recent */}
+            <div className="flex items-center gap-0.5 min-w-0 overflow-hidden">
+              {isLoadingSessions ? (
+                <span className="text-xs text-ledger-gray-400 px-2">Loading...</span>
+              ) : (
+                sessions.slice(0, 4).map((session) => (
+                  <button
+                    key={session.id}
+                    type="button"
+                    onClick={() => handleSelectSession(session.id)}
+                    className={cn(
+                      'flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors shrink-0 max-w-[120px] outline-none group/tab border',
+                      session.id === activeSessionId
+                        ? 'bg-kx-primary-100 text-kx-primary-900 border-kx-primary-200'
+                        : 'bg-ledger-gray-50 text-ledger-gray-500 border-ledger-gray-200 hover:bg-ledger-gray-100 hover:text-ledger-gray-800'
+                    )}
+                  >
+                    <span className="truncate min-w-0">{session.title}</span>
+                    {sessions.length > 1 && (
+                      <span
+                        role="button"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteClick(e, session.id) }}
+                        className={cn(
+                          'flex-shrink-0 rounded p-0.5 -mr-0.5 transition-opacity',
+                          session.id === activeSessionId
+                            ? 'opacity-40 hover:opacity-100 hover:bg-kx-primary-200 text-kx-primary-700'
+                            : 'opacity-0 group-hover/tab:opacity-60 hover:!opacity-100 hover:bg-ledger-gray-200 text-ledger-gray-500'
+                        )}
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </span>
+                    )}
+                  </button>
+                ))
+              )}
+
+              {/* New chat */}
+              {onStartNewChat && !isLoadingSessions && (
+                <button
+                  type="button"
+                  onClick={onStartNewChat}
+                  className="flex-shrink-0 p-1 ml-0.5 rounded-lg text-ledger-gray-400 hover:text-kx-primary-600 hover:bg-kx-primary-50 transition-colors outline-none"
+                  title="New chat"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Clock icon — full history dropdown */}
             <PopoverPrimitive.Root open={sessionSwitcherOpen} onOpenChange={setSessionSwitcherOpen}>
               <PopoverPrimitive.Trigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-1 min-w-0 text-sm font-semibold text-kx-primary-900 hover:text-kx-primary-700 transition-colors"
+                  className="flex-shrink-0 p-1.5 rounded-lg text-ledger-gray-400 hover:text-kx-primary-600 hover:bg-kx-primary-50 transition-colors outline-none"
+                  title="Chat history"
                 >
-                  <span className="truncate">
-                    {isLoadingSessions ? 'Loading...' : activeSession?.title || 'Chat'}
-                  </span>
-                  <ChevronDown className="h-3 w-3 flex-shrink-0 opacity-60" />
+                  <Clock className="h-3.5 w-3.5" />
                 </button>
               </PopoverPrimitive.Trigger>
               <PopoverPrimitive.Portal>
                 <PopoverPrimitive.Content
                   side="bottom"
-                  align="start"
+                  align="end"
                   sideOffset={6}
                   className="z-50 w-80 rounded-xl border border-ledger-gray-200 bg-kx-card shadow-lg animate-in fade-in-0 zoom-in-95"
                 >
@@ -272,18 +319,18 @@ export function DraftChatPanel({
                 </PopoverPrimitive.Content>
               </PopoverPrimitive.Portal>
             </PopoverPrimitive.Root>
-          ) : (
-            <span className="text-sm font-semibold text-kx-primary-900 truncate">
-              {isLoadingSessions ? 'Loading...' : activeSession?.title || 'Research'}
-            </span>
-          )}
-        </div>
+          </>
+        ) : (
+          <span className="flex-1 min-w-0 text-sm font-semibold text-kx-primary-900 truncate">
+            {isLoadingSessions ? 'Loading...' : activeSession?.title || 'Research'}
+          </span>
+        )}
 
         {/* Clear messages button */}
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 text-nb-text-muted hover:text-red-500 hover:bg-nb-sidebar-hover rounded-lg"
+          className="h-8 w-8 p-0 text-nb-text-muted hover:text-red-500 hover:bg-nb-sidebar-hover rounded-lg flex-shrink-0"
           title="Clear messages"
           onClick={() => setClearDialogOpen(true)}
         >

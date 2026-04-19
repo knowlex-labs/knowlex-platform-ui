@@ -15,7 +15,7 @@ interface CreateSessionResponse {
   message: string
   data: {
     session_id: string
-    title: string
+    name: string
     created_at: string
   }
 }
@@ -37,7 +37,7 @@ interface ListSessionsResponse {
   message: string
   data: Array<{
     session_id: string
-    title: string
+    name: string
     created_at: string
   }>
 }
@@ -66,6 +66,7 @@ export interface DraftChatSSECallbacks {
   onToolCall: (data: string) => void
   onToolResult: (data: string) => void
   onDocumentCitations?: (data: string) => void
+  onSessionTitle?: (title: string) => void
   onEnd: () => void
   onError: (error: string) => void
 }
@@ -80,7 +81,7 @@ export const draftChatApi = {
     )
     return {
       id: response.data.session_id,
-      title: response.data.title,
+      title: response.data.name,
       createdAt: response.data.created_at,
     }
   },
@@ -93,7 +94,7 @@ export const draftChatApi = {
     )
     return (response.data ?? []).map((s) => ({
       id: s.session_id,
-      title: s.title,
+      title: s.name,
       createdAt: s.created_at,
     }))
   },
@@ -182,6 +183,7 @@ export const draftChatApi = {
       else if (event === 'tool_call') callbacks.onToolCall(data)
       else if (event === 'tool_result') callbacks.onToolResult(data)
       else if (event === 'document_citations') callbacks.onDocumentCitations?.(data)
+      else if (event === 'session_title') callbacks.onSessionTitle?.(data.trim())
       return null
     }
 

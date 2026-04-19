@@ -1,4 +1,5 @@
 import { apiClient } from './api-client'
+import { buildDocumentPayload } from './draft-helpers'
 import type { ApiResponse } from '../types'
 import type {
   CreateDraftRequest,
@@ -80,8 +81,9 @@ export const draftsApi = {
   },
 
   // Create a draft without a case (standalone toolbox use)
-  createStandalone: async (data: CreateDraftRequest): Promise<ApiResponse<CreateDraftResponse>> => {
-    return apiClient.post<ApiResponse<CreateDraftResponse>>('/api/v1/documents', data)
+  createStandalone: async (data: CreateDraftRequest, caseId?: string): Promise<ApiResponse<CreateDraftResponse>> => {
+    const payload = { ...buildDocumentPayload(data), ...(caseId && { case_id: caseId }) }
+    return apiClient.post<ApiResponse<CreateDraftResponse>>('/api/v1/documents', payload)
   },
 
   // Poll a standalone draft by document ID using the /documents endpoint

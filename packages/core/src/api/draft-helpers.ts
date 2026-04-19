@@ -117,6 +117,39 @@ export function assembleBody(templateId: string, formData: TemplateFormData): st
   }
 }
 
+/**
+ * Convert a CreateDraftRequest into the envelope the backend /api/v1/documents expects:
+ *   { document_type: "DRAFT", sub_type, case_id?, data: { ... } }
+ *
+ * - sub_type = request.document_type (e.g. "bail_application")
+ * - If request.config has keys → input_mode "structured", spread config fields into data
+ * - If file_ids present → input_mode "file"
+ * - Otherwise → input_mode "freetext", include freetext_body
+ */
+export function buildDocumentPayload(request: CreateDraftRequest): {
+  document_type: string
+  sub_type: string
+  data: Record<string, unknown>
+} {
+  const hasFiles = (request.file_ids?.length ?? 0) > 0
+  const hasConfig = !!request.config && Object.keys(request.config).length > 0
+  const inputMode = hasFiles ? 'file' : hasConfig ? 'structured' : 'freetext'
+
+  return {
+    document_type: 'DRAFT',
+    sub_type: request.document_type,
+    data: {
+      title: request.title,
+      document_type: request.document_type,
+      input_mode: inputMode,
+      ...(inputMode === 'freetext' && request.freetext_body && { freetext_body: request.freetext_body }),
+      ...(inputMode === 'file' && request.file_ids?.length && { file_ids: request.file_ids }),
+      ...(request.language && { language: request.language }),
+      ...(hasConfig && request.config),
+    },
+  }
+}
+
 /** Build the full CreateDraftRequest used by workspaceApi.createDocument. */
 export function buildCreateDraftPayload(
   templateId: string,

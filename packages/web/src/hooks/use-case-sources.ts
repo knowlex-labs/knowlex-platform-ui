@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
-import { DocumentType, GENERATED_DOC_TYPES, IndexingStatus, JobStatus, type CaseDocument, type CaseDocumentStatus } from '@knowlex/core/types'
+import { DocumentType, GENERATED_DOC_TYPES, IndexingStatus, JobStatus, type CaseDocument } from '@knowlex/core/types'
 
-const POLLING_INTERVAL = 6000 // 6 seconds
-const MAX_POLL_ATTEMPTS = 20
 export const SOURCE_PAGE_SIZE = 20
 
 interface UseCaseDocumentsResult {
@@ -46,81 +44,36 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   const [isUploading, setIsUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Track documents being polled: documentId -> attempts count
-  const pollingAttemptsRef = useRef<Map<string, number>>(new Map())
-  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Track active SSE streams: documentId -> AbortController
+  const streamsRef = useRef<Map<string, AbortController>>(new Map())
 
-  const pollIndexingStatus = useCallback(async () => {
-    if (!caseId) return
-
-    const idsToRemove: string[] = []
-
-    for (const [documentId, attempts] of pollingAttemptsRef.current) {
-      if (attempts >= MAX_POLL_ATTEMPTS) {
-        console.warn(`Polling max attempts reached for document ${documentId}`)
-        idsToRemove.push(documentId)
-        continue
-      }
-
-      try {
-        const doc = await workspaceApi.getDocument(caseId, documentId)
-        const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type as DocumentType)
-        const status = isDraftOrSummary
-          ? doc.jobStatus as CaseDocumentStatus
-          : doc.indexingStatus as CaseDocumentStatus
-
-        const update = isDraftOrSummary
-          ? { jobStatus: doc.jobStatus as JobStatus }
-          : { indexingStatus: doc.indexingStatus as IndexingStatus }
-
-        // Update in non-source docs
-        setDocuments((prev) => prev.map((d) => d.id === documentId ? { ...d, ...update } : d))
-        // Update in paginated sources
-        setPaginatedSources((prev) => prev.map((d) => d.id === documentId ? { ...d, ...update } : d))
-
-        const isCompleted = status === IndexingStatus.COMPLETED || status === JobStatus.COMPLETED
-        const isFailed = status === IndexingStatus.FAILED || status === JobStatus.FAILED
-        if (isCompleted || isFailed) {
-          idsToRemove.push(documentId)
-        } else {
-          pollingAttemptsRef.current.set(documentId, attempts + 1)
-        }
-      } catch {
-        idsToRemove.push(documentId)
-      }
-    }
-
-    for (const id of idsToRemove) pollingAttemptsRef.current.delete(id)
-
-    if (pollingAttemptsRef.current.size === 0 && pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
-  }, [caseId])
+  const applyDocUpdate = useCallback((doc: { id: string; jobStatus?: string; indexingStatus?: string; type?: string }) => {
+    const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type as DocumentType)
+    const update = isDraftOrSummary
+      ? { jobStatus: doc.jobStatus as JobStatus }
+      : { indexingStatus: doc.indexingStatus as IndexingStatus }
+    setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, ...update } : d))
+    setPaginatedSources((prev) => prev.map((d) => d.id === doc.id ? { ...d, ...update } : d))
+  }, [])
 
   const startPolling = useCallback((documentId: string) => {
-    if (!pollingAttemptsRef.current.has(documentId)) {
-      pollingAttemptsRef.current.set(documentId, 0)
-    }
-    if (!pollingIntervalRef.current) {
-      pollingIntervalRef.current = setInterval(pollIndexingStatus, POLLING_INTERVAL)
-    }
-  }, [pollIndexingStatus])
+    if (streamsRef.current.has(documentId)) return
+    const ctrl = workspaceApi.streamDocumentStatus(documentId, {
+      onStatus: (doc) => applyDocUpdate(doc),
+      onError: () => { streamsRef.current.delete(documentId) },
+      onEnd: () => { streamsRef.current.delete(documentId) },
+    })
+    streamsRef.current.set(documentId, ctrl)
+  }, [applyDocUpdate])
 
   const stopPolling = useCallback((documentId: string) => {
-    pollingAttemptsRef.current.delete(documentId)
-    if (pollingAttemptsRef.current.size === 0 && pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
+    streamsRef.current.get(documentId)?.abort()
+    streamsRef.current.delete(documentId)
   }, [])
 
   const stopAllPolling = useCallback(() => {
-    pollingAttemptsRef.current.clear()
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
+    for (const ctrl of streamsRef.current.values()) ctrl.abort()
+    streamsRef.current.clear()
   }, [])
 
   // Fetch non-source docs (DRAFT / SUMMARY / JUDGMENT) once per caseId
@@ -239,8 +192,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
     try {
       const { id: documentId } = await workspaceApi.uploadDocument(caseId, file)
-      const newDoc = await workspaceApi.getDocument(caseId, documentId)
-      setPaginatedSources((prev) => prev.map((d) => d.id === tempId ? newDoc as unknown as CaseDocument : d))
+      setPaginatedSources((prev) => prev.map((d) => d.id === tempId ? { ...d, id: documentId } : d))
       setSelectedSourceIds((prev) => {
         const next = new Set(prev)
         next.delete(tempId)

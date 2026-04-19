@@ -49,18 +49,11 @@ interface BackendChatResponse {
   }[]
 }
 
-// Document creation types for unified API
-interface CreateDocumentData {
-  title: string
-  document_type: string
-  input_mode: 'structured' | 'freetext' | 'file'
-  [key: string]: unknown
-}
-
 interface CreateDocumentRequest {
   document_type: string
   sub_type?: string
-  data?: CreateDocumentData
+  data?: Record<string, unknown>
+  [key: string]: unknown
 }
 
 interface CreateDocumentResponse {
@@ -240,6 +233,40 @@ export const workspaceApi = {
       `/api/v1/documents/${documentId}`
     )
     return response.data
+  },
+
+  streamDocumentStatus(
+    documentId: string,
+    callbacks: {
+      onStatus: (doc: CreateDocumentResponse) => void
+      onError: (msg: string) => void
+      onEnd: () => void
+    }
+  ): AbortController {
+    const headers: Record<string, string> = {
+      Accept: 'text/event-stream',
+      ...getAuthHeaders(),
+    }
+    return getAdapters().sse.stream(
+      `${getBaseUrl()}/api/v1/documents/${documentId}/status-stream`,
+      { method: 'GET', headers, body: '' },
+      {
+        onEvent: (event, data) => {
+          if (event === 'status') {
+            try {
+              callbacks.onStatus(JSON.parse(data) as CreateDocumentResponse)
+            } catch { /* ignore malformed */ }
+          } else if (event === 'error') {
+            callbacks.onError(data.trim())
+          }
+        },
+        onError: callbacks.onError,
+        onEnd: callbacks.onEnd,
+        onUnauthorized: () => {
+          getAdapters().eventBus.dispatch('auth:session-expired')
+        },
+      }
+    )
   },
 
   async getPresignedDownloadUrl(documentId: string): Promise<{ downloadUrl: string; storageUrl: string }> {
