@@ -23,7 +23,7 @@ interface GeneratedDoc {
   signedUrl?: string | null;
 }
 
-const POLL_INTERVAL = 6000;
+const POLL_INTERVAL = 10000;
 const MAX_POLLS = 60;
 
 export function ToolsTab({ caseId, overview }: ToolsTabProps) {

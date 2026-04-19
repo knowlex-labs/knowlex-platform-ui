@@ -21,7 +21,7 @@ interface GeneratedDoc {
   createdAt?: string;
 }
 
-const POLL_INTERVAL = 6000;
+const POLL_INTERVAL = 10000;
 const MAX_POLLS = 60;
 
 function normalizeStatus(jobStatus?: string | null): 'pending' | 'completed' | 'failed' {

@@ -38,7 +38,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
   const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
   const [targetLang, setTargetLang] = useState('Hindi')
   const [sourceLang, setSourceLang] = useState('')
-  const model = 'sarvam'
+  const model = 'gemini'
   const [caseId, setCaseId] = useState('')
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -89,7 +89,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
       } catch {
         // transient error — keep polling
       }
-    }, 4000)
+    }, 10000)
   }
 
   const handleDrop = (e: React.DragEvent) => {

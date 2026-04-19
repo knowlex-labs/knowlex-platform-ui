@@ -43,13 +43,13 @@ export function TranslateSheet({ visible, onClose, documentId, documentName }: P
             clearInterval(pollRef.current!);
             setPolling(false);
             setResult(updated);
-          } else if (status === 'FAILED') {
+          } else if (status === 'FAILED' || status === 'CANCELLED') {
             clearInterval(pollRef.current!);
             setPolling(false);
             Alert.alert('Failed', 'Translation failed. Please try again.');
           }
         } catch { /* continue polling */ }
-      }, 4000);
+      }, 10000);
     } catch (err: unknown) {
       setProcessing(false);
       Alert.alert('Error', err instanceof Error ? err.message : 'Translation failed');

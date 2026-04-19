@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Upload, Scissors, Minimize2, Layers, RefreshCw,
-  FileText, File, Download, Eye,
+  FileText, File, Download, Eye, Image, FileCode2,
   Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2,
   AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -71,15 +71,25 @@ function formatDate(dateStr: string | null | undefined) {
 // ─── File icon ────────────────────────────────────────────────────────────────
 
 function FileIcon({ fileType, className }: { fileType?: string | null; className?: string }) {
-  const isPdf = fileType === 'PDF'
-  const isDocx = fileType === 'DOCX' || fileType === 'DOC'
+  const ft = (fileType ?? '').toUpperCase()
+  const isPdf  = ft === 'PDF'
+  const isDocx = ft === 'DOCX' || ft === 'DOC'
+  const isPng  = ft === 'PNG' || ft === 'JPG' || ft === 'JPEG' || ft === 'WEBP' || ft === 'GIF' || ft === 'IMAGE'
+  const isMd   = ft === 'MD' || ft === 'MARKDOWN'
+
+  const bg = isPdf ? 'bg-red-500' : isDocx ? 'bg-blue-500' : isPng ? 'bg-purple-500' : isMd ? 'bg-slate-600' : 'bg-ledger-gray-400'
+
   return (
     <div className={cn(
       'flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-white text-[10px] font-bold',
-      isPdf ? 'bg-red-500' : isDocx ? 'bg-blue-500' : 'bg-ledger-gray-400',
+      bg,
       className,
     )}>
-      {isPdf ? 'PDF' : isDocx ? 'DOC' : <File className="h-4 w-4" />}
+      {isPdf  ? 'PDF'
+      : isDocx ? 'DOC'
+      : isPng  ? <Image className="h-4 w-4" />
+      : isMd   ? <FileCode2 className="h-4 w-4" />
+      : <File className="h-4 w-4" />}
     </div>
   )
 }
@@ -97,7 +107,7 @@ const TYPE_META: Record<DocumentType, {
   [DocumentType.SYNOPSIS]:      { label: 'Synopsis', className: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/40 dark:text-cyan-300', icon: FileText },
   [DocumentType.JUDGMENT]:      { label: 'Judgment',    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: Scale },
   [DocumentType.BRIEF]:         { label: 'Brief',       className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
-  [DocumentType.TRANSLATION]:   { label: 'Translation', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', icon: Languages },
+  [DocumentType.TRANSLATION]:   { label: 'Translated', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', icon: Languages },
 }
 
 // ─── Tools config ─────────────────────────────────────────────────────────────
@@ -940,7 +950,7 @@ export function DocumentsPage() {
     const hasProcessing = allDocs.some(d => GENERATED_DOC_TYPES.has(d.type) && d.jobStatus === JobStatus.PROCESSING)
     if (hasProcessing) {
       if (!listPollRef.current) {
-        listPollRef.current = setInterval(() => { fetchDocs() }, 5000)
+        listPollRef.current = setInterval(() => { fetchDocs() }, 10000)
       }
     } else {
       if (listPollRef.current) {

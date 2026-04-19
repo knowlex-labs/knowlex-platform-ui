@@ -38,7 +38,7 @@ import { TEMPLATE_TO_DOC_CONFIG } from '@/components/cases/case-workspace/draft-
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const POLL_INTERVAL_MS = 5000
+const POLL_INTERVAL_MS = 10000
 const MAX_POLL_ATTEMPTS = 24
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
