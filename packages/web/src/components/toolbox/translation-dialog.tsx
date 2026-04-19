@@ -38,7 +38,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
   const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
   const [targetLang, setTargetLang] = useState('Hindi')
   const [sourceLang, setSourceLang] = useState('')
-  const [model, setModel] = useState('gemini')
+  const model = 'sarvam'
   const [caseId, setCaseId] = useState('')
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -188,7 +188,6 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
     setIsSubmitting(false)
     setIsSaving(false)
     setIsSaved(false)
-    setModel('gemini')
     jobIdRef.current = null
   }
 
@@ -298,15 +297,6 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc }: Translat
                   {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
                 </Select>
               </div>
-            </div>
-
-            {/* Model selector */}
-            <div>
-              <label className="text-xs font-medium text-ledger-gray-500 mb-1.5 block">AI Model <span className="text-ledger-gray-400">(optional)</span></label>
-              <Select value={model} onChange={e => setModel(e.target.value)}>
-                <option value="gemini">Gemini</option>
-                <option value="openai">GPT (OpenAI)</option>
-              </Select>
             </div>
 
             {/* Case selector */}

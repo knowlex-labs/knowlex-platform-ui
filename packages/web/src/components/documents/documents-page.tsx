@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  Upload, Scissors, Minimize2, Layers,
+  Upload, Scissors, Minimize2, Layers, RefreshCw,
   FileText, File, Download, Eye,
   Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2,
@@ -20,7 +20,6 @@ import {
   downloadDocument,
   triggerDirectDownload,
   linkDocumentToCase,
-  getDocument,
   type DocumentRecordType,
 } from '@knowlex/core/api/doc-processing-api'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
@@ -117,6 +116,72 @@ const TOOLS: {
   { id: 'convert',     label: 'Convert',   description: 'Convert to another format',icon: BookOpen,  iconColor: 'text-emerald-600', iconBg: 'bg-emerald-50 dark:bg-emerald-950/40' },
   { id: 'merge',       label: 'Merge',     description: 'Combine multiple PDFs',    icon: Layers,    iconColor: 'text-blue-600',    iconBg: 'bg-blue-50 dark:bg-blue-950/40' },
 ]
+
+// ─── UploadingRow ─────────────────────────────────────────────────────────────
+
+function UploadingRow({ name, fileType, onDismiss }: { name: string; fileType: string | null; onDismiss: () => void }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handle(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [menuOpen])
+
+  return (
+    <tr className="bg-kx-card border-l-2 border-l-transparent group">
+      <td className="pl-4 pr-2 py-3 w-10 align-middle">
+        <input type="checkbox" disabled className="h-4 w-4 rounded border-ledger-gray-300 opacity-40 cursor-not-allowed" />
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3">
+          <FileIcon fileType={fileType} className="flex-shrink-0 opacity-60" />
+          <div className="min-w-0">
+            <p className="text-sm font-medium truncate max-w-xs text-kx-text-primary opacity-70">{name}</p>
+            <span className="flex items-center gap-1 text-[10px] text-blue-600 mt-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Uploading
+            </span>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300">
+          Uploading
+        </span>
+      </td>
+      <td className="px-4 py-3 text-sm text-ledger-gray-300">—</td>
+      <td className="px-4 py-3 text-xs text-ledger-gray-300">—</td>
+      <td className="pr-3 py-3 w-10 align-middle" onClick={e => e.stopPropagation()}>
+        <div className="relative flex justify-center" ref={menuRef}>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(o => !o)}
+            className="h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-8 z-50 min-w-[160px] rounded-lg border border-kx-card-border bg-kx-card shadow-lg py-1">
+              <button
+                type="button"
+                onClick={() => { setMenuOpen(false); onDismiss() }}
+                className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+      </td>
+    </tr>
+  )
+}
 
 // ─── DocTableRow ──────────────────────────────────────────────────────────────
 
@@ -634,12 +699,11 @@ function DocumentViewer({
 
 // ─── Upload dialog ────────────────────────────────────────────────────────────
 
-function UploadDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOpenChange: (v: boolean) => void; onUploaded: () => void }) {
+function UploadDialog({ open, onOpenChange, onStartUpload }: { open: boolean; onOpenChange: (v: boolean) => void; onStartUpload: (files: File[], docType: DocumentRecordType, caseId: string) => void }) {
   const [files, setFiles] = useState<File[]>([])
   const [docType, setDocType] = useState<DocumentRecordType>(DocumentType.USER_UPLOADED)
   const [caseId, setCaseId] = useState('')
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
-  const [isUploading, setIsUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -659,17 +723,9 @@ function UploadDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOpe
   const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx))
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); addFiles(e.dataTransfer.files) }
 
-  const handleUpload = async () => {
+  const handleUpload = () => {
     if (files.length === 0) return
-    setIsUploading(true)
-    try {
-      await Promise.all(files.map(f => uploadToolboxFile(f, { type: docType, caseId: caseId || undefined })))
-      toast({ title: `${files.length} file${files.length > 1 ? 's' : ''} uploaded` })
-      onOpenChange(false)
-      onUploaded()
-    } catch (e) {
-      toast({ title: 'Upload failed', description: e instanceof Error ? e.message : 'Try again', variant: 'destructive' })
-    } finally { setIsUploading(false) }
+    onStartUpload(files, docType, caseId)
   }
 
   return (
@@ -725,9 +781,9 @@ function UploadDialog({ open, onOpenChange, onUploaded }: { open: boolean; onOpe
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isUploading}>Cancel</Button>
-          <Button onClick={handleUpload} disabled={files.length === 0 || isUploading} className="gap-1.5">
-            {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleUpload} disabled={files.length === 0} className="gap-1.5">
+            <Upload className="h-3.5 w-3.5" />
             Upload{files.length > 0 ? ` (${files.length})` : ''}
           </Button>
         </DialogFooter>
@@ -765,6 +821,8 @@ export function DocumentsPage() {
   const [assignDocId, setAssignDocId] = useState<string | null>(null)
   const [assignCaseId, setAssignCaseId] = useState('')
   const [isAssigning, setIsAssigning] = useState(false)
+
+  const [uploadingDocs, setUploadingDocs] = useState<{ id: string; name: string; fileType: string | null }[]>([])
 
   const [toolsPanelOpen, setToolsPanelOpen] = useState(true)
   const prevToolsPanelOpenRef = useRef<boolean>(true)
@@ -839,6 +897,28 @@ export function DocumentsPage() {
 
   useEffect(() => { fetchDocs() }, [fetchDocs])
 
+  const handleStartUpload = useCallback((files: File[], docType: DocumentRecordType, caseId: string) => {
+    const placeholders = files.map(f => ({
+      id: `uploading-${Date.now()}-${f.name}`,
+      name: f.name,
+      fileType: f.name.split('.').pop()?.toUpperCase() ?? null,
+    }))
+    setUploadingDocs(prev => [...prev, ...placeholders])
+    setUploadDialogOpen(false)
+
+    placeholders.forEach((ph, i) => {
+      uploadToolboxFile(files[i], { type: docType, caseId: caseId || undefined })
+        .then(() => {
+          setUploadingDocs(prev => prev.filter(d => d.id !== ph.id))
+          fetchDocs()
+        })
+        .catch(() => {
+          setUploadingDocs(prev => prev.filter(d => d.id !== ph.id))
+          toast({ title: `Failed to upload ${ph.name}`, variant: 'destructive' })
+        })
+    })
+  }, [fetchDocs])
+
   // Auto-open a tool when navigated here with ?tool=<toolId> (e.g., from dashboard Translate button)
   useEffect(() => {
     if (autoToolParam && TOOLS.some(t => t.id === autoToolParam)) {
@@ -852,37 +932,45 @@ export function DocumentsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount
 
-  const bgPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const bgJobsRef = useRef<Map<string, string>>(new Map()) // jobId → targetLang
+  const bgJobsRef = useRef<Map<string, string>>(new Map()) // documentId → targetLang
+  const listPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  useEffect(() => () => { if (bgPollRef.current) clearInterval(bgPollRef.current) }, [])
+  // Reactive poll: whenever allDocs has any PROCESSING generated doc, keep refreshing every 5s
+  useEffect(() => {
+    const hasProcessing = allDocs.some(d => GENERATED_DOC_TYPES.has(d.type) && d.jobStatus === JobStatus.PROCESSING)
+    if (hasProcessing) {
+      if (!listPollRef.current) {
+        listPollRef.current = setInterval(() => { fetchDocs() }, 5000)
+      }
+    } else {
+      if (listPollRef.current) {
+        clearInterval(listPollRef.current)
+        listPollRef.current = null
+      }
+    }
+
+    // Fire toasts for tracked translation docs that have settled
+    for (const [docId, targetLang] of bgJobsRef.current) {
+      const doc = allDocs.find(d => d.id === docId)
+      if (!doc) continue
+      if (doc.jobStatus === JobStatus.COMPLETED) {
+        bgJobsRef.current.delete(docId)
+        toast({ title: 'Translation complete', description: `Translated to ${targetLang}.` })
+      } else if (doc.jobStatus === JobStatus.FAILED || doc.jobStatus === JobStatus.CANCELLED) {
+        bgJobsRef.current.delete(docId)
+        toast({ title: 'Translation failed', description: `Could not translate to ${targetLang}.`, variant: 'destructive' })
+      }
+    }
+
+    return () => {}
+  }, [allDocs, fetchDocs])
+
+  useEffect(() => () => { if (listPollRef.current) clearInterval(listPollRef.current) }, [])
 
   const handleTranslationJobStarted = useCallback((jobId: string, targetLang: string) => {
     setSelectedDocId(null)
     fetchDocs() // show the PROCESSING doc immediately
-
     bgJobsRef.current.set(jobId, targetLang)
-    if (bgPollRef.current) return // already polling
-
-    bgPollRef.current = setInterval(async () => {
-      for (const [documentId, lang] of bgJobsRef.current) {
-        try {
-          const doc = await getDocument(documentId)
-          if (doc.jobStatus === 'COMPLETED') {
-            bgJobsRef.current.delete(documentId)
-            toast({ title: 'Translation complete', description: `Translated to ${lang}.` })
-            fetchDocs()
-          } else if (doc.jobStatus === 'FAILED' || doc.jobStatus === 'CANCELLED') {
-            bgJobsRef.current.delete(documentId)
-            toast({ title: 'Translation failed', description: `Could not translate to ${lang}.`, variant: 'destructive' })
-          }
-        } catch { /* transient */ }
-      }
-      if (bgJobsRef.current.size === 0) {
-        clearInterval(bgPollRef.current!)
-        bgPollRef.current = null
-      }
-    }, 5000)
   }, [fetchDocs])
 
   // Auto-open doc from ?open= param once docs are loaded
@@ -1047,9 +1135,14 @@ export function DocumentsPage() {
                       : 'Manage, preview, and process your case documents'}
                   </p>
                 </div>
-                <Button size="sm" className="gap-1.5 h-9 px-3 text-xs w-full sm:w-auto" onClick={() => setUploadDialogOpen(true)}>
-                  <Upload className="h-3.5 w-3.5" /> Upload
-                </Button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button size="sm" variant="outline" className="h-9 px-3" onClick={fetchDocs} title="Refresh">
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="sm" className="gap-1.5 h-9 px-3 text-xs flex-1 sm:flex-none" onClick={() => setUploadDialogOpen(true)}>
+                    <Upload className="h-3.5 w-3.5" /> Upload
+                  </Button>
+                </div>
               </div>
 
               {error && (
@@ -1184,6 +1277,14 @@ export function DocumentsPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-kx-card-border">
+                          {uploadingDocs.map(u => (
+                            <UploadingRow
+                              key={u.id}
+                              name={u.name}
+                              fileType={u.fileType}
+                              onDismiss={() => setUploadingDocs(prev => prev.filter(d => d.id !== u.id))}
+                            />
+                          ))}
                           {allDocs.map(doc => (
                             <DocTableRow
                               key={doc.id}
@@ -1370,7 +1471,7 @@ export function DocumentsPage() {
         </Dialog>
       ))}
 
-      <UploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} onUploaded={fetchDocs} />
+      <UploadDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} onStartUpload={handleStartUpload} />
 
       {/* Assign to case dialog */}
       <Dialog open={assignDocId !== null} onOpenChange={open => { if (!open) { setAssignDocId(null); setAssignCaseId('') } }}>
