@@ -254,16 +254,16 @@ export function CaseWorkspace() {
   }
 
   // ── Studio actions ──
-  const handleGenerateSummary = async () => {
+  const handleGenerateSummary = async (webSearch?: boolean) => {
     if (summary && summary.status === 'pending') return
     const existing = await fetchSummary()
-    if (!existing || existing.status === 'failed') generateSummary()
+    if (!existing || existing.status === 'failed') generateSummary(webSearch)
   }
 
-  const handleGenerateSynopsis = async () => {
+  const handleGenerateSynopsis = async (webSearch?: boolean) => {
     if (synopsis && synopsis.status !== 'failed') return
     const existing = await fetchSynopsis()
-    if (!existing || existing.status === 'failed') generateSynopsis()
+    if (!existing || existing.status === 'failed') generateSynopsis(webSearch)
   }
 
   const handleDeleteSynopsis = async () => {

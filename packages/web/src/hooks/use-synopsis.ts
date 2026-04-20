@@ -121,7 +121,7 @@ export function useSynopsis(caseId: string) {
     return () => stopPolling()
   }, [stopPolling])
 
-  const generateSynopsis = useCallback(async () => {
+  const generateSynopsis = useCallback(async (webSearch?: boolean) => {
     setError(null)
     setIsGenerating(true)
     setSynopsis((prev) =>
@@ -138,6 +138,7 @@ export function useSynopsis(caseId: string) {
     try {
       const doc = await workspaceApi.createDocument(caseId, {
         document_type: 'SYNOPSIS',
+        ...(webSearch ? { web_search: true } : {}),
       } as Parameters<typeof workspaceApi.createDocument>[1])
       if (doc?.id) {
         documentIdRef.current = doc.id

@@ -109,7 +109,7 @@ export function useSummary(caseId: string) {
     return () => stopPolling()
   }, [stopPolling])
 
-  const generateSummary = useCallback(async () => {
+  const generateSummary = useCallback(async (webSearch?: boolean) => {
     setError(null)
     setIsGenerating(true)
     setSummary((prev) =>
@@ -120,6 +120,7 @@ export function useSummary(caseId: string) {
     try {
       const doc = await workspaceApi.createDocument(caseId, {
         document_type: 'SUMMARY',
+        ...(webSearch ? { web_search: true } : {}),
       } as Parameters<typeof workspaceApi.createDocument>[1])
       if (doc?.id) {
         documentIdRef.current = doc.id
