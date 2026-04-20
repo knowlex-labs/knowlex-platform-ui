@@ -131,7 +131,7 @@ export function useDraftChat(caseId: string) {
   }, [caseId])
 
   const sendMessage = useCallback(
-    async (message: string, fileIds: string[]) => {
+    async (message: string, fileIds: string[], webSearch?: boolean) => {
       const trimmed = message.trim()
       if (!trimmed || isStreaming || !activeSessionId) return
 
@@ -201,6 +201,7 @@ export function useDraftChat(caseId: string) {
           style: settings.style,
           model: settings.model,
           file_ids: fileIds,
+          ...(webSearch ? { web_search: true } : {}),
         },
         {
           onAnswer: (token) => {

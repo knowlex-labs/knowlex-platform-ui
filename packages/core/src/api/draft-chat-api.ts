@@ -160,7 +160,7 @@ export const draftChatApi = {
   sendMessage: (
     caseId: string,
     sessionId: string,
-    payload: { message: string; tone: string; style: string; file_ids: string[]; model: string },
+    payload: { message: string; tone: string; style: string; file_ids: string[]; model: string; web_search?: boolean },
     callbacks: DraftChatSSECallbacks
   ): AbortController => {
     const headers: Record<string, string> = {

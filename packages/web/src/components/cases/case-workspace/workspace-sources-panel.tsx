@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Plus, Search, MoreVertical, FileText,
   Loader2, ExternalLink, Pencil, Trash2, Check, X,
-  AlertCircle, PanelLeft, Sparkles,
+  AlertCircle, PanelLeft, Sparkles, Globe,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
@@ -228,6 +228,8 @@ interface WorkspaceSourcesPanelProps {
   onDeselectAll: () => void
   onClose: () => void
   onDoubleClickDocument?: (doc: CaseDocument) => void
+  webSearch?: boolean
+  onWebSearchToggle?: (v: boolean) => void
 }
 
 export function WorkspaceSourcesPanel({
@@ -243,6 +245,8 @@ export function WorkspaceSourcesPanel({
   onDeselectAll,
   onClose,
   onDoubleClickDocument,
+  webSearch = false,
+  onWebSearchToggle,
 }: WorkspaceSourcesPanelProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [renamingId, setRenamingId] = useState<string | null>(null)
@@ -280,6 +284,29 @@ export function WorkspaceSourcesPanel({
           title="Hide sources panel"
         >
           <PanelLeft className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Web Search toggle */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-nb-panel-border flex-shrink-0">
+        <div className="flex items-center gap-1.5">
+          <Globe className="h-3.5 w-3.5 text-ledger-gray-400" />
+          <span className="text-xs font-medium text-kx-text-secondary">Web Search</span>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={webSearch}
+          onClick={() => onWebSearchToggle?.(!webSearch)}
+          className={cn(
+            'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
+            webSearch ? 'bg-kx-primary-600' : 'bg-ledger-gray-300 dark:bg-ledger-gray-600'
+          )}
+        >
+          <span className={cn(
+            'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200',
+            webSearch ? 'translate-x-4' : 'translate-x-0'
+          )} />
         </button>
       </div>
 

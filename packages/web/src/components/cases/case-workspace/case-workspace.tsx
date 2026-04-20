@@ -122,6 +122,8 @@ export function CaseWorkspace() {
     setLeftPanelWidth(DEFAULT_LEFT_WIDTH)
   }, [])
 
+  const [webSearch, setWebSearch] = useState(false)
+
   // ── Modals / editors ──
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
   const [editingDocument, setEditingDocument] = useState<CaseDocument | null>(null)
@@ -245,7 +247,7 @@ export function CaseWorkspace() {
 
   // ── Chat ──
   const handleSendMessage = async (query: string, fileIds: string[] = []) => {
-    await draftSendMessage(query, [...Array.from(selectedSourceIds), ...fileIds])
+    await draftSendMessage(query, [...Array.from(selectedSourceIds), ...fileIds], webSearch)
   }
 
   const handleUploadChatFile = async (file: File): Promise<string> => {
@@ -425,6 +427,8 @@ export function CaseWorkspace() {
                   onDeselectAll={deselectAllSources}
                   onClose={() => setLeftPanelOpen(false)}
                   onDoubleClickDocument={handleDoubleClickDocument}
+                  webSearch={webSearch}
+                  onWebSearchToggle={setWebSearch}
                 />
               )}
             </div>
@@ -515,6 +519,7 @@ export function CaseWorkspace() {
               onRenameDraft={handleRenameDraft}
               onDeleteSummary={deleteSummary}
               onDeleteSynopsis={handleDeleteSynopsis}
+              webSearch={webSearch}
             />
           </div>
         ) : (

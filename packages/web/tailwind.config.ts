@@ -90,6 +90,7 @@ const config: Config = {
         'bounce-in': 'bounce-in 0.5s ease-out forwards',
         'marquee': 'marquee 45s linear infinite',
         'marquee-reverse': 'marquee-reverse 55s linear infinite',
+        'shimmer': 'shimmer 1.5s ease-in-out infinite',
       },
       keyframes: {
         'fade-in-up': {
@@ -125,6 +126,10 @@ const config: Config = {
         'marquee-reverse': {
           '0%': { transform: 'translateX(-50%)' },
           '100%': { transform: 'translateX(0)' },
+        },
+        'shimmer': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(200%)' },
         },
       },
     },

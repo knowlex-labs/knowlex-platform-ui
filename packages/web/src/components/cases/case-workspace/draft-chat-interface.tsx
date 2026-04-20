@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { ArrowUp, Loader2, MessageSquareDot, Search, ChevronDown, ChevronRight, Wrench, Plus, Paperclip, SlidersHorizontal, Wand2, X, Sparkles } from 'lucide-react'
+import { ArrowUp, Loader2, MessageSquareDot, Search, ChevronDown, ChevronRight, Wrench, Plus, Paperclip, SlidersHorizontal, Wand2, X, Sparkles, Globe } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 import { StreamingIndicator } from '@/components/ui/streaming-indicator'
@@ -60,11 +60,28 @@ function ToolCallsCollapsible({
 
 function ToolsIndicator({ toolCalls }: { toolCalls?: DraftChatMessage['toolCalls'] }) {
   const name = toolCalls?.[toolCalls.length - 1]?.name
+  const isWebSearch = name?.toLowerCase().includes('web') || name?.toLowerCase().includes('search')
+  const Icon = isWebSearch ? Globe : Search
+  const label = name
+    ? name.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    : 'Searching case files'
+
   return (
-    <span className="inline-flex items-center gap-1.5 text-ledger-gray-400 text-xs">
-      <Search className="h-3 w-3 animate-pulse" />
-      <span>{name ? `Using ${name}...` : 'Searching case files...'}</span>
-    </span>
+    <div className="flex flex-col gap-1.5">
+      <div className="inline-flex items-center gap-2 text-xs text-ledger-gray-500">
+        <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-kx-primary-50 dark:bg-kx-primary-950/30 flex-shrink-0">
+          <Icon className="h-3 w-3 text-kx-primary-500" />
+          <span className="absolute inset-0 rounded-full animate-ping bg-kx-primary-200 dark:bg-kx-primary-700 opacity-60" />
+        </span>
+        <span className="text-ledger-gray-500">
+          Using <span className="font-medium text-kx-primary-600">{label}</span>…
+        </span>
+      </div>
+      {/* shimmer progress bar */}
+      <div className="h-0.5 w-40 rounded-full bg-ledger-gray-100 dark:bg-ledger-gray-800 overflow-hidden">
+        <div className="h-full w-1/3 rounded-full bg-kx-primary-300 dark:bg-kx-primary-600 animate-shimmer" />
+      </div>
+    </div>
   )
 }
 
