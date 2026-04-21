@@ -260,11 +260,19 @@ export function FeaturesSection() {
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-blue-50 mb-4">
                 <BookOpen className="w-5 h-5 text-blue-700" />
               </div>
-              <h3 className="text-base font-semibold text-kx-text-primary mb-2">Judgments Library</h3>
-              <p className="text-sm text-kx-text-secondary leading-relaxed">
-                Comprehensive Supreme Court and High Court judgments — indexed, searchable, and
-                cited directly inside your drafts and research.
-              </p>
+              <h3 className="text-base font-semibold text-kx-text-primary mb-3">Judgments Library</h3>
+              <ul className="space-y-2">
+                {[
+                  'Comprehensive Supreme Court & High Court judgments',
+                  'Indexed and instantly searchable',
+                  'Cited directly inside your drafts and research',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-kx-text-secondary">
+                    <CheckCircle className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </motion.div>
 
             {/* Client Management */}
@@ -272,14 +280,11 @@ export function FeaturesSection() {
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-violet-50 mb-4">
                 <Users className="w-5 h-5 text-violet-700" />
               </div>
-              <h3 className="text-base font-semibold text-kx-text-primary mb-2">Client Management</h3>
-              <p className="text-sm text-kx-text-secondary leading-relaxed mb-3">
-                Keep your entire practice in one place — and let Knowlex handle the follow-ups
-                so you never have to chase a reminder manually.
-              </p>
+              <h3 className="text-base font-semibold text-kx-text-primary mb-3">Client Management</h3>
               <ul className="space-y-2">
                 {[
                   'All clients and cases in one organised dashboard',
+                  'Every document linked to its case',
                   'Email & WhatsApp reminders sent to clients about upcoming hearings',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm text-kx-text-secondary">
@@ -295,11 +300,19 @@ export function FeaturesSection() {
               <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-rose-50 mb-4">
                 <FileStack className="w-5 h-5 text-rose-700" />
               </div>
-              <h3 className="text-base font-semibold text-kx-text-primary mb-2">Document Tools</h3>
-              <p className="text-sm text-kx-text-secondary leading-relaxed">
-                Split, merge, compress, and convert PDFs without leaving the platform. Everything
-                you need to manage court documents in one place.
-              </p>
+              <h3 className="text-base font-semibold text-kx-text-primary mb-3">Document Tools</h3>
+              <ul className="space-y-2">
+                {[
+                  'Split and merge PDFs in seconds',
+                  'Compress and convert documents',
+                  'Manage all court documents without leaving the platform',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-kx-text-secondary">
+                    <CheckCircle className="w-3.5 h-3.5 text-rose-500 mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </motion.div>
           </div>
         </div>
