@@ -11,8 +11,8 @@ const COMPANY_LINKS = [
   { label: 'About', href: '/about' },
   { label: 'Team', href: '/about' },
   { label: 'FAQs', href: '/#faq' },
-  { label: 'Blogs', href: '/blogs' },
   { label: 'Careers', href: '/careers' },
+  { label: 'Blogs', href: '/blogs' },
 ]
 
 const SOCIAL_LINKS = [
