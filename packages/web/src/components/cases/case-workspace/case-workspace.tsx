@@ -6,6 +6,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useUIState } from '@/contexts/ui-context'
+import { useAuth } from '@/contexts/auth-context'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { getAdapters } from '@knowlex/core/api/runtime'
@@ -14,12 +15,16 @@ import { useDraftChat } from '@/hooks/use-draft-chat'
 import { useDrafts } from '@/hooks/use-drafts'
 import { useSummary } from '@/hooks/use-summary'
 import { useSynopsis } from '@/hooks/use-synopsis'
+import { usePrecedent } from '@/hooks/use-precedent'
 import { DraftChatPanel } from './draft-chat-panel'
 import { AddSourceModal } from './add-source-modal'
 import { OnlyOfficeEditor } from './onlyoffice-editor'
 import { CaseDetailsModal } from './case-details-modal'
 import { WorkspaceSourcesPanel } from './workspace-sources-panel'
 import { CaseStudioPanel } from './case-studio-panel'
+import { QuickDraftSheet } from './quick-draft-sheet'
+import { DraftCreationWizard } from './draft-creation-wizard'
+import { TranslationDialog } from '@/components/toolbox/translation-dialog'
 import type { CaseDocument, BackendCase, UpdateCaseRequest, RespondentDetails } from '@knowlex/core/types'
 import { DocumentType, IndexingStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
@@ -29,6 +34,7 @@ export function CaseWorkspace() {
   const caseId = caseIdParam!
   const navigate = useNavigate()
   const { setSidebarCollapsed } = useUIState()
+  const { user } = useAuth()
 
   // ── Case metadata ──
   const [caseName, setCaseName] = useState('Case Workspace')
@@ -122,11 +128,23 @@ export function CaseWorkspace() {
     setLeftPanelWidth(DEFAULT_LEFT_WIDTH)
   }, [])
 
-  const [webSearch, setWebSearch] = useState(false)
+  const [webSearch, setWebSearch] = useState(() => {
+    try { return localStorage.getItem('knowlex_web_search') === 'true' } catch { return false }
+  })
+
+  const handleWebSearchToggle = useCallback((val: boolean) => {
+    try { localStorage.setItem('knowlex_web_search', String(val)) } catch { /* ignore */ }
+    setWebSearch(val)
+  }, [])
 
   // ── Modals / editors ──
   const [addSourceModalOpen, setAddSourceModalOpen] = useState(false)
   const [editingDocument, setEditingDocument] = useState<CaseDocument | null>(null)
+
+  // ── Quick draft + translation overlays ──
+  const [quickDraftOpen, setQuickDraftOpen] = useState(false)
+  const [translationOpen, setTranslationOpen] = useState(false)
+  const [wizardConfig, setWizardConfig] = useState<{ templateId: string; initialValues: Record<string, string> } | null>(null)
 
   // Auto-collapse global sidebar
   useEffect(() => { setSidebarCollapsed(true) }, [setSidebarCollapsed])
@@ -173,6 +191,8 @@ export function CaseWorkspace() {
   const {
     drafts,
     deleteDraft,
+    createDraft,
+    fetchDraftContent,
   } = useDrafts(caseId, draftDocuments)
 
   const {
@@ -190,6 +210,13 @@ export function CaseWorkspace() {
     generateSynopsis,
     deleteSynopsis,
   } = useSynopsis(caseId)
+
+  const {
+    precedent,
+    isLoading: isPrecedentLoading,
+    generatePrecedent,
+    deletePrecedent,
+  } = usePrecedent(caseId)
 
   // ── Case data loading ──
   const refreshCaseData = useCallback(() => {
@@ -268,6 +295,11 @@ export function CaseWorkspace() {
     if (!existing || existing.status === 'failed') generateSynopsis(webSearch)
   }
 
+  const handleGeneratePrecedent = async () => {
+    if (precedent && precedent.status === 'pending') return
+    generatePrecedent()
+  }
+
   const handleDeleteSynopsis = async () => {
     try {
       await deleteSynopsis()
@@ -277,7 +309,23 @@ export function CaseWorkspace() {
     }
   }
 
+  const handleRenameSummary = async (name: string) => {
+    if (summary?.id) await workspaceApi.updateDocument(caseId, summary.id, { name })
+  }
+  const handleRenameSynopsis = async (name: string) => {
+    if (synopsis?.id) await workspaceApi.updateDocument(caseId, synopsis.id, { name })
+  }
+  const handleRenamePrecedent = async (name: string) => {
+    if (precedent?.id) await workspaceApi.updateDocument(caseId, precedent.id, { name })
+  }
+
   const handleFindPrecedents = () => navigate('/ai-research')
+
+  const formattedRespondent = caseData?.respondentName
+    ? [caseData.respondentName, ...(caseData.respondentDetails
+        ? Object.values(caseData.respondentDetails as Record<string, string>).filter(Boolean).slice(0, 3)
+        : [])].join(', ')
+    : ''
 
   // ── Draft management ──
   const handleDeleteDraft = async (id: string) => {
@@ -368,7 +416,49 @@ export function CaseWorkspace() {
       </header>
 
       {/* ─── Body ───────────────────────────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden bg-nb-separator p-1.5 gap-1.5">
+      <div className="flex flex-1 min-h-0 overflow-hidden bg-nb-separator p-1.5 gap-1.5 relative">
+        {/* Quick Draft overlay */}
+        {quickDraftOpen && (
+          <div className="absolute inset-0 z-50 rounded-xl overflow-hidden">
+            {wizardConfig ? (
+              <DraftCreationWizard
+                sources={sources}
+                client={null}
+                respondentDetails={formattedRespondent}
+                onGenerate={(req) => { createDraft(req); setQuickDraftOpen(false); setWizardConfig(null) }}
+                onSave={() => { setQuickDraftOpen(false); setWizardConfig(null) }}
+                onDiscard={(id) => { deleteDraft(id) }}
+                onCancel={() => { setQuickDraftOpen(false); setWizardConfig(null) }}
+                previewDraft={null}
+                defaultTemplateId={wizardConfig.templateId}
+                initialFormValues={wizardConfig.initialValues}
+              />
+            ) : (
+              <QuickDraftSheet
+                caseData={caseData}
+                user={user}
+                sources={sources}
+                onGenerate={(req) => { createDraft(req); setQuickDraftOpen(false) }}
+                onOpenAdvanced={(templateId, initialValues) => setWizardConfig({ templateId, initialValues })}
+                onClose={() => setQuickDraftOpen(false)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Translation overlay */}
+        {translationOpen && (
+          <div className="absolute inset-0 z-50 rounded-xl bg-nb-panel overflow-y-auto p-6">
+            <TranslationDialog
+              caseSources={sources.map(s => ({ id: s.id, name: s.originalFilename || s.name }))}
+              onBack={() => setTranslationOpen(false)}
+              onJobStarted={(jobId, lang) => {
+                toast({ title: `Translating to ${lang}…`, description: "We'll notify you when it's ready." })
+                setTranslationOpen(false)
+              }}
+            />
+          </div>
+        )}
         {/* Left: Sources panel — full when open, icon strip when closed */}
         {leftPanelOpen ? (
           <div className="flex-shrink-0 relative min-h-0" style={{ width: leftPanelWidth }}>
@@ -428,7 +518,7 @@ export function CaseWorkspace() {
                   onClose={() => setLeftPanelOpen(false)}
                   onDoubleClickDocument={handleDoubleClickDocument}
                   webSearch={webSearch}
-                  onWebSearchToggle={setWebSearch}
+                  onWebSearchToggle={handleWebSearchToggle}
                 />
               )}
             </div>
@@ -508,6 +598,7 @@ export function CaseWorkspace() {
               onClose={() => setStudioOpen(false)}
               onGenerateSummary={handleGenerateSummary}
               onGenerateSynopsis={handleGenerateSynopsis}
+              onGeneratePrecedent={handleGeneratePrecedent}
               onSendToChat={(msg) => handleSendMessage(msg)}
               onFindPrecedents={handleFindPrecedents}
               sourceCount={sources.length}
@@ -515,11 +606,19 @@ export function CaseWorkspace() {
               drafts={drafts}
               summary={isSummaryLoading ? null : summary}
               synopsis={isSynopsisLoading ? null : synopsis}
+              precedent={isPrecedentLoading ? null : precedent}
               onDeleteDraft={handleDeleteDraft}
               onRenameDraft={handleRenameDraft}
+              fetchDraftContent={fetchDraftContent}
               onDeleteSummary={deleteSummary}
               onDeleteSynopsis={handleDeleteSynopsis}
+              onDeletePrecedent={deletePrecedent}
+              onRenameSummary={handleRenameSummary}
+              onRenameSynopsis={handleRenameSynopsis}
+              onRenamePrecedent={handleRenamePrecedent}
               webSearch={webSearch}
+              onStartDraft={() => { setWizardConfig(null); setQuickDraftOpen(true) }}
+              onStartTranslation={() => setTranslationOpen(true)}
             />
           </div>
         ) : (

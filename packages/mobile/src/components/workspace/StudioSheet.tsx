@@ -11,6 +11,8 @@ interface StudioSheetProps {
   visible: boolean;
   onClose: () => void;
   caseId: string;
+  onStartDraft?: () => void;
+  onStartTranslation?: () => void;
 }
 
 interface GeneratedDoc {
@@ -21,8 +23,6 @@ interface GeneratedDoc {
   createdAt?: string;
 }
 
-const POLL_INTERVAL = 10000;
-const MAX_POLLS = 60;
 
 function normalizeStatus(jobStatus?: string | null): 'pending' | 'completed' | 'failed' {
   const s = (jobStatus ?? '').toUpperCase();
@@ -31,7 +31,7 @@ function normalizeStatus(jobStatus?: string | null): 'pending' | 'completed' | '
   return 'pending';
 }
 
-export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
+export function StudioSheet({ visible, onClose, caseId, onStartDraft, onStartTranslation }: StudioSheetProps) {
   const { colors, typography, spacing, radius } = useTheme();
   const [generatedDocs, setGeneratedDocs] = useState<GeneratedDoc[]>([]);
   const [drafts, setDrafts] = useState<CaseDocument[]>([]);
@@ -40,7 +40,7 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatingSynopsis, setGeneratingSynopsis] = useState(false);
   const [createDraftVisible, setCreateDraftVisible] = useState(false);
-  const pollRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const streamsRef = useRef<Map<string, AbortController>>(new Map());
 
   const fetchAll = useCallback(async () => {
     setError(null);
@@ -69,23 +69,26 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
 
   useEffect(() => {
     if (visible) fetchAll();
-    return () => { Object.values(pollRef.current).forEach(clearInterval); };
+    return () => {
+      for (const ctrl of streamsRef.current.values()) ctrl.abort();
+      streamsRef.current.clear();
+    };
   }, [visible, fetchAll]);
 
-  const startPolling = (docId: string) => {
-    let count = 0;
-    pollRef.current[docId] = setInterval(async () => {
-      count++;
-      if (count > MAX_POLLS) { clearInterval(pollRef.current[docId]); delete pollRef.current[docId]; return; }
-      try {
-        const res = await workspaceApi.getDocument(caseId, docId);
-        if (normalizeStatus(res.jobStatus) !== 'pending') {
-          clearInterval(pollRef.current[docId]);
-          delete pollRef.current[docId];
+  const startStream = (docId: string) => {
+    if (streamsRef.current.has(docId)) return;
+    const ctrl = workspaceApi.streamDocumentStatus(docId, {
+      onStatus: async (doc) => {
+        if (normalizeStatus(doc.jobStatus) !== 'pending') {
+          streamsRef.current.get(docId)?.abort();
+          streamsRef.current.delete(docId);
           await fetchAll();
         }
-      } catch { clearInterval(pollRef.current[docId]); delete pollRef.current[docId]; }
-    }, POLL_INTERVAL);
+      },
+      onError: () => { streamsRef.current.delete(docId); },
+      onEnd: () => { streamsRef.current.delete(docId); },
+    });
+    streamsRef.current.set(docId, ctrl);
   };
 
   const handleGenerate = async (docType: 'SUMMARY' | 'SYNOPSIS') => {
@@ -94,7 +97,7 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
     try {
       const res = await workspaceApi.createDocument(caseId, { document_type: docType.toLowerCase() });
       await fetchAll();
-      if (res.id) startPolling(res.id);
+      if (res.id) startStream(res.id);
     } catch (err: unknown) {
       Alert.alert('Error', err instanceof Error ? err.message : `Failed to generate ${docType.toLowerCase()}`);
     } finally {
@@ -183,6 +186,39 @@ export function StudioSheet({ visible, onClose, caseId }: StudioSheetProps) {
                     {generatingSynopsis ? 'Generating...' : hasSynopsis ? 'Generated' : 'Generate synopsis'}
                   </Text>
                   {generatingSynopsis && <ActivityIndicator size="small" color={colors.toolAccent.synopsis} style={{ marginTop: spacing.sm }} />}
+                </Pressable>
+              </View>
+
+              {/* Drafting + Translate */}
+              <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg }}>
+                <Pressable
+                  onPress={() => { onClose(); setTimeout(() => onStartDraft?.(), 300); }}
+                  style={({ pressed }) => ({
+                    flex: 1, padding: spacing.lg, borderRadius: radius.lg,
+                    backgroundColor: colors.kxSurface, borderWidth: 1, borderColor: colors.kxCardBorder,
+                    opacity: pressed ? 0.85 : 1,
+                  })}
+                >
+                  <View style={{ width: 32, height: 32, borderRadius: radius.md, backgroundColor: '#6366f115', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm }}>
+                    <Ionicons name="create-outline" size={16} color="#6366f1" />
+                  </View>
+                  <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>Drafting</Text>
+                  <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>Quick draft</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => { onClose(); setTimeout(() => onStartTranslation?.(), 300); }}
+                  style={({ pressed }) => ({
+                    flex: 1, padding: spacing.lg, borderRadius: radius.lg,
+                    backgroundColor: colors.kxSurface, borderWidth: 1, borderColor: colors.kxCardBorder,
+                    opacity: pressed ? 0.85 : 1,
+                  })}
+                >
+                  <View style={{ width: 32, height: 32, borderRadius: radius.md, backgroundColor: '#f59e0b15', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.sm }}>
+                    <Ionicons name="globe-outline" size={16} color="#f59e0b" />
+                  </View>
+                  <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>Translate</Text>
+                  <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>Case documents</Text>
                 </Pressable>
               </View>
 

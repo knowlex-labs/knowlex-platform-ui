@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import {
-  PanelRight, FileText, Clock, Gavel, MessageSquare, Search, Sparkles,
+  PanelRight, FileText, Gavel, Search,
   Lock, MoreVertical, Trash2, Pencil, Check, X, Loader2,
   AlertCircle, ExternalLink, BookOpen, Download, SquarePen,
+  PenLine, Languages, FileDown,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -12,8 +13,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { renderDraftToHtml } from '@/lib/draft-renderer'
-import type { Draft, CaseSummary, CaseSynopsis } from '@knowlex/core/types'
+import { renderDraftToHtml, downloadAsPdf, downloadAsDoc } from '@/lib/draft-renderer'
+import type { Draft, CaseSummary, CaseSynopsis, CasePrecedent } from '@knowlex/core/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -75,7 +76,12 @@ function InlineRenameInput({
 
 // ─── Draft/Summary item menu ──────────────────────────────────────────────────
 
-function GeneratedItemMenu({ onRename, onDelete, onDownloadPdf }: { onRename?: () => void; onDelete: () => void; onDownloadPdf?: () => void }) {
+function GeneratedItemMenu({ onRename, onDownloadPdf, onDownloadDoc, onDelete }: {
+  onRename?: () => void
+  onDownloadPdf?: () => void
+  onDownloadDoc?: () => void
+  onDelete: () => void
+}) {
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -97,7 +103,7 @@ function GeneratedItemMenu({ onRename, onDelete, onDownloadPdf }: { onRename?: (
     e.stopPropagation()
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      setPos({ top: rect.bottom + 4, left: rect.right - 140 })
+      setPos({ top: rect.bottom + 4, left: rect.right - 156 })
     }
     setOpen(v => !v)
   }
@@ -115,24 +121,33 @@ function GeneratedItemMenu({ onRename, onDelete, onDownloadPdf }: { onRename?: (
       {open && pos && (
         <div
           ref={menuRef}
-          className="fixed z-[9999] w-36 rounded-lg border border-nb-panel-border bg-nb-panel shadow-lg py-1"
+          className="fixed z-[9999] w-40 rounded-lg border border-nb-panel-border bg-nb-panel shadow-lg py-1"
           style={{ top: pos.top, left: pos.left }}
           onClick={e => e.stopPropagation()}
         >
           {onRename && (
             <button type="button" onClick={() => { setOpen(false); onRename() }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-xs text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
               <Pencil className="h-3.5 w-3.5 text-ledger-gray-400" /> Rename
             </button>
           )}
           {onDownloadPdf && (
             <button type="button" onClick={() => { setOpen(false); onDownloadPdf() }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
-              <Download className="h-3.5 w-3.5 text-ledger-gray-400" /> Download
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-xs text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
+              <Download className="h-3.5 w-3.5 text-ledger-gray-400" /> Download PDF
             </button>
           )}
+          {onDownloadDoc && (
+            <button type="button" onClick={() => { setOpen(false); onDownloadDoc() }}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-xs text-ledger-gray-900 hover:bg-nb-sidebar-hover transition-colors">
+              <FileDown className="h-3.5 w-3.5 text-ledger-gray-400" /> Download DOCX
+            </button>
+          )}
+          {(onRename || onDownloadPdf || onDownloadDoc) && (
+            <div className="my-1 h-px bg-ledger-gray-100 dark:bg-ledger-gray-700" />
+          )}
           <button type="button" onClick={() => { setOpen(false); onDelete() }}
-            className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors">
             <Trash2 className="h-3.5 w-3.5" /> Delete
           </button>
         </div>
@@ -148,30 +163,47 @@ function DocumentPreviewDialog({
   onClose,
   title,
   htmlContent,
+  onDownloadPdf,
+  onDownloadDoc,
   onEdit,
 }: {
   open: boolean
   onClose: () => void
   title: string
   htmlContent: string
+  onDownloadPdf?: () => void
+  onDownloadDoc?: () => void
   onEdit?: () => void
 }) {
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>
       <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
-        <DialogHeader className="px-6 py-4 border-b border-ledger-gray-200 flex-shrink-0">
-          <div className="flex items-center justify-between pr-8">
-            <DialogTitle className="truncate">{title}</DialogTitle>
-            {onEdit && (
-              <button
-                type="button"
-                onClick={onEdit}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-kx-primary-600 hover:bg-kx-primary-50 border border-kx-primary-200 hover:border-kx-primary-400 transition-colors flex-shrink-0"
-              >
-                <SquarePen className="h-3.5 w-3.5" />
-                Edit
-              </button>
-            )}
+        <DialogHeader className="px-5 py-3 border-b border-ledger-gray-200 flex-shrink-0">
+          <div className="flex items-center gap-3 pr-8">
+            <DialogTitle className="text-sm font-semibold truncate flex-1 min-w-0">{title}</DialogTitle>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {onDownloadPdf && (
+                <button type="button" onClick={onDownloadPdf}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-ledger-gray-600 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 border border-ledger-gray-200 dark:border-ledger-gray-600 transition-colors">
+                  <Download className="h-3.5 w-3.5" />
+                  PDF
+                </button>
+              )}
+              {onDownloadDoc && (
+                <button type="button" onClick={onDownloadDoc}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-ledger-gray-600 hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 border border-ledger-gray-200 dark:border-ledger-gray-600 transition-colors">
+                  <FileDown className="h-3.5 w-3.5" />
+                  DOCX
+                </button>
+              )}
+              {onEdit && (
+                <button type="button" onClick={onEdit}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-kx-primary-600 hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 border border-kx-primary-200 hover:border-kx-primary-400 transition-colors">
+                  <SquarePen className="h-3.5 w-3.5" />
+                  Edit
+                </button>
+              )}
+            </div>
           </div>
         </DialogHeader>
         <div className="flex-1 overflow-y-auto px-8 py-6">
@@ -231,6 +263,7 @@ interface CaseStudioPanelProps {
   onClose: () => void
   onGenerateSummary: (webSearch?: boolean) => void
   onGenerateSynopsis: (webSearch?: boolean) => void
+  onGeneratePrecedent: () => void
   webSearch?: boolean
   onSendToChat: (message: string) => void
   onFindPrecedents: () => void
@@ -239,47 +272,53 @@ interface CaseStudioPanelProps {
   drafts: Draft[]
   summary: CaseSummary | null
   synopsis: CaseSynopsis | null
+  precedent: CasePrecedent | null
   onDeleteDraft: (id: string) => void
   onRenameDraft: (id: string, title: string) => Promise<void>
+  fetchDraftContent?: (id: string) => Promise<Draft | undefined>
   onDeleteSummary?: () => void
   onDeleteSynopsis: () => void
+  onDeletePrecedent: () => void
+  onRenameSummary?: (name: string) => Promise<void>
+  onRenameSynopsis?: (name: string) => Promise<void>
+  onRenamePrecedent?: (name: string) => Promise<void>
+  onStartDraft?: () => void
+  onStartTranslation?: () => void
 }
 
 export function CaseStudioPanel({
   onClose,
   onGenerateSummary,
   onGenerateSynopsis,
+  onGeneratePrecedent,
   drafts,
   summary,
   synopsis,
+  precedent,
   onDeleteDraft,
   onRenameDraft,
+  fetchDraftContent,
   onDeleteSummary,
   onDeleteSynopsis,
+  onDeletePrecedent,
+  onRenameSummary,
+  onRenameSynopsis,
+  onRenamePrecedent,
   webSearch,
+  onStartDraft,
+  onStartTranslation,
 }: CaseStudioPanelProps) {
   const navigate = useNavigate()
   const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [previewDoc, setPreviewDoc] = useState<{ title: string; html: string; isSummary?: boolean } | null>(null)
+  const [previewDoc, setPreviewDoc] = useState<{ title: string; html: string; editUrl?: string } | null>(null)
+  const [summaryDisplayName, setSummaryDisplayName] = useState('Summary')
+  const [synopsisDisplayName, setSynopsisDisplayName] = useState('Case Synopsis')
+  const [precedentDisplayName, setPrecedentDisplayName] = useState('Precedent Analysis')
 
   const handleOpenSummary = () => {
     if (!summary || summary.status !== 'completed') return
     const html = renderDraftToHtml(summary.content)
-    setPreviewDoc({ title: 'Summary', html, isSummary: true })
-  }
-
-  const handleDownloadSummaryPdf = () => {
-    if (!summary?.content) return
-    const html = renderDraftToHtml(summary.content)
-    const win = window.open('', '_blank')
-    if (!win) return
-    win.document.write(`<!DOCTYPE html><html><head><title>Summary</title><style>
-      body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 0 24px; color: #111; font-size: 14px; line-height: 1.7; }
-      @media print { body { margin: 0; } }
-    </style></head><body>${html}</body></html>`)
-    win.document.close()
-    win.focus()
-    setTimeout(() => { win.print() }, 300)
+    setPreviewDoc({ title: summaryDisplayName, html, editUrl: summary.id && summary.id !== 'pending' ? `/documents?open=${summary.id}&edit=true` : undefined })
   }
 
   const handleSummaryClick = () => {
@@ -293,7 +332,7 @@ export function CaseStudioPanel({
   const handleOpenSynopsis = () => {
     if (!synopsis || synopsis.status !== 'completed') return
     const html = renderDraftToHtml(synopsis.content)
-    setPreviewDoc({ title: 'Case Synopsis', html })
+    setPreviewDoc({ title: synopsisDisplayName, html, editUrl: synopsis.id ? `/documents?open=${synopsis.id}&edit=true` : undefined })
   }
 
   const tools: (ToolCardProps & { key: string })[] = [
@@ -314,12 +353,28 @@ export function CaseStudioPanel({
       onClick: () => onGenerateSynopsis(webSearch),
     },
     {
-      key: 'timeline',
-      icon: Clock,
-      iconColor: 'text-violet-600',
-      iconBg: 'bg-violet-50 dark:bg-violet-950/40',
-      title: 'Timeline',
-      locked: true,
+      key: 'precedents',
+      icon: Search,
+      iconColor: 'text-rose-600',
+      iconBg: 'bg-rose-50 dark:bg-rose-950/40',
+      title: 'Precedents',
+      onClick: () => onGeneratePrecedent(),
+    },
+    {
+      key: 'drafting',
+      icon: PenLine,
+      iconColor: 'text-indigo-600',
+      iconBg: 'bg-indigo-50 dark:bg-indigo-950/40',
+      title: 'Drafting',
+      onClick: onStartDraft,
+    },
+    {
+      key: 'translate',
+      icon: Languages,
+      iconColor: 'text-amber-600',
+      iconBg: 'bg-amber-50 dark:bg-amber-950/40',
+      title: 'Translate',
+      onClick: onStartTranslation,
     },
     {
       key: 'arguments',
@@ -329,35 +384,40 @@ export function CaseStudioPanel({
       title: 'Arguments',
       locked: true,
     },
-    {
-      key: 'reply',
-      icon: MessageSquare,
-      iconColor: 'text-orange-600',
-      iconBg: 'bg-orange-50 dark:bg-orange-950/40',
-      title: 'Draft Reply',
-      locked: true,
-    },
-    {
-      key: 'precedents',
-      icon: Search,
-      iconColor: 'text-rose-600',
-      iconBg: 'bg-rose-50 dark:bg-rose-950/40',
-      title: 'Precedents',
-      locked: true,
-    },
   ]
 
-  const generatedCount = drafts.length + (summary ? 1 : 0) + (synopsis ? 1 : 0)
+  const generatedCount = drafts.length + (summary ? 1 : 0) + (synopsis ? 1 : 0) + (precedent ? 1 : 0)
 
-  const handleOpenDraft = (draft: Draft) => {
+  type ActivityItem =
+    | { kind: 'draft'; data: Draft }
+    | { kind: 'summary'; data: CaseSummary }
+    | { kind: 'synopsis'; data: CaseSynopsis }
+    | { kind: 'precedent'; data: CasePrecedent }
+
+  const activityItems = useMemo((): ActivityItem[] => {
+    const items: ActivityItem[] = [
+      ...drafts.map(d => ({ kind: 'draft' as const, data: d })),
+      ...(summary ? [{ kind: 'summary' as const, data: summary }] : []),
+      ...(synopsis ? [{ kind: 'synopsis' as const, data: synopsis }] : []),
+      ...(precedent ? [{ kind: 'precedent' as const, data: precedent }] : []),
+    ]
+    return items.sort((a, b) => b.data.createdAt.getTime() - a.data.createdAt.getTime())
+  }, [drafts, summary, synopsis, precedent])
+
+  const handleOpenDraft = async (draft: Draft) => {
     if (draft.status !== 'completed') return
+    let d = draft
+    if (!d.content && fetchDraftContent) {
+      const fetched = await fetchDraftContent(d.id)
+      if (fetched) d = fetched
+    }
     const html = renderDraftToHtml(
-      draft.content,
-      draft.sections?.length ? draft.sections : undefined,
-      draft.templateType,
-      draft.contentFormat,
+      d.content,
+      d.sections?.length ? d.sections : undefined,
+      d.templateType,
+      d.contentFormat,
     )
-    setPreviewDoc({ title: draft.title, html })
+    setPreviewDoc({ title: d.title, html, editUrl: d.id ? `/documents?open=${d.id}&edit=true` : undefined })
   }
 
   return (
@@ -404,126 +464,166 @@ export function CaseStudioPanel({
           </div>
 
           <div className="space-y-0.5">
-            {/* Summary */}
-            {summary && (
-              <div
-                className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 transition-colors cursor-pointer"
-                onClick={handleOpenSummary}
-              >
-                <div className="flex-shrink-0 h-7 w-7 rounded-md bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center">
-                  <Sparkles className="h-3.5 w-3.5 text-kx-primary-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">Summary</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {summary.status === 'pending' && (
-                      <span className="flex items-center gap-1 text-[10px] text-kx-primary-600">
-                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                        Generating...
-                      </span>
-                    )}
-                    {summary.status === 'failed' && (
-                      <span className="flex items-center gap-1 text-[10px] text-red-500">
-                        <AlertCircle className="h-2.5 w-2.5" />
-                        Failed
-                      </span>
-                    )}
-                    {summary.status === 'completed' && (
-                      <span className="text-[10px] text-ledger-gray-500">
-                        {formatRelativeTime(summary.createdAt)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {onDeleteSummary && (
-                  <GeneratedItemMenu
-                    onDelete={onDeleteSummary}
-                    onDownloadPdf={summary.status === 'completed' ? handleDownloadSummaryPdf : undefined}
-                  />
-                )}
-              </div>
-            )}
-
-            {/* Synopsis */}
-            {synopsis && (
-              <div
-                className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-colors cursor-pointer"
-                onDoubleClick={handleOpenSynopsis}
-              >
-                <div className="flex-shrink-0 h-7 w-7 rounded-md bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center">
-                  <BookOpen className="h-3.5 w-3.5 text-teal-600" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">Case Synopsis</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    {synopsis.status === 'pending' && (
-                      <span className="flex items-center gap-1 text-[10px] text-teal-600">
-                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                        Generating...
-                      </span>
-                    )}
-                    {synopsis.status === 'failed' && (
-                      <span className="flex items-center gap-1 text-[10px] text-red-500">
-                        <AlertCircle className="h-2.5 w-2.5" />
-                        Failed
-                      </span>
-                    )}
-                    {synopsis.status === 'completed' && (
-                      <span className="text-[10px] text-ledger-gray-500">
-                        {formatRelativeTime(synopsis.createdAt)}
-                      </span>
+            {activityItems.map(item => {
+              if (item.kind === 'precedent') {
+                const p = item.data
+                const isRenamingP = renamingId === `precedent-${p.id}`
+                return (
+                  <div
+                    key={`precedent-${p.id}`}
+                    className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors cursor-pointer"
+                    onClick={() => {
+                      if (p.status !== 'completed') return
+                      const html = renderDraftToHtml(p.content)
+                      setPreviewDoc({ title: precedentDisplayName, html, editUrl: p.id ? `/documents?open=${p.id}&edit=true` : undefined })
+                    }}
+                  >
+                    <div className="flex-shrink-0 h-7 w-7 rounded-md bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">
+                      <Search className="h-3.5 w-3.5 text-rose-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {isRenamingP ? (
+                        <InlineRenameInput
+                          defaultValue={precedentDisplayName}
+                          onCommit={async v => { setRenamingId(null); setPrecedentDisplayName(v); await onRenamePrecedent?.(v) }}
+                          onCancel={() => setRenamingId(null)}
+                        />
+                      ) : (
+                        <>
+                          <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{precedentDisplayName}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {p.status === 'pending' && <span className="flex items-center gap-1 text-[10px] text-rose-600"><Loader2 className="h-2.5 w-2.5 animate-spin" />Generating...</span>}
+                            {p.status === 'failed' && <span className="flex items-center gap-1 text-[10px] text-red-500"><AlertCircle className="h-2.5 w-2.5" />Failed</span>}
+                            {p.status === 'completed' && <span className="text-[10px] text-ledger-gray-500">{formatRelativeTime(p.createdAt)}</span>}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {!isRenamingP && (
+                      <GeneratedItemMenu
+                        onRename={() => setRenamingId(`precedent-${p.id}`)}
+                        onDownloadPdf={p.status === 'completed' ? () => downloadAsPdf(precedentDisplayName, p.content) : undefined}
+                        onDownloadDoc={p.status === 'completed' ? () => downloadAsDoc(precedentDisplayName, p.content) : undefined}
+                        onDelete={onDeletePrecedent}
+                      />
                     )}
                   </div>
-                </div>
-                <GeneratedItemMenu onDelete={onDeleteSynopsis} />
-              </div>
-            )}
+                )
+              }
 
-            {/* Drafts */}
-            {drafts.map(draft => {
+              if (item.kind === 'summary') {
+                const s = item.data
+                const isRenamingS = renamingId === `summary-${s.id}`
+                return (
+                  <div
+                    key={`summary-${s.id}`}
+                    className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
+                    onClick={() => { if (!isRenamingS) handleOpenSummary() }}
+                  >
+                    <div className="flex-shrink-0 h-7 w-7 rounded-md bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                      <FileText className="h-3.5 w-3.5 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {isRenamingS ? (
+                        <InlineRenameInput
+                          defaultValue={summaryDisplayName}
+                          onCommit={async v => { setRenamingId(null); setSummaryDisplayName(v); await onRenameSummary?.(v) }}
+                          onCancel={() => setRenamingId(null)}
+                        />
+                      ) : (
+                        <>
+                          <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{summaryDisplayName}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {s.status === 'pending' && <span className="flex items-center gap-1 text-[10px] text-blue-600"><Loader2 className="h-2.5 w-2.5 animate-spin" />Generating...</span>}
+                            {s.status === 'failed' && <span className="flex items-center gap-1 text-[10px] text-red-500"><AlertCircle className="h-2.5 w-2.5" />Failed</span>}
+                            {s.status === 'completed' && <span className="text-[10px] text-ledger-gray-500">{formatRelativeTime(s.createdAt)}</span>}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {!isRenamingS && onDeleteSummary && (
+                      <GeneratedItemMenu
+                        onRename={() => setRenamingId(`summary-${s.id}`)}
+                        onDownloadPdf={s.status === 'completed' ? () => downloadAsPdf(summaryDisplayName, s.content) : undefined}
+                        onDownloadDoc={s.status === 'completed' ? () => downloadAsDoc(summaryDisplayName, s.content) : undefined}
+                        onDelete={onDeleteSummary}
+                      />
+                    )}
+                  </div>
+                )
+              }
+
+              if (item.kind === 'synopsis') {
+                const s = item.data
+                const isRenamingY = renamingId === `synopsis-${s.id}`
+                return (
+                  <div
+                    key={`synopsis-${s.id}`}
+                    className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-colors cursor-pointer"
+                    onClick={() => { if (!isRenamingY) handleOpenSynopsis() }}
+                  >
+                    <div className="flex-shrink-0 h-7 w-7 rounded-md bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center">
+                      <BookOpen className="h-3.5 w-3.5 text-teal-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      {isRenamingY ? (
+                        <InlineRenameInput
+                          defaultValue={synopsisDisplayName}
+                          onCommit={async v => { setRenamingId(null); setSynopsisDisplayName(v); await onRenameSynopsis?.(v) }}
+                          onCancel={() => setRenamingId(null)}
+                        />
+                      ) : (
+                        <>
+                          <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{synopsisDisplayName}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {s.status === 'pending' && <span className="flex items-center gap-1 text-[10px] text-teal-600"><Loader2 className="h-2.5 w-2.5 animate-spin" />Generating...</span>}
+                            {s.status === 'failed' && <span className="flex items-center gap-1 text-[10px] text-red-500"><AlertCircle className="h-2.5 w-2.5" />Failed</span>}
+                            {s.status === 'completed' && <span className="text-[10px] text-ledger-gray-500">{formatRelativeTime(s.createdAt)}</span>}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    {!isRenamingY && (
+                      <GeneratedItemMenu
+                        onRename={() => setRenamingId(`synopsis-${s.id}`)}
+                        onDownloadPdf={s.status === 'completed' ? () => downloadAsPdf(synopsisDisplayName, s.content) : undefined}
+                        onDownloadDoc={s.status === 'completed' ? () => downloadAsDoc(synopsisDisplayName, s.content) : undefined}
+                        onDelete={onDeleteSynopsis}
+                      />
+                    )}
+                  </div>
+                )
+              }
+
+              // kind === 'draft'
+              const draft = item.data
               const isRenaming = renamingId === draft.id
               return (
                 <div
-                  key={draft.id}
+                  key={`draft-${draft.id}`}
                   className={cn(
                     'group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 transition-colors',
                     draft.status === 'completed' && 'cursor-pointer'
                   )}
-                  onDoubleClick={() => handleOpenDraft(draft)}
+                  onClick={() => handleOpenDraft(draft)}
                 >
                   <div className="flex-shrink-0 h-7 w-7 rounded-md bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center">
-                    <Sparkles className="h-3.5 w-3.5 text-kx-primary-600" />
+                    <SquarePen className="h-3.5 w-3.5 text-kx-primary-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     {isRenaming ? (
                       <InlineRenameInput
                         defaultValue={draft.title}
-                        onCommit={async v => {
-                          setRenamingId(null)
-                          await onRenameDraft(draft.id, v)
-                        }}
+                        onCommit={async v => { setRenamingId(null); await onRenameDraft(draft.id, v) }}
                         onCancel={() => setRenamingId(null)}
                       />
                     ) : (
                       <>
-                        <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">
-                          {draft.title}
-                        </p>
+                        <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{draft.title}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          {draft.status === 'pending' && (
-                            <span className="flex items-center gap-1 text-[10px] text-kx-primary-600">
-                              <Loader2 className="h-2.5 w-2.5 animate-spin" />
-                              Generating...
-                            </span>
-                          )}
-                          {draft.status === 'failed' && (
-                            <span className="text-[10px] text-red-500">Failed</span>
-                          )}
-                          {draft.status === 'completed' && (
-                            <span className="text-[10px] text-ledger-gray-500">
-                              {formatRelativeTime(draft.createdAt)}
-                            </span>
-                          )}
+                          {draft.status === 'pending' && <span className="flex items-center gap-1 text-[10px] text-kx-primary-600"><Loader2 className="h-2.5 w-2.5 animate-spin" />Generating...</span>}
+                          {draft.status === 'failed' && <span className="flex items-center gap-1 text-[10px] text-red-500"><AlertCircle className="h-2.5 w-2.5" />Failed</span>}
+                          {draft.status === 'completed' && <span className="text-[10px] text-ledger-gray-500">{formatRelativeTime(draft.createdAt)}</span>}
                         </div>
                       </>
                     )}
@@ -531,6 +631,8 @@ export function CaseStudioPanel({
                   {!isRenaming && (
                     <GeneratedItemMenu
                       onRename={() => setRenamingId(draft.id)}
+                      onDownloadPdf={draft.status === 'completed' && draft.content ? () => downloadAsPdf(draft.title, draft.content, draft.sections, draft.contentFormat) : undefined}
+                      onDownloadDoc={draft.status === 'completed' && draft.content ? () => downloadAsDoc(draft.title, draft.content, draft.sections, draft.contentFormat) : undefined}
                       onDelete={() => onDeleteDraft(draft.id)}
                     />
                   )}
@@ -554,9 +656,9 @@ export function CaseStudioPanel({
           onClose={() => setPreviewDoc(null)}
           title={previewDoc.title}
           htmlContent={previewDoc.html}
-          onEdit={previewDoc.isSummary && summary?.id && summary.id !== 'pending'
-            ? () => { setPreviewDoc(null); navigate(`/documents?open=${summary.id}&edit=true`) }
-            : undefined}
+          onDownloadPdf={() => downloadAsPdf(previewDoc.title, previewDoc.html)}
+          onDownloadDoc={() => downloadAsDoc(previewDoc.title, previewDoc.html)}
+          onEdit={previewDoc.editUrl ? () => { setPreviewDoc(null); navigate(previewDoc.editUrl!) } : undefined}
         />
       )}
     </div>

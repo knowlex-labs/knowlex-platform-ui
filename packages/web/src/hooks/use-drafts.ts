@@ -77,7 +77,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
           } catch { /* leave empty, user can still view via download */ }
           setDrafts((prev) => prev.map((d) =>
             d.id === documentId
-              ? { ...d, status: 'completed' as const, content: resolvedContent, title: doc.name || d.title }
+              ? { ...d, status: 'completed' as const, content: resolvedContent }
               : d
           ))
         } else if (normalizedStatus === 'failed') {
@@ -87,7 +87,35 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         }
       },
       onError: () => { streamsRef.current.delete(documentId) },
-      onEnd: () => { streamsRef.current.delete(documentId) },
+      onEnd: async () => {
+        streamsRef.current.delete(documentId)
+        // If still pending after stream closes, fetch the final status once
+        if (draftsRef.current.find(d => d.id === documentId)?.status === 'pending') {
+          try {
+            const doc = await workspaceApi.getDocument(caseIdRef.current, documentId)
+            const finalStatus = normalizeStatus(doc.jobStatus)
+            if (finalStatus === 'completed') {
+              let resolvedContent = ''
+              try {
+                resolvedContent = await workspaceApi.fetchDocumentContent({
+                  id: documentId,
+                  downloadUrl: doc.downloadUrl,
+                  signedUrl: doc.signedUrl,
+                })
+              } catch { /* leave empty */ }
+              setDrafts(prev => prev.map(d =>
+                d.id === documentId
+                  ? { ...d, status: 'completed' as const, content: resolvedContent }
+                  : d
+              ))
+            } else if (finalStatus === 'failed') {
+              setDrafts(prev => prev.map(d =>
+                d.id === documentId ? { ...d, status: 'failed' as const } : d
+              ))
+            }
+          } catch { /* ignore */ }
+        }
+      },
     })
     streamsRef.current.set(documentId, ctrl)
   }, [])
@@ -209,13 +237,13 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         const existing = draftsRef.current.find((d) => d.id === doc.id)
         return {
           id: doc.id,
-          title: doc.name || 'Untitled Draft',
+          title: existing?.title || doc.name || 'Untitled Draft',
           content: existing?.content || '', // Keep cached content, don't fetch new
           status: doc.jobStatus === JobStatus.COMPLETED ? 'completed' : doc.jobStatus === JobStatus.FAILED ? 'failed' : 'pending',
           sections: [],
           summary: '',
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: doc.createdAt ? new Date(doc.createdAt) : new Date(),
+          updatedAt: doc.updatedAt ? new Date(doc.updatedAt) : new Date(),
         }
       })
 

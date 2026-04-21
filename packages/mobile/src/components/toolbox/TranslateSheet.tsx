@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { submitTranslation, getDocument, downloadDocument } from '@knowlex/core/api/doc-processing-api';
-import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api';
+import { submitTranslation, downloadDocument } from '@knowlex/core/api/doc-processing-api';
+import { workspaceApi } from '@knowlex/core/api/workspace-api';
 import { useTheme } from '@/theme/useTheme';
 import { Button } from '@/components/ui/Button';
 
@@ -17,11 +17,11 @@ export function TranslateSheet({ visible, onClose, documentId, documentName }: P
   const [targetLang, setTargetLang] = useState('Hindi');
   const [processing, setProcessing] = useState(false);
   const [polling, setPolling] = useState(false);
-  const [result, setResult] = useState<DocumentRecord | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [result, setResult] = useState<{ id: string; name: string | null; downloadUrl?: string | null } | null>(null);
+  const streamCtrlRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    return () => { streamCtrlRef.current?.abort(); };
   }, []);
 
   const handleTranslate = async () => {
@@ -31,25 +31,23 @@ export function TranslateSheet({ visible, onClose, documentId, documentName }: P
       setProcessing(false);
       setPolling(true);
 
-      // Poll for completion
-      let count = 0;
-      pollRef.current = setInterval(async () => {
-        count++;
-        if (count > 60) { clearInterval(pollRef.current!); setPolling(false); Alert.alert('Timeout', 'Translation is taking too long. Check back later.'); return; }
-        try {
-          const updated = await getDocument(doc.id);
-          const status = (updated.jobStatus ?? '').toUpperCase();
-          if (status === 'COMPLETED') {
-            clearInterval(pollRef.current!);
+      streamCtrlRef.current?.abort();
+      streamCtrlRef.current = workspaceApi.streamDocumentStatus(doc.id, {
+        onStatus: (statusDoc) => {
+          const s = (statusDoc.jobStatus ?? '').toUpperCase();
+          if (s === 'COMPLETED') {
+            streamCtrlRef.current = null;
             setPolling(false);
-            setResult(updated);
-          } else if (status === 'FAILED' || status === 'CANCELLED') {
-            clearInterval(pollRef.current!);
+            setResult({ id: statusDoc.id, name: statusDoc.name, downloadUrl: statusDoc.downloadUrl });
+          } else if (s === 'FAILED' || s === 'CANCELLED') {
+            streamCtrlRef.current = null;
             setPolling(false);
             Alert.alert('Failed', 'Translation failed. Please try again.');
           }
-        } catch { /* continue polling */ }
-      }, 10000);
+        },
+        onError: () => { streamCtrlRef.current = null; setPolling(false); Alert.alert('Error', 'Translation failed'); },
+        onEnd: () => { streamCtrlRef.current = null; },
+      });
     } catch (err: unknown) {
       setProcessing(false);
       Alert.alert('Error', err instanceof Error ? err.message : 'Translation failed');
@@ -57,7 +55,8 @@ export function TranslateSheet({ visible, onClose, documentId, documentName }: P
   };
 
   const reset = () => {
-    if (pollRef.current) clearInterval(pollRef.current);
+    streamCtrlRef.current?.abort();
+    streamCtrlRef.current = null;
     setResult(null); setPolling(false); setProcessing(false); setTargetLang('Hindi'); onClose();
   };
 

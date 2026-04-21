@@ -23,9 +23,6 @@ interface GeneratedDoc {
   signedUrl?: string | null;
 }
 
-const POLL_INTERVAL = 10000;
-const MAX_POLLS = 60;
-
 export function ToolsTab({ caseId, overview }: ToolsTabProps) {
   const { colors, typography, spacing, radius } = useTheme();
   const [generatedDocs, setGeneratedDocs] = useState<GeneratedDoc[]>([]);
@@ -36,7 +33,7 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [docContents, setDocContents] = useState<Record<string, string>>({});
   const [loadingContent, setLoadingContent] = useState<string | null>(null);
-  const pollRef = useRef<Record<string, NodeJS.Timeout>>({});
+  const streamsRef = useRef<Map<string, AbortController>>(new Map());
 
   const fetchGenerated = useCallback(async () => {
     try {
@@ -68,7 +65,8 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
   useEffect(() => {
     fetchGenerated();
     return () => {
-      Object.values(pollRef.current).forEach(clearInterval);
+      for (const ctrl of streamsRef.current.values()) ctrl.abort();
+      streamsRef.current.clear();
     };
   }, [fetchGenerated]);
 
@@ -79,28 +77,20 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
     return 'pending';
   }
 
-  const startPolling = (docId: string) => {
-    let count = 0;
-    pollRef.current[docId] = setInterval(async () => {
-      count++;
-      if (count > MAX_POLLS) {
-        clearInterval(pollRef.current[docId]);
-        delete pollRef.current[docId];
-        return;
-      }
-      try {
-        const res = await workspaceApi.getDocument(caseId, docId);
-        const status = normalizeStatus(res.jobStatus);
-        if (status !== 'pending') {
-          clearInterval(pollRef.current[docId]);
-          delete pollRef.current[docId];
+  const startStream = (docId: string) => {
+    if (streamsRef.current.has(docId)) return;
+    const ctrl = workspaceApi.streamDocumentStatus(docId, {
+      onStatus: async (doc) => {
+        if (normalizeStatus(doc.jobStatus) !== 'pending') {
+          streamsRef.current.get(docId)?.abort();
+          streamsRef.current.delete(docId);
           await fetchGenerated();
         }
-      } catch {
-        clearInterval(pollRef.current[docId]);
-        delete pollRef.current[docId];
-      }
-    }, POLL_INTERVAL);
+      },
+      onError: () => { streamsRef.current.delete(docId); },
+      onEnd: () => { streamsRef.current.delete(docId); },
+    });
+    streamsRef.current.set(docId, ctrl);
   };
 
   const handleGenerate = async (docType: 'SUMMARY' | 'SYNOPSIS') => {
@@ -111,7 +101,7 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
         document_type: docType.toLowerCase(),
       });
       await fetchGenerated();
-      if (res.id) startPolling(res.id);
+      if (res.id) startStream(res.id);
     } catch (err: unknown) {
       Alert.alert('Error', err instanceof Error ? err.message : `Failed to generate ${docType.toLowerCase()}`);
     } finally {

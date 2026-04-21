@@ -20,6 +20,7 @@ import {
   downloadDocument,
   triggerDirectDownload,
   linkDocumentToCase,
+  getDocument,
   type DocumentRecordType,
 } from '@knowlex/core/api/doc-processing-api'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
@@ -811,7 +812,9 @@ export function DocumentsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [toolCtx, setToolCtx] = useState<ToolContext>({ id: null })
-  const [selectedDocId, setSelectedDocId] = useState<string | null>(null)
+  const [selectedDocId, setSelectedDocId] = useState<string | null>(
+    () => new URLSearchParams(window.location.search).get('open')
+  )
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
 
   // Filters / sort / pagination — all server-side
@@ -943,44 +946,50 @@ export function DocumentsPage() {
   }, []) // run once on mount
 
   const bgJobsRef = useRef<Map<string, string>>(new Map()) // documentId → targetLang
-  const listPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const streamsRef = useRef<Map<string, AbortController>>(new Map())
 
-  // Reactive poll: whenever allDocs has any PROCESSING generated doc, keep refreshing every 5s
+  // SSE: open one stream per PROCESSING generated doc, close when terminal
   useEffect(() => {
-    const hasProcessing = allDocs.some(d => GENERATED_DOC_TYPES.has(d.type) && d.jobStatus === JobStatus.PROCESSING)
-    if (hasProcessing) {
-      if (!listPollRef.current) {
-        listPollRef.current = setInterval(() => { fetchDocs() }, 10000)
-      }
-    } else {
-      if (listPollRef.current) {
-        clearInterval(listPollRef.current)
-        listPollRef.current = null
-      }
-    }
+    for (const doc of allDocs) {
+      if (!GENERATED_DOC_TYPES.has(doc.type)) continue
+      if (doc.jobStatus !== JobStatus.PROCESSING) continue
+      if (streamsRef.current.has(doc.id)) continue
 
-    // Fire toasts for tracked translation docs that have settled
-    for (const [docId, targetLang] of bgJobsRef.current) {
-      const doc = allDocs.find(d => d.id === docId)
-      if (!doc) continue
-      if (doc.jobStatus === JobStatus.COMPLETED) {
-        bgJobsRef.current.delete(docId)
-        toast({ title: 'Translation complete', description: `Translated to ${targetLang}.` })
-      } else if (doc.jobStatus === JobStatus.FAILED || doc.jobStatus === JobStatus.CANCELLED) {
-        bgJobsRef.current.delete(docId)
-        toast({ title: 'Translation failed', description: `Could not translate to ${targetLang}.`, variant: 'destructive' })
-      }
+      const docId = doc.id
+      const ctrl = workspaceApi.streamDocumentStatus(docId, {
+        onStatus: (statusDoc) => {
+          const s = (statusDoc.jobStatus ?? '').toUpperCase()
+          if (s === 'COMPLETED' || s === 'FAILED' || s === 'CANCELLED') {
+            streamsRef.current.get(docId)?.abort()
+            streamsRef.current.delete(docId)
+            const targetLang = bgJobsRef.current.get(docId)
+            if (targetLang) {
+              bgJobsRef.current.delete(docId)
+              if (s === 'COMPLETED') {
+                toast({ title: 'Translation complete', description: `Translated to ${targetLang}.` })
+              } else {
+                toast({ title: 'Translation failed', description: `Could not translate to ${targetLang}.`, variant: 'destructive' })
+              }
+            }
+            fetchDocs()
+          }
+        },
+        onError: () => { streamsRef.current.delete(docId) },
+        onEnd: () => { streamsRef.current.delete(docId) },
+      })
+      streamsRef.current.set(docId, ctrl)
     }
-
-    return () => {}
   }, [allDocs, fetchDocs])
 
-  useEffect(() => () => { if (listPollRef.current) clearInterval(listPollRef.current) }, [])
+  useEffect(() => () => {
+    for (const ctrl of streamsRef.current.values()) ctrl.abort()
+    streamsRef.current.clear()
+  }, [])
 
   const handleTranslationJobStarted = useCallback((jobId: string, targetLang: string) => {
     setSelectedDocId(null)
-    fetchDocs() // show the PROCESSING doc immediately
     bgJobsRef.current.set(jobId, targetLang)
+    fetchDocs() // show the PROCESSING doc immediately; SSE stream opens via the allDocs effect
   }, [fetchDocs])
 
   // Auto-open doc from ?open= param once docs are loaded
@@ -990,6 +999,17 @@ export function DocumentsPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openDocId, allDocs])
+
+  // If selectedDocId is set but not found in allDocs (e.g. paginated out), fetch it directly
+  useEffect(() => {
+    if (!selectedDocId || allDocs.find(d => d.id === selectedDocId)) return
+    if (!isLoading) {
+      getDocument(selectedDocId)
+        .then(doc => setAllDocs(prev => prev.find(d => d.id === doc.id) ? prev : [doc, ...prev]))
+        .catch(() => {})
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDocId, isLoading])
 
   // Reset page when filters or page size change
   useEffect(() => { setPage(0) }, [typeFilters, caseFilter, sort, pageSize])
@@ -1126,9 +1146,14 @@ export function DocumentsPage() {
 
       {/* ── MAIN PANEL ── */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {viewerOpen ? (
+        {viewerOpen && selectedDoc ? (
           /* Full-screen document viewer */
-          <DocumentViewer doc={selectedDoc!} onClose={closeViewer} onOpenTool={openTool} autoEdit={autoEditParam} />
+          <DocumentViewer doc={selectedDoc} onClose={closeViewer} onOpenTool={openTool} autoEdit={autoEditParam} />
+        ) : viewerOpen ? (
+          /* Waiting for doc to load */
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-ledger-gray-400" />
+          </div>
         ) : (
           /* Full-screen document listing */
           <>

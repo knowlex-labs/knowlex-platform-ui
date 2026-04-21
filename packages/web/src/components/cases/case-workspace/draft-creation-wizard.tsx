@@ -48,7 +48,8 @@ export interface DraftCreationWizardProps {
   onDiscard: (draftId: string) => void
   onCancel: () => void
   previewDraft?: Draft | null
-
+  defaultTemplateId?: string
+  initialFormValues?: Record<string, string>
 }
 
 function formatClientDetails(c: Client): string {
@@ -91,9 +92,12 @@ const CLIENT_FIELD_IDS = new Set([
 export function DraftCreationWizard({
   sources, judgments = [], client, respondentDetails, onSaveRespondent,
   onGenerate, onSave, onDiscard, onCancel, previewDraft = null,
+  defaultTemplateId, initialFormValues,
 }: DraftCreationWizardProps) {
-  const [step, setStep] = useState<WizardStep>('templates')
-  const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
+  const [step, setStep] = useState<WizardStep>(defaultTemplateId ? 'details' : 'templates')
+  const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(
+    defaultTemplateId ? (DRAFT_TEMPLATES.find(t => t.id === defaultTemplateId) ?? null) : null
+  )
   const [formData, setFormData] = useState<TemplateFormData>({})
   const [localSourceIds, setLocalSourceIds] = useState<Set<string>>(new Set())
   const [sourceDropdownOpen, setSourceDropdownOpen] = useState(false)
@@ -129,6 +133,9 @@ export function DraftCreationWizard({
         initial[field.id] = ''
       }
     })
+    if (initialFormValues) {
+      Object.entries(initialFormValues).forEach(([k, v]) => { if (v) initial[k] = v })
+    }
     setFormData(initial)
     setLocalSourceIds(new Set())
     setSelectedClientIdFor({})

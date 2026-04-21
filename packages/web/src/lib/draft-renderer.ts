@@ -165,7 +165,6 @@ function buildExportHtml(title: string, content: string, sections?: DraftSection
     </style>
   </head>
   <body>
-    <h1>${escapeHtml(title)}</h1>
     ${bodyHtml}
   </body>
 </html>`

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
-import type { CaseSynopsis } from '@knowlex/core/types'
+import type { CasePrecedent } from '@knowlex/core/types'
 
-export function useSynopsis(caseId: string) {
-  const [synopsis, setSynopsis] = useState<CaseSynopsis | null>(null)
+export function usePrecedent(caseId: string) {
+  const [precedent, setPrecedent] = useState<CasePrecedent | null>(null)
   const [isLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -16,23 +16,11 @@ export function useSynopsis(caseId: string) {
     streamCtrlRef.current = null
   }, [])
 
-  type RawDoc = {
-    id: string
-    status?: string
-    jobStatus?: string
-    draft_body?: string
-    content?: string
-    signedUrl?: string
-    downloadUrl?: string
-    created_at?: string
-    updated_at?: string
-    createdAt?: string
-    updatedAt?: string
-  }
+  type RawDoc = { id: string; status?: string; jobStatus?: string; draft_body?: string; content?: string; signedUrl?: string; downloadUrl?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }
 
-  const mapDoc = (raw: RawDoc, fetchedContent?: string): CaseSynopsis => {
+  const mapDoc = (raw: RawDoc, fetchedContent?: string): CasePrecedent => {
     const rawStatus = (raw.status ?? raw.jobStatus ?? 'pending').toLowerCase()
-    const status = rawStatus === 'processing' ? 'pending' : (rawStatus as CaseSynopsis['status'])
+    const status = rawStatus === 'processing' ? 'pending' : (rawStatus as CasePrecedent['status'])
     return {
       id: raw.id,
       status,
@@ -43,16 +31,16 @@ export function useSynopsis(caseId: string) {
   }
 
   const resolveTerminal = useCallback(async (documentId: string, jobStatus: string, downloadUrl?: string | null, signedUrl?: string | null) => {
-    const s = jobStatus.toLowerCase()
-    if (s === 'completed') {
+    const rawStatus = jobStatus.toLowerCase()
+    if (rawStatus === 'completed') {
       let fetchedContent = ''
       try {
         fetchedContent = await workspaceApi.fetchDocumentContent({ id: documentId, downloadUrl: downloadUrl ?? undefined, signedUrl: signedUrl ?? undefined })
       } catch { /* leave empty */ }
-      setSynopsis(prev => ({ id: documentId, status: 'completed', content: fetchedContent, createdAt: prev?.createdAt ?? new Date(), updatedAt: new Date() }))
+      setPrecedent(prev => ({ id: documentId, status: 'completed', content: fetchedContent, createdAt: prev?.createdAt ?? new Date(), updatedAt: new Date() }))
       setIsGenerating(false)
-    } else if (s === 'failed') {
-      setSynopsis(prev => prev ? { ...prev, status: 'failed' } : null)
+    } else if (rawStatus === 'failed') {
+      setPrecedent(prev => prev ? { ...prev, status: 'failed' } : null)
       setIsGenerating(false)
     }
   }, [])
@@ -73,6 +61,7 @@ export function useSynopsis(caseId: string) {
       onEnd: async () => {
         stopStream()
         if (!receivedTerminal) {
+          // Stream ended before a terminal event — fetch final state once
           try {
             const raw = await workspaceApi.getDocument('', documentId) as RawDoc
             const s = (raw.status ?? raw.jobStatus ?? '').toLowerCase()
@@ -85,14 +74,14 @@ export function useSynopsis(caseId: string) {
     })
   }, [stopStream, resolveTerminal])
 
-  const fetchSynopsis = useCallback(async (): Promise<CaseSynopsis | null> => {
+  const fetchPrecedent = useCallback(async (): Promise<CasePrecedent | null> => {
     try {
       let raw: RawDoc | null = null
 
       if (documentIdRef.current) {
-        raw = (await workspaceApi.getDocument(caseId, documentIdRef.current)) as RawDoc
+        raw = await workspaceApi.getDocument(caseId, documentIdRef.current) as RawDoc
       } else {
-        const docs = await workspaceApi.getCaseDocuments(caseId, 'SYNOPSIS')
+        const docs = await workspaceApi.getCaseDocuments(caseId, 'PRECEDENT')
         if (docs && docs.length > 0) {
           raw = docs[0] as RawDoc
           documentIdRef.current = raw.id
@@ -113,53 +102,41 @@ export function useSynopsis(caseId: string) {
             downloadUrl: raw.downloadUrl,
             signedUrl: raw.signedUrl,
           })
-        } catch {
-          // fall back to empty string
-        }
+        } catch { /* fall back to empty string */ }
       }
 
       const mapped = mapDoc(raw, fetchedContent)
-      setSynopsis(mapped)
+      setPrecedent(mapped)
 
-      // Resume streaming if doc is still processing (e.g., after page reload)
       if (isProcessing && !streamCtrlRef.current) {
         startStream(raw.id)
       }
 
       return mapped
-    } catch {
-      // 404 or no synopsis yet
-    }
+    } catch { /* 404 or no precedent yet */ }
     return null
   }, [caseId, startStream])
 
   useEffect(() => {
-    fetchSynopsis()
-  }, [fetchSynopsis])
+    fetchPrecedent()
+  }, [fetchPrecedent])
 
-  // Stop stream when caseId changes or on unmount
   useEffect(() => {
     return () => stopStream()
   }, [caseId, stopStream])
 
-  const generateSynopsis = useCallback(async (webSearch?: boolean) => {
+  const generatePrecedent = useCallback(async () => {
     setError(null)
     setIsGenerating(true)
-    setSynopsis((prev) =>
+    setPrecedent((prev) =>
       prev
         ? { ...prev, status: 'pending', content: '' }
-        : {
-            id: 'pending',
-            status: 'pending',
-            content: '',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
+        : { id: 'pending', status: 'pending', content: '', createdAt: new Date(), updatedAt: new Date() }
     )
     try {
       const doc = await workspaceApi.createDocument(caseId, {
-        document_type: 'SYNOPSIS',
-        ...(webSearch ? { web_search: true } : {}),
+        document_type: 'PRECEDENT',
+        case_id: caseId,
       } as Parameters<typeof workspaceApi.createDocument>[1])
       if (doc?.id) {
         documentIdRef.current = doc.id
@@ -167,30 +144,30 @@ export function useSynopsis(caseId: string) {
       }
     } catch {
       setIsGenerating(false)
-      setError('Failed to generate synopsis. Please try again.')
-      setSynopsis(null)
+      setError('Failed to generate precedent analysis. Please try again.')
+      setPrecedent(null)
     }
   }, [caseId, startStream])
 
-  const deleteSynopsis = useCallback(async () => {
+  const deletePrecedent = useCallback(async () => {
     try {
-      const id = documentIdRef.current ?? synopsis?.id
+      const id = documentIdRef.current ?? precedent?.id
       if (!id || id === 'pending') return
       await workspaceApi.deleteDocuments([id])
       documentIdRef.current = null
-      setSynopsis(null)
+      setPrecedent(null)
     } catch {
-      setError('Failed to delete synopsis.')
+      setError('Failed to delete precedent analysis.')
     }
-  }, [caseId, synopsis?.id])
+  }, [caseId, precedent?.id])
 
   return {
-    synopsis,
+    precedent,
     isLoading,
     isGenerating,
     error,
-    fetchSynopsis,
-    generateSynopsis,
-    deleteSynopsis,
+    fetchPrecedent,
+    generatePrecedent,
+    deletePrecedent,
   }
 }

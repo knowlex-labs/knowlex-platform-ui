@@ -3,6 +3,7 @@ export enum DocumentType {
   DRAFT        = 'DRAFT',
   SUMMARY      = 'SUMMARY',
   SYNOPSIS     = 'SYNOPSIS',
+  PRECEDENT    = 'PRECEDENT',
   JUDGMENT     = 'JUDGMENT',
   BRIEF        = 'BRIEF',
   TRANSLATION  = 'TRANSLATION',
@@ -13,6 +14,7 @@ export const GENERATED_DOC_TYPES = new Set<DocumentType>([
   DocumentType.DRAFT,
   DocumentType.SUMMARY,
   DocumentType.SYNOPSIS,
+  DocumentType.PRECEDENT,
   DocumentType.TRANSLATION,
 ])
 
@@ -21,6 +23,7 @@ export const TEXT_DOC_TYPES = new Set<DocumentType>([
   DocumentType.DRAFT,
   DocumentType.SUMMARY,
   DocumentType.SYNOPSIS,
+  DocumentType.PRECEDENT,
 ])
 
 export enum IndexingStatus {
@@ -170,6 +173,15 @@ export interface CaseSummary {
 
 // Case synopsis
 export interface CaseSynopsis {
+  id: string
+  status: 'pending' | 'completed' | 'failed'
+  content: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Case precedent analysis
+export interface CasePrecedent {
   id: string
   status: 'pending' | 'completed' | 'failed'
   content: string

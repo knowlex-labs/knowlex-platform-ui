@@ -5,9 +5,19 @@ import { draftChatApi } from '@knowlex/core/api/draft-chat-api'
 type ToolCall = DraftChatMessage['toolCalls'] extends Array<infer T> | undefined ? T : never
 
 const DEFAULT_SETTINGS: DraftChatSettings = {
-  tone: 'formal',
-  style: 'balanced',
+  tone: 'conversational',
+  style: 'detailed',
   model: 'gemini_flash',
+}
+
+const SETTINGS_STORAGE_KEY = 'knowlex_draft_chat_settings'
+
+function loadPersistedSettings(): DraftChatSettings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
+    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
+  } catch { /* ignore */ }
+  return DEFAULT_SETTINGS
 }
 
 export function useDraftChat(caseId: string) {
@@ -17,7 +27,7 @@ export function useDraftChat(caseId: string) {
   const [sessions, setSessions] = useState<DraftChatSession[]>([])
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [isLoadingSessions, setIsLoadingSessions] = useState(false)
-  const [settings, setSettings] = useState<DraftChatSettings>(DEFAULT_SETTINGS)
+  const [settings, setSettings] = useState<DraftChatSettings>(loadPersistedSettings)
 
   const abortControllerRef = useRef<AbortController | null>(null)
   const answerContentRef = useRef('')
@@ -374,6 +384,7 @@ export function useDraftChat(caseId: string) {
     (updates: Partial<DraftChatSettings>) => {
       setSettings((prev) => {
         const next = { ...prev, ...updates }
+        try { localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next)) } catch { /* ignore */ }
         if (activeSessionId) {
           draftChatApi.updateDefaults(caseId, activeSessionId, next.tone, next.style).catch(() => {})
         }

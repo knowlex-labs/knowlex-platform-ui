@@ -2,25 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import type { CaseSummary } from '@knowlex/core/types'
 
-const POLL_INTERVAL_MS = 6000
-const MAX_POLL_ATTEMPTS = 60
-
 export function useSummary(caseId: string) {
   const [summary, setSummary] = useState<CaseSummary | null>(null)
   const [isLoading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const pollAttemptsRef = useRef(0)
+  const streamCtrlRef = useRef<AbortController | null>(null)
   const documentIdRef = useRef<string | null>(null)
 
-  const stopPolling = useCallback(() => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current)
-      pollingIntervalRef.current = null
-    }
-    pollAttemptsRef.current = 0
+  const stopStream = useCallback(() => {
+    streamCtrlRef.current?.abort()
+    streamCtrlRef.current = null
   }, [])
 
   type RawDoc = { id: string; status?: string; jobStatus?: string; draft_body?: string; content?: string; signedUrl?: string; downloadUrl?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }
@@ -36,6 +29,49 @@ export function useSummary(caseId: string) {
       updatedAt: new Date(raw.updated_at ?? raw.updatedAt ?? Date.now()),
     }
   }
+
+  const resolveTerminal = useCallback(async (documentId: string, jobStatus: string, downloadUrl?: string | null, signedUrl?: string | null) => {
+    const s = jobStatus.toLowerCase()
+    if (s === 'completed') {
+      let fetchedContent = ''
+      try {
+        fetchedContent = await workspaceApi.fetchDocumentContent({ id: documentId, downloadUrl: downloadUrl ?? undefined, signedUrl: signedUrl ?? undefined })
+      } catch { /* leave empty */ }
+      setSummary(prev => ({ id: documentId, status: 'completed', content: fetchedContent, createdAt: prev?.createdAt ?? new Date(), updatedAt: new Date() }))
+      setIsGenerating(false)
+    } else if (s === 'failed') {
+      setSummary(prev => prev ? { ...prev, status: 'failed' } : null)
+      setIsGenerating(false)
+    }
+  }, [])
+
+  const startStream = useCallback((documentId: string) => {
+    stopStream()
+    let receivedTerminal = false
+    streamCtrlRef.current = workspaceApi.streamDocumentStatus(documentId, {
+      onStatus: async (doc) => {
+        const s = (doc.jobStatus ?? '').toLowerCase()
+        if (s === 'completed' || s === 'failed') {
+          receivedTerminal = true
+          await resolveTerminal(documentId, doc.jobStatus, doc.downloadUrl, doc.signedUrl)
+          stopStream()
+        }
+      },
+      onError: () => { stopStream(); setIsGenerating(false) },
+      onEnd: async () => {
+        stopStream()
+        if (!receivedTerminal) {
+          try {
+            const raw = await workspaceApi.getDocument('', documentId) as RawDoc
+            const s = (raw.status ?? raw.jobStatus ?? '').toLowerCase()
+            if (s === 'completed' || s === 'failed') {
+              await resolveTerminal(documentId, s, raw.downloadUrl, raw.signedUrl)
+            }
+          } catch { /* ignore */ }
+        }
+      },
+    })
+  }, [stopStream, resolveTerminal])
 
   const fetchSummary = useCallback(async (): Promise<CaseSummary | null> => {
     try {
@@ -55,6 +91,7 @@ export function useSummary(caseId: string) {
 
       const rawStatus = (raw.status ?? raw.jobStatus ?? '').toLowerCase()
       const isCompleted = rawStatus === 'completed'
+      const isProcessing = rawStatus === 'processing' || rawStatus === 'pending'
 
       let fetchedContent: string | undefined
       if (isCompleted && (raw.downloadUrl ?? raw.signedUrl)) {
@@ -64,50 +101,30 @@ export function useSummary(caseId: string) {
             downloadUrl: raw.downloadUrl,
             signedUrl: raw.signedUrl,
           })
-        } catch {
-          // fall back to empty string
-        }
+        } catch { /* fall back to empty string */ }
       }
 
       const mapped = mapDoc(raw, fetchedContent)
       setSummary(mapped)
+
+      // Resume streaming if doc is still processing (e.g., after page reload)
+      if (isProcessing && !streamCtrlRef.current) {
+        startStream(raw.id)
+      }
+
       return mapped
-    } catch {
-      // 404 or no summary yet
-    }
+    } catch { /* 404 or no summary yet */ }
     return null
-  }, [caseId])
+  }, [caseId, startStream])
 
-  const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current) return
-    pollAttemptsRef.current = 0
-
-    pollingIntervalRef.current = setInterval(async () => {
-      pollAttemptsRef.current++
-
-      if (pollAttemptsRef.current > MAX_POLL_ATTEMPTS) {
-        stopPolling()
-        setIsGenerating(false)
-        setSummary((prev) => prev ? { ...prev, status: 'failed' } : null)
-        return
-      }
-
-      const current = await fetchSummary()
-      if (current && (current.status === 'completed' || current.status === 'failed')) {
-        stopPolling()
-        setIsGenerating(false)
-      }
-    }, POLL_INTERVAL_MS)
-  }, [fetchSummary, stopPolling])
-
-  // Fetch existing summary on mount
   useEffect(() => {
     fetchSummary()
   }, [fetchSummary])
 
+  // Stop stream when caseId changes or on unmount
   useEffect(() => {
-    return () => stopPolling()
-  }, [stopPolling])
+    return () => stopStream()
+  }, [caseId, stopStream])
 
   const generateSummary = useCallback(async (webSearch?: boolean) => {
     setError(null)
@@ -124,14 +141,14 @@ export function useSummary(caseId: string) {
       } as Parameters<typeof workspaceApi.createDocument>[1])
       if (doc?.id) {
         documentIdRef.current = doc.id
+        startStream(doc.id)
       }
-      startPolling()
     } catch {
       setIsGenerating(false)
       setError('Failed to generate summary. Please try again.')
       setSummary(null)
     }
-  }, [caseId, startPolling])
+  }, [caseId, startStream])
 
   const deleteSummary = useCallback(async () => {
     try {
