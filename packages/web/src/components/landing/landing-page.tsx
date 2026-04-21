@@ -2,9 +2,6 @@ import { LandingHeader } from './landing-header'
 import { HeroSection } from './hero-section'
 import { FeaturesSection } from './features-section'
 import { TemplatesMarquee } from './templates-marquee'
-import { AboutSection } from './about-section'
-import { TeamSection } from './team-section'
-import { PricingSection } from './pricing-section'
 import { FAQSection } from './faq-section'
 import { LandingFooter } from './landing-footer'
 
@@ -19,9 +16,6 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
       <HeroSection />
       <FeaturesSection />
       <TemplatesMarquee />
-      <AboutSection />
-      <TeamSection />
-      <PricingSection />
       <FAQSection />
       <LandingFooter />
     </div>

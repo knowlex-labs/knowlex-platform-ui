@@ -4,7 +4,7 @@ export function AboutSection() {
   const reduceMotion = useReducedMotion()
 
   return (
-    <section id="about" className="py-16 sm:py-20 md:py-28 bg-ledger-gray-50">
+    <section id="about" className="py-16 sm:py-20 md:py-24 bg-ledger-gray-50">
       <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
         <motion.div
           initial={reduceMotion ? false : { opacity: 0, y: 20 }}

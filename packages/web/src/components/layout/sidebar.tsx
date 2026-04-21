@@ -316,8 +316,17 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
 
 function PlanBadge({ planType, collapsed }: { planType?: string; collapsed: boolean }) {
   const isFree = !planType || planType === 'FREE'
+  const isPlus = planType === 'PLUS'
   const isPremium = planType === 'PREMIUM'
-  const label = isFree ? 'Free' : isPremium ? 'Premium' : 'Pro'
+  const label = isFree ? 'Free' : isPremium ? 'Premium' : isPlus ? 'Plus' : 'Pro'
+
+  const colorClass = isFree
+    ? 'bg-ledger-gray-200 text-ledger-gray-600 dark:bg-ledger-gray-700 dark:text-ledger-gray-400'
+    : isPremium
+      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
+      : isPlus
+        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400'
+        : 'bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/40 dark:text-kx-primary-400'
 
   if (collapsed) {
     return (
@@ -325,14 +334,10 @@ function PlanBadge({ planType, collapsed }: { planType?: string; collapsed: bool
         title={label}
         className={cn(
           'mx-auto mt-1 w-7 h-4 rounded-full flex items-center justify-center text-[9px] font-bold',
-          isFree
-            ? 'bg-ledger-gray-200 text-ledger-gray-600 dark:bg-ledger-gray-700 dark:text-ledger-gray-400'
-            : isPremium
-              ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
-              : 'bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/40 dark:text-kx-primary-400'
+          colorClass
         )}
       >
-        {isFree ? 'F' : isPremium ? '✦' : 'P'}
+        {isFree ? 'F' : isPremium ? '✦' : isPlus ? '+' : 'P'}
       </div>
     )
   }
@@ -341,11 +346,7 @@ function PlanBadge({ planType, collapsed }: { planType?: string; collapsed: bool
     <span
       className={cn(
         'ml-1.5 px-1.5 py-0.5 rounded text-[10px] font-semibold tracking-wide',
-        isFree
-          ? 'bg-ledger-gray-200 text-ledger-gray-600 dark:bg-ledger-gray-700 dark:text-ledger-gray-400'
-          : isPremium
-            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400'
-            : 'bg-kx-primary-100 text-kx-primary-700 dark:bg-kx-primary-900/40 dark:text-kx-primary-400'
+        colorClass
       )}
     >
       {label}

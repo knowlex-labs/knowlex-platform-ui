@@ -41,6 +41,17 @@ export function LandingRoute() {
     return () => window.removeEventListener('toast:show', handleToastEvent)
   }, [toast])
 
+  // Scroll to hash anchor after landing page renders (e.g. /#features from other pages)
+  React.useEffect(() => {
+    const hash = window.location.hash.slice(1)
+    if (!hash) return
+    // Defer so sections are in the DOM before scrolling
+    const id = requestAnimationFrame(() => {
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(id)
+  }, [])
+
   // Handle session expiry — redirect to login page
   React.useEffect(() => {
     const handleSessionExpired = () => {

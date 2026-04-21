@@ -26,6 +26,9 @@ import { BlogAdminList } from '@/components/admin/blog/blog-admin-list'
 import { BlogFormPage } from '@/components/admin/blog/blog-form-page'
 import { DocumentsPage } from '@/components/documents/documents-page'
 import { DraftingPage } from '@/components/drafting/drafting-page'
+import { PricingPage } from '@/components/landing/pricing-page'
+import { AboutPage } from '@/components/landing/about-page'
+import { CareersPage } from '@/components/landing/careers-page'
 
 const isDashboardSubdomain = window.location.hostname.startsWith('dashboard.')
 
@@ -41,6 +44,18 @@ export const router = createBrowserRouter([
   {
     path: '/signup',
     element: <SignupPage />,
+  },
+  {
+    path: '/pricing',
+    element: <PricingPage />,
+  },
+  {
+    path: '/about',
+    element: <AboutPage />,
+  },
+  {
+    path: '/careers',
+    element: <CareersPage />,
   },
   // Public blog (no auth required)
   {

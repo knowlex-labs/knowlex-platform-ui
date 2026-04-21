@@ -36,7 +36,7 @@ export function HeroSection() {
               initial={reduceMotion ? false : { opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: 'easeOut' }}
-              className="font-serif font-semibold text-white leading-[1.1] tracking-tight text-4xl sm:text-5xl md:text-6xl lg:text-[4rem] xl:text-[4.5rem]"
+              className="font-serif font-semibold text-white leading-[1.1] tracking-tight text-3xl sm:text-4xl md:text-5xl lg:text-[3rem] xl:text-[3.5rem]"
             >
               <span className="block">Your Smart</span>
               <span

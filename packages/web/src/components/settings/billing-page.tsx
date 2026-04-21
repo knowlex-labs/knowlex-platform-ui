@@ -172,7 +172,7 @@ function PlanSelector({ currentPlanName, currentBillingCycle, onSuccess }: PlanS
       </div>
 
       {/* Plan cards — single row */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         {paidPlans.map((plan) => {
           const planKey = getPlanTypeKey(plan)
           const isCurrent = currentPlanName?.toUpperCase() === planKey

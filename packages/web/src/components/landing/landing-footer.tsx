@@ -1,17 +1,18 @@
 import { Linkedin, Mail, MapPin } from 'lucide-react'
 import { APP_NAME } from '@/lib/constants'
+import { useNavigate } from 'react-router-dom'
 
 const PRODUCT_LINKS = [
-  { label: 'Features', sectionId: 'features' },
-  { label: 'Templates', sectionId: 'templates' },
-  { label: 'Pricing', sectionId: 'pricing' },
+  { label: 'Features', href: '/#features' },
+  { label: 'Pricing', href: '/pricing' },
 ]
 
-const COMPANY_LINKS: { label: string; sectionId?: string; href?: string }[] = [
-  { label: 'About', sectionId: 'about' },
-  { label: 'Team', sectionId: 'team' },
-  { label: 'FAQs', sectionId: 'faq' },
+const COMPANY_LINKS = [
+  { label: 'About', href: '/about' },
+  { label: 'Team', href: '/about' },
+  { label: 'FAQs', href: '/#faq' },
   { label: 'Blogs', href: '/blogs' },
+  { label: 'Careers', href: '/careers' },
 ]
 
 const SOCIAL_LINKS = [
@@ -19,12 +20,9 @@ const SOCIAL_LINKS = [
   { label: 'Email', href: 'mailto:nakul.jain@getknowlex.com', Icon: Mail },
 ]
 
-function scrollToSection(sectionId: string) {
-  document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' })
-}
-
 export function LandingFooter() {
   const currentYear = new Date().getFullYear()
+  const navigate = useNavigate()
 
   return (
     <footer className="bg-kx-primary-950 border-t border-white/10">
@@ -34,7 +32,7 @@ export function LandingFooter() {
           <div className="lg:col-span-5 space-y-5">
             <button
               type="button"
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={() => navigate('/')}
               className="flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
               <img src="/logo/knowlex_logo.png" alt={APP_NAME} className="h-7 w-auto invert" />
@@ -70,13 +68,12 @@ export function LandingFooter() {
             <ul className="space-y-3">
               {PRODUCT_LINKS.map((link) => (
                 <li key={link.label}>
-                  <button
-                    type="button"
-                    onClick={() => scrollToSection(link.sectionId)}
+                  <a
+                    href={link.href}
                     className="text-sm text-white/70 hover:text-white transition-colors"
                   >
                     {link.label}
-                  </button>
+                  </a>
                 </li>
               ))}
             </ul>
@@ -90,22 +87,12 @@ export function LandingFooter() {
             <ul className="space-y-3">
               {COMPANY_LINKS.map((link) => (
                 <li key={link.label}>
-                  {link.href ? (
-                    <a
-                      href={link.href}
-                      className="text-sm text-white/70 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => scrollToSection(link.sectionId!)}
-                      className="text-sm text-white/70 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </button>
-                  )}
+                  <a
+                    href={link.href}
+                    className="text-sm text-white/70 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </a>
                 </li>
               ))}
             </ul>

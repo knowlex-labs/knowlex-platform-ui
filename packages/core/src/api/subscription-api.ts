@@ -9,6 +9,7 @@ import type {
   Plan,
   Subscription,
   SubscriptionUsage,
+  SubscriptionPreferences,
   CreateSubscriptionRequest,
   CreateSubscriptionResponse,
   CancelSubscriptionRequest,
@@ -46,6 +47,10 @@ export const subscriptionApi = {
 
   getPayments: (): Promise<ApiResponse<PaymentRecord[]>> => {
     return apiClient.get<ApiResponse<PaymentRecord[]>>(`${SUBSCRIPTION_ENDPOINT}/payments`)
+  },
+
+  getPreferences: (): Promise<ApiResponse<SubscriptionPreferences>> => {
+    return apiClient.get<ApiResponse<SubscriptionPreferences>>(`${SUBSCRIPTION_ENDPOINT}/preferences`)
   },
 
   getInvoiceUrl: async (): Promise<string> => {

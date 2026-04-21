@@ -23,11 +23,11 @@ interface Plan {
 
 const plans: Plan[] = [
   {
-    name: 'Basic',
+    name: 'Free',
     planType: 'FREE',
     monthly: { price: '0', period: '/month' },
     annual: { price: '0', period: '/year', savings: '' },
-    description: 'Get started with drafting and client management.',
+    description: 'Get started with basic case management.',
     features: [
       'Draft up to 5 documents a month',
       'Manage 5 clients and 10 cases',
@@ -38,43 +38,62 @@ const plans: Plan[] = [
     highlighted: false,
   },
   {
-    name: 'Pro',
-    planType: 'PRO',
-    monthly: { price: '1,499', period: '/month' },
-    annual: { price: '14,990', period: '/year', savings: 'Save ₹2,998/year' },
-    description: 'For solo practitioners getting started.',
+    name: 'Plus',
+    planType: 'PLUS',
+    monthly: { price: '999', period: '/month' },
+    annual: { price: '9,990', period: '/year', savings: 'Save ₹1,998/year' },
+    description: 'For individuals who need organised case management.',
     features: [
-      '100 AI-powered drafts per month',
+      '20 AI-powered drafts per month',
       '₹10 per additional draft',
-      'Manage 20 clients and 40 cases',
-      'More AI — ask more, draft faster',
-      'Access to Gemini & GPT models',
+      'Manage 30 clients and 60 cases',
+      'Ask the AI — standard queries',
       'Upload and search your documents',
-      '2 GB document storage',
+      '500 MB document storage',
       'Email support',
     ],
     cta: 'Start 7-Day Free Trial',
     highlighted: false,
   },
   {
+    name: 'Pro',
+    planType: 'PRO',
+    monthly: { price: '1,999', period: '/month' },
+    annual: { price: '19,990', period: '/year', savings: 'Save ₹3,998/year' },
+    description: 'For solo practitioners who need the full toolkit.',
+    features: [
+      '100 AI-powered drafts per month',
+      '₹10 per additional draft',
+      'AI Drafting Assistant',
+      'Legal Library access',
+      'Manage 100 clients and 200 cases',
+      'Access to Gemini & GPT models',
+      'Upload, search and cite documents',
+      '5 GB document storage',
+      'Email support',
+    ],
+    cta: 'Start 7-Day Free Trial',
+    highlighted: true,
+  },
+  {
     name: 'Premium',
     planType: 'PREMIUM',
     monthly: { price: '4,999', period: '/month' },
     annual: { price: '49,990', period: '/year', savings: 'Save ₹9,998/year' },
-    description: 'For growing practices that need more power.',
+    description: 'For growing practices that need maximum power.',
     features: [
       '500 AI-powered drafts per month',
       '₹10 per additional draft',
+      'AI Drafting Assistant',
+      'Core AI research via Legal Library',
       'Unlimited clients and cases',
-      '3× more AI usage than Pro',
-      'Access to Gemini, GPT & Claude — including latest models',
-      'Full AI legal research and analysis',
+      'Access to Gemini, GPT & Claude — latest models',
       'Upload, search and cite documents',
       '10 GB document storage',
       'Priority support',
     ],
     cta: 'Start 7-Day Free Trial',
-    highlighted: true,
+    highlighted: false,
   },
 ]
 
@@ -151,7 +170,7 @@ export function PricingSection() {
 
         <div
           ref={ref}
-          className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8 scroll-reveal-stagger items-stretch"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 scroll-reveal-stagger items-stretch"
         >
           {plans.map((plan) => (
             <div

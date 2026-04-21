@@ -11,7 +11,7 @@ export type SubscriptionStatus =
 
 export type BillingCycle = 'MONTHLY' | 'YEARLY'
 
-export type PlanType = 'FREE' | 'PRO' | 'PREMIUM'
+export type PlanType = 'FREE' | 'PLUS' | 'PRO' | 'PREMIUM'
 
 export interface PlanFeatures {
   maxDrafts: number       // -1 = unlimited
@@ -119,4 +119,31 @@ export interface VerifyTopUpRequest {
 
 export interface CancelSubscriptionRequest {
   reason?: string
+}
+
+export type FeatureStatus = 'OPEN' | 'LOCKED'
+
+export type FeatureName =
+  | 'DRAFTING'
+  | 'AI_RESEARCH'
+  | 'TRANSLATION'
+  | 'CHAT_STUDIO'
+  | 'CLIENT_MANAGEMENT'
+  | 'CASE_MANAGEMENT'
+
+export interface SubscriptionFeature {
+  name: FeatureName
+  status: FeatureStatus
+}
+
+export interface SubscriptionPreferences {
+  subscriptionId: string
+  planName: string
+  displayName: string
+  features: SubscriptionFeature[]
+  maxDraftsPerMonth: number
+  maxClients: number
+  maxCases: number
+  maxStorageBytes: number
+  maxChatMessagesPerPeriod: number
 }
