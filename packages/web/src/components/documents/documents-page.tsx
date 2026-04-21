@@ -109,6 +109,7 @@ const TYPE_META: Record<DocumentType, {
   [DocumentType.JUDGMENT]:      { label: 'Judgment',    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300', icon: Scale },
   [DocumentType.BRIEF]:         { label: 'Brief',       className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
   [DocumentType.TRANSLATION]:   { label: 'Translated', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', icon: Languages },
+  [DocumentType.PRECEDENT]:     { label: 'Precedents', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300', icon: Search },
 }
 
 // ─── Tools config ─────────────────────────────────────────────────────────────
@@ -570,7 +571,7 @@ function DocumentViewer({
           <>
             <button
               type="button"
-              onClick={() => navigate(`/cases/${doc.caseId}`)}
+              onClick={() => navigate(`/cases/${doc.caseId!}`)}
               className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors font-medium"
             >
               <ArrowLeft className="h-4 w-4" />

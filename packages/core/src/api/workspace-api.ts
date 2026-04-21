@@ -90,7 +90,7 @@ export const workspaceApi = {
    */
   async getCaseDocuments(
     caseId: string,
-    type?: 'USER_UPLOADED' | 'DRAFT' | 'SUMMARY' | 'SYNOPSIS' | 'JUDGMENT'
+    type?: 'USER_UPLOADED' | 'DRAFT' | 'SUMMARY' | 'SYNOPSIS' | 'JUDGMENT' | 'PRECEDENT'
   ): Promise<CaseDocument[]> {
     const params = new URLSearchParams({ caseId, size: '200' })
     if (type) params.set('type', type)

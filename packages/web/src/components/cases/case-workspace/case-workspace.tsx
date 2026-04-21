@@ -466,7 +466,7 @@ export function CaseWorkspace() {
             <TranslationDialog
               caseSources={sources.map(s => ({ id: s.id, name: s.originalFilename || s.name }))}
               onBack={() => setTranslationOpen(false)}
-              onJobStarted={(jobId, lang) => {
+              onJobStarted={(_jobId, lang) => {
                 toast({ title: `Translating to ${lang}…`, description: "We'll notify you when it's ready." })
                 setTranslationOpen(false)
               }}
