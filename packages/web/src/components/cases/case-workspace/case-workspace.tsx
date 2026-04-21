@@ -421,18 +421,32 @@ export function CaseWorkspace() {
         {quickDraftOpen && (
           <div className="absolute inset-0 z-50 rounded-xl overflow-hidden">
             {wizardConfig ? (
-              <DraftCreationWizard
-                sources={sources}
-                client={null}
-                respondentDetails={formattedRespondent}
-                onGenerate={(req) => { createDraft(req); setQuickDraftOpen(false); setWizardConfig(null) }}
-                onSave={() => { setQuickDraftOpen(false); setWizardConfig(null) }}
-                onDiscard={(id) => { deleteDraft(id) }}
-                onCancel={() => { setQuickDraftOpen(false); setWizardConfig(null) }}
-                previewDraft={null}
-                defaultTemplateId={wizardConfig.templateId}
-                initialFormValues={wizardConfig.initialValues}
-              />
+              <div className="h-full flex flex-col">
+                <div className="flex-shrink-0 flex items-center gap-2 px-4 h-10 border-b border-kx-card-border bg-kx-card">
+                  <button
+                    type="button"
+                    onClick={() => { setWizardConfig(null); setQuickDraftOpen(false) }}
+                    className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-text-primary transition-colors"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back to {caseData?.caseTitle || caseName}
+                  </button>
+                </div>
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <DraftCreationWizard
+                    sources={sources}
+                    client={null}
+                    respondentDetails={formattedRespondent}
+                    onGenerate={(req) => { createDraft(req); setQuickDraftOpen(false); setWizardConfig(null) }}
+                    onSave={() => { setQuickDraftOpen(false); setWizardConfig(null) }}
+                    onDiscard={(id) => { deleteDraft(id) }}
+                    onCancel={() => { setWizardConfig(null); setQuickDraftOpen(false) }}
+                    previewDraft={null}
+                    defaultTemplateId={wizardConfig.templateId}
+                    initialFormValues={wizardConfig.initialValues}
+                  />
+                </div>
+              </div>
             ) : (
               <QuickDraftSheet
                 caseData={caseData}

@@ -37,7 +37,7 @@ import { MergerDialog } from '@/components/toolbox/merger-dialog'
 import { ConverterDialog } from '@/components/toolbox/converter-dialog'
 import { CompressorDialog } from '@/components/toolbox/compressor-dialog'
 import { TranslationDialog } from '@/components/toolbox/translation-dialog'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import type {
   DocumentRecord,
   ProcessedDocumentInfo,
@@ -423,6 +423,7 @@ function DocumentViewer({
   const [isSaving, setIsSaving] = useState(false)
   const [onlyOfficeOpen, setOnlyOfficeOpen] = useState(false)
 
+  const navigate = useNavigate()
   const editorRef = useRef<HTMLDivElement>(null)
   const formatting = useEditorFormatting(editorRef, () => setIsDirty(true))
 
@@ -565,12 +566,25 @@ function DocumentViewer({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-kx-card-border flex-shrink-0 bg-kx-card">
+        {doc.caseId && doc.caseTitle && (
+          <>
+            <button
+              type="button"
+              onClick={() => navigate(`/cases/${doc.caseId}`)}
+              className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {doc.caseTitle}
+            </button>
+            <span className="text-ledger-gray-300 text-sm flex-shrink-0">/</span>
+          </>
+        )}
         <button
           type="button"
           onClick={onClose}
           className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors font-medium"
         >
-          <ArrowLeft className="h-4 w-4" />
+          {!doc.caseId && <ArrowLeft className="h-4 w-4" />}
           Documents
         </button>
         <span className="text-ledger-gray-300 text-sm flex-shrink-0">/</span>

@@ -322,11 +322,7 @@ export function CaseStudioPanel({
   }
 
   const handleSummaryClick = () => {
-    if (summary?.status === 'completed') {
-      handleOpenSummary()
-    } else {
-      onGenerateSummary(webSearch)
-    }
+    onGenerateSummary(webSearch)
   }
 
   const handleOpenSynopsis = () => {
