@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Building2, Minus, Loader2 } from 'lucide-react'
+import { Check, Building2, Minus, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LandingHeader } from './landing-header'
 import { LandingFooter } from './landing-footer'
