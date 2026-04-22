@@ -16,12 +16,6 @@ export function BlogListPage() {
         </p>
       </div>
 
-      {error && (
-        <div className="text-center py-12">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
-        </div>
-      )}
-
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -35,9 +29,13 @@ export function BlogListPage() {
             </div>
           ))}
         </div>
+      ) : error ? (
+        <div className="text-center py-16">
+          <p className="text-kx-text-secondary">Blogs are not available right now. Please check back soon.</p>
+        </div>
       ) : blogs.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-kx-text-secondary">No blog posts found.</p>
+        <div className="text-center py-16">
+          <p className="text-kx-text-secondary">No blog posts yet.</p>
         </div>
       ) : (
         <>

@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, Building2, X, Minus } from 'lucide-react'
+import { Check, Building2, Minus, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LandingHeader } from './landing-header'
 import { LandingFooter } from './landing-footer'
 import { useAuth } from '@/contexts/auth-context'
 import { getAdapters } from '@knowlex/core/api/runtime'
+import { inquiriesApi } from '@knowlex/core/api'
 import { usePlans } from '@/hooks/use-plans'
 import { cn } from '@/lib/utils'
 import type { PlanType, BillingCycle } from '@knowlex/core/types'
@@ -219,135 +220,91 @@ function FeatureComparison() {
   )
 }
 
-interface EnterpriseDialogProps {
-  open: boolean
-  onClose: () => void
-}
-
-function EnterpriseDialog({ open, onClose }: EnterpriseDialogProps) {
-  const [form, setForm] = useState({ name: '', email: '', org: '', size: '', message: '' })
+function EnterpriseInlineForm() {
+  const [form, setForm] = useState({ name: '', email: '', org: '' })
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!open) return null
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const subject = encodeURIComponent(`Enterprise Inquiry — ${form.org}`)
-    const body = encodeURIComponent(
-      `Name: ${form.name}\nEmail: ${form.email}\nOrganization: ${form.org}\nTeam size: ${form.size || 'Not specified'}\n\n${form.message}`
-    )
-    window.location.href = `mailto:nakul.jain@getknowlex.com?subject=${subject}&body=${body}`
-    setSubmitted(true)
+    if (submitting) return
+    setError(null)
+    setSubmitting(true)
+    try {
+      await inquiriesApi.submit({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        organization: form.org.trim(),
+      })
+      setSubmitted(true)
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8">
-        <button
-          onClick={onClose}
-          className="absolute right-5 top-5 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {submitted ? (
-          <div className="text-center py-8">
-            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <Check className="w-6 h-6 text-green-600" />
-            </div>
-            <h3 className="text-xl font-serif font-semibold text-gray-900 mb-2">Opening your email</h3>
-            <p className="text-gray-500 text-sm">
-              Your email client should open with the details pre-filled. We'll get back to you within 24 hours.
-            </p>
-            <button onClick={onClose} className="mt-6 text-sm text-kx-primary-600 hover:underline">
-              Close
-            </button>
-          </div>
-        ) : (
-          <>
-            <h3 className="text-2xl font-serif font-semibold text-gray-900 mb-1">Contact Sales</h3>
-            <p className="text-sm text-gray-500 mb-6">Tell us about your firm and we'll reach out within 24 hours.</p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Your name *</label>
-                  <input
-                    required
-                    type="text"
-                    value={form.name}
-                    onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-kx-primary-300 focus:border-transparent"
-                    placeholder="Rahul Sharma"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Work email *</label>
-                  <input
-                    required
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-kx-primary-300 focus:border-transparent"
-                    placeholder="rahul@firm.com"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Firm / Organisation *</label>
-                  <input
-                    required
-                    type="text"
-                    value={form.org}
-                    onChange={e => setForm(f => ({ ...f, org: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-kx-primary-300 focus:border-transparent"
-                    placeholder="Sharma & Associates"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Team size</label>
-                  <select
-                    value={form.size}
-                    onChange={e => setForm(f => ({ ...f, size: e.target.value }))}
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-kx-primary-300 focus:border-transparent text-gray-700"
-                  >
-                    <option value="">Select</option>
-                    <option value="2–5">2–5 lawyers</option>
-                    <option value="6–15">6–15 lawyers</option>
-                    <option value="16–50">16–50 lawyers</option>
-                    <option value="50+">50+ lawyers</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">What are you looking for?</label>
-                <textarea
-                  rows={3}
-                  value={form.message}
-                  onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-kx-primary-300 focus:border-transparent resize-none"
-                  placeholder="Tell us about your needs — team size, document volumes, specific features..."
-                />
-              </div>
-
-              <Button type="submit" className="w-full bg-kx-primary-600 hover:bg-kx-primary-700 text-white">
-                Send Enquiry
-              </Button>
-            </form>
-          </>
-        )}
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-2 text-center min-w-[260px] py-4">
+        <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+          <Check className="w-5 h-5 text-emerald-600" />
+        </div>
+        <p className="text-sm font-semibold text-kx-text-primary">Thanks — we'll be in touch soon.</p>
+        <p className="text-xs text-kx-text-secondary max-w-[240px]">We typically respond within one business day.</p>
       </div>
-    </div>
+    )
+  }
+
+  const inputCls = 'w-full px-4 py-3 text-sm bg-white border border-kx-primary-200/70 rounded-xl text-kx-text-primary placeholder-ledger-gray-400 focus:outline-none focus:ring-2 focus:ring-kx-primary-300/60 focus:border-kx-primary-400 transition disabled:opacity-60'
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-2.5 min-w-[260px] w-full md:w-auto">
+      <input
+        required
+        type="text"
+        value={form.name}
+        onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+        placeholder="Your name"
+        className={inputCls}
+        disabled={submitting}
+      />
+      <input
+        required
+        type="email"
+        value={form.email}
+        onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+        placeholder="Work email"
+        className={inputCls}
+        disabled={submitting}
+      />
+      <input
+        required
+        type="text"
+        value={form.org}
+        onChange={e => setForm(f => ({ ...f, org: e.target.value }))}
+        placeholder="Firm / Organisation"
+        className={inputCls}
+        disabled={submitting}
+      />
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full bg-kx-primary-800 text-white font-semibold text-sm px-4 py-3 rounded-xl hover:bg-kx-primary-900 transition-colors shadow-sm inline-flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+        {submitting ? 'Sending…' : 'Get in touch'}
+      </button>
+      {error && (
+        <p className="text-xs text-rose-600 text-center mt-1">{error}</p>
+      )}
+    </form>
   )
 }
 
 export function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>('monthly')
-  const [enterpriseOpen, setEnterpriseOpen] = useState(false)
   const { isAuthenticated } = useAuth()
   const { subscribe, isSubscribing } = usePlans()
   const navigate = useNavigate()
@@ -509,32 +466,30 @@ export function PricingPage() {
           </div>
 
           {/* Enterprise band */}
-          <div className="mt-8 rounded-2xl bg-gray-900 px-8 py-10 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-serif font-semibold text-white mb-1">Enterprise & Law Firms</h3>
-                <p className="text-sm text-gray-400 max-w-lg">
-                  Custom limits, dedicated onboarding, SSO, and a plan built around your firm's volume and workflow.
-                </p>
-                <div className="flex flex-wrap gap-4 mt-4">
-                  {['Unlimited everything', 'Dedicated support', 'Custom integrations', 'Volume pricing'].map(f => (
-                    <span key={f} className="flex items-center gap-1.5 text-xs text-gray-300">
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      {f}
-                    </span>
-                  ))}
+          <div className="mt-8 rounded-2xl bg-kx-primary-50 border border-kx-primary-100 p-8 md:p-10 grid grid-cols-1 md:grid-cols-[1fr_320px] gap-10 md:gap-14 items-center">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-11 h-11 rounded-xl bg-kx-primary-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Building2 className="w-5 h-5 text-white" />
                 </div>
+                <h3 className="text-2xl font-serif font-semibold text-kx-text-primary">Enterprise & Law Firms</h3>
+              </div>
+              <p className="text-sm text-kx-text-secondary leading-relaxed max-w-lg">
+                Custom limits, dedicated onboarding, SSO, and a plan built around your firm's volume and workflow.
+              </p>
+              <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 mt-5 max-w-md">
+                {['Unlimited everything', 'Dedicated support', 'Custom integrations', 'Volume pricing'].map(f => (
+                  <span key={f} className="flex items-center gap-2 text-sm text-kx-text-primary">
+                    <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                    {f}
+                  </span>
+                ))}
               </div>
             </div>
-            <button
-              onClick={() => setEnterpriseOpen(true)}
-              className="flex-shrink-0 bg-white text-gray-900 font-semibold text-sm px-6 py-2.5 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              Contact Sales
-            </button>
+            <div className="w-full">
+              <p className="text-xs font-semibold tracking-[0.18em] uppercase text-kx-text-primary mb-3">Talk to us</p>
+              <EnterpriseInlineForm />
+            </div>
           </div>
 
           <FeatureComparison />
@@ -547,7 +502,6 @@ export function PricingPage() {
       </main>
 
       <LandingFooter />
-      <EnterpriseDialog open={enterpriseOpen} onClose={() => setEnterpriseOpen(false)} />
     </div>
   )
 }
