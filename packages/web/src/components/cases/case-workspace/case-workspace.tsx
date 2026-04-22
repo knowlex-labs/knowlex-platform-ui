@@ -284,10 +284,17 @@ export function CaseWorkspace() {
 
   // ── Studio actions ──
   const handleGenerateSummary = async (webSearch?: boolean) => {
-    if (summary && summary.status === 'pending') return
-    const existing = await fetchSummary()
-    if (!existing || existing.status === 'failed') generateSummary(webSearch)
+  if (summary && summary.status === 'pending') return
+
+  const existing = await fetchSummary()
+  if (!existing || existing.status === 'failed') {
+    if (!selectedSourceIds || selectedSourceIds.size === 0) {
+      console.error('No documents selected for summary')
+      return
+    }
+    generateSummary(Array.from(selectedSourceIds), webSearch)
   }
+}
 
   const handleGenerateSynopsis = async (webSearch?: boolean) => {
     if (synopsis && synopsis.status !== 'failed') return
