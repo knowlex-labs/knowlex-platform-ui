@@ -36,7 +36,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
 
   return (
     <>
-      <header className="sticky top-0 z-50 bg-kx-primary-700 shadow-[0_4px_20px_rgba(45,21,24,0.4)]">
+      <header className="sticky top-0 z-50 bg-[#fdf8f4]">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="relative flex items-center justify-between h-16">
             {/* Logo — left */}
@@ -45,18 +45,18 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
               onClick={() => { navigate('/'); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
               className="flex items-center gap-2.5 hover:opacity-80 transition-opacity flex-shrink-0"
             >
-              <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-7 w-auto invert" />
-              <span className="text-xl font-serif font-bold text-white tracking-tight">Knowlex</span>
+              <img src="/logo/knowlex_logo.png" alt="Knowlex" className="h-9 w-auto" />
+              <span className="text-2xl font-serif font-bold text-kx-text-primary tracking-tight">Knowlex</span>
             </button>
 
             {/* Desktop Nav — truly centered */}
-            <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-0.5 bg-white/10 rounded-full px-1.5 py-1">
+            <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-0.5 bg-white/70 border border-kx-primary-100/60 rounded-full px-1.5 py-1">
               {navLinks.map((link) =>
                 link.href ? (
                   <a
                     key={link.label}
                     href={link.href}
-                    className="text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors px-4 py-1.5 rounded-full"
+                    className="text-sm font-medium text-kx-text-secondary hover:text-kx-text-primary hover:bg-kx-primary-50 transition-colors px-4 py-1.5 rounded-full"
                   >
                     {link.label}
                   </a>
@@ -65,7 +65,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
                     key={link.sectionId}
                     type="button"
                     onClick={() => scrollToSection(link.sectionId!)}
-                    className="text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors px-4 py-1.5 rounded-full"
+                    className="text-sm font-medium text-kx-text-secondary hover:text-kx-text-primary hover:bg-kx-primary-50 transition-colors px-4 py-1.5 rounded-full"
                   >
                     {link.label}
                   </button>
@@ -77,13 +77,13 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
               <button
                 onClick={() => setCalendlyOpen(true)}
-                className="text-sm font-medium text-white/90 border border-white/30 rounded-full px-4 py-1.5 hover:bg-white/10 hover:border-white/60 transition-all"
+                className="text-sm font-medium text-kx-text-primary border border-kx-primary-200 rounded-full px-4 py-1.5 hover:bg-kx-primary-50 hover:border-kx-primary-300 transition-all"
               >
                 Book a Demo
               </button>
               <button
                 onClick={() => navigate('/login')}
-                className="text-sm font-semibold text-kx-primary-800 bg-white rounded-full px-4 py-1.5 hover:bg-amber-50 transition-colors"
+                className="text-sm font-semibold text-white bg-kx-primary-800 rounded-full px-4 py-1.5 hover:bg-kx-primary-900 transition-colors"
               >
                 Sign In
               </button>
@@ -92,7 +92,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
             {/* Mobile menu button */}
             <button
               type="button"
-              className="md:hidden p-2 text-white/80 hover:text-white"
+              className="md:hidden p-2 text-kx-text-secondary hover:text-kx-text-primary"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
             >
@@ -102,14 +102,14 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
 
           {/* Mobile Nav */}
           {mobileMenuOpen && (
-            <nav className="md:hidden py-3 border-t border-white/10">
+            <nav className="md:hidden py-3 border-t border-kx-primary-100/60">
               <div className="flex flex-col gap-1">
                 {navLinks.map((link) =>
                   link.href ? (
                     <a
                       key={link.label}
                       href={link.href}
-                      className="text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors px-3 py-2 rounded-lg"
+                      className="text-sm font-medium text-kx-text-secondary hover:text-kx-text-primary hover:bg-kx-primary-50 transition-colors px-3 py-2 rounded-lg"
                     >
                       {link.label}
                     </a>
@@ -118,22 +118,22 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
                       key={link.sectionId}
                       type="button"
                       onClick={() => scrollToSection(link.sectionId!)}
-                      className="text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors text-left px-3 py-2 rounded-lg"
+                      className="text-sm font-medium text-kx-text-secondary hover:text-kx-text-primary hover:bg-kx-primary-50 transition-colors text-left px-3 py-2 rounded-lg"
                     >
                       {link.label}
                     </button>
                   )
                 )}
-                <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-white/10">
+                <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-kx-primary-100/60">
                   <button
                     onClick={() => { navigate('/login'); setMobileMenuOpen(false) }}
-                    className="text-sm font-semibold text-kx-primary-800 bg-white rounded-full px-4 py-2 hover:bg-amber-50 transition-colors w-full"
+                    className="text-sm font-semibold text-white bg-kx-primary-800 rounded-full px-4 py-2 hover:bg-kx-primary-900 transition-colors w-full"
                   >
                     Sign In
                   </button>
                   <button
                     onClick={() => { setCalendlyOpen(true); setMobileMenuOpen(false) }}
-                    className="text-sm font-medium text-white/90 border border-white/30 rounded-full px-4 py-2 hover:bg-white/10 transition-all w-full"
+                    className="text-sm font-medium text-kx-text-primary border border-kx-primary-200 rounded-full px-4 py-2 hover:bg-kx-primary-50 transition-all w-full"
                   >
                     Book a Demo
                   </button>
