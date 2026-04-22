@@ -126,29 +126,50 @@ export function useSummary(caseId: string) {
     return () => stopStream()
   }, [caseId, stopStream])
 
-  const generateSummary = useCallback(async (webSearch?: boolean) => {
+const generateSummary = useCallback(
+  async (fileIds: string[], webSearch?: boolean) => {
     setError(null)
     setIsGenerating(true)
+
     setSummary((prev) =>
       prev
         ? { ...prev, status: 'pending', content: '' }
-        : { id: 'pending', status: 'pending', content: '', createdAt: new Date(), updatedAt: new Date() }
+        : {
+            id: 'pending',
+            status: 'pending',
+            content: '',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }
     )
+
     try {
+      if (!fileIds || fileIds.length === 0) {
+        throw new Error('No documents selected for summary')
+      }
+
       const doc = await workspaceApi.createDocument(caseId, {
         document_type: 'SUMMARY',
+        case_id: caseId,
+        data: {
+          file_ids: fileIds, // ✅ THIS IS THE KEY FIX
+        },
         ...(webSearch ? { web_search: true } : {}),
       } as Parameters<typeof workspaceApi.createDocument>[1])
+
       if (doc?.id) {
         documentIdRef.current = doc.id
         startStream(doc.id)
       }
-    } catch {
+    } catch (err) {
+      console.error(err)
       setIsGenerating(false)
       setError('Failed to generate summary. Please try again.')
       setSummary(null)
     }
-  }, [caseId, startStream])
+  },
+  [caseId, startStream]
+)
 
   const deleteSummary = useCallback(async () => {
     try {
