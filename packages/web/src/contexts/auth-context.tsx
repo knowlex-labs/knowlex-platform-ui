@@ -317,9 +317,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const refreshUser = React.useCallback((user: User) => {
-    setAuthState((prev) => prev.isAuthenticated
+    setAuthState((prev) => prev.isAuthenticated && prev.user
       ? { ...prev, user: { ...prev.user, ...user } }
-      : { isAuthenticated: true, user }
+      : prev
     )
   }, [])
 

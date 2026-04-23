@@ -22,6 +22,12 @@ export function VerifyEmailPage() {
   const [resendEmail, setResendEmail] = React.useState(user?.email ?? '')
   const [resendSent, setResendSent] = React.useState(false)
   const [cooldown, setCooldown] = React.useState(0)
+  const [isResending, setIsResending] = React.useState(false)
+
+  const isAuthenticatedRef = React.useRef(isAuthenticated)
+  React.useEffect(() => { isAuthenticatedRef.current = isAuthenticated }, [isAuthenticated])
+
+  const hasRunRef = React.useRef(false)
 
   React.useEffect(() => {
     if (cooldown <= 0) return
@@ -34,6 +40,8 @@ export function VerifyEmailPage() {
       setStage('failed')
       return
     }
+    if (hasRunRef.current) return
+    hasRunRef.current = true
     let cancelled = false
     authApi.verifyEmail(token)
       .then((res) => {
@@ -42,7 +50,7 @@ export function VerifyEmailPage() {
         setStage('success')
         setTimeout(() => {
           if (cancelled) return
-          navigate(isAuthenticated ? '/home' : '/login', { replace: true })
+          navigate(isAuthenticatedRef.current ? '/home' : '/login', { replace: true })
         }, 2000)
       })
       .catch(() => {
@@ -50,13 +58,18 @@ export function VerifyEmailPage() {
         setStage('failed')
       })
     return () => { cancelled = true }
-  }, [token, navigate, isAuthenticated, refreshUser])
+  }, [token, navigate, refreshUser])
 
   const handleResend = async () => {
-    if (!resendEmail.trim() || cooldown > 0) return
-    await authApi.resendVerification(resendEmail.trim())
-    setResendSent(true)
-    setCooldown(RESEND_COOLDOWN_SECONDS)
+    if (!resendEmail.trim() || cooldown > 0 || isResending) return
+    setIsResending(true)
+    try {
+      await authApi.resendVerification(resendEmail.trim())
+      setResendSent(true)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    } finally {
+      setIsResending(false)
+    }
   }
 
   return (
@@ -127,7 +140,7 @@ export function VerifyEmailPage() {
             <Button
               type="button"
               onClick={handleResend}
-              disabled={!resendEmail.trim() || cooldown > 0}
+              disabled={!resendEmail.trim() || cooldown > 0 || isResending}
               className="w-full"
             >
               {cooldown > 0 ? `Resend in ${cooldown}s` : resendSent ? 'Send again' : 'Resend verification email'}

@@ -11,6 +11,7 @@ export function EmailVerificationBanner() {
   const [cooldown, setCooldown] = React.useState(0)
   const [justSent, setJustSent] = React.useState(false)
   const [isRefreshing, setIsRefreshing] = React.useState(false)
+  const [isResending, setIsResending] = React.useState(false)
 
   React.useEffect(() => {
     if (cooldown <= 0) return
@@ -21,11 +22,16 @@ export function EmailVerificationBanner() {
   if (!user || user.emailVerified !== false) return null
 
   const handleResend = async () => {
-    if (cooldown > 0) return
-    await authApi.resendVerification(user.email)
-    setJustSent(true)
-    setCooldown(RESEND_COOLDOWN_SECONDS)
-    setTimeout(() => setJustSent(false), 4000)
+    if (cooldown > 0 || isResending) return
+    setIsResending(true)
+    try {
+      await authApi.resendVerification(user.email)
+      setJustSent(true)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+      setTimeout(() => setJustSent(false), 4000)
+    } finally {
+      setIsResending(false)
+    }
   }
 
   const handleRefresh = async () => {
@@ -72,7 +78,7 @@ export function EmailVerificationBanner() {
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
             onClick={handleResend}
-            disabled={cooldown > 0}
+            disabled={cooldown > 0 || isResending}
             className="text-xs font-medium underline underline-offset-2 hover:text-amber-950 disabled:opacity-50 disabled:no-underline"
           >
             {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend email'}

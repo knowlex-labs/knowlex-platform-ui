@@ -168,7 +168,10 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
     throw { message: 'Failed to extract user information from token', status: 500 } as AuthError
   }
 
-  const userId = apiResponse.data.userId || nestedUser?.id || userFromToken?.id || ''
+  const userId = apiResponse.data.userId || nestedUser?.id || userFromToken?.id
+  if (!userId) {
+    throw { message: 'Failed to resolve user id from auth response', status: 500 } as AuthError
+  }
 
   const user: AuthResponse['user'] = nestedUser
     ? {

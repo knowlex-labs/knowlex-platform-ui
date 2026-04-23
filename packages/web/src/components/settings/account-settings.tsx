@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { authApi } from '@knowlex/core/api/auth-api'
+import { validatePassword } from '@/lib/password-policy'
 import { AlertCircle, CheckCircle2 } from 'lucide-react'
 
 export function AccountSettings() {
@@ -166,14 +167,6 @@ export function AccountSettings() {
             </div>
         </div>
     )
-}
-
-function validatePassword(pw: string): string | null {
-    if (pw.length < 8) return 'Password must be at least 8 characters.'
-    if (pw.length > 128) return 'Password must be 128 characters or fewer.'
-    if (!/[A-Za-z]/.test(pw)) return 'Password must include a letter.'
-    if (!/\d/.test(pw)) return 'Password must include a digit.'
-    return null
 }
 
 function ChangePasswordCard() {
