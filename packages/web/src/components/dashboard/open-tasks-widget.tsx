@@ -5,6 +5,7 @@ import { moodboardApi } from '@knowlex/core/api'
 import { mapBackendTask } from '@knowlex/core/mappers'
 import type { MoodboardTask } from '@knowlex/core/types'
 import { cn } from '@/lib/utils'
+import { useSubscriptionPreferences } from '@/contexts/subscription-preferences-context'
 
 const MAX_VISIBLE = 5
 
@@ -19,6 +20,7 @@ function statusLabel(status: MoodboardTask['status']): string {
 
 export function OpenTasksWidget() {
   const navigate = useNavigate()
+  const { isLocked } = useSubscriptionPreferences()
   const [tasks, setTasks] = useState<MoodboardTask[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
@@ -59,6 +61,8 @@ export function OpenTasksWidget() {
 
   const visible = tasks.slice(0, MAX_VISIBLE)
   const overflow = Math.max(0, tasks.length - MAX_VISIBLE)
+
+  if (isLocked('MOODBOARD')) return null
 
   return (
     <div className="bg-kx-card border border-kx-card-border rounded-xl p-5 shadow-sm">

@@ -123,6 +123,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     setAuthTokens(response.token, response.refreshToken, response.user.id)
 
+    const verificationFields = {
+      emailVerified: response.user.emailVerified,
+      emailVerifiedAt: response.user.emailVerifiedAt
+        ? new Date(response.user.emailVerifiedAt)
+        : undefined,
+    }
+
     // Fetch full user details from /users/me
     try {
       const userResponse = await userApi.getCurrentUser()
@@ -136,6 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           phone: userResponse.data.mobileNumber,
           bench: userResponse.data.bench,
           createdAt: new Date(userResponse.data.createdAt),
+          ...verificationFields,
         }
 
         // Ensure userId is stored in localStorage (in case it differs from initial response)
@@ -155,6 +163,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           lastName: response.user.lastName,
           phone: response.user.mobileNumber,
           createdAt: new Date(response.user.createdAt),
+          ...verificationFields,
         }
 
         setAuthState({
@@ -173,6 +182,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         lastName: response.user.lastName,
         phone: response.user.mobileNumber,
         createdAt: new Date(response.user.createdAt),
+        ...verificationFields,
       }
 
       setAuthState({
@@ -207,6 +217,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     setAuthTokens(response.token, response.refreshToken, response.user.id)
 
+    const verificationFields = {
+      emailVerified: response.user.emailVerified,
+      emailVerifiedAt: response.user.emailVerifiedAt
+        ? new Date(response.user.emailVerifiedAt)
+        : undefined,
+    }
+
     // Google login users are never guests, fetch full details
     try {
       const userResponse = await userApi.getCurrentUser()
@@ -220,6 +237,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           phone: userResponse.data.mobileNumber,
           bench: userResponse.data.bench,
           createdAt: new Date(userResponse.data.createdAt),
+          ...verificationFields,
         }
 
         // Ensure userId is stored in localStorage (in case it differs from initial response)
@@ -239,6 +257,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           lastName: response.user.lastName,
           phone: response.user.mobileNumber,
           createdAt: new Date(response.user.createdAt),
+          ...verificationFields,
         }
 
         setAuthState({
@@ -257,6 +276,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         lastName: response.user.lastName,
         phone: response.user.mobileNumber,
         createdAt: new Date(response.user.createdAt),
+        ...verificationFields,
       }
 
       setAuthState({
@@ -291,6 +311,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
   }, [])
 
+  const replaceTokens = React.useCallback((token: string, refreshToken: string) => {
+    const userId = localStorage.getItem(USER_ID_KEY)
+    setAuthTokens(token, refreshToken, userId)
+  }, [])
+
+  const refreshUser = React.useCallback((user: User) => {
+    setAuthState((prev) => prev.isAuthenticated
+      ? { ...prev, user: { ...prev.user, ...user } }
+      : { isAuthenticated: true, user }
+    )
+  }, [])
+
   const value: AuthContextValue = {
     ...authState,
     login,
@@ -299,6 +331,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     continueAsGuest,
     logout,
     updateProfile,
+    replaceTokens,
+    refreshUser,
     isRestoringSession,
   }
 

@@ -17,6 +17,9 @@ import { WalletPage } from '@/components/settings/wallet-page'
 import { NotFound } from '@/components/not-found'
 import { LoginPage } from '@/components/auth/login-page'
 import { SignupPage } from '@/components/auth/signup-page'
+import { ForgotPasswordPage } from '@/components/auth/forgot-password-page'
+import { ResetPasswordPage } from '@/components/auth/reset-password-page'
+import { VerifyEmailPage } from '@/components/auth/verify-email-page'
 import { BlogLayout } from '@/components/blog/blog-layout'
 import { BlogListPage } from '@/components/blog/blog-list-page'
 import { BlogDetailPage } from '@/components/blog/blog-detail-page'
@@ -28,6 +31,7 @@ import { BlogFormPage } from '@/components/admin/blog/blog-form-page'
 import { DocumentsPage } from '@/components/documents/documents-page'
 import { DraftingPage } from '@/components/drafting/drafting-page'
 import { MoodboardBoard } from '@/components/moodboard/moodboard-board'
+import { FeatureGate } from '@/components/feature-gate'
 import { PricingPage } from '@/components/landing/pricing-page'
 import { AboutPage } from '@/components/landing/about-page'
 import { CareersPage } from '@/components/landing/careers-page'
@@ -74,6 +78,18 @@ export const router = createBrowserRouter([
   {
     path: '/signup',
     element: <DashboardOnly><SignupPage /></DashboardOnly>,
+  },
+  {
+    path: '/forgot-password',
+    element: <DashboardOnly><ForgotPasswordPage /></DashboardOnly>,
+  },
+  {
+    path: '/reset-password',
+    element: <DashboardOnly><ResetPasswordPage /></DashboardOnly>,
+  },
+  {
+    path: '/verify-email',
+    element: <DashboardOnly><VerifyEmailPage /></DashboardOnly>,
   },
   {
     path: '/pricing',
@@ -123,7 +139,7 @@ export const router = createBrowserRouter([
       { path: '/judgments', element: <LegalLibrary /> },
       { path: '/judgments/:judgmentId', element: <JudgmentDetail /> },
       { path: '/documents', element: <DocumentsPage /> },
-      { path: '/moodboard', element: <MoodboardBoard /> },
+      { path: '/moodboard', element: <FeatureGate name="MOODBOARD"><MoodboardBoard /></FeatureGate> },
       {
         path: '/settings',
         element: <SettingsLayout />,

@@ -15,6 +15,7 @@ import { useUIState } from '@/contexts/ui-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
 import { useSubscription } from '@/hooks/use-subscription'
+import { useSubscriptionPreferences } from '@/contexts/subscription-preferences-context'
 import { SIDEBAR_TABS, APP_NAME, DEMO_USER_USERNAME } from '@/lib/constants'
 import * as React from 'react'
 
@@ -56,10 +57,15 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const location = useLocation()
   const { user, logout } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
+  const { isLocked } = useSubscriptionPreferences()
   const [showHelpDialog, setShowHelpDialog] = React.useState(false)
   const [showUserMenu, setShowUserMenu] = React.useState(false)
 
   const activeTab = getActiveTabFromPath(location.pathname)
+  const visibleTabs = React.useMemo(
+    () => SIDEBAR_TABS.filter((tab) => !(tab.featureFlag && isLocked(tab.featureFlag))),
+    [isLocked]
+  )
 
   const handleLogout = () => {
     logout()
@@ -78,7 +84,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const isDemoUser = user?.username === DEMO_USER_USERNAME
 
   const handleTabChange = (value: string) => {
-    const tab = SIDEBAR_TABS.find(t => t.id === value)
+    const tab = visibleTabs.find(t => t.id === value)
     if (tab) {
       navigate(tab.path)
     }
@@ -139,7 +145,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
             orientation="vertical"
           >
             <TabsList>
-              {SIDEBAR_TABS.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const Icon = iconMap[tab.icon as keyof typeof iconMap]
 
                 if (tab.locked) {

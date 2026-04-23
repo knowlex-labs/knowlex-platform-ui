@@ -1,5 +1,7 @@
 // Auth API Service - Real backend authentication endpoints
 import { getAdapters } from './runtime'
+import { getAuthHeaders } from './auth-headers'
+import type { User } from '../types/user.types'
 
 function getBaseUrl(): string {
   return getAdapters().env.apiBaseUrl
@@ -40,10 +42,23 @@ export interface ApiResponse<T> {
   data: T | null
 }
 
+export interface AuthUserPayload {
+  id: string
+  username: string
+  email: string
+  firstName: string
+  lastName: string
+  mobileNumber?: string
+  emailVerified?: boolean
+  emailVerifiedAt?: string | null
+  createdAt?: string
+}
+
 export interface AuthTokens {
   token: string
   refreshToken: string
   userId: string
+  user?: AuthUserPayload
 }
 
 export interface AuthResponse {
@@ -56,6 +71,8 @@ export interface AuthResponse {
     firstName: string
     lastName: string
     mobileNumber?: string
+    emailVerified?: boolean
+    emailVerifiedAt?: string | null
     createdAt: string
   }
 }
@@ -142,20 +159,33 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
     throw { message: 'No data in response', status: response.status } as AuthError
   }
 
-  // Extract user info from JWT token
-  const userFromToken = extractUserFromToken(apiResponse.data.token)
-  if (!userFromToken) {
+  // Prefer the nested user object returned by the backend; fall back to
+  // JWT extraction for older responses that don't include it.
+  const nestedUser = apiResponse.data.user
+  const userFromToken = nestedUser ? null : extractUserFromToken(apiResponse.data.token)
+
+  if (!nestedUser && !userFromToken) {
     throw { message: 'Failed to extract user information from token', status: 500 } as AuthError
   }
 
-  // Use userId from API response if available, otherwise fall back to JWT extraction
-  const userId = apiResponse.data.userId || userFromToken.id
+  const userId = apiResponse.data.userId || nestedUser?.id || userFromToken?.id || ''
 
-  // Create user object with userId from API response
-  const user = {
-    ...userFromToken,
-    id: userId, // Ensure we use the userId from API response
-  }
+  const user: AuthResponse['user'] = nestedUser
+    ? {
+        id: userId,
+        username: nestedUser.username,
+        email: nestedUser.email,
+        firstName: nestedUser.firstName,
+        lastName: nestedUser.lastName,
+        mobileNumber: nestedUser.mobileNumber,
+        emailVerified: nestedUser.emailVerified,
+        emailVerifiedAt: nestedUser.emailVerifiedAt ?? null,
+        createdAt: nestedUser.createdAt ?? new Date().toISOString(),
+      }
+    : {
+        ...(userFromToken as AuthResponse['user']),
+        id: userId,
+      }
 
   return {
     token: apiResponse.data.token,
@@ -215,5 +245,112 @@ export const authApi = {
       body: JSON.stringify({ refreshToken }),
     })
     return handleAuthResponse(response)
+  },
+
+  // Always resolves; backend returns a generic 200 regardless of whether
+  // the email exists, to prevent user enumeration.
+  forgotPassword: async (email: string): Promise<void> => {
+    try {
+      await fetch(`${getBaseUrl()}/api/v1/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+    } catch {
+      // network errors are intentionally swallowed — the UX is always "check your inbox"
+    }
+  },
+
+  validateResetToken: async (token: string): Promise<{ valid: boolean }> => {
+    try {
+      const response = await fetch(`${getBaseUrl()}/api/v1/auth/reset-password/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      })
+      const apiResponse = await response.json() as ApiResponse<{ valid: boolean }>
+      if (!response.ok || !isApiSuccess(apiResponse) || !apiResponse.data) {
+        return { valid: false }
+      }
+      return { valid: apiResponse.data.valid === true }
+    } catch {
+      return { valid: false }
+    }
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<void> => {
+    const response = await fetch(`${getBaseUrl()}/api/v1/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    })
+    const apiResponse = await response.json() as ApiResponse<null>
+    if (!response.ok || !isApiSuccess(apiResponse)) {
+      const errorMessage = apiResponse.message || `Password reset failed (${response.status})`
+      throw { message: errorMessage, status: response.status } as AuthError
+    }
+  },
+
+  changePassword: async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ token: string; refreshToken: string }> => {
+    const response = await fetch(`${getBaseUrl()}/api/v1/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    })
+    const apiResponse = await response.json() as ApiResponse<{ token: string; refreshToken: string }>
+    if (!response.ok || !isApiSuccess(apiResponse) || !apiResponse.data) {
+      const errorMessage = apiResponse.message || `Password change failed (${response.status})`
+      throw { message: errorMessage, status: response.status } as AuthError
+    }
+    return {
+      token: apiResponse.data.token,
+      refreshToken: apiResponse.data.refreshToken,
+    }
+  },
+
+  verifyEmail: async (token: string): Promise<{ user: User }> => {
+    const response = await fetch(`${getBaseUrl()}/api/v1/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    const apiResponse = await response.json() as ApiResponse<{ user: AuthUserPayload }>
+    if (!response.ok || !isApiSuccess(apiResponse) || !apiResponse.data?.user) {
+      const errorMessage = apiResponse.message || `Email verification failed (${response.status})`
+      throw { message: errorMessage, status: response.status } as AuthError
+    }
+    const u = apiResponse.data.user
+    const user: User = {
+      id: u.id,
+      username: u.username,
+      email: u.email,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      phone: u.mobileNumber,
+      emailVerified: u.emailVerified ?? true,
+      emailVerifiedAt: u.emailVerifiedAt ? new Date(u.emailVerifiedAt) : new Date(),
+      createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),
+    }
+    return { user }
+  },
+
+  // Always resolves; backend returns a generic 200 whether the email exists
+  // or is already verified.
+  resendVerification: async (email: string): Promise<void> => {
+    try {
+      await fetch(`${getBaseUrl()}/api/v1/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+    } catch {
+      // swallow — FE always shows the generic "check your inbox" message
+    }
   },
 }

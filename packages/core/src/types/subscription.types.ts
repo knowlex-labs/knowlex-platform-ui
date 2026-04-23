@@ -123,13 +123,11 @@ export interface CancelSubscriptionRequest {
 
 export type FeatureStatus = 'OPEN' | 'LOCKED'
 
-export type FeatureName =
-  | 'DRAFTING'
-  | 'AI_RESEARCH'
-  | 'TRANSLATION'
-  | 'CHAT_STUDIO'
-  | 'CLIENT_MANAGEMENT'
-  | 'CASE_MANAGEMENT'
+// Feature names come from the backend preferences payload and can evolve
+// without a frontend release. Keep this as an open string type. Known values
+// today: DRAFTING, AI_RESEARCH, TRANSLATION, CHAT_STUDIO, SUMMARY_SYNOPSIS,
+// LEGAL_LIBRARY, DOCUMENT_TOOLS, CLIENT_MANAGEMENT, CASE_MANAGEMENT, MOODBOARD.
+export type FeatureName = string
 
 export interface SubscriptionFeature {
   name: FeatureName
