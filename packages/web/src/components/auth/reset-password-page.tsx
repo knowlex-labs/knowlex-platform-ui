@@ -19,6 +19,7 @@ export function ResetPasswordPage() {
   const [password, setPassword] = React.useState('')
   const [confirm, setConfirm] = React.useState('')
   const [errorMessage, setErrorMessage] = React.useState<string>('')
+  const redirectTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
 
   React.useEffect(() => {
     if (!token) {
@@ -32,6 +33,12 @@ export function ResetPasswordPage() {
     })
     return () => { cancelled = true }
   }, [token, navigate])
+
+  React.useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current)
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,7 +57,10 @@ export function ResetPasswordPage() {
     try {
       await authApi.resetPassword(token, password)
       setStage('done')
-      setTimeout(() => navigate('/login?passwordReset=1', { replace: true }), 1500)
+      redirectTimerRef.current = setTimeout(
+        () => navigate('/login?passwordReset=1', { replace: true }),
+        1500
+      )
     } catch (err) {
       const message = err instanceof Error ? err.message : (err as { message?: string })?.message
       setErrorMessage(message || 'Password reset failed. Please try again.')

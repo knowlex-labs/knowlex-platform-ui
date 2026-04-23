@@ -43,21 +43,24 @@ export function VerifyEmailPage() {
     if (hasRunRef.current) return
     hasRunRef.current = true
     let cancelled = false
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined
     authApi.verifyEmail(token)
       .then((res) => {
         if (cancelled) return
         refreshUser(res.user)
         setStage('success')
-        setTimeout(() => {
-          if (cancelled) return
-          navigate(isAuthenticatedRef.current ? '/home' : '/login', { replace: true })
+        redirectTimer = setTimeout(() => {
+          navigate(isAuthenticatedRef.current ? '/home' : '/login?verified=1', { replace: true })
         }, 2000)
       })
       .catch(() => {
         if (cancelled) return
         setStage('failed')
       })
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+      if (redirectTimer) clearTimeout(redirectTimer)
+    }
   }, [token, navigate, refreshUser])
 
   const handleResend = async () => {

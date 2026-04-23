@@ -48,9 +48,9 @@ export function EmailVerificationBanner() {
           lastName: res.data.lastName,
           phone: res.data.mobileNumber,
           bench: res.data.bench,
-          emailVerified: (res.data as { emailVerified?: boolean }).emailVerified,
-          emailVerifiedAt: (res.data as { emailVerifiedAt?: string }).emailVerifiedAt
-            ? new Date((res.data as { emailVerifiedAt?: string }).emailVerifiedAt!)
+          emailVerified: res.data.emailVerified,
+          emailVerifiedAt: res.data.emailVerifiedAt
+            ? new Date(res.data.emailVerifiedAt)
             : undefined,
           createdAt: new Date(res.data.createdAt),
         })

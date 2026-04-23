@@ -21,14 +21,22 @@ export function ForgotPasswordPage() {
     return () => clearInterval(id)
   }, [cooldown])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const sendResetLink = async () => {
     if (isSubmitting || cooldown > 0) return
     setIsSubmitting(true)
     await authApi.forgotPassword(email.trim())
     setIsSubmitting(false)
     setIsSubmitted(true)
     setCooldown(RESEND_COOLDOWN_SECONDS)
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    void sendResetLink()
+  }
+
+  const handleResend = () => {
+    void sendResetLink()
   }
 
   return (
@@ -56,7 +64,7 @@ export function ForgotPasswordPage() {
 
             <Button
               type="button"
-              onClick={handleSubmit}
+              onClick={handleResend}
               disabled={cooldown > 0 || isSubmitting}
               variant="outline"
               className="w-full"

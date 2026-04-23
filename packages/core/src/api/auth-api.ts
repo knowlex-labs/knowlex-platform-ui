@@ -160,9 +160,10 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
   }
 
   // Prefer the nested user object returned by the backend; fall back to
-  // JWT extraction for older responses that don't include it.
+  // JWT extraction for older responses that don't include it. Token is also
+  // used to backfill createdAt when the nested user omits it.
   const nestedUser = apiResponse.data.user
-  const userFromToken = nestedUser ? null : extractUserFromToken(apiResponse.data.token)
+  const userFromToken = extractUserFromToken(apiResponse.data.token)
 
   if (!nestedUser && !userFromToken) {
     throw { message: 'Failed to extract user information from token', status: 500 } as AuthError
@@ -183,7 +184,7 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
         mobileNumber: nestedUser.mobileNumber,
         emailVerified: nestedUser.emailVerified,
         emailVerifiedAt: nestedUser.emailVerifiedAt ?? null,
-        createdAt: nestedUser.createdAt ?? new Date().toISOString(),
+        createdAt: nestedUser.createdAt ?? userFromToken?.createdAt ?? new Date().toISOString(),
       }
     : {
         ...(userFromToken as AuthResponse['user']),

@@ -14,6 +14,8 @@ export interface BackendUser {
   mobileNumber?: string
   bench?: string
   admin?: boolean
+  emailVerified?: boolean
+  emailVerifiedAt?: string | null
   createdAt: string
 }
 
