@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'
 import { StatsOverview } from './stats-overview'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
+import { OpenTasksWidget } from './open-tasks-widget'
 import { EmptyState } from '@/components/ui/empty-state'
 import type { RecentDocument } from '@knowlex/core/api/dashboard-api'
 
@@ -175,6 +176,9 @@ export function DashboardHome() {
             </div>
             <UpcomingHearingsWidget />
           </section>
+
+          {/* Open Tasks */}
+          <OpenTasksWidget />
 
           {/* Quick links */}
           <div className="flex gap-3">
