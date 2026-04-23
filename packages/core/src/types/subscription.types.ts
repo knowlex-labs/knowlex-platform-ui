@@ -42,6 +42,7 @@ export interface Subscription {
   billingCycle: BillingCycle
   currentPeriodStart: string
   currentPeriodEnd: string
+  trialStartDate?: string
   trialEndDate?: string
   cancelledAt?: string
   razorpaySubscriptionId?: string

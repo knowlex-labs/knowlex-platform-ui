@@ -15,9 +15,25 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog'
 
+function fmtDate(value?: string | null): string {
+    if (!value) return ''
+    const d = new Date(value)
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function MembershipRow({ label, value, highlight }: { label: string; value: string; highlight?: 'red' }) {
+    return (
+        <div className="flex items-center justify-between py-1.5 border-b border-kx-card-border last:border-0">
+            <span className="text-xs text-ledger-gray-500">{label}</span>
+            <span className={`text-xs font-medium ${highlight === 'red' ? 'text-red-600' : 'text-kx-primary-900'}`}>{value}</span>
+        </div>
+    )
+}
+
 export function AccountSettings() {
     const { user, updateProfile } = useAuth()
-    const { subscription } = useSubscription()
+    const { subscription, isLoading: subscriptionLoading } = useSubscription()
     const [formData, setFormData] = React.useState({
         username: user?.username || '',
         firstName: user?.firstName || '',
@@ -74,20 +90,7 @@ export function AccountSettings() {
         }
     }
 
-    const getMemberSinceDate = () => {
-        try {
-            const date = typeof user.createdAt === 'string'
-                ? new Date(user.createdAt)
-                : user.createdAt
-            return date.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            })
-        } catch {
-            return 'N/A'
-        }
-    }
+    const getMemberSinceDate = () => fmtDate(user.createdAt instanceof Date ? user.createdAt.toISOString() : user.createdAt as string) || 'N/A'
 
     return (
         <div className="space-y-6 max-w-2xl">
@@ -169,28 +172,33 @@ export function AccountSettings() {
             {/* Membership */}
             <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
                 <h3 className="text-base font-semibold text-kx-primary-900 mb-5">Membership</h3>
-                <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="plan">Plan</Label>
-                        <Input
-                            id="plan"
-                            type="text"
-                            value={subscription?.planDisplayName || subscription?.planName || user.plan || 'Free'}
-                            disabled
-                            className="bg-ledger-gray-50"
-                        />
+                {subscriptionLoading ? (
+                    <div className="space-y-3">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="flex items-center justify-between py-1.5 border-b border-kx-card-border last:border-0">
+                                <div className="h-3 w-20 bg-ledger-gray-100 rounded animate-pulse" />
+                                <div className="h-3 w-28 bg-ledger-gray-100 rounded animate-pulse" />
+                            </div>
+                        ))}
                     </div>
-                    <div className="space-y-1.5">
-                        <Label htmlFor="memberSince">Member Since</Label>
-                        <Input
-                            id="memberSince"
-                            type="text"
-                            value={getMemberSinceDate()}
-                            disabled
-                            className="bg-ledger-gray-50"
-                        />
+                ) : (
+                    <div className="space-y-3">
+                        <MembershipRow label="Plan" value={subscription?.planDisplayName || subscription?.planName || user.plan || 'Free'} />
+                        <MembershipRow label="Member Since" value={fmtDate(subscription?.createdAt) || getMemberSinceDate()} />
+                        {subscription?.currentPeriodStart && subscription?.currentPeriodEnd && (
+                            <MembershipRow
+                                label="Current Period"
+                                value={`${fmtDate(subscription.currentPeriodStart)} – ${fmtDate(subscription.currentPeriodEnd)}`}
+                            />
+                        )}
+                        {subscription?.trialEndDate && (
+                            <MembershipRow label="Trial Ends" value={fmtDate(subscription.trialEndDate)} />
+                        )}
+                        {subscription?.cancelledAt && (
+                            <MembershipRow label="Cancelled On" value={fmtDate(subscription.cancelledAt)} highlight="red" />
+                        )}
                     </div>
-                </div>
+                )}
             </div>
         </div>
     )
