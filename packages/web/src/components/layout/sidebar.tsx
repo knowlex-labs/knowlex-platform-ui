@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles, LayoutGrid } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -33,6 +33,7 @@ const iconMap = {
   brain: Brain,
   files: Files,
   'pen-line': PenLine,
+  'layout-grid': LayoutGrid,
 }
 
 // Derive active tab ID from the current pathname
