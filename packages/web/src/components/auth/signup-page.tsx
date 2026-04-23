@@ -1,11 +1,12 @@
 import * as React from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Check, X } from 'lucide-react'
+import { Check, X, Mail, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { useAuth } from '@/contexts/auth-context'
+import { authApi } from '@knowlex/core/api/auth-api'
 import { AuthLayout } from './auth-layout'
 import { STATE_BENCH_MAP, STATES } from '@/lib/courts'
 
@@ -47,6 +48,15 @@ export function SignupPage() {
   })
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [signupComplete, setSignupComplete] = React.useState(false)
+  const [resendSent, setResendSent] = React.useState(false)
+  const [resendCooldown, setResendCooldown] = React.useState(0)
+
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return
+    const id = setInterval(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(id)
+  }, [resendCooldown])
 
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
   const googleButtonRef = React.useRef<HTMLDivElement>(null)
@@ -173,13 +183,20 @@ export function SignupPage() {
 
     try {
       await signup({ ...formData, city: formData.bench })
-      navigate('/', { replace: true })
+      setSignupComplete(true)
     } catch (err) {
       console.error('Signup failed:', err)
       setError(err instanceof Error ? err.message : 'Failed to create account. Please try again.')
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0 || !formData.email) return
+    await authApi.resendVerification(formData.email)
+    setResendSent(true)
+    setResendCooldown(60)
   }
 
   if (isRestoringSession) {
@@ -190,6 +207,55 @@ export function SignupPage() {
           <p className="text-kx-text-secondary">Loading...</p>
         </div>
       </div>
+    )
+  }
+
+  if (signupComplete) {
+    return (
+      <AuthLayout>
+        <div>
+          <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-kx-primary-50 flex items-center justify-center">
+            <Mail className="h-5 w-5 text-kx-primary-700" />
+          </div>
+          <h2 className="text-2xl font-serif font-semibold text-kx-text-primary mb-2 text-center">
+            Check your inbox
+          </h2>
+          <p className="text-sm text-kx-text-secondary mb-6 text-center">
+            We sent a verification link to <strong>{formData.email}</strong>. Click
+            it to confirm your account. The link expires in 48 hours.
+          </p>
+
+          {resendSent && (
+            <div className="mb-4 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+              <CheckCircle2 className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>A new verification email has been sent.</span>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <Button
+              type="button"
+              onClick={handleResendVerification}
+              disabled={resendCooldown > 0}
+              variant="outline"
+              className="w-full"
+            >
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend verification email'}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => navigate('/home', { replace: true })}
+              className="w-full"
+            >
+              Continue to dashboard
+            </Button>
+          </div>
+
+          <p className="mt-6 text-center text-xs text-kx-text-secondary">
+            You can use Knowlex now; verifying your email unlocks all features.
+          </p>
+        </div>
+      </AuthLayout>
     )
   }
 

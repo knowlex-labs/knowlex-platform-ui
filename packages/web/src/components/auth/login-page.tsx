@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/contexts/auth-context'
 import { AuthLayout } from './auth-layout'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2 } from 'lucide-react'
 
 
 function GoogleIcon() {
@@ -47,6 +47,12 @@ export function LoginPage() {
   const sessionExpired =
     location.state?.sessionExpired === true ||
     new URLSearchParams(location.search).get('sessionExpired') === '1'
+
+  const passwordJustReset =
+    new URLSearchParams(location.search).get('passwordReset') === '1'
+
+  const emailJustVerified =
+    new URLSearchParams(location.search).get('verified') === '1'
 
   // Redirect if already authenticated
   React.useEffect(() => {
@@ -180,6 +186,26 @@ export function LoginPage() {
           </div>
         )}
 
+        {passwordJustReset && (
+          <div className="mb-6 flex items-start gap-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-3 text-sm text-green-900 dark:text-green-400">
+            <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Password updated</p>
+              <p className="mt-1 text-green-800">Sign in with your new password to continue.</p>
+            </div>
+          </div>
+        )}
+
+        {emailJustVerified && (
+          <div className="mb-6 flex items-start gap-2 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 p-3 text-sm text-green-900 dark:text-green-400">
+            <CheckCircle2 className="h-5 w-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Email verified</p>
+              <p className="mt-1 text-green-800">Sign in to continue to Knowlex.</p>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
@@ -205,6 +231,14 @@ export function LoginPage() {
               required
               autoComplete="current-password"
             />
+            <div className="flex justify-end">
+              <Link
+                to="/forgot-password"
+                className="text-xs text-kx-primary-600 hover:text-kx-primary-700 underline underline-offset-2"
+              >
+                Forgot password?
+              </Link>
+            </div>
           </div>
 
           {error && (
