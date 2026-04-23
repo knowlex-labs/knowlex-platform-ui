@@ -1,11 +1,11 @@
 import { useState, useEffect, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   ArrowRight, Lock, Shield, Sparkles,
   FileText, CheckCircle, Languages, Scale,
 } from 'lucide-react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { goToDashboard } from '@/lib/hosts'
 
 const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
 
@@ -344,7 +344,6 @@ function ProductDemo({ reduceMotion }: { reduceMotion: boolean }) {
 
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 export function HeroSection() {
-  const navigate = useNavigate()
   const reduceMotion = useReducedMotion()
 
   return (
@@ -401,7 +400,7 @@ export function HeroSection() {
                 whileHover={reduceMotion ? undefined : { y: -2, boxShadow: '0 14px 30px -10px rgba(139,60,30,0.35)' }}
                 whileTap={reduceMotion ? undefined : { y: 0 }}
                 transition={{ duration: 0.18 }}
-                onClick={() => navigate('/login')}
+                onClick={() => goToDashboard('/login')}
                 className="inline-flex items-center gap-2 text-base font-semibold bg-kx-primary-800 text-white rounded-full px-7 py-3 hover:bg-kx-primary-900 transition-colors"
               >
                 Try for Free <ArrowRight className="w-4 h-4" />

@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Check, Building2, Minus, Loader2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LandingHeader } from './landing-header'
@@ -9,6 +8,7 @@ import { getAdapters } from '@knowlex/core/api/runtime'
 import { inquiriesApi } from '@knowlex/core/api'
 import { usePlans } from '@/hooks/use-plans'
 import { cn } from '@/lib/utils'
+import { goToDashboard } from '@/lib/hosts'
 import type { PlanType, BillingCycle } from '@knowlex/core/types'
 
 type BillingPeriod = 'monthly' | 'annual'
@@ -307,29 +307,28 @@ export function PricingPage() {
   const [billing, setBilling] = useState<BillingPeriod>('monthly')
   const { isAuthenticated } = useAuth()
   const { subscribe, isSubscribing } = usePlans()
-  const navigate = useNavigate()
 
   const handleSubscribe = async (plan: Plan) => {
     if (plan.planType === 'FREE') {
-      navigate('/signup')
+      goToDashboard('/signup')
       return
     }
     if (!getAdapters().env.enablePayment) {
-      navigate('/login')
+      goToDashboard('/login')
       return
     }
     if (!isAuthenticated) {
-      navigate('/signup', { state: { from: { pathname: '/pricing' } } })
+      goToDashboard('/signup')
       return
     }
     const billingCycle: BillingCycle = billing === 'monthly' ? 'MONTHLY' : 'YEARLY'
     const success = await subscribe(plan.planType, billingCycle)
-    if (success) navigate('/home')
+    if (success) goToDashboard('/home')
   }
 
   return (
     <div className="min-h-screen bg-white force-light flex flex-col">
-      <LandingHeader onSignIn={() => navigate('/login')} />
+      <LandingHeader onSignIn={() => goToDashboard('/login')} />
 
       <main className="flex-1">
         {/* Header */}

@@ -1,12 +1,12 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { LandingHeader } from '@/components/landing/landing-header'
 import { LandingFooter } from '@/components/landing/landing-footer'
+import { goToDashboard } from '@/lib/hosts'
 
 export function BlogLayout() {
-  const navigate = useNavigate()
   return (
     <div className="force-light min-h-screen bg-white">
-      <LandingHeader onSignIn={() => navigate('/login')} />
+      <LandingHeader onSignIn={() => goToDashboard('/login')} />
       <main>
         <Outlet />
       </main>

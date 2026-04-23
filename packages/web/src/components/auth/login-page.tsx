@@ -44,7 +44,9 @@ export function LoginPage() {
   const googleButtonRef = React.useRef<HTMLDivElement>(null)
   const [isGoogleScriptLoaded, setIsGoogleScriptLoaded] = React.useState(false)
 
-  const sessionExpired = location.state?.sessionExpired === true
+  const sessionExpired =
+    location.state?.sessionExpired === true ||
+    new URLSearchParams(location.search).get('sessionExpired') === '1'
 
   // Redirect if already authenticated
   React.useEffect(() => {
