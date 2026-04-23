@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { CalendarDays, Bell, PenLine, Files, Languages, Scale, Sparkles, FileText, File, Users } from 'lucide-react'
+import { CalendarDays, Bell, PenLine, Languages, Scale, Sparkles, FileText, File, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useNavigate } from 'react-router-dom'
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'

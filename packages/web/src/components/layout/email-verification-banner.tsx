@@ -41,18 +41,10 @@ export function EmailVerificationBanner() {
       const res = await userApi.getCurrentUser()
       if (res.status === 'success' && res.data) {
         refreshUser({
-          id: res.data.id,
-          username: res.data.username,
-          email: res.data.email,
-          firstName: res.data.firstName,
-          lastName: res.data.lastName,
-          phone: res.data.mobileNumber,
-          bench: res.data.bench,
           emailVerified: res.data.emailVerified,
           emailVerifiedAt: res.data.emailVerifiedAt
             ? new Date(res.data.emailVerifiedAt)
             : undefined,
-          createdAt: new Date(res.data.createdAt),
         })
       }
     } finally {

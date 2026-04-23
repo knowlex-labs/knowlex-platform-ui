@@ -47,6 +47,6 @@ export interface AuthContextValue extends AuthState {
   /** Swap just the auth tokens (e.g. after change-password returns fresh tokens). */
   replaceTokens: (token: string, refreshToken: string) => void
   /** Merge updated user fields into context state without a network call. */
-  refreshUser: (user: User) => void
+  refreshUser: (user: Partial<User>) => void
   isRestoringSession?: boolean
 }

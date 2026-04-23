@@ -334,7 +334,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuthTokens(token, refreshToken, userId)
   }, [])
 
-  const refreshUser = React.useCallback((user: User) => {
+  const refreshUser = React.useCallback((user: Partial<User>) => {
     setAuthState((prev) => prev.isAuthenticated && prev.user
       ? { ...prev, user: { ...prev.user, ...user } }
       : prev
