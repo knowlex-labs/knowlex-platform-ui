@@ -15,6 +15,7 @@ export const SIDEBAR_TABS: SidebarTabConfig[] = [
   { id: 'cause-lists', label: 'Cause Lists', icon: 'clipboard-list', path: '/cause-lists' },
   { id: 'clients', label: 'Clients', icon: 'users', path: '/clients' },
   { id: 'judgments', label: 'Legal Library', icon: 'scale', path: '/judgments' },
+  { id: 'moodboard', label: 'Tasks', icon: 'layout-grid', path: '/moodboard' },
   { id: 'documents', label: 'Documents', icon: 'files', path: '/documents' },
 ]
 

@@ -26,6 +26,7 @@ import { BlogAdminList } from '@/components/admin/blog/blog-admin-list'
 import { BlogFormPage } from '@/components/admin/blog/blog-form-page'
 import { DocumentsPage } from '@/components/documents/documents-page'
 import { DraftingPage } from '@/components/drafting/drafting-page'
+import { MoodboardBoard } from '@/components/moodboard/moodboard-board'
 import { PricingPage } from '@/components/landing/pricing-page'
 import { AboutPage } from '@/components/landing/about-page'
 import { CareersPage } from '@/components/landing/careers-page'
@@ -93,6 +94,7 @@ export const router = createBrowserRouter([
       { path: '/judgments', element: <LegalLibrary /> },
       { path: '/judgments/:judgmentId', element: <JudgmentDetail /> },
 { path: '/documents', element: <DocumentsPage /> },
+      { path: '/moodboard', element: <MoodboardBoard /> },
       {
         path: '/settings',
         element: <SettingsLayout />,
