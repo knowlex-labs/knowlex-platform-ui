@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { goToDashboard } from '@/lib/hosts'
 
 const CALENDLY_URL = 'https://calendly.com/nakul-jain-getknowlex/30min'
 
@@ -82,7 +83,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
                 Book a Demo
               </button>
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => goToDashboard('/login')}
                 className="text-sm font-semibold text-white bg-kx-primary-800 rounded-full px-4 py-1.5 hover:bg-kx-primary-900 transition-colors"
               >
                 Sign In
@@ -126,7 +127,7 @@ export function LandingHeader({ onSignIn: _onSignIn }: LandingHeaderProps) {
                 )}
                 <div className="flex flex-col gap-2 mt-2 pt-3 border-t border-kx-primary-100/60">
                   <button
-                    onClick={() => { navigate('/login'); setMobileMenuOpen(false) }}
+                    onClick={() => { setMobileMenuOpen(false); goToDashboard('/login') }}
                     className="text-sm font-semibold text-white bg-kx-primary-800 rounded-full px-4 py-2 hover:bg-kx-primary-900 transition-colors w-full"
                   >
                     Sign In

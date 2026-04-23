@@ -1,18 +1,17 @@
 import * as React from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { useSubscription } from '@/hooks/use-subscription'
 import { LandingPage } from '@/components/landing/landing-page'
 import { useToast } from '@/hooks/use-toast'
 import { getAdapters } from '@knowlex/core/api/runtime'
+import { goToDashboard } from '@/lib/hosts'
 
 export function LandingRoute() {
   const { isAuthenticated, isRestoringSession } = useAuth()
   const { subscription, isLoading: isLoadingSubscription } = useSubscription()
-  const navigate = useNavigate()
   const { toast } = useToast()
 
-  // Redirect authenticated users to home
+  // Redirect authenticated users to home (dashboard host)
   // When payment is enabled, only redirect if they have an active subscription
   React.useEffect(() => {
     if (!isAuthenticated || isRestoringSession) return
@@ -22,13 +21,13 @@ export function LandingRoute() {
         const hasActiveSubscription =
           subscription?.status === 'ACTIVE' || subscription?.status === 'TRIALING'
         if (hasActiveSubscription) {
-          navigate('/home', { replace: true })
+          goToDashboard('/home')
         }
       }
     } else {
-      navigate('/home', { replace: true })
+      goToDashboard('/home')
     }
-  }, [isAuthenticated, isRestoringSession, isLoadingSubscription, subscription, navigate])
+  }, [isAuthenticated, isRestoringSession, isLoadingSubscription, subscription])
 
   // Listen for toast events
   React.useEffect(() => {
@@ -52,18 +51,18 @@ export function LandingRoute() {
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // Handle session expiry — redirect to login page
+  // Handle session expiry — redirect to login on dashboard host
   React.useEffect(() => {
     const handleSessionExpired = () => {
-      navigate('/login', { state: { sessionExpired: true } })
+      goToDashboard('/login?sessionExpired=1')
     }
 
     window.addEventListener('auth:session-expired', handleSessionExpired)
     return () => window.removeEventListener('auth:session-expired', handleSessionExpired)
-  }, [navigate])
+  }, [])
 
   const handleSignIn = () => {
-    navigate('/login')
+    goToDashboard('/login')
   }
 
   // Show loading while restoring session

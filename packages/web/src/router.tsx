@@ -1,4 +1,5 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import * as React from 'react'
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom'
 import { LandingRoute } from '@/routes/landing-route'
 import { ProtectedLayout } from '@/routes/protected-layout'
 import { DashboardHome } from '@/components/dashboard/dashboard-home'
@@ -30,50 +31,78 @@ import { MoodboardBoard } from '@/components/moodboard/moodboard-board'
 import { PricingPage } from '@/components/landing/pricing-page'
 import { AboutPage } from '@/components/landing/about-page'
 import { CareersPage } from '@/components/landing/careers-page'
+import {
+  DASHBOARD_ORIGIN,
+  MARKETING_ORIGIN,
+  isDashboardHost,
+  isLocalHost,
+  isMarketingHost,
+} from '@/lib/hosts'
 
-const isDashboardSubdomain = window.location.hostname.startsWith('dashboard.')
+function HostRedirect({ to }: { to: 'dashboard' | 'marketing' }) {
+  const location = useLocation()
+  React.useEffect(() => {
+    const origin = to === 'dashboard' ? DASHBOARD_ORIGIN : MARKETING_ORIGIN
+    window.location.replace(`${origin}${location.pathname}${location.search}${location.hash}`)
+  }, [to, location])
+  return null
+}
+
+function MarketingOnly({ children }: { children: React.ReactNode }) {
+  if (isLocalHost || isMarketingHost) return <>{children}</>
+  return <HostRedirect to="marketing" />
+}
+
+function DashboardOnly({ children }: { children: React.ReactNode }) {
+  if (isLocalHost || isDashboardHost) return <>{children}</>
+  return <HostRedirect to="dashboard" />
+}
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: isDashboardSubdomain ? <Navigate to="/login" replace /> : <LandingRoute />,
+    element: isDashboardHost ? (
+      <Navigate to="/login" replace />
+    ) : (
+      <MarketingOnly><LandingRoute /></MarketingOnly>
+    ),
   },
   {
     path: '/login',
-    element: <LoginPage />,
+    element: <DashboardOnly><LoginPage /></DashboardOnly>,
   },
   {
     path: '/signup',
-    element: <SignupPage />,
+    element: <DashboardOnly><SignupPage /></DashboardOnly>,
   },
   {
     path: '/pricing',
-    element: <PricingPage />,
+    element: <MarketingOnly><PricingPage /></MarketingOnly>,
   },
   {
     path: '/about',
-    element: <AboutPage />,
+    element: <MarketingOnly><AboutPage /></MarketingOnly>,
   },
   {
     path: '/careers',
-    element: <CareersPage />,
+    element: <MarketingOnly><CareersPage /></MarketingOnly>,
   },
-  // Public blog (no auth required)
+  // Public blog (no auth required) — marketing host only
   {
-    element: <BlogLayout />,
+    element: <MarketingOnly><BlogLayout /></MarketingOnly>,
     children: [
       { path: '/blogs', element: <BlogListPage /> },
       { path: '/blogs/:slug', element: <BlogDetailPage /> },
     ],
   },
-  // Admin login (no auth required)
+  // Admin login (dashboard host only)
   {
     path: '/admin/login',
-    element: <AdminLoginPage />,
+    element: <DashboardOnly><AdminLoginPage /></DashboardOnly>,
   },
-  // Admin protected (admin auth required)
+  // Admin protected (dashboard host + admin auth)
   {
-    element: <AdminLayout />,
+    element: <DashboardOnly><AdminLayout /></DashboardOnly>,
     children: [
       { path: '/admin', element: <AdminDashboard /> },
       { path: '/admin/blog', element: <BlogAdminList /> },
@@ -82,7 +111,7 @@ export const router = createBrowserRouter([
     ],
   },
   {
-    element: <ProtectedLayout />,
+    element: <DashboardOnly><ProtectedLayout /></DashboardOnly>,
     children: [
       { path: '/home', element: <DashboardHome /> },
       { path: '/cases', element: <CaseList /> },
@@ -93,7 +122,7 @@ export const router = createBrowserRouter([
       { path: '/clients/:clientId', element: <ClientDetail /> },
       { path: '/judgments', element: <LegalLibrary /> },
       { path: '/judgments/:judgmentId', element: <JudgmentDetail /> },
-{ path: '/documents', element: <DocumentsPage /> },
+      { path: '/documents', element: <DocumentsPage /> },
       { path: '/moodboard', element: <MoodboardBoard /> },
       {
         path: '/settings',
