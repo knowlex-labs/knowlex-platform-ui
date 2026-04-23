@@ -16,7 +16,8 @@ export interface BackendUser {
   admin?: boolean
   emailVerified?: boolean
   emailVerifiedAt?: string | null
-  createdAt: string
+  plan?: string
+  createdAt?: string
 }
 
 export const userApi = {
@@ -24,7 +25,13 @@ export const userApi = {
     return apiClient.get<ApiResponse<BackendUser>>(`${USER_ENDPOINT}/me`)
   },
 
-  updateProfile: (data: { bench?: string }): Promise<ApiResponse<BackendUser>> => {
+  updateProfile: (data: {
+    username?: string
+    firstName?: string
+    lastName?: string
+    mobileNumber?: string
+    bench?: string
+  }): Promise<ApiResponse<BackendUser>> => {
     return apiClient.put<ApiResponse<BackendUser>>(`${USER_ENDPOINT}/me`, data)
   },
 }

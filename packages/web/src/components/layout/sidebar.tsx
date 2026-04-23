@@ -251,15 +251,15 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
                   <p className="text-sm font-medium text-kx-primary-900 truncate flex-1">
                     {getUserDisplayName()}
                   </p>
-                  <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? '' : 'rotate-180'}`} />
+                  <ChevronDown className={`h-4 w-4 text-ledger-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
                 </>
               )}
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Dropdown Menu — opens upward, above the user button */}
             {showUserMenu && (
               <div className={cn(
-                "absolute bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden z-50",
+                "absolute bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden z-[100]",
                 collapsed
                   ? "left-full bottom-0 ml-2 w-56"
                   : "bottom-full left-0 right-0 mb-2"

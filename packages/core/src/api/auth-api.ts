@@ -51,6 +51,7 @@ export interface AuthUserPayload {
   mobileNumber?: string
   emailVerified?: boolean
   emailVerifiedAt?: string | null
+  plan?: string
   createdAt?: string
 }
 
@@ -73,6 +74,7 @@ export interface AuthResponse {
     mobileNumber?: string
     emailVerified?: boolean
     emailVerifiedAt?: string | null
+    plan?: string
     createdAt: string
   }
 }
@@ -184,6 +186,7 @@ async function handleAuthResponse(response: Response): Promise<AuthResponse> {
         mobileNumber: nestedUser.mobileNumber,
         emailVerified: nestedUser.emailVerified,
         emailVerifiedAt: nestedUser.emailVerifiedAt ?? null,
+        plan: nestedUser.plan,
         createdAt: nestedUser.createdAt ?? userFromToken?.createdAt ?? new Date().toISOString(),
       }
     : {
@@ -337,6 +340,7 @@ export const authApi = {
       firstName: u.firstName,
       lastName: u.lastName,
       phone: u.mobileNumber,
+      plan: u.plan,
       emailVerified: u.emailVerified ?? true,
       emailVerifiedAt: u.emailVerifiedAt ? new Date(u.emailVerifiedAt) : new Date(),
       createdAt: u.createdAt ? new Date(u.createdAt) : new Date(),

@@ -12,6 +12,12 @@ function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY)
 }
 
+function parseDateSafe(value: string | null | undefined): Date {
+  if (!value) return new Date()
+  const d = new Date(value)
+  return isNaN(d.getTime()) ? new Date() : d
+}
+
 const AuthContext = React.createContext<AuthContextValue | undefined>(undefined)
 
 interface AuthProviderProps {
@@ -64,7 +70,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
             lastName: userResponse.data.lastName,
             phone: userResponse.data.mobileNumber,
             bench: userResponse.data.bench,
-            createdAt: new Date(userResponse.data.createdAt),
+            plan: userResponse.data.plan,
+            emailVerified: userResponse.data.emailVerified,
+            emailVerifiedAt: userResponse.data.emailVerifiedAt ? new Date(userResponse.data.emailVerifiedAt) : undefined,
+            createdAt: parseDateSafe(userResponse.data.createdAt),
           }
 
           // Ensure userId is stored in localStorage
@@ -142,7 +151,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           lastName: userResponse.data.lastName,
           phone: userResponse.data.mobileNumber,
           bench: userResponse.data.bench,
-          createdAt: new Date(userResponse.data.createdAt),
+          plan: userResponse.data.plan,
+          createdAt: parseDateSafe(userResponse.data.createdAt),
           ...verificationFields,
         }
 
@@ -162,7 +172,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           firstName: response.user.firstName,
           lastName: response.user.lastName,
           phone: response.user.mobileNumber,
-          createdAt: new Date(response.user.createdAt),
+          createdAt: parseDateSafe(response.user.createdAt),
           ...verificationFields,
         }
 
@@ -181,7 +191,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         firstName: response.user.firstName,
         lastName: response.user.lastName,
         phone: response.user.mobileNumber,
-        createdAt: new Date(response.user.createdAt),
+        createdAt: parseDateSafe(response.user.createdAt),
         ...verificationFields,
       }
 
@@ -236,7 +246,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           lastName: userResponse.data.lastName,
           phone: userResponse.data.mobileNumber,
           bench: userResponse.data.bench,
-          createdAt: new Date(userResponse.data.createdAt),
+          plan: userResponse.data.plan,
+          createdAt: parseDateSafe(userResponse.data.createdAt),
           ...verificationFields,
         }
 
@@ -256,7 +267,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           firstName: response.user.firstName,
           lastName: response.user.lastName,
           phone: response.user.mobileNumber,
-          createdAt: new Date(response.user.createdAt),
+          createdAt: parseDateSafe(response.user.createdAt),
           ...verificationFields,
         }
 
@@ -275,7 +286,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         firstName: response.user.firstName,
         lastName: response.user.lastName,
         phone: response.user.mobileNumber,
-        createdAt: new Date(response.user.createdAt),
+        createdAt: parseDateSafe(response.user.createdAt),
         ...verificationFields,
       }
 
@@ -294,8 +305,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     })
   }, [login])
 
-  const updateProfile = React.useCallback(async (data: { bench?: string }) => {
-    await userApi.updateProfile(data)
+  const updateProfile = React.useCallback(async (data: {
+    username?: string
+    firstName?: string
+    lastName?: string
+    phone?: string
+    bench?: string
+  }) => {
+    const { phone, ...rest } = data
+    await userApi.updateProfile({ ...rest, mobileNumber: phone })
     setAuthState((prev) => prev.user
       ? { ...prev, user: { ...prev.user, ...data } }
       : prev
