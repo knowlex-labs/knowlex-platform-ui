@@ -60,7 +60,9 @@ export function useMoodboard(): UseMoodboardResult {
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
   const boardRef = useRef<Moodboard | null>(null)
-  boardRef.current = board
+  useEffect(() => {
+    boardRef.current = board
+  }, [board])
 
   const fetchBoard = useCallback(async () => {
     setIsLoading(true)

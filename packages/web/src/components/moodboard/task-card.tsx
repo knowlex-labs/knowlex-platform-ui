@@ -2,6 +2,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import { Image as ImageIcon, GripVertical, MoreVertical, Archive, Inbox, Trash2 } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import type { MoodboardStatus, MoodboardTask } from '@knowlex/core/types'
 
@@ -117,46 +118,48 @@ export function TaskCard({ task, onClick, onStatusChange, onDelete }: TaskCardPr
               {pill.label}
             </button>
 
-            <div className="relative" onClick={(e) => e.stopPropagation()}>
-              <button
-                type="button"
-                onClick={() => setMenuOpen((o) => !o)}
-                className="p-1 rounded text-ledger-gray-400 opacity-0 group-hover:opacity-100 hover:text-kx-primary-600 hover:bg-kx-primary-50 dark:hover:bg-white/5 transition-all"
-                aria-label="More options"
-              >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </button>
-              {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1 z-20 w-40 bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => { setMenuOpen(false); onStatusChange('BACKLOG') }}
-                      className="w-full px-3 py-2 text-left text-xs hover:bg-kx-primary-50 dark:hover:bg-white/5 flex items-center gap-2"
-                    >
-                      <Inbox className="h-3.5 w-3.5" />
-                      Move to backlog
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setMenuOpen(false); onStatusChange('ARCHIVED') }}
-                      className="w-full px-3 py-2 text-left text-xs hover:bg-kx-primary-50 dark:hover:bg-white/5 flex items-center gap-2"
-                    >
-                      <Archive className="h-3.5 w-3.5" />
-                      Archive
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setMenuOpen(false); onDelete() }}
-                      className="w-full px-3 py-2 text-left text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex items-center gap-2"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </button>
-                  </div>
-                </>
-              )}
+            <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+              <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="p-1 rounded text-ledger-gray-400 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 hover:text-kx-primary-600 hover:bg-kx-primary-50 dark:hover:bg-white/5 transition-all"
+                    aria-label="More options"
+                  >
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  align="end"
+                  sideOffset={4}
+                  className="w-40 p-1 bg-kx-card border-kx-card-border"
+                >
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); onStatusChange('BACKLOG') }}
+                    className="w-full px-3 py-2 text-left text-xs rounded hover:bg-kx-primary-50 dark:hover:bg-white/5 flex items-center gap-2"
+                  >
+                    <Inbox className="h-3.5 w-3.5" />
+                    Move to backlog
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); onStatusChange('ARCHIVED') }}
+                    className="w-full px-3 py-2 text-left text-xs rounded hover:bg-kx-primary-50 dark:hover:bg-white/5 flex items-center gap-2"
+                  >
+                    <Archive className="h-3.5 w-3.5" />
+                    Archive
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); onDelete() }}
+                    className="w-full px-3 py-2 text-left text-xs rounded text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 flex items-center gap-2"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </button>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         </div>

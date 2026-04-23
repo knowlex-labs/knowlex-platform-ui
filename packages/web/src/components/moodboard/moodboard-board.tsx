@@ -59,7 +59,7 @@ function StatusColumn({
   const ids = useMemo(() => tasks.map((t) => t.id), [tasks])
 
   return (
-    <div className="flex flex-col bg-ledger-gray-50 dark:bg-white/[0.02] border border-kx-card-border rounded-lg overflow-hidden min-h-[400px] w-[320px] flex-shrink-0">
+    <div className="flex flex-col bg-ledger-gray-50 dark:bg-white/[0.02] border border-kx-card-border rounded-lg overflow-hidden min-h-[400px] flex-1 min-w-[280px]">
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-kx-card-border bg-kx-card">
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="text-sm font-semibold text-kx-text-primary truncate">{label}</h3>
@@ -265,7 +265,7 @@ export function MoodboardBoard() {
         {isLoading && !board ? (
           <div className="flex gap-4 h-full">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="w-[320px] flex-shrink-0 border border-kx-card-border rounded-lg p-4 space-y-3">
+              <div key={i} className="flex-1 min-w-[280px] border border-kx-card-border rounded-lg p-4 space-y-3">
                 <Skeleton className="h-5 w-24" />
                 <Skeleton className="h-20 w-full" />
                 <Skeleton className="h-20 w-full" />

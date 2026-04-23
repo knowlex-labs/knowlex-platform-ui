@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckSquare, CheckCircle2 } from 'lucide-react'
 import { moodboardApi } from '@knowlex/core/api'
@@ -23,30 +23,39 @@ export function OpenTasksWidget() {
   const [isLoading, setIsLoading] = useState(true)
   const [hasError, setHasError] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
-    moodboardApi
-      .getBoard()
-      .then((res) => {
-        if (cancelled) return
-        const active = (res.data.tasks ?? [])
-          .map(mapBackendTask)
-          .filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
-          .sort((a, b) => {
-            // In-progress first, then TODO, then by position.
-            if (a.status !== b.status) return a.status === 'IN_PROGRESS' ? -1 : 1
-            return a.position - b.position
-          })
-        setTasks(active)
-      })
-      .catch(() => {
-        if (!cancelled) setHasError(true)
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
-      })
-    return () => { cancelled = true }
+  // TODO: switch to a server-side filtered endpoint once available; today this
+  // pulls the entire board and filters to active tasks client-side.
+  const load = useCallback(async (signal?: { cancelled: boolean }) => {
+    try {
+      const res = await moodboardApi.getBoard()
+      if (signal?.cancelled) return
+      const active = (res.data.tasks ?? [])
+        .map(mapBackendTask)
+        .filter((t) => t.status === 'TODO' || t.status === 'IN_PROGRESS')
+        .sort((a, b) => {
+          // In-progress first, then TODO, then by position.
+          if (a.status !== b.status) return a.status === 'IN_PROGRESS' ? -1 : 1
+          return a.position - b.position
+        })
+      setTasks(active)
+      setHasError(false)
+    } catch {
+      if (!signal?.cancelled) setHasError(true)
+    } finally {
+      if (!signal?.cancelled) setIsLoading(false)
+    }
   }, [])
+
+  useEffect(() => {
+    const signal = { cancelled: false }
+    load(signal)
+    const onFocus = () => { load() }
+    window.addEventListener('focus', onFocus)
+    return () => {
+      signal.cancelled = true
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [load])
 
   const visible = tasks.slice(0, MAX_VISIBLE)
   const overflow = Math.max(0, tasks.length - MAX_VISIBLE)

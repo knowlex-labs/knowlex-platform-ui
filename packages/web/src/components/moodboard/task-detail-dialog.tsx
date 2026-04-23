@@ -57,7 +57,7 @@ export function TaskDetailDialog({
     setTitle(task.title)
     setDescription(task.description ?? '')
     setStatus(task.status)
-  }, [task.id, task.title, task.description, task.status])
+  }, [task.id])
 
   const handleSave = async () => {
     const patch: UpdateTaskRequest = {}
