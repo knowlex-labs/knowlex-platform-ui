@@ -6,12 +6,19 @@
  * the document reaches a terminal state (COMPLETED / FAILED) or the
  * total elapsed time exceeds maxDurationMs.
  */
-export const POLL = {
+interface PollConfig {
+  initialDelayMs: number
+  maxDelayMs: number
+  backoffFactor: number
+  maxDurationMs: number
+}
+
+export const POLL: PollConfig = {
   initialDelayMs: 1_000,
   maxDelayMs: 30_000,
   backoffFactor: 2,
   maxDurationMs: 10 * 60 * 1_000,
-} as const
+}
 
 export function nextDelay(currentDelayMs: number): number {
   return Math.min(currentDelayMs * POLL.backoffFactor, POLL.maxDelayMs)
