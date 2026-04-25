@@ -7,12 +7,13 @@ import { FormattingToolbar } from './formatting-toolbar'
 import {
   renderDraftToHtml,
   printDraft,
-  downloadAsPdf,
-  downloadAsDoc,
+  buildExportBodyHtml,
 } from '@/lib/draft-renderer'
+import { exportGeneratedDocument } from '@knowlex/core/api/doc-processing-api'
 import { draftsApi } from '@knowlex/core/api/drafts-api'
 import type { CitationResult } from '@knowlex/core/api/drafts-api'
 import type { Draft } from '@knowlex/core/types'
+import { useToast } from '@/hooks/use-toast'
 
 /**
  * Walk all <strong> elements in el. For each one whose text matches a key in
@@ -242,6 +243,7 @@ function CompletedDraftEditor({
   const [isEditing, setIsEditing] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const { toast } = useToast()
 
   const editorRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -408,14 +410,35 @@ function CompletedDraftEditor({
     () => printDraft(title, getCurrentContent(), getSections(), draft.contentFormat),
     [title, getCurrentContent, getSections, draft.contentFormat]
   )
-  const handleDownloadDoc = useCallback(
-    () => downloadAsDoc(title, getCurrentContent(), getSections(), draft.contentFormat),
-    [title, getCurrentContent, getSections, draft.contentFormat]
-  )
-  const handleDownloadPdf = useCallback(
-    () => downloadAsPdf(title, getCurrentContent(), getSections(), draft.contentFormat),
-    [title, getCurrentContent, getSections, draft.contentFormat]
-  )
+
+  const handleServerExport = useCallback(async (format: 'PDF' | 'DOCX' | 'MARKDOWN') => {
+    try {
+      const content = getCurrentContent()
+      const sections = getSections()
+      const htmlBody = buildExportBodyHtml(content, sections)
+      const markdownBody = format === 'MARKDOWN' && !content.trim().startsWith('<') ? content : undefined
+      await exportGeneratedDocument(draft.id, format, title, htmlBody, markdownBody)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Export failed'
+      toast({
+        variant: 'destructive',
+        title: 'Export failed',
+        description: message,
+      })
+    }
+  }, [draft.id, title, getCurrentContent, getSections, toast])
+
+  const handleDownloadDoc = useCallback(() => {
+    void handleServerExport('DOCX')
+  }, [handleServerExport])
+
+  const handleDownloadPdf = useCallback(() => {
+    void handleServerExport('PDF')
+  }, [handleServerExport])
+
+  const handleDownloadMd = useCallback(() => {
+    void handleServerExport('MARKDOWN')
+  }, [handleServerExport])
 
   // ─── Explicit save (Ctrl+S / Save button) ────────────────────────────────
   const handleSaveToBackend = useCallback(async () => {
@@ -540,6 +563,7 @@ function CompletedDraftEditor({
         onPrint={handlePrint}
         onDownloadDoc={handleDownloadDoc}
         onDownloadPdf={handleDownloadPdf}
+        onDownloadMd={handleDownloadMd}
         isSaving={isSaving}
         hasChanges={hasChanges}
         documentTitle={title}

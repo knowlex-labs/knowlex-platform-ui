@@ -1,4 +1,4 @@
-import { apiClient } from './api-client'
+import { apiClient, ApiError, SessionExpiredError } from './api-client'
 import { getAdapters } from './runtime'
 import { getAuthHeaders } from './auth-headers'
 import type { ApiResponse } from '../types'
@@ -199,6 +199,66 @@ export async function fetchDocumentBlob(idOrPath: string): Promise<Blob> {
  */
 export function triggerDirectDownload(url: string, fileName: string): void {
   getAdapters().fileHandler.triggerDirectDownload(url, fileName)
+}
+
+// ─── Generated document export (Draft / Summary / Synopsis / Precedent) ────────
+
+export type GeneratedDocExportFormat = 'PDF' | 'DOCX' | 'MARKDOWN'
+
+function parseFilenameFromContentDisposition(cd: string | null): string | null {
+  if (!cd) return null
+  const utf8 = cd.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8?.[1]) return decodeURIComponent(utf8[1])
+  const quoted = cd.match(/filename="([^"]+)"/i)
+  if (quoted?.[1]) return quoted[1]
+  const plain = cd.match(/filename=([^;]+)/i)
+  if (plain?.[1]) return plain[1].trim()
+  return null
+}
+
+/**
+ * Server-side export for AI-generated documents (Draft / Summary / Synopsis / Precedent).
+ * Posts HTML body + format to POST /documents/{id}/export and triggers a file save.
+ *
+ * Use downloadDocument() for raw user-uploaded or toolbox files instead.
+ */
+export async function exportGeneratedDocument(
+  documentId: string,
+  format: GeneratedDocExportFormat,
+  title: string,
+  htmlBody: string,
+  markdownBody?: string,
+): Promise<void> {
+  const fallbackExt = format === 'PDF' ? 'pdf' : format === 'DOCX' ? 'docx' : 'md'
+  const fallbackName = `${title.replace(/[^a-z0-9]/gi, '_') || 'document'}.${fallbackExt}`
+
+  const response = await fetch(
+    `${getAdapters().env.apiBaseUrl}/api/v1/documents/${documentId}/export`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ format, title, htmlBody, markdownBody }),
+    }
+  )
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      getAdapters().eventBus.dispatch('auth:session-expired')
+      throw new SessionExpiredError()
+    }
+    let msg = `Export failed: ${response.status}`
+    try {
+      const err = await response.json() as { message?: string }
+      if (err?.message) msg = err.message
+    } catch { /* non-JSON body */ }
+    throw new ApiError(msg, response.status)
+  }
+
+  const blob = await response.blob()
+  const filename =
+    parseFilenameFromContentDisposition(response.headers.get('content-disposition'))
+    ?? fallbackName
+  getAdapters().fileHandler.triggerDownload(blob, filename)
 }
 
 export interface ListDocumentsOpts {

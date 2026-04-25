@@ -499,60 +499,73 @@
 }
 
 /* Legal document styles for export HTML and read-only markdown views */
-.legal-document h1,
-.legal-document h2 {
-  text-align: center;
-  margin: 16px 0 8px;
+.legal-document {
+  line-height: 1.8;
 }
 
 .legal-document h1 {
-  font-size: 16px;
+  font-size: 17px;
+  font-weight: 700;
+  text-align: center;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin: 12px 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #333;
 }
 
 .legal-document h2 {
   font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  margin: 20px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #d0d0d0;
+  color: #1a1a1a;
 }
 
 .legal-document h3 {
   font-size: 14px;
   font-weight: 700;
-  margin: 12px 0 6px;
+  margin: 14px 0 6px;
+  color: #333;
 }
 
 .legal-document hr {
+  border: none;
   border-top: 1px solid #ccc;
   margin: 20px 0;
 }
 
 .legal-document p {
-  margin: 8px 0;
-  line-height: 1.6;
+  margin: 4px 0 10px;
+  line-height: 1.8;
   text-align: justify;
 }
 
 .legal-document strong {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .legal-document table {
   width: 100%;
   border-collapse: collapse;
   margin: 16px 0;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .legal-document th,
 .legal-document td {
-  border: 1px solid #333;
+  border: 1px solid #555;
   padding: 8px 12px;
   text-align: left;
   vertical-align: top;
 }
 
 .legal-document th {
-  background-color: #f5f5f5;
-  font-weight: 600;
+  background-color: #f0f0f0;
+  font-weight: 700;
 }
 
 .legal-document tr:nth-child(even) {
@@ -561,20 +574,26 @@
 
 .legal-document ul,
 .legal-document ol {
-  margin: 8px 0;
-  padding-left: 24px;
-  line-height: 1.6;
+  margin: 6px 0 10px;
+  padding-left: 28px;
+  line-height: 1.8;
 }
 
 .legal-document li {
-  margin-bottom: 4px;
+  margin-bottom: 5px;
   text-align: justify;
 }
 
+.legal-document li > ul,
+.legal-document li > ol {
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
 .legal-document blockquote {
-  border-left: 3px solid #ccc;
-  padding-left: 12px;
-  margin: 12px 0;
-  color: #555;
+  border-left: 3px solid #888;
+  padding-left: 14px;
+  margin: 14px 0 14px 12px;
+  color: #444;
   font-style: italic;
 }

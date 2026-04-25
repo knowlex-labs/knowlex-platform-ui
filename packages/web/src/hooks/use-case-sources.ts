@@ -47,24 +47,62 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   // Track active SSE streams: documentId -> AbortController
   const streamsRef = useRef<Map<string, AbortController>>(new Map())
 
-  const applyDocUpdate = useCallback((doc: { id: string; jobStatus?: string; indexingStatus?: string; type?: string }) => {
-    const isDraftOrSummary = GENERATED_DOC_TYPES.has(doc.type as DocumentType)
-    const update = isDraftOrSummary
-      ? { jobStatus: doc.jobStatus as JobStatus }
-      : { indexingStatus: doc.indexingStatus as IndexingStatus }
-    setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, ...update } : d))
-    setPaginatedSources((prev) => prev.map((d) => d.id === doc.id ? { ...d, ...update } : d))
+  const applyDocUpdate = useCallback((doc: { id: string; jobStatus?: string; indexingStatus?: string; status?: string; type?: string }) => {
+    // SSE / REST: prefer `jobStatus` for async jobs, fall back to `status` (names vary by path).
+    // If the event omits `type` (rare), infer from the row we already have so we never drop a terminal state.
+    const mapRow = (prev: CaseDocument) => {
+      if (prev.id !== doc.id) return prev
+      const effectiveType = (doc.type ?? prev.type) as DocumentType
+      const isGenerated = effectiveType && GENERATED_DOC_TYPES.has(effectiveType)
+      const jobVal = (doc.jobStatus ?? doc.status) as string | undefined
+      if (isGenerated) {
+        if (!jobVal) return prev
+        return { ...prev, jobStatus: jobVal as JobStatus }
+      }
+      const resolvedIndexingStatus = (doc.indexingStatus || doc.status) as IndexingStatus
+      if (!resolvedIndexingStatus) return prev
+      return { ...prev, indexingStatus: resolvedIndexingStatus }
+    }
+    setDocuments((prev) => prev.map(mapRow))
+    setPaginatedSources((prev) => prev.map(mapRow))
   }, [])
+
+  const reconcileDocument = useCallback(
+    (documentId: string) => {
+      if (!caseId) return
+      workspaceApi
+        .getDocument(caseId, documentId)
+        .then((d) => {
+          applyDocUpdate({
+            id: d.id,
+            type: d.type,
+            jobStatus: d.jobStatus,
+            status: d.status,
+            indexingStatus: d.indexingStatus,
+          })
+        })
+        .catch(() => { /* may be deleted */ })
+    },
+    [caseId, applyDocUpdate]
+  )
 
   const startPolling = useCallback((documentId: string) => {
     if (streamsRef.current.has(documentId)) return
     const ctrl = workspaceApi.streamDocumentStatus(documentId, {
       onStatus: (doc) => applyDocUpdate(doc),
-      onError: () => { streamsRef.current.delete(documentId) },
-      onEnd: () => { streamsRef.current.delete(documentId) },
+      onError: () => {
+        streamsRef.current.delete(documentId)
+        // fetch() may not call onEnd when the stream errors — reconcile once from REST
+        reconcileDocument(documentId)
+      },
+      onEnd: () => {
+        streamsRef.current.delete(documentId)
+        // Re-fetch final status — stream may close before a terminal event is delivered
+        reconcileDocument(documentId)
+      },
     })
     streamsRef.current.set(documentId, ctrl)
-  }, [applyDocUpdate])
+  }, [applyDocUpdate, reconcileDocument])
 
   const stopPolling = useCallback((documentId: string) => {
     streamsRef.current.get(documentId)?.abort()
@@ -107,6 +145,16 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
     fetch()
     return () => { stopAllPolling() }
   }, [caseId, startPolling, stopAllPolling])
+
+  // refresh() or createDocument can add new GENERATED rows after the caseId effect ran — open SSE for those jobs.
+  useEffect(() => {
+    if (!caseId) return
+    for (const doc of documents) {
+      if (GENERATED_DOC_TYPES.has(doc.type as DocumentType) && doc.jobStatus === JobStatus.PROCESSING) {
+        startPolling(doc.id)
+      }
+    }
+  }, [caseId, documents, startPolling])
 
   // Fetch paginated USER_UPLOADED sources when caseId or page changes
   useEffect(() => {

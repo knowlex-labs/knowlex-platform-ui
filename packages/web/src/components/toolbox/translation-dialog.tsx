@@ -93,7 +93,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
     stopStream()
     streamCtrlRef.current = workspaceApi.streamDocumentStatus(documentId, {
       onStatus: (doc) => {
-        const s = (doc.jobStatus ?? '').toUpperCase()
+        const s = (doc.jobStatus ?? doc.status ?? '').toString().toUpperCase()
         if (s === 'COMPLETED') {
           stopStream()
           setSignedUrl(doc.downloadUrl ?? doc.signedUrl ?? null)
