@@ -88,7 +88,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
 
   const startPolling = useCallback((documentId: string) => {
     if (streamsRef.current.has(documentId)) return
-    const ctrl = workspaceApi.streamDocumentStatus(documentId, {
+    const ctrl = workspaceApi.pollDocumentStatus(documentId, {
       onStatus: (doc) => applyDocUpdate(doc),
       onError: () => {
         streamsRef.current.delete(documentId)

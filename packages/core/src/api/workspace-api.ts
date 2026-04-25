@@ -1,6 +1,7 @@
 import { apiClient } from './api-client'
 import { getAdapters } from './runtime'
 import { getAuthHeaders } from './auth-headers'
+import { POLL, nextDelay } from './poll-config'
 import type { CaseDocument, CaseDocumentStatus, ChatResponse } from '../types'
 
 function getBaseUrl(): string {
@@ -68,6 +69,32 @@ interface CreateDocumentResponse {
   filePath: string | null
   downloadUrl?: string | null
   signedUrl?: string | null
+}
+
+interface DocumentStatusPayload {
+  id: string
+  status: string | null
+  error: string | null
+}
+
+function isTerminalStatus(status: string | null | undefined): boolean {
+  if (!status) return false
+  const s = status.toUpperCase()
+  return s === 'COMPLETED' || s === 'FAILED'
+}
+
+async function fetchDocumentStatus(documentId: string): Promise<DocumentStatusPayload> {
+  const response = await apiClient.get<ApiResponse<DocumentStatusPayload>>(
+    `/api/v1/documents/${documentId}/status`
+  )
+  return response.data
+}
+
+async function fetchDocumentById(documentId: string): Promise<CreateDocumentResponse> {
+  const response = await apiClient.get<ApiResponse<CreateDocumentResponse>>(
+    `/api/v1/documents/${documentId}`
+  )
+  return response.data
 }
 
 // Map backend chat response to frontend ChatResponse
@@ -235,7 +262,42 @@ export const workspaceApi = {
     return response.data
   },
 
-  streamDocumentStatus(
+  async getDocumentStatus(documentId: string): Promise<DocumentStatusPayload> {
+    return fetchDocumentStatus(documentId)
+  },
+
+  /**
+   * Fetches the inline PDF preview for a document and returns a blob: URL that can be
+   * embedded directly in an <iframe>. Works for any document type — the backend renders
+   * non-PDF formats to PDF and caches the result.
+   *
+   * Caller is responsible for calling URL.revokeObjectURL() when the URL is no longer
+   * in use (typically in a useEffect cleanup).
+   */
+  async fetchDocumentPreviewBlobUrl(documentId: string): Promise<string> {
+    const response = await fetch(`${getBaseUrl()}/api/v1/documents/${documentId}/preview`, {
+      method: 'GET',
+      headers: getAuthHeaders(),
+    })
+    if (!response.ok) {
+      if (response.status === 401) {
+        getAdapters().eventBus.dispatch('auth:session-expired')
+      }
+      throw new Error(`Preview failed: ${response.status}`)
+    }
+    const blob = await response.blob()
+    return URL.createObjectURL(blob)
+  },
+
+  /**
+   * Poll the document-generation status until the job reaches a terminal state.
+   *
+   * Cadence: exponential backoff from POLL.initialDelayMs up to POLL.maxDelayMs,
+   * capped at POLL.maxDurationMs total elapsed. On COMPLETED, the full document
+   * is fetched once and forwarded to onStatus so the consumer can read
+   * downloadUrl / signedUrl for content. On FAILED, a minimal payload is forwarded.
+   */
+  pollDocumentStatus(
     documentId: string,
     callbacks: {
       onStatus: (doc: CreateDocumentResponse) => void
@@ -243,30 +305,81 @@ export const workspaceApi = {
       onEnd: () => void
     }
   ): AbortController {
-    const headers: Record<string, string> = {
-      Accept: 'text/event-stream',
-      ...getAuthHeaders(),
-    }
-    return getAdapters().sse.stream(
-      `${getBaseUrl()}/api/v1/documents/${documentId}/status-stream`,
-      { method: 'GET', headers, body: '' },
-      {
-        onEvent: (event, data) => {
-          if (event === 'status') {
-            try {
-              callbacks.onStatus(JSON.parse(data) as CreateDocumentResponse)
-            } catch { /* ignore malformed */ }
-          } else if (event === 'error') {
-            callbacks.onError(data.trim())
-          }
-        },
-        onError: callbacks.onError,
-        onEnd: callbacks.onEnd,
-        onUnauthorized: () => {
-          getAdapters().eventBus.dispatch('auth:session-expired')
-        },
+    const ctrl = new AbortController()
+    const startedAt = Date.now()
+    let delay = POLL.initialDelayMs
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    const stop = () => {
+      if (timer) {
+        clearTimeout(timer)
+        timer = null
       }
-    )
+    }
+
+    ctrl.signal.addEventListener('abort', stop)
+
+    const finish = (deliverEnd = true) => {
+      stop()
+      if (deliverEnd) callbacks.onEnd()
+    }
+
+    const tick = async () => {
+      if (ctrl.signal.aborted) return
+
+      if (Date.now() - startedAt >= POLL.maxDurationMs) {
+        callbacks.onError('Status polling timed out')
+        finish()
+        return
+      }
+
+      try {
+        const status = await fetchDocumentStatus(documentId)
+        if (ctrl.signal.aborted) return
+
+        if (isTerminalStatus(status.status)) {
+          const upper = (status.status ?? '').toUpperCase()
+          if (upper === 'COMPLETED') {
+            try {
+              const doc = await fetchDocumentById(documentId)
+              if (ctrl.signal.aborted) return
+              callbacks.onStatus(doc)
+            } catch (err) {
+              callbacks.onError(err instanceof Error ? err.message : 'Failed to fetch document')
+            }
+          } else {
+            // FAILED — synthesize a minimal payload; consumer flips state to failed
+            callbacks.onStatus({
+              id: status.id,
+              jobId: '',
+              name: null,
+              type: '',
+              subType: '',
+              status: 'failed',
+              jobStatus: 'FAILED',
+              indexingStatus: '',
+              filePath: null,
+            })
+          }
+          finish()
+          return
+        }
+      } catch (err) {
+        // Treat 401 as fatal so the auth event bus can take over; everything else
+        // is transient — keep polling on the same backoff schedule.
+        if (err instanceof Error && err.name === 'SessionExpiredError') {
+          callbacks.onError(err.message)
+          finish()
+          return
+        }
+      }
+
+      delay = nextDelay(delay)
+      timer = setTimeout(tick, delay)
+    }
+
+    timer = setTimeout(tick, POLL.initialDelayMs)
+    return ctrl
   },
 
   async getPresignedDownloadUrl(documentId: string): Promise<{ downloadUrl: string; storageUrl: string }> {
@@ -310,27 +423,19 @@ export const workspaceApi = {
   },
 
   async fetchDocumentContent(doc: { id: string; signedUrl?: string | null; downloadUrl?: string | null }): Promise<string> {
-    if (doc.downloadUrl) {
-      const res = await fetch(`${getBaseUrl()}${doc.downloadUrl}`, { headers: getAuthHeaders() })
-      if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
-      return res.text()
+    // Always go through the authenticated /download endpoint. It decrypts the file
+    // server-side; presigned S3 URLs return raw ciphertext for encrypted documents
+    // (which yields garbled text when decoded as UTF-8). The signedUrl/downloadUrl
+    // fields on the doc are accepted for backwards compatibility but ignored — the
+    // id is sufficient.
+    const path = `/api/v1/documents/${doc.id}/download`
+    const res = await fetch(`${getBaseUrl()}${path}`, { headers: getAuthHeaders() })
+    if (!res.ok) {
+      if (res.status === 401) {
+        getAdapters().eventBus.dispatch('auth:session-expired')
+      }
+      throw new Error(`Failed to fetch content: ${res.status}`)
     }
-
-    if (doc.signedUrl) {
-      const res = await fetch(doc.signedUrl)
-      if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
-      return res.text()
-    }
-
-    // Fallback: get presigned URL from backend
-    const response = await apiClient.post<ApiResponse<{ downloadUrl: string; storageUrl: string }>>(
-      '/api/v1/presigned-url/download',
-      { documentId: doc.id }
-    )
-    const presignedUrl = response.data.downloadUrl
-    if (!presignedUrl) throw new Error('No download URL available')
-    const res = await fetch(presignedUrl)
-    if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
     return res.text()
   },
 

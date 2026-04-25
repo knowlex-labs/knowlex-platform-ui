@@ -91,7 +91,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
 
   const startStream = (documentId: string) => {
     stopStream()
-    streamCtrlRef.current = workspaceApi.streamDocumentStatus(documentId, {
+    streamCtrlRef.current = workspaceApi.pollDocumentStatus(documentId, {
       onStatus: (doc) => {
         const s = (doc.jobStatus ?? doc.status ?? '').toString().toUpperCase()
         if (s === 'COMPLETED') {
