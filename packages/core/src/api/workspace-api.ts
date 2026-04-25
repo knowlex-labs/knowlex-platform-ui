@@ -307,7 +307,7 @@ export const workspaceApi = {
   ): AbortController {
     const ctrl = new AbortController()
     const startedAt = Date.now()
-    let delay = POLL.initialDelayMs
+    let delay: number = POLL.initialDelayMs
     let timer: ReturnType<typeof setTimeout> | null = null
 
     const stop = () => {
