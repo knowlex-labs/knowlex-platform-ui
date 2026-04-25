@@ -51,22 +51,75 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
   draftsRef.current = drafts
   documentsRef.current = documents
 
-  // Stable key so we only refetch when draft list or status actually changes (avoids loop when parent passes new array ref each render)
+  const isStudioGenerativeDoc = useCallback(
+    (d: CaseDocument) => d.type === DocumentType.DRAFT || d.type === DocumentType.TRANSLATION,
+    []
+  )
+
+  // Stable key so we only refetch when draft/translation list or status actually changes
   const draftListKey = useMemo(
     () =>
-      (documents?.filter((d) => d.type === DocumentType.DRAFT) ?? [])
+      (documents?.filter(isStudioGenerativeDoc) ?? [])
         .map((d) => `${d.id}:${d.jobStatus ?? ''}`)
         .sort()
         .join(','),
-    [documents]
+    [documents, isStudioGenerativeDoc]
   )
 
   const startStream = useCallback((documentId: string) => {
     if (streamsRef.current.has(documentId)) return
+
+    const reconcilePendingFromRest = async () => {
+      if (draftsRef.current.find((d) => d.id === documentId)?.status !== 'pending') return
+      try {
+        const doc = await workspaceApi.getDocument(caseIdRef.current, documentId)
+        const finalStatus = normalizeStatus(
+          (doc as { jobStatus?: string; status?: string }).jobStatus
+            ?? (doc as { jobStatus?: string; status?: string }).status
+        )
+        if (finalStatus === 'completed') {
+          const d0 = draftsRef.current.find((d) => d.id === documentId)
+          if (d0?.sourceDocumentType === DocumentType.TRANSLATION) {
+            setDrafts((prev) => prev.map((d) =>
+              d.id === documentId ? { ...d, status: 'completed' as const } : d
+            ))
+            return
+          }
+          let resolvedContent = ''
+          try {
+            resolvedContent = await workspaceApi.fetchDocumentContent({
+              id: documentId,
+              downloadUrl: doc.downloadUrl,
+              signedUrl: doc.signedUrl,
+            })
+          } catch { /* leave empty */ }
+          setDrafts((prev) => prev.map((d) =>
+            d.id === documentId
+              ? { ...d, status: 'completed' as const, content: resolvedContent }
+              : d
+          ))
+        } else if (finalStatus === 'failed') {
+          setDrafts((prev) => prev.map((d) =>
+            d.id === documentId ? { ...d, status: 'failed' as const } : d
+          ))
+        }
+      } catch { /* ignore */ }
+    }
+
     const ctrl = workspaceApi.streamDocumentStatus(documentId, {
       onStatus: async (doc) => {
-        const normalizedStatus = normalizeStatus(doc.jobStatus)
+        const normalizedStatus = normalizeStatus(
+          (doc as { jobStatus?: string; status?: string }).jobStatus
+            ?? (doc as { jobStatus?: string; status?: string }).status
+        )
         if (normalizedStatus === 'completed') {
+          const existing = draftsRef.current.find((d) => d.id === documentId)
+          if (existing?.sourceDocumentType === DocumentType.TRANSLATION) {
+            setDrafts((prev) => prev.map((d) =>
+              d.id === documentId ? { ...d, status: 'completed' as const } : d
+            ))
+            return
+          }
           let resolvedContent = ''
           try {
             resolvedContent = await workspaceApi.fetchDocumentContent({
@@ -86,35 +139,14 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
           ))
         }
       },
-      onError: () => { streamsRef.current.delete(documentId) },
-      onEnd: async () => {
+      onError: () => {
         streamsRef.current.delete(documentId)
-        // If still pending after stream closes, fetch the final status once
-        if (draftsRef.current.find(d => d.id === documentId)?.status === 'pending') {
-          try {
-            const doc = await workspaceApi.getDocument(caseIdRef.current, documentId)
-            const finalStatus = normalizeStatus(doc.jobStatus)
-            if (finalStatus === 'completed') {
-              let resolvedContent = ''
-              try {
-                resolvedContent = await workspaceApi.fetchDocumentContent({
-                  id: documentId,
-                  downloadUrl: doc.downloadUrl,
-                  signedUrl: doc.signedUrl,
-                })
-              } catch { /* leave empty */ }
-              setDrafts(prev => prev.map(d =>
-                d.id === documentId
-                  ? { ...d, status: 'completed' as const, content: resolvedContent }
-                  : d
-              ))
-            } else if (finalStatus === 'failed') {
-              setDrafts(prev => prev.map(d =>
-                d.id === documentId ? { ...d, status: 'failed' as const } : d
-              ))
-            }
-          } catch { /* ignore */ }
-        }
+        // fetch() can call onError without onEnd; reconcile in case the job already finished
+        void reconcilePendingFromRest()
+      },
+      onEnd: () => {
+        streamsRef.current.delete(documentId)
+        void reconcilePendingFromRest()
       },
     })
     streamsRef.current.set(documentId, ctrl)
@@ -229,19 +261,23 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     setError(null)
 
     try {
-      // Filter documents for DRAFT type
-      const draftDocs = docs.filter((d) => d.type === DocumentType.DRAFT)
+      // Drafts + translations (both are generated jobs and appear in Case Studio activity)
+      const draftDocs = docs.filter((d) => isStudioGenerativeDoc(d))
 
       // Map to Draft objects without eagerly fetching content — content is loaded on click
       const mapped: Draft[] = draftDocs.map((doc) => {
         const existing = draftsRef.current.find((d) => d.id === doc.id)
+        const defaultTitle = doc.type === DocumentType.TRANSLATION
+          ? (doc.name || 'Translation')
+          : (doc.name || 'Untitled Draft')
         return {
           id: doc.id,
-          title: existing?.title || doc.name || 'Untitled Draft',
+          title: existing?.title || defaultTitle,
           content: existing?.content || '', // Keep cached content, don't fetch new
           status: doc.jobStatus === JobStatus.COMPLETED ? 'completed' : doc.jobStatus === JobStatus.FAILED ? 'failed' : 'pending',
           sections: [],
           summary: '',
+          sourceDocumentType: doc.type,
           createdAt: doc.createdAt ? new Date(doc.createdAt) : new Date(),
           updatedAt: doc.updatedAt ? new Date(doc.updatedAt) : new Date(),
         }
@@ -262,7 +298,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     } finally {
       setIsLoading(false)
     }
-  }, [caseId, startStream])
+  }, [caseId, startStream, isStudioGenerativeDoc])
 
   useEffect(() => {
     fetchDrafts()
@@ -279,6 +315,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
       status: 'pending',
       sections: [],
       summary: '',
+      sourceDocumentType: DocumentType.DRAFT,
       createdAt: new Date(),
       updatedAt: new Date(),
     }

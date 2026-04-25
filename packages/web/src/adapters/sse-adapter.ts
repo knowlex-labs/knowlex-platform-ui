@@ -44,12 +44,18 @@ export const browserSseAdapter: SseAdapter = {
 
         while (true) {
           const { done, value } = await reader.read()
-          if (done) break
-
-          buffer += decoder.decode(value, { stream: true })
+          if (value) {
+            buffer += decoder.decode(value, { stream: !done })
+          } else if (done) {
+            // Flush the UTF-8 decoder (important for multi-byte characters at chunk boundaries)
+            buffer += decoder.decode()
+          }
           const allLines = buffer.split('\n')
-          buffer = allLines.pop() ?? ''
-
+          if (!done) {
+            buffer = allLines.pop() ?? ''
+          } else {
+            buffer = ''
+          }
           for (const rawLine of allLines) {
             const line = rawLine.replace(/\r$/, '')
             if (line === '') {
@@ -63,8 +69,9 @@ export const browserSseAdapter: SseAdapter = {
               currentData = currentData === null ? dataValue : currentData + '\n' + dataValue
             }
           }
+          if (done) break
         }
-
+        // If the server closed without a final blank line, still emit the last event+data block
         dispatchEvent()
         handlers.onEnd()
       })

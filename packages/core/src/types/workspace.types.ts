@@ -137,6 +137,8 @@ export interface Draft {
   contentFormat?: 'markdown' | 'html' | 'plain'
   createdAt: Date
   updatedAt: Date
+  /** Case document type for this row (DRAFT vs TRANSLATION) — Case Studio activity */
+  sourceDocumentType?: DocumentType
 }
 
 // Note types for workspace (Google Keep style)
@@ -167,6 +169,8 @@ export interface CaseSummary {
   id: string
   status: 'pending' | 'completed' | 'failed'
   content: string
+  /** Display name from document title / name (e.g. Case Summary (v2)) */
+  title?: string
   createdAt: Date
   updatedAt: Date
 }
@@ -176,6 +180,7 @@ export interface CaseSynopsis {
   id: string
   status: 'pending' | 'completed' | 'failed'
   content: string
+  title?: string
   createdAt: Date
   updatedAt: Date
 }

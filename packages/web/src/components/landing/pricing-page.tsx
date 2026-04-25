@@ -62,6 +62,7 @@ const plans: Plan[] = [
       '2 GB storage',
       'Legal Library — Supreme Court judgments & court data',
       'Document tools (split, merge, compress)',
+      'Document translation',
       '25 AI drafts / month',
       'Email support',
     ],
@@ -136,7 +137,7 @@ const comparisonGroups: ComparisonGroup[] = [
     rows: [
       { label: 'Case Studio Chat', free: 'Limited', plus: 'Limited', pro: true, premium: true },
       { label: 'Summary & synopsis', free: 'Limited', plus: 'Limited', pro: true, premium: true },
-      { label: 'Document translation', free: false, plus: false, pro: true, premium: true },
+      { label: 'Document translation', free: false, plus: true, pro: true, premium: true },
     ],
   },
   {
