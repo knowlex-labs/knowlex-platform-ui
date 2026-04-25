@@ -963,7 +963,7 @@ export function DocumentsPage() {
   const bgJobsRef = useRef<Map<string, string>>(new Map()) // documentId → targetLang
   const streamsRef = useRef<Map<string, AbortController>>(new Map())
 
-  // SSE: open one stream per PROCESSING generated doc, close when terminal
+  // Status pollers: one per PROCESSING generated doc, closed when terminal
   useEffect(() => {
     for (const doc of allDocs) {
       if (!GENERATED_DOC_TYPES.has(doc.type)) continue
@@ -971,7 +971,7 @@ export function DocumentsPage() {
       if (streamsRef.current.has(doc.id)) continue
 
       const docId = doc.id
-      const ctrl = workspaceApi.streamDocumentStatus(docId, {
+      const ctrl = workspaceApi.pollDocumentStatus(docId, {
         onStatus: (statusDoc) => {
           const s = (statusDoc.jobStatus ?? '').toUpperCase()
           if (s === 'COMPLETED' || s === 'FAILED' || s === 'CANCELLED') {

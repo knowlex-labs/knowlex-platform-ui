@@ -78,7 +78,7 @@ export function useSummary(caseId: string) {
     stopStream()
     streamingIdRef.current = documentId
     let receivedTerminal = false
-    streamCtrlRef.current = workspaceApi.streamDocumentStatus(documentId, {
+    streamCtrlRef.current = workspaceApi.pollDocumentStatus(documentId, {
       onStatus: async (doc) => {
         const st = pickDocumentJobStatus(doc).toLowerCase()
         if (st === 'completed' || st === 'failed') {

@@ -167,6 +167,7 @@ function DocumentPreviewDialog({
   onClose,
   title,
   htmlContent,
+  iframeUrl,
   onDownloadPdf,
   onDownloadDoc,
   onEdit,
@@ -175,6 +176,7 @@ function DocumentPreviewDialog({
   onClose: () => void
   title: string
   htmlContent: string
+  iframeUrl?: string
   onDownloadPdf?: () => void
   onDownloadDoc?: () => void
   onEdit?: () => void
@@ -210,12 +212,18 @@ function DocumentPreviewDialog({
             </div>
           </div>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <div
-            className="text-sm leading-relaxed text-kx-text-primary legal-document"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
-        </div>
+        {iframeUrl ? (
+          <div className="flex-1 min-h-0">
+            <iframe src={iframeUrl} className="w-full h-full border-0" title={title} />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div
+              className="text-sm leading-relaxed text-kx-text-primary legal-document"
+              dangerouslySetInnerHTML={{ __html: htmlContent }}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -315,8 +323,23 @@ export function CaseStudioPanel({
   const navigate = useNavigate()
   const { toast } = useToast()
   const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [previewDoc, setPreviewDoc] = useState<{ id?: string; title: string; html: string; editUrl?: string } | null>(null)
+  const [previewDoc, setPreviewDoc] = useState<{
+    id?: string
+    title: string
+    html: string
+    editUrl?: string
+    iframeUrl?: string  // for binary translations (PDF/DOCX) — bypasses HTML rendering
+  } | null>(null)
   const [precedentDisplayName, setPrecedentDisplayName] = useState('Precedent Analysis')
+
+  // Free the blob URL the moment the popup closes (or switches to a different doc) so we
+  // don't leak Blobs holding the full PDF payload in memory.
+  useEffect(() => {
+    const url = previewDoc?.iframeUrl
+    return () => {
+      if (url && url.startsWith('blob:')) URL.revokeObjectURL(url)
+    }
+  }, [previewDoc?.iframeUrl])
 
   const summaryLabel = (s: CaseSummary) => s.title?.trim() || 'Case Summary'
   const synopsisLabel = (y: CaseSynopsis) => y.title?.trim() || 'Case Synopsis'
@@ -460,6 +483,27 @@ export function CaseStudioPanel({
 
   const handleOpenDraft = async (draft: Draft) => {
     if (draft.status !== 'completed') return
+
+    // Translations are binary (PDF / DOCX). Fetch the backend's inline PDF preview as a
+    // Blob and embed via a blob: URL — gives us a Content-Type: application/pdf body
+    // with no attachment disposition, so the browser renders it inline in the iframe.
+    if (draft.sourceDocumentType === DocumentType.TRANSLATION) {
+      try {
+        const blobUrl = await workspaceApi.fetchDocumentPreviewBlobUrl(draft.id)
+        setPreviewDoc({
+          id: draft.id,
+          title: draft.title,
+          html: '',
+          iframeUrl: blobUrl,
+          editUrl: `/documents?open=${draft.id}`,
+        })
+      } catch {
+        // Preview failed (rare — e.g., backend rendering error). Fall back to the docs page.
+        navigate(`/documents?open=${draft.id}`)
+      }
+      return
+    }
+
     let d = draft
     if (!d.content && fetchDraftContent) {
       const fetched = await fetchDraftContent(d.id)
@@ -747,8 +791,11 @@ export function CaseStudioPanel({
           onClose={() => setPreviewDoc(null)}
           title={previewDoc.title}
           htmlContent={previewDoc.html}
-          onDownloadPdf={() => void exportDocument(previewDoc.id, previewDoc.title, 'PDF', previewDoc.html)}
-          onDownloadDoc={() => void exportDocument(previewDoc.id, previewDoc.title, 'DOCX', previewDoc.html)}
+          iframeUrl={previewDoc.iframeUrl}
+          // Re-rendering HTML to PDF/DOCX is meaningless for binary translations,
+          // so omit those export buttons when we're showing the file directly.
+          onDownloadPdf={previewDoc.iframeUrl ? undefined : () => void exportDocument(previewDoc.id, previewDoc.title, 'PDF', previewDoc.html)}
+          onDownloadDoc={previewDoc.iframeUrl ? undefined : () => void exportDocument(previewDoc.id, previewDoc.title, 'DOCX', previewDoc.html)}
           onEdit={previewDoc.editUrl ? () => { setPreviewDoc(null); navigate(previewDoc.editUrl!) } : undefined}
         />
       )}

@@ -39,7 +39,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // SSE streams: documentId → AbortController
+  // Active status pollers: documentId → AbortController
   const streamsRef = useRef<Map<string, AbortController>>(new Map())
   const caseIdRef = useRef(caseId)
   caseIdRef.current = caseId
@@ -106,7 +106,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
       } catch { /* ignore */ }
     }
 
-    const ctrl = workspaceApi.streamDocumentStatus(documentId, {
+    const ctrl = workspaceApi.pollDocumentStatus(documentId, {
       onStatus: async (doc) => {
         const normalizedStatus = normalizeStatus(
           (doc as { jobStatus?: string; status?: string }).jobStatus
@@ -285,7 +285,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
 
       setDrafts(mapped)
 
-      // Open SSE streams for drafts still processing
+      // Start status pollers for drafts still processing
       for (const doc of draftDocs) {
         if (doc.jobStatus === JobStatus.PROCESSING) {
           startStream(doc.id)
