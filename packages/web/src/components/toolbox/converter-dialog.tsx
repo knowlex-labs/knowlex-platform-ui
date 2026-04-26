@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Download, RotateCcw, Copy, Check, ArrowLeft, FileText, X } from 'lucide-react'
+import { Loader2, Download, RotateCcw, Copy, Check, ArrowLeft, FileText, X, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -42,6 +42,7 @@ function getFormatOptions(fileType: 'pdf' | 'image' | 'docx' | 'md' | 'other'): 
     { value: 'PNG', label: 'PNG images (one per page)' },
     { value: 'JPEG', label: 'JPEG images (one per page)' },
     { value: 'TEXT', label: 'Plain text (extract content)' },
+    { value: 'DOCX', label: 'Word document (.docx)' },
   ]
   if (fileType === 'image') return [
     { value: 'PDF', label: 'PDF document' },
@@ -60,9 +61,10 @@ function getFormatOptions(fileType: 'pdf' | 'image' | 'docx' | 'md' | 'other'): 
 interface ConverterDialogProps {
   onBack: () => void
   initialDoc?: ProcessedDocumentInfo
+  onOpenDoc?: (docId: string) => void
 }
 
-export function ConverterDialog({ onBack, initialDoc }: ConverterDialogProps) {
+export function ConverterDialog({ onBack, initialDoc, onOpenDoc }: ConverterDialogProps) {
   const [stage, setStage] = useState<Stage>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
@@ -183,7 +185,7 @@ export function ConverterDialog({ onBack, initialDoc }: ConverterDialogProps) {
         <div className="w-full max-w-lg bg-kx-card border border-kx-card-border rounded-xl p-6 shadow-sm">
           <div className="mb-5">
             <h2 className="text-lg font-serif font-semibold text-kx-primary-900">Convert Document</h2>
-            <p className="text-sm text-ledger-gray-500 mt-0.5">Convert between PDF, images, and plain text.</p>
+            <p className="text-sm text-ledger-gray-500 mt-0.5">Convert between PDF, Word, images, and plain text.</p>
           </div>
 
           <div className="space-y-4">
@@ -298,19 +300,32 @@ export function ConverterDialog({ onBack, initialDoc }: ConverterDialogProps) {
                       className="flex items-center justify-between gap-3 rounded-lg border border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-800/40 px-3 py-2"
                     >
                       <span className="truncate text-sm text-kx-primary-900">{doc.fileName}</span>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="gap-1.5 flex-shrink-0"
-                        disabled={downloadingId === doc.id}
-                        onClick={() => handleDownload(doc)}
-                      >
-                        {downloadingId === doc.id
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <Download className="h-3.5 w-3.5" />
-                        }
-                        Download
-                      </Button>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {onOpenDoc && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="gap-1.5"
+                            onClick={() => onOpenDoc(doc.id)}
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            Preview
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5"
+                          disabled={downloadingId === doc.id}
+                          onClick={() => handleDownload(doc)}
+                        >
+                          {downloadingId === doc.id
+                            ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            : <Download className="h-3.5 w-3.5" />
+                          }
+                          Download
+                        </Button>
+                      </div>
                     </li>
                   ))}
                 </ul>

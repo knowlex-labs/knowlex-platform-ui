@@ -36,7 +36,7 @@ export interface MergeResponse {
   document: ProcessedDocumentInfo
 }
 
-export type ConvertTargetFormat = 'PNG' | 'JPEG' | 'TEXT' | 'PDF'
+export type ConvertTargetFormat = 'PNG' | 'JPEG' | 'TEXT' | 'PDF' | 'DOCX'
 
 export interface ConvertRequest {
   documentId: string

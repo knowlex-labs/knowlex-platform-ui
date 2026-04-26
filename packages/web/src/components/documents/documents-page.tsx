@@ -434,6 +434,8 @@ function DocumentViewer({
   const isTextual = TEXT_DOC_TYPES.has(doc.type)
   const isGeneratedDoc = GENERATED_DOC_TYPES.has(doc.type)
   const isPdf = doc.fileType === 'PDF' || /^application\/pdf$/i.test(doc.fileType ?? '') || /\.pdf$/i.test(doc.originalFilename ?? doc.name ?? '')
+  const isDocx = doc.fileType === 'DOCX' || doc.fileType === 'DOC'
+    || /\.docx?$/i.test(doc.originalFilename ?? doc.name ?? '')
   const isImage = !isPdf && (
     IMAGE_TYPES.has((doc.fileType ?? '').toUpperCase()) ||
     /^image\//i.test(doc.fileType ?? '') ||
@@ -477,6 +479,9 @@ function DocumentViewer({
         } else if (isTextual) {
           const text = await workspaceApi.fetchDocumentContent({ id: doc.id, signedUrl: doc.storageUrl, downloadUrl: doc.downloadUrl })
           if (!cancelled) setTextContent(text)
+        } else if (isDocx) {
+          const url = await workspaceApi.resolveDocumentPreviewUrl({ id: doc.id })
+          if (!cancelled) setBlobUrl(url)
         } else {
           const url = await workspaceApi.resolveDocumentUrl({ id: doc.id, downloadUrl: doc.downloadUrl, signedUrl: doc.storageUrl })
           if (!cancelled) setBlobUrl(url)
@@ -489,7 +494,7 @@ function DocumentViewer({
     }
     load()
     return () => { cancelled = true }
-  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isGenerating, isGenFailed, isGeneratedDoc])
+  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isDocx, isGenerating, isGenFailed, isGeneratedDoc])
 
   useEffect(() => { return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) } }, [blobUrl])
 
@@ -691,7 +696,7 @@ function DocumentViewer({
               )}
             </div>
           </div>
-        ) : blobUrl && (isPdf || doc.type === DocumentType.JUDGMENT) ? (
+        ) : blobUrl && (isPdf || isDocx || doc.type === DocumentType.JUDGMENT) ? (
           <div className="flex-1 min-h-0">
             <iframe src={blobUrl} className="w-full h-full border-0" title={displayName} />
           </div>
@@ -1431,7 +1436,7 @@ export function DocumentsPage() {
       </div>
 
       {/* ── RIGHT TOOLS PANEL ── */}
-      {toolsPanelOpen && !viewerOpen ? (
+      {toolsPanelOpen ? (
         <div className="w-56 flex-shrink-0 border-l border-kx-card-border bg-nb-panel flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-nb-panel-border flex-shrink-0">
@@ -1511,7 +1516,7 @@ export function DocumentsPage() {
               switch (tool.id) {
                 case 'split':       return <SplitterDialog   onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'merge':       return <MergerDialog     onBack={closeTool} initialDocs={toolCtx.initialDocs} />
-                case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
+                case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} onOpenDoc={(id) => { closeTool(); setSelectedDocId(id) }} />
                 case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'translation': return <TranslationDialog onBack={closeTool} initialDoc={toolCtx.initialDoc} onJobStarted={handleTranslationJobStarted} />
                 default:            return null
