@@ -87,6 +87,9 @@ export interface DocumentRecord {
   jobId: string | null
   indexingStatus: string | null
   filePath: string | null
+  /** S3 key for the canonical Tiptap-JSON edit state. Non-null implies the doc has
+   *  been opened in the in-place editor at least once. */
+  editStatePath: string | null
   createdAt: string
   updatedAt: string
 }
@@ -333,27 +336,6 @@ export interface EditPdfResponse {
 }
 
 
-export interface EditSessionResponse {
-  editSessionKey: string
-  docxDownloadUrl: string
-  callbackUrl: string
-  title: string
-  fileType: string
-  onlyOfficeServerUrl: string
-  onlyOfficeToken: string
-}
-
-export async function openEditSession(
-  documentId: string,
-  caseId?: string | null
-): Promise<EditSessionResponse> {
-  const res = await apiClient.post<ApiResponse<EditSessionResponse>>(
-    '/api/v1/doc-processing/edit/open',
-    { documentId, caseId: caseId ?? null }
-  )
-  return res.data
-}
-
 export const docProcessingApi = {
   split: (data: SplitRequest) =>
     apiClient.post<ApiResponse<SplitResponse>>('/api/v1/doc-processing/split', data),
@@ -398,5 +380,66 @@ export async function submitTranslation(
  */
 export async function getDocument(id: string): Promise<DocumentRecord> {
   const res = await apiClient.get<ApiResponse<DocumentRecord>>(`/api/v1/documents/${id}`)
+  return res.data
+}
+
+// ─── In-place document editor (Tiptap) ────────────────────────────────────
+
+/**
+ * Edit state returned by GET /documents/{id}/edit-state.
+ *
+ * - format='tiptap-json' — content is JSON.stringified Tiptap state (most edits)
+ * - format='html'        — content is structured HTML (first open of a PDF/DOCX
+ *                          after backend conversion bootstraps it)
+ * - format='markdown'    — content is markdown (legacy drafts not yet migrated)
+ *
+ * `freshConversion=true` only when the backend just produced the bootstrap HTML
+ * on this call — the editor uses it to know to immediately persist a Tiptap
+ * JSON snapshot so subsequent loads skip the conversion path.
+ */
+export interface EditStateResponse {
+  format: 'tiptap-json' | 'html' | 'markdown'
+  content: string
+  freshConversion: boolean
+}
+
+/** GET /api/v1/documents/{id}/edit-state */
+export async function getEditState(documentId: string): Promise<EditStateResponse> {
+  const res = await apiClient.get<ApiResponse<EditStateResponse>>(
+    `/api/v1/documents/${documentId}/edit-state`,
+  )
+  return res.data
+}
+
+/**
+ * PUT /api/v1/documents/{id}/edit-state — autosave the editor's Tiptap JSON.
+ * Backend treats `content` as opaque (encrypts and uploads to S3).
+ */
+export async function updateEditState(documentId: string, content: string): Promise<void> {
+  await apiClient.put<ApiResponse<null>>(
+    `/api/v1/documents/${documentId}/edit-state`,
+    { content },
+  )
+}
+
+/**
+ * POST /api/v1/documents/translate — Sarvam translation for the editor's
+ * "Translate selection" action. Language codes are Sarvam BCP-47 (e.g. en-IN).
+ */
+export interface TranslateTextResponse {
+  translatedText: string
+  sourceLanguage: string
+  targetLanguage: string
+}
+
+export async function translateText(
+  text: string,
+  sourceLanguage: string,
+  targetLanguage: string,
+): Promise<TranslateTextResponse> {
+  const res = await apiClient.post<ApiResponse<TranslateTextResponse>>(
+    '/api/v1/documents/translate',
+    { text, source_language: sourceLanguage, target_language: targetLanguage },
+  )
   return res.data
 }

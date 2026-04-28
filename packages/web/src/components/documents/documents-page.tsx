@@ -27,7 +27,7 @@ import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { getAdapters } from '@knowlex/core/api/runtime'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { ApiError } from '@knowlex/core/api/api-client'
-import { OnlyOfficeEditor } from '@/components/cases/case-workspace/onlyoffice-editor'
+import { DocumentEditorModal } from '@/components/editor'
 import { toast } from '@/hooks/use-toast'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
@@ -718,9 +718,9 @@ function DocumentViewer({
       </div>
 
       {onlyOfficeOpen && (
-        <OnlyOfficeEditor
+        <DocumentEditorModal
           documentId={doc.id}
-          caseId={doc.caseId ?? null}
+          documentTitle={doc.name ?? doc.originalFilename ?? undefined}
           onClose={() => setOnlyOfficeOpen(false)}
         />
       )}
