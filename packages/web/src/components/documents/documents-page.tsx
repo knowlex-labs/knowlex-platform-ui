@@ -599,7 +599,7 @@ function DocumentViewer({
         <span className={cn('flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide', meta.className)}>
           {meta.label}
         </span>
-        {doc.type === DocumentType.USER_UPLOADED && isMarkdownOrText && viewerMode === 'view' && (
+        {doc.type === DocumentType.USER_UPLOADED && (isMarkdownOrText || isPdf || isDocx) && viewerMode === 'view' && (
           <Button size="sm" onClick={handleEdit} className="gap-1.5 h-7 text-xs flex-shrink-0">
             <PenLine className="h-3.5 w-3.5" /> Edit
           </Button>
