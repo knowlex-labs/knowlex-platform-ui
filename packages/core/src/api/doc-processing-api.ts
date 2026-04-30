@@ -1,4 +1,4 @@
-import { apiClient } from './api-client'
+import { apiClient, ApiError, SessionExpiredError } from './api-client'
 import { getAdapters } from './runtime'
 import { getAuthHeaders } from './auth-headers'
 import type { ApiResponse } from '../types'
@@ -36,7 +36,7 @@ export interface MergeResponse {
   document: ProcessedDocumentInfo
 }
 
-export type ConvertTargetFormat = 'PNG' | 'JPEG' | 'TEXT' | 'PDF'
+export type ConvertTargetFormat = 'PNG' | 'JPEG' | 'TEXT' | 'PDF' | 'DOCX'
 
 export interface ConvertRequest {
   documentId: string
@@ -87,6 +87,9 @@ export interface DocumentRecord {
   jobId: string | null
   indexingStatus: string | null
   filePath: string | null
+  /** S3 key for the canonical Tiptap-JSON edit state. Non-null implies the doc has
+   *  been opened in the in-place editor at least once. */
+  editStatePath: string | null
   createdAt: string
   updatedAt: string
 }
@@ -201,6 +204,66 @@ export function triggerDirectDownload(url: string, fileName: string): void {
   getAdapters().fileHandler.triggerDirectDownload(url, fileName)
 }
 
+// ─── Generated document export (Draft / Summary / Synopsis / Precedent) ────────
+
+export type GeneratedDocExportFormat = 'PDF' | 'DOCX' | 'MARKDOWN'
+
+function parseFilenameFromContentDisposition(cd: string | null): string | null {
+  if (!cd) return null
+  const utf8 = cd.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8?.[1]) return decodeURIComponent(utf8[1])
+  const quoted = cd.match(/filename="([^"]+)"/i)
+  if (quoted?.[1]) return quoted[1]
+  const plain = cd.match(/filename=([^;]+)/i)
+  if (plain?.[1]) return plain[1].trim()
+  return null
+}
+
+/**
+ * Server-side export for AI-generated documents (Draft / Summary / Synopsis / Precedent).
+ * Posts HTML body + format to POST /documents/{id}/export and triggers a file save.
+ *
+ * Use downloadDocument() for raw user-uploaded or toolbox files instead.
+ */
+export async function exportGeneratedDocument(
+  documentId: string,
+  format: GeneratedDocExportFormat,
+  title: string,
+  htmlBody: string,
+  markdownBody?: string,
+): Promise<void> {
+  const fallbackExt = format === 'PDF' ? 'pdf' : format === 'DOCX' ? 'docx' : 'md'
+  const fallbackName = `${title.replace(/[^a-z0-9]/gi, '_') || 'document'}.${fallbackExt}`
+
+  const response = await fetch(
+    `${getAdapters().env.apiBaseUrl}/api/v1/documents/${documentId}/export`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+      body: JSON.stringify({ format, title, htmlBody, markdownBody }),
+    }
+  )
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      getAdapters().eventBus.dispatch('auth:session-expired')
+      throw new SessionExpiredError()
+    }
+    let msg = `Export failed: ${response.status}`
+    try {
+      const err = await response.json() as { message?: string }
+      if (err?.message) msg = err.message
+    } catch { /* non-JSON body */ }
+    throw new ApiError(msg, response.status)
+  }
+
+  const blob = await response.blob()
+  const filename =
+    parseFilenameFromContentDisposition(response.headers.get('content-disposition'))
+    ?? fallbackName
+  getAdapters().fileHandler.triggerDownload(blob, filename)
+}
+
 export interface ListDocumentsOpts {
   page?: number
   size?: number
@@ -273,27 +336,6 @@ export interface EditPdfResponse {
 }
 
 
-export interface EditSessionResponse {
-  editSessionKey: string
-  docxDownloadUrl: string
-  callbackUrl: string
-  title: string
-  fileType: string
-  onlyOfficeServerUrl: string
-  onlyOfficeToken: string
-}
-
-export async function openEditSession(
-  documentId: string,
-  caseId?: string | null
-): Promise<EditSessionResponse> {
-  const res = await apiClient.post<ApiResponse<EditSessionResponse>>(
-    '/api/v1/doc-processing/edit/open',
-    { documentId, caseId: caseId ?? null }
-  )
-  return res.data
-}
-
 export const docProcessingApi = {
   split: (data: SplitRequest) =>
     apiClient.post<ApiResponse<SplitResponse>>('/api/v1/doc-processing/split', data),
@@ -338,5 +380,80 @@ export async function submitTranslation(
  */
 export async function getDocument(id: string): Promise<DocumentRecord> {
   const res = await apiClient.get<ApiResponse<DocumentRecord>>(`/api/v1/documents/${id}`)
+  return res.data
+}
+
+// ─── In-place document editor (Tiptap) ────────────────────────────────────
+
+/**
+ * Edit state returned by GET /documents/{id}/edit-state.
+ *
+ * - format='tiptap-json' — content is JSON.stringified Tiptap state (most edits)
+ * - format='html'        — content is structured HTML (first open of a PDF/DOCX
+ *                          after backend conversion bootstraps it)
+ * - format='markdown'    — content is markdown (legacy drafts not yet migrated)
+ *
+ * `freshConversion=true` only when the backend just produced the bootstrap HTML
+ * on this call — the editor uses it to know to immediately persist a Tiptap
+ * JSON snapshot so subsequent loads skip the conversion path.
+ */
+export interface EditStateResponse {
+  format: 'tiptap-json' | 'html' | 'markdown'
+  content: string
+  freshConversion: boolean
+  /**
+   * The document ID that actually holds this edit state. For PDF documents this
+   * is a DOCX_COPY row with a different ID than the original PDF. For DOCX
+   * documents edited in-place it equals the ID passed to getEditState.
+   * Use this ID for all subsequent PUT /edit-state and export calls.
+   */
+  editingDocumentId: string
+}
+
+/** GET /api/v1/documents/{id}/edit-state */
+export async function getEditState(documentId: string): Promise<EditStateResponse> {
+  const res = await apiClient.get<ApiResponse<EditStateResponse>>(
+    `/api/v1/documents/${documentId}/edit-state`,
+  )
+  return res.data
+}
+
+/**
+ * PUT /api/v1/documents/{id}/edit-state — autosave the editor's Tiptap JSON.
+ * Backend treats `content` as opaque (encrypts and uploads to S3).
+ */
+export async function updateEditState(documentId: string, content: string): Promise<void> {
+  await apiClient.put<ApiResponse<null>>(
+    `/api/v1/documents/${documentId}/edit-state`,
+    { content },
+  )
+}
+
+/**
+ * POST /api/v1/documents/translate — Sarvam translation for the editor's
+ * "Translate selection" action. Language codes are Sarvam BCP-47 (e.g. en-IN).
+ */
+export interface TranslateTextResponse {
+  translatedText: string
+  sourceLanguage: string
+  targetLanguage: string
+}
+
+/**
+ * `sourceLanguage` is optional — when omitted the backend falls back to its
+ * configured default (Sarvam auto-detect). Don't send a sentinel string here;
+ * Sarvam's API does not treat 'auto' as a valid BCP-47 code.
+ */
+export async function translateText(
+  text: string,
+  targetLanguage: string,
+  sourceLanguage?: string,
+): Promise<TranslateTextResponse> {
+  const body: Record<string, string> = { text, target_language: targetLanguage }
+  if (sourceLanguage) body.source_language = sourceLanguage
+  const res = await apiClient.post<ApiResponse<TranslateTextResponse>>(
+    '/api/v1/documents/translate',
+    body,
+  )
   return res.data
 }

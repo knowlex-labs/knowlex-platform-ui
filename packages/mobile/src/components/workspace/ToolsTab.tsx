@@ -79,7 +79,7 @@ export function ToolsTab({ caseId, overview }: ToolsTabProps) {
 
   const startStream = (docId: string) => {
     if (streamsRef.current.has(docId)) return;
-    const ctrl = workspaceApi.streamDocumentStatus(docId, {
+    const ctrl = workspaceApi.pollDocumentStatus(docId, {
       onStatus: async (doc) => {
         if (normalizeStatus(doc.jobStatus) !== 'pending') {
           streamsRef.current.get(docId)?.abort();

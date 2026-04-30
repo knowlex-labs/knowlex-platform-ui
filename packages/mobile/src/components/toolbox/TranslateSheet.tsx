@@ -32,7 +32,7 @@ export function TranslateSheet({ visible, onClose, documentId, documentName }: P
       setPolling(true);
 
       streamCtrlRef.current?.abort();
-      streamCtrlRef.current = workspaceApi.streamDocumentStatus(doc.id, {
+      streamCtrlRef.current = workspaceApi.pollDocumentStatus(doc.id, {
         onStatus: (statusDoc) => {
           const s = (statusDoc.jobStatus ?? '').toUpperCase();
           if (s === 'COMPLETED') {

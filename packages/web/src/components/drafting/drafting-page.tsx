@@ -27,7 +27,7 @@ import { downloadDocument, uploadToolboxFile } from '@knowlex/core/api/doc-proce
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
-import { FormattingToolbar } from '@/components/cases/case-workspace/formatting-toolbar'
+import { FormattingToolbar } from '@/components/editor'
 import { toast } from '@/hooks/use-toast'
 import type { Draft, DraftTemplate, TemplateFormData } from '@knowlex/core/types'
 import { DRAFT_TEMPLATES } from '@knowlex/core/types'
@@ -37,9 +37,6 @@ import type { BackendCase } from '@knowlex/core/types/api.types'
 import { TEMPLATE_TO_DOC_CONFIG } from '@/components/cases/case-workspace/draft-creation-wizard'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const POLL_INTERVAL_MS = 10000
-const MAX_POLL_ATTEMPTS = 24
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileWarning, Lightbulb, FileText, FileClock, Scale, Gavel, ShieldAlert,
@@ -158,62 +155,54 @@ export function DraftingPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditingPreview])
 
-  // Polling
-  const pollAttemptsRef = useRef(0)
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Status polling — delegates to workspaceApi.pollDocumentStatus (shared backoff)
+  const pollCtrlRef = useRef<AbortController | null>(null)
 
   const stopPolling = useCallback(() => {
-    if (pollTimerRef.current) { clearInterval(pollTimerRef.current); pollTimerRef.current = null }
+    pollCtrlRef.current?.abort()
+    pollCtrlRef.current = null
   }, [])
 
   const startPolling = useCallback((documentId: string) => {
     stopPolling()
-    pollAttemptsRef.current = 0
-    pollTimerRef.current = setInterval(async () => {
-      pollAttemptsRef.current += 1
-      if (pollAttemptsRef.current > MAX_POLL_ATTEMPTS) {
-        stopPolling()
-        setPreviewDraft(prev => prev ? { ...prev, status: 'failed' } : null)
-        return
-      }
-      try {
-        const res = await draftsApi.getStandalone(documentId)
-        if (res.data) {
-          const doc = res.data
-          const rawStatus = (doc.jobStatus ?? '').toLowerCase()
-          const status: Draft['status'] =
-            rawStatus === 'completed' ? 'completed' :
-            rawStatus === 'failed'    ? 'failed'    : 'pending'
+    pollCtrlRef.current = workspaceApi.pollDocumentStatus(documentId, {
+      onStatus: async (doc) => {
+        const rawStatus = (doc.jobStatus ?? doc.status ?? '').toLowerCase()
+        const status: Draft['status'] =
+          rawStatus === 'completed' ? 'completed' :
+          rawStatus === 'failed'    ? 'failed'    : 'pending'
 
-          setPreviewDraft(prev => ({
-            id: doc.id,
-            title: doc.name || prev?.title || 'Draft',
-            content: prev?.content ?? '',
-            status,
-            sections: prev?.sections ?? [],
-            summary: prev?.summary ?? '',
-            templateType: doc.subType ?? prev?.templateType,
-            contentFormat: prev?.contentFormat,
-            createdAt: prev?.createdAt ?? new Date(doc.createdAt),
-            updatedAt: new Date(doc.updatedAt),
-          }))
+        setPreviewDraft(prev => ({
+          id: doc.id,
+          title: doc.name || prev?.title || 'Draft',
+          content: prev?.content ?? '',
+          status,
+          sections: prev?.sections ?? [],
+          summary: prev?.summary ?? '',
+          templateType: doc.subType ?? prev?.templateType,
+          contentFormat: prev?.contentFormat,
+          createdAt: prev?.createdAt ?? new Date(),
+          updatedAt: new Date(),
+        }))
 
-          if (status === 'completed' || status === 'failed') {
-            stopPolling()
-            if (status === 'completed') {
-              try {
-                const content = await workspaceApi.fetchDocumentContent({
-                  id: doc.id,
-                  signedUrl: doc.signedUrl,
-                  downloadUrl: doc.downloadUrl,
-                })
-                setPreviewDraft(prev => prev ? { ...prev, content } : null)
-              } catch { /* content unavailable — user can still download */ }
-            }
-          }
+        if (status === 'completed') {
+          try {
+            const content = await workspaceApi.fetchDocumentContent({
+              id: doc.id,
+              signedUrl: doc.signedUrl,
+              downloadUrl: doc.downloadUrl,
+            })
+            setPreviewDraft(prev => prev ? { ...prev, content } : null)
+          } catch { /* content unavailable — user can still download */ }
         }
-      } catch { /* ignore */ }
-    }, POLL_INTERVAL_MS)
+      },
+      onError: () => {
+        setPreviewDraft(prev => prev ? { ...prev, status: 'failed' } : null)
+      },
+      onEnd: () => {
+        pollCtrlRef.current = null
+      },
+    })
   }, [stopPolling])
 
   useEffect(() => () => stopPolling(), [stopPolling])
@@ -299,7 +288,6 @@ export function DraftingPage() {
     setSavedDraftTitle('Draft')
     setIsEditingPreview(false)
     setPreviewDirty(false)
-    pollAttemptsRef.current = 0
   }, [stopPolling])
 
   const handleSelectTemplate = (t: DraftTemplate) => {

@@ -18,7 +18,7 @@ import { useSynopsis } from '@/hooks/use-synopsis'
 import { usePrecedent } from '@/hooks/use-precedent'
 import { DraftChatPanel } from './draft-chat-panel'
 import { AddSourceModal } from './add-source-modal'
-import { OnlyOfficeEditor } from './onlyoffice-editor'
+import { DocumentEditorModal } from '@/components/editor'
 import { CaseDetailsModal } from './case-details-modal'
 import { WorkspaceSourcesPanel } from './workspace-sources-panel'
 import { CaseStudioPanel } from './case-studio-panel'
@@ -165,7 +165,9 @@ export function CaseWorkspace() {
   } = useCaseDocuments(caseId)
 
   const sources = paginatedSources
-  const draftDocuments = documents.filter(d => d.type === DocumentType.DRAFT)
+  const draftDocuments = documents.filter(
+    d => d.type === DocumentType.DRAFT || d.type === DocumentType.TRANSLATION
+  )
 
   const indexingCount = [...paginatedSources, ...documents].filter(d =>
     d.indexingStatus === IndexingStatus.PENDING || d.indexingStatus === IndexingStatus.RUNNING
@@ -196,19 +198,19 @@ export function CaseWorkspace() {
   } = useDrafts(caseId, draftDocuments)
 
   const {
+    summaries,
     summary,
     isLoading: isSummaryLoading,
-    fetchSummary,
     generateSummary,
     deleteSummary,
   } = useSummary(caseId)
 
   const {
+    synopses,
     synopsis,
     isLoading: isSynopsisLoading,
-    fetchSynopsis,
-    generateSynopsis,
     deleteSynopsis,
+    generateSynopsis,
   } = useSynopsis(caseId)
 
   const {
@@ -283,37 +285,54 @@ export function CaseWorkspace() {
   }
 
   // ── Studio actions ──
-  const handleGenerateSummary = async (webSearch?: boolean) => {
-    if (summary && summary.status === 'pending') return
-    const existing = await fetchSummary()
-    if (!existing || existing.status === 'failed') generateSummary(webSearch)
-  }
+  // New summary/synopsis appends a document (versioned name); older runs are kept.
+  const handleGenerateSummary = useCallback(
+    async (webSearch?: boolean) => {
+      if (summary && summary.status === 'pending') return
+      if (!selectedSourceIds || selectedSourceIds.size === 0) {
+        toast({ title: 'No sources selected', description: 'Select at least one document in the sources panel, then try again.', variant: 'destructive' })
+        return
+      }
+      try {
+        await generateSummary(Array.from(selectedSourceIds), webSearch)
+      } catch {
+        toast({ title: 'Could not start summary', variant: 'destructive' })
+      }
+    },
+    [summary, selectedSourceIds, generateSummary]
+  )
 
-  const handleGenerateSynopsis = async (webSearch?: boolean) => {
-    if (synopsis && synopsis.status !== 'failed') return
-    const existing = await fetchSynopsis()
-    if (!existing || existing.status === 'failed') generateSynopsis(webSearch)
-  }
+  const handleGenerateSynopsis = useCallback(
+    async (webSearch?: boolean) => {
+      if (synopsis && synopsis.status === 'pending') return
+      try {
+        await generateSynopsis(webSearch)
+      } catch {
+        toast({ title: 'Could not start synopsis', variant: 'destructive' })
+      }
+    },
+    [synopsis, generateSynopsis]
+  )
 
   const handleGeneratePrecedent = async () => {
     if (precedent && precedent.status === 'pending') return
     generatePrecedent()
   }
 
-  const handleDeleteSynopsis = async () => {
+  const handleDeleteSynopsis = async (documentId?: string) => {
     try {
-      await deleteSynopsis()
+      await deleteSynopsis(documentId)
       toast({ title: 'Synopsis deleted' })
     } catch {
       toast({ title: 'Failed to delete synopsis', variant: 'destructive' })
     }
   }
 
-  const handleRenameSummary = async (name: string) => {
-    if (summary?.id) await workspaceApi.updateDocument(caseId, summary.id, { name })
+  const handleRenameSummary = async (documentId: string, name: string) => {
+    if (documentId) await workspaceApi.updateDocument(caseId, documentId, { name })
   }
-  const handleRenameSynopsis = async (name: string) => {
-    if (synopsis?.id) await workspaceApi.updateDocument(caseId, synopsis.id, { name })
+  const handleRenameSynopsis = async (documentId: string, name: string) => {
+    if (documentId) await workspaceApi.updateDocument(caseId, documentId, { name })
   }
   const handleRenamePrecedent = async (name: string) => {
     if (precedent?.id) await workspaceApi.updateDocument(caseId, precedent.id, { name })
@@ -331,9 +350,9 @@ export function CaseWorkspace() {
   const handleDeleteDraft = async (id: string) => {
     try {
       await deleteDraft(id)
-      toast({ title: 'Draft deleted' })
+      toast({ title: 'Document deleted' })
     } catch {
-      toast({ title: 'Failed to delete draft', variant: 'destructive' })
+      toast({ title: 'Failed to delete document', variant: 'destructive' })
     }
   }
 
@@ -465,10 +484,11 @@ export function CaseWorkspace() {
           <div className="absolute inset-0 z-50 rounded-xl bg-nb-panel overflow-y-auto p-6">
             <TranslationDialog
               caseSources={sources.map(s => ({ id: s.id, name: s.originalFilename || s.name }))}
-              onBack={() => setTranslationOpen(false)}
+              onBack={() => { setTranslationOpen(false); void refresh() }}
               onJobStarted={(_jobId, lang) => {
                 toast({ title: `Translating to ${lang}…`, description: "We'll notify you when it's ready." })
                 setTranslationOpen(false)
+                void refresh()
               }}
             />
           </div>
@@ -618,8 +638,8 @@ export function CaseWorkspace() {
               sourceCount={sources.length}
               caseId={caseId}
               drafts={drafts}
-              summary={isSummaryLoading ? null : summary}
-              synopsis={isSynopsisLoading ? null : synopsis}
+              summaries={isSummaryLoading ? [] : summaries}
+              synopses={isSynopsisLoading ? [] : synopses}
               precedent={isPrecedentLoading ? null : precedent}
               onDeleteDraft={handleDeleteDraft}
               onRenameDraft={handleRenameDraft}
@@ -673,9 +693,9 @@ export function CaseWorkspace() {
       />
 
       {editingDocument && (
-        <OnlyOfficeEditor
+        <DocumentEditorModal
           documentId={editingDocument.id}
-          caseId={caseId}
+          documentTitle={editingDocument.name ?? editingDocument.originalFilename ?? undefined}
           onClose={() => setEditingDocument(null)}
         />
       )}

@@ -7,6 +7,9 @@ export interface User {
   phone?: string
   bench?: string
   isAdmin?: boolean
+  emailVerified?: boolean
+  emailVerifiedAt?: Date
+  plan?: string
   createdAt: Date
 }
 
@@ -40,6 +43,10 @@ export interface AuthContextValue extends AuthState {
   /** Optional — web-only demo login. Mobile omits this. */
   continueAsGuest?: () => Promise<void>
   logout: () => void
-  updateProfile: (data: { bench?: string }) => Promise<void>
+  updateProfile: (data: { username?: string; firstName?: string; lastName?: string; phone?: string; bench?: string }) => Promise<void>
+  /** Swap just the auth tokens (e.g. after change-password returns fresh tokens). */
+  replaceTokens: (token: string, refreshToken: string) => void
+  /** Merge updated user fields into context state without a network call. */
+  refreshUser: (user: Partial<User>) => void
   isRestoringSession?: boolean
 }

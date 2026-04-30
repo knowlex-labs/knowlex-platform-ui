@@ -45,7 +45,7 @@ function backendUserToUser(data: BackendUser): User {
     lastName: data.lastName,
     phone: data.mobileNumber,
     isAdmin: data.admin,
-    createdAt: new Date(data.createdAt),
+    createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
   }
 }
 
