@@ -7,6 +7,7 @@ export type DashboardTab =
   | 'judgments'
   | 'account-settings'
   | 'documents'
+  | 'moodboard'
 
 export type NavigationView = 'landing' | 'dashboard'
 

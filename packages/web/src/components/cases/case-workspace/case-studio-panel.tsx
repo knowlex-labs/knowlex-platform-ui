@@ -13,8 +13,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
-import { renderDraftToHtml, downloadAsPdf, downloadAsDoc } from '@/lib/draft-renderer'
+import { renderDraftToHtml, buildExportBodyHtml } from '@/lib/draft-renderer'
+import { exportGeneratedDocument } from '@knowlex/core/api/doc-processing-api'
+import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import type { Draft, CaseSummary, CaseSynopsis, CasePrecedent } from '@knowlex/core/types'
+import { DocumentType } from '@knowlex/core/types'
+import { useToast } from '@/hooks/use-toast'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -163,6 +167,7 @@ function DocumentPreviewDialog({
   onClose,
   title,
   htmlContent,
+  iframeUrl,
   onDownloadPdf,
   onDownloadDoc,
   onEdit,
@@ -171,6 +176,7 @@ function DocumentPreviewDialog({
   onClose: () => void
   title: string
   htmlContent: string
+  iframeUrl?: string
   onDownloadPdf?: () => void
   onDownloadDoc?: () => void
   onEdit?: () => void
@@ -206,12 +212,18 @@ function DocumentPreviewDialog({
             </div>
           </div>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          <div
-            className="text-sm leading-relaxed text-kx-text-primary legal-document"
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
-        </div>
+        {iframeUrl ? (
+          <div className="flex-1 min-h-0">
+            <iframe src={iframeUrl} className="w-full h-full border-0" title={title} />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div
+              className="text-sm leading-relaxed text-kx-text-primary legal-document"
+              dangerouslySetInnerHTML={{ __html: htmlContent }}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -270,17 +282,17 @@ interface CaseStudioPanelProps {
   sourceCount: number
   caseId: string
   drafts: Draft[]
-  summary: CaseSummary | null
-  synopsis: CaseSynopsis | null
+  summaries: CaseSummary[]
+  synopses: CaseSynopsis[]
   precedent: CasePrecedent | null
   onDeleteDraft: (id: string) => void
   onRenameDraft: (id: string, title: string) => Promise<void>
   fetchDraftContent?: (id: string) => Promise<Draft | undefined>
-  onDeleteSummary?: () => void
-  onDeleteSynopsis: () => void
+  onDeleteSummary?: (documentId: string) => void | Promise<void>
+  onDeleteSynopsis: (documentId?: string) => void | Promise<void>
   onDeletePrecedent: () => void
-  onRenameSummary?: (name: string) => Promise<void>
-  onRenameSynopsis?: (name: string) => Promise<void>
+  onRenameSummary?: (documentId: string, name: string) => Promise<void>
+  onRenameSynopsis?: (documentId: string, name: string) => Promise<void>
   onRenamePrecedent?: (name: string) => Promise<void>
   onStartDraft?: () => void
   onStartTranslation?: () => void
@@ -292,8 +304,8 @@ export function CaseStudioPanel({
   onGenerateSynopsis,
   onGeneratePrecedent,
   drafts,
-  summary,
-  synopsis,
+  summaries,
+  synopses,
   precedent,
   onDeleteDraft,
   onRenameDraft,
@@ -309,26 +321,95 @@ export function CaseStudioPanel({
   onStartTranslation,
 }: CaseStudioPanelProps) {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [previewDoc, setPreviewDoc] = useState<{ title: string; html: string; editUrl?: string } | null>(null)
-  const [summaryDisplayName, setSummaryDisplayName] = useState('Summary')
-  const [synopsisDisplayName, setSynopsisDisplayName] = useState('Case Synopsis')
+  const [previewDoc, setPreviewDoc] = useState<{
+    id?: string
+    title: string
+    html: string
+    editUrl?: string
+    iframeUrl?: string  // for binary translations (PDF/DOCX) — bypasses HTML rendering
+  } | null>(null)
   const [precedentDisplayName, setPrecedentDisplayName] = useState('Precedent Analysis')
 
-  const handleOpenSummary = () => {
-    if (!summary || summary.status !== 'completed') return
-    const html = renderDraftToHtml(summary.content)
-    setPreviewDoc({ title: summaryDisplayName, html, editUrl: summary.id && summary.id !== 'pending' ? `/documents?open=${summary.id}&edit=true` : undefined })
+  // Free the blob URL the moment the popup closes (or switches to a different doc) so we
+  // don't leak Blobs holding the full PDF payload in memory.
+  useEffect(() => {
+    const url = previewDoc?.iframeUrl
+    return () => {
+      if (url && url.startsWith('blob:')) URL.revokeObjectURL(url)
+    }
+  }, [previewDoc?.iframeUrl])
+
+  const summaryLabel = (s: CaseSummary) => s.title?.trim() || 'Case Summary'
+  const synopsisLabel = (y: CaseSynopsis) => y.title?.trim() || 'Case Synopsis'
+
+  const handleOpenSummary = async (s: CaseSummary) => {
+    if (!s || s.status !== 'completed') return
+    let content = s.content
+    if (!content) {
+      try {
+        content = await workspaceApi.fetchDocumentContent({ id: s.id })
+      } catch { /* keep empty fallback */ }
+    }
+    const html = renderDraftToHtml(content || 'Preview unavailable for this document.')
+    setPreviewDoc({
+      id: s.id,
+      title: summaryLabel(s),
+      html,
+      editUrl: s.id && s.id !== 'pending' ? `/documents?open=${s.id}&edit=true` : undefined,
+    })
   }
 
   const handleSummaryClick = () => {
     onGenerateSummary(webSearch)
   }
 
-  const handleOpenSynopsis = () => {
-    if (!synopsis || synopsis.status !== 'completed') return
-    const html = renderDraftToHtml(synopsis.content)
-    setPreviewDoc({ title: synopsisDisplayName, html, editUrl: synopsis.id ? `/documents?open=${synopsis.id}&edit=true` : undefined })
+  const handleOpenSynopsis = async (y: CaseSynopsis) => {
+    if (!y || y.status !== 'completed') return
+    let content = y.content
+    if (!content) {
+      try {
+        content = await workspaceApi.fetchDocumentContent({ id: y.id })
+      } catch { /* keep empty fallback */ }
+    }
+    const html = renderDraftToHtml(content || 'Preview unavailable for this document.')
+    setPreviewDoc({
+      id: y.id,
+      title: synopsisLabel(y),
+      html,
+      editUrl: y.id ? `/documents?open=${y.id}&edit=true` : undefined,
+    })
+  }
+
+  const exportDocument = async (
+    documentId: string | undefined,
+    title: string,
+    format: 'PDF' | 'DOCX' | 'MARKDOWN',
+    content: string,
+    sections?: Draft['sections']
+  ) => {
+    if (!documentId) {
+      toast({ variant: 'destructive', title: 'Export failed', description: 'Missing document id' })
+      return
+    }
+    try {
+      let resolvedContent = content
+      if (!resolvedContent.trim() && documentId) {
+        try {
+          resolvedContent = await workspaceApi.fetchDocumentContent({ id: documentId })
+        } catch { /* leave empty and let exporter decide */ }
+      }
+      const htmlBody = buildExportBodyHtml(resolvedContent, sections)
+      const markdownBody = format === 'MARKDOWN' && !resolvedContent.trim().startsWith('<') ? resolvedContent : undefined
+      await exportGeneratedDocument(documentId, format, title, htmlBody, markdownBody)
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Export failed',
+        description: error instanceof Error ? error.message : 'Unable to export file',
+      })
+    }
   }
 
   const tools: (ToolCardProps & { key: string })[] = [
@@ -382,7 +463,7 @@ export function CaseStudioPanel({
     },
   ]
 
-  const generatedCount = drafts.length + (summary ? 1 : 0) + (synopsis ? 1 : 0) + (precedent ? 1 : 0)
+  const generatedCount = drafts.length + summaries.length + synopses.length + (precedent ? 1 : 0)
 
   type ActivityItem =
     | { kind: 'draft'; data: Draft }
@@ -393,27 +474,50 @@ export function CaseStudioPanel({
   const activityItems = useMemo((): ActivityItem[] => {
     const items: ActivityItem[] = [
       ...drafts.map(d => ({ kind: 'draft' as const, data: d })),
-      ...(summary ? [{ kind: 'summary' as const, data: summary }] : []),
-      ...(synopsis ? [{ kind: 'synopsis' as const, data: synopsis }] : []),
+      ...summaries.map(s => ({ kind: 'summary' as const, data: s })),
+      ...synopses.map(y => ({ kind: 'synopsis' as const, data: y })),
       ...(precedent ? [{ kind: 'precedent' as const, data: precedent }] : []),
     ]
     return items.sort((a, b) => b.data.createdAt.getTime() - a.data.createdAt.getTime())
-  }, [drafts, summary, synopsis, precedent])
+  }, [drafts, summaries, synopses, precedent])
 
   const handleOpenDraft = async (draft: Draft) => {
     if (draft.status !== 'completed') return
+
+    // Translations are binary (PDF / DOCX). Fetch the backend's inline PDF preview as a
+    // Blob and embed via a blob: URL — gives us a Content-Type: application/pdf body
+    // with no attachment disposition, so the browser renders it inline in the iframe.
+    if (draft.sourceDocumentType === DocumentType.TRANSLATION) {
+      try {
+        const blobUrl = await workspaceApi.fetchDocumentPreviewBlobUrl(draft.id)
+        setPreviewDoc({
+          id: draft.id,
+          title: draft.title,
+          html: '',
+          iframeUrl: blobUrl,
+          editUrl: `/documents?open=${draft.id}`,
+        })
+      } catch {
+        // Preview failed (rare — e.g., backend rendering error). Fall back to the docs page.
+        navigate(`/documents?open=${draft.id}`)
+      }
+      return
+    }
+
     let d = draft
     if (!d.content && fetchDraftContent) {
       const fetched = await fetchDraftContent(d.id)
       if (fetched) d = fetched
     }
-    const html = renderDraftToHtml(
-      d.content,
-      d.sections?.length ? d.sections : undefined,
-      d.templateType,
-      d.contentFormat,
-    )
-    setPreviewDoc({ title: d.title, html, editUrl: d.id ? `/documents?open=${d.id}&edit=true` : undefined })
+    const html = d.content?.trim()
+      ? renderDraftToHtml(
+        d.content,
+        d.sections?.length ? d.sections : undefined,
+        d.templateType,
+        d.contentFormat,
+      )
+      : renderDraftToHtml('Preview unavailable for this document.')
+    setPreviewDoc({ id: d.id, title: d.title, html, editUrl: d.id ? `/documents?open=${d.id}&edit=true` : undefined })
   }
 
   return (
@@ -471,7 +575,7 @@ export function CaseStudioPanel({
                     onClick={() => {
                       if (p.status !== 'completed') return
                       const html = renderDraftToHtml(p.content)
-                      setPreviewDoc({ title: precedentDisplayName, html, editUrl: p.id ? `/documents?open=${p.id}&edit=true` : undefined })
+                      setPreviewDoc({ id: p.id, title: precedentDisplayName, html, editUrl: p.id ? `/documents?open=${p.id}&edit=true` : undefined })
                     }}
                   >
                     <div className="flex-shrink-0 h-7 w-7 rounded-md bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center">
@@ -498,8 +602,8 @@ export function CaseStudioPanel({
                     {!isRenamingP && (
                       <GeneratedItemMenu
                         onRename={() => setRenamingId(`precedent-${p.id}`)}
-                        onDownloadPdf={p.status === 'completed' ? () => downloadAsPdf(precedentDisplayName, p.content) : undefined}
-                        onDownloadDoc={p.status === 'completed' ? () => downloadAsDoc(precedentDisplayName, p.content) : undefined}
+                        onDownloadPdf={p.status === 'completed' ? () => void exportDocument(p.id, precedentDisplayName, 'PDF', p.content) : undefined}
+                        onDownloadDoc={p.status === 'completed' ? () => void exportDocument(p.id, precedentDisplayName, 'DOCX', p.content) : undefined}
                         onDelete={onDeletePrecedent}
                       />
                     )}
@@ -510,11 +614,12 @@ export function CaseStudioPanel({
               if (item.kind === 'summary') {
                 const s = item.data
                 const isRenamingS = renamingId === `summary-${s.id}`
+                const displayName = summaryLabel(s)
                 return (
                   <div
                     key={`summary-${s.id}`}
                     className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors cursor-pointer"
-                    onClick={() => { if (!isRenamingS) handleOpenSummary() }}
+                    onClick={() => { if (!isRenamingS) void handleOpenSummary(s) }}
                   >
                     <div className="flex-shrink-0 h-7 w-7 rounded-md bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
                       <FileText className="h-3.5 w-3.5 text-blue-600" />
@@ -522,13 +627,13 @@ export function CaseStudioPanel({
                     <div className="flex-1 min-w-0">
                       {isRenamingS ? (
                         <InlineRenameInput
-                          defaultValue={summaryDisplayName}
-                          onCommit={async v => { setRenamingId(null); setSummaryDisplayName(v); await onRenameSummary?.(v) }}
+                          defaultValue={displayName}
+                          onCommit={async v => { setRenamingId(null); await onRenameSummary?.(s.id, v) }}
                           onCancel={() => setRenamingId(null)}
                         />
                       ) : (
                         <>
-                          <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{summaryDisplayName}</p>
+                          <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{displayName}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {s.status === 'pending' && <span className="flex items-center gap-1 text-[10px] text-blue-600"><Loader2 className="h-2.5 w-2.5 animate-spin" />Generating...</span>}
                             {s.status === 'failed' && <span className="flex items-center gap-1 text-[10px] text-red-500"><AlertCircle className="h-2.5 w-2.5" />Failed</span>}
@@ -540,9 +645,9 @@ export function CaseStudioPanel({
                     {!isRenamingS && onDeleteSummary && (
                       <GeneratedItemMenu
                         onRename={() => setRenamingId(`summary-${s.id}`)}
-                        onDownloadPdf={s.status === 'completed' ? () => downloadAsPdf(summaryDisplayName, s.content) : undefined}
-                        onDownloadDoc={s.status === 'completed' ? () => downloadAsDoc(summaryDisplayName, s.content) : undefined}
-                        onDelete={onDeleteSummary}
+                        onDownloadPdf={s.status === 'completed' ? () => void exportDocument(s.id, displayName, 'PDF', s.content) : undefined}
+                        onDownloadDoc={s.status === 'completed' ? () => void exportDocument(s.id, displayName, 'DOCX', s.content) : undefined}
+                        onDelete={() => void onDeleteSummary(s.id)}
                       />
                     )}
                   </div>
@@ -552,11 +657,12 @@ export function CaseStudioPanel({
               if (item.kind === 'synopsis') {
                 const s = item.data
                 const isRenamingY = renamingId === `synopsis-${s.id}`
+                const displayName = synopsisLabel(s)
                 return (
                   <div
                     key={`synopsis-${s.id}`}
                     className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-950/20 transition-colors cursor-pointer"
-                    onClick={() => { if (!isRenamingY) handleOpenSynopsis() }}
+                    onClick={() => { if (!isRenamingY) void handleOpenSynopsis(s) }}
                   >
                     <div className="flex-shrink-0 h-7 w-7 rounded-md bg-teal-100 dark:bg-teal-900/40 flex items-center justify-center">
                       <BookOpen className="h-3.5 w-3.5 text-teal-600" />
@@ -564,13 +670,13 @@ export function CaseStudioPanel({
                     <div className="flex-1 min-w-0">
                       {isRenamingY ? (
                         <InlineRenameInput
-                          defaultValue={synopsisDisplayName}
-                          onCommit={async v => { setRenamingId(null); setSynopsisDisplayName(v); await onRenameSynopsis?.(v) }}
+                          defaultValue={displayName}
+                          onCommit={async v => { setRenamingId(null); await onRenameSynopsis?.(s.id, v) }}
                           onCancel={() => setRenamingId(null)}
                         />
                       ) : (
                         <>
-                          <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{synopsisDisplayName}</p>
+                          <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{displayName}</p>
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {s.status === 'pending' && <span className="flex items-center gap-1 text-[10px] text-teal-600"><Loader2 className="h-2.5 w-2.5 animate-spin" />Generating...</span>}
                             {s.status === 'failed' && <span className="flex items-center gap-1 text-[10px] text-red-500"><AlertCircle className="h-2.5 w-2.5" />Failed</span>}
@@ -582,29 +688,44 @@ export function CaseStudioPanel({
                     {!isRenamingY && (
                       <GeneratedItemMenu
                         onRename={() => setRenamingId(`synopsis-${s.id}`)}
-                        onDownloadPdf={s.status === 'completed' ? () => downloadAsPdf(synopsisDisplayName, s.content) : undefined}
-                        onDownloadDoc={s.status === 'completed' ? () => downloadAsDoc(synopsisDisplayName, s.content) : undefined}
-                        onDelete={onDeleteSynopsis}
+                        onDownloadPdf={s.status === 'completed' ? () => void exportDocument(s.id, displayName, 'PDF', s.content) : undefined}
+                        onDownloadDoc={s.status === 'completed' ? () => void exportDocument(s.id, displayName, 'DOCX', s.content) : undefined}
+                        onDelete={() => void onDeleteSynopsis(s.id)}
                       />
                     )}
                   </div>
                 )
               }
 
-              // kind === 'draft'
+              // kind === 'draft' (legal drafts or translated documents)
               const draft = item.data
+              const isTranslation = draft.sourceDocumentType === DocumentType.TRANSLATION
               const isRenaming = renamingId === draft.id
               return (
                 <div
                   key={`draft-${draft.id}`}
                   className={cn(
-                    'group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 transition-colors',
+                    'group flex items-center gap-2 px-2 py-2 rounded-lg transition-colors',
+                    isTranslation
+                      ? 'hover:bg-amber-50 dark:hover:bg-amber-950/20'
+                      : 'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20',
                     draft.status === 'completed' && 'cursor-pointer'
                   )}
                   onClick={() => handleOpenDraft(draft)}
                 >
-                  <div className="flex-shrink-0 h-7 w-7 rounded-md bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center">
-                    <SquarePen className="h-3.5 w-3.5 text-kx-primary-600" />
+                  <div
+                    className={cn(
+                      'flex-shrink-0 h-7 w-7 rounded-md flex items-center justify-center',
+                      isTranslation
+                        ? 'bg-amber-100 dark:bg-amber-900/40'
+                        : 'bg-kx-primary-100 dark:bg-kx-primary-900/40'
+                    )}
+                  >
+                    {isTranslation ? (
+                      <Languages className="h-3.5 w-3.5 text-amber-700" />
+                    ) : (
+                      <SquarePen className="h-3.5 w-3.5 text-kx-primary-600" />
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     {isRenaming ? (
@@ -617,7 +738,17 @@ export function CaseStudioPanel({
                       <>
                         <p className="text-xs font-medium text-ledger-gray-900 truncate leading-snug">{draft.title}</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          {draft.status === 'pending' && <span className="flex items-center gap-1 text-[10px] text-kx-primary-600"><Loader2 className="h-2.5 w-2.5 animate-spin" />Generating...</span>}
+                          {draft.status === 'pending' && (
+                            <span
+                              className={cn(
+                                'flex items-center gap-1 text-[10px]',
+                                isTranslation ? 'text-amber-700' : 'text-kx-primary-600'
+                              )}
+                            >
+                              <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                              {isTranslation ? 'Translating…' : 'Generating...'}
+                            </span>
+                          )}
                           {draft.status === 'failed' && <span className="flex items-center gap-1 text-[10px] text-red-500"><AlertCircle className="h-2.5 w-2.5" />Failed</span>}
                           {draft.status === 'completed' && <span className="text-[10px] text-ledger-gray-500">{formatRelativeTime(draft.createdAt)}</span>}
                         </div>
@@ -627,8 +758,16 @@ export function CaseStudioPanel({
                   {!isRenaming && (
                     <GeneratedItemMenu
                       onRename={() => setRenamingId(draft.id)}
-                      onDownloadPdf={draft.status === 'completed' && draft.content ? () => downloadAsPdf(draft.title, draft.content, draft.sections, draft.contentFormat) : undefined}
-                      onDownloadDoc={draft.status === 'completed' && draft.content ? () => downloadAsDoc(draft.title, draft.content, draft.sections, draft.contentFormat) : undefined}
+                      onDownloadPdf={
+                        !isTranslation && draft.status === 'completed' && draft.content
+                          ? () => void exportDocument(draft.id, draft.title, 'PDF', draft.content, draft.sections)
+                          : undefined
+                      }
+                      onDownloadDoc={
+                        !isTranslation && draft.status === 'completed' && draft.content
+                          ? () => void exportDocument(draft.id, draft.title, 'DOCX', draft.content, draft.sections)
+                          : undefined
+                      }
                       onDelete={() => onDeleteDraft(draft.id)}
                     />
                   )}
@@ -652,8 +791,11 @@ export function CaseStudioPanel({
           onClose={() => setPreviewDoc(null)}
           title={previewDoc.title}
           htmlContent={previewDoc.html}
-          onDownloadPdf={() => downloadAsPdf(previewDoc.title, previewDoc.html)}
-          onDownloadDoc={() => downloadAsDoc(previewDoc.title, previewDoc.html)}
+          iframeUrl={previewDoc.iframeUrl}
+          // Re-rendering HTML to PDF/DOCX is meaningless for binary translations,
+          // so omit those export buttons when we're showing the file directly.
+          onDownloadPdf={previewDoc.iframeUrl ? undefined : () => void exportDocument(previewDoc.id, previewDoc.title, 'PDF', previewDoc.html)}
+          onDownloadDoc={previewDoc.iframeUrl ? undefined : () => void exportDocument(previewDoc.id, previewDoc.title, 'DOCX', previewDoc.html)}
           onEdit={previewDoc.editUrl ? () => { setPreviewDoc(null); navigate(previewDoc.editUrl!) } : undefined}
         />
       )}

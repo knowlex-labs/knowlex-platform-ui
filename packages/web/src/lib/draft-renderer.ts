@@ -56,18 +56,125 @@ export function renderDraftToHtml(
  * If the content is already HTML (from the editor), use it directly.
  * Otherwise render as markdown.
  */
-function buildExportHtml(title: string, content: string, sections?: DraftSection[]): string {
-  let bodyHtml: string
+/**
+ * Builds the CSS rules for export.
+ * When `scope` is provided (a CSS ID selector like `#kx-pdf-render`), all rules are
+ * scoped to that element so styles don't bleed into the host page when the container
+ * is temporarily appended to document.body for html2pdf rendering.
+ * When scope is omitted the rules use bare selectors suitable for a full HTML document.
+ */
+function buildExportCss(scope?: string): string {
+  const root = scope ?? 'body'
+  const s = scope ? `${scope} ` : ''
+  return `
+      ${root} {
+        font-family: 'Times New Roman', Times, serif;
+        font-size: 12pt;
+        line-height: 1.8;
+        margin: 0;
+        padding: 0;
+        color: #1a1a1a;
+        background: #fff;
+      }
+      ${s}h1 {
+        font-size: 16pt;
+        font-weight: bold;
+        text-align: center;
+        text-transform: uppercase;
+        letter-spacing: 0.5pt;
+        margin-top: 12pt;
+        margin-bottom: 20pt;
+        padding-bottom: 8pt;
+        border-bottom: 2px solid #333;
+      }
+      ${s}h2 {
+        font-size: 13pt;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.3pt;
+        margin-top: 22pt;
+        margin-bottom: 10pt;
+        padding-bottom: 4pt;
+        border-bottom: 1px solid #999;
+        color: #222;
+      }
+      ${s}h3 {
+        font-size: 12pt;
+        font-weight: bold;
+        margin-top: 14pt;
+        margin-bottom: 8pt;
+        color: #333;
+      }
+      ${s}p {
+        margin-top: 0;
+        margin-bottom: 10pt;
+        text-align: justify;
+      }
+      ${s}strong {
+        font-weight: bold;
+      }
+      ${s}table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 14pt 0;
+        font-size: 11pt;
+      }
+      ${s}th, ${s}td {
+        border: 1px solid #555;
+        padding: 6pt 10pt;
+        text-align: left;
+        vertical-align: top;
+      }
+      ${s}th {
+        background-color: #f0f0f0;
+        font-weight: bold;
+        font-size: 11pt;
+      }
+      ${s}tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+      ${s}blockquote {
+        border-left: 3pt solid #888;
+        padding-left: 14pt;
+        margin: 14pt 0 14pt 12pt;
+        color: #444;
+        font-style: italic;
+      }
+      ${s}ul, ${s}ol {
+        margin: 6pt 0 10pt 0;
+        padding-left: 28pt;
+        line-height: 1.8;
+      }
+      ${s}li {
+        margin-bottom: 5pt;
+        text-align: justify;
+      }
+      ${s}li > ul, ${s}li > ol {
+        margin-top: 4pt;
+        margin-bottom: 2pt;
+      }
+      ${s}hr {
+        border: none;
+        border-top: 1px solid #ccc;
+        margin: 18pt 0;
+      }`
+}
+
+export function buildExportBodyHtml(content: string, sections?: DraftSection[]): string {
   if (content.trim().startsWith('<')) {
-    bodyHtml = content
-  } else if (sections && sections.length > 0) {
+    return content
+  }
+  if (sections && sections.length > 0) {
     const sorted = [...sections].sort((a, b) => a.order - b.order)
-    bodyHtml = sorted
+    return sorted
       .map((s) => `<h2>${escapeHtml(s.title)}</h2>\n${markdownToHtml(s.content)}`)
       .join('\n')
-  } else {
-    bodyHtml = markdownToHtml(content)
   }
+  return markdownToHtml(content)
+}
+
+function buildExportHtml(title: string, content: string, sections?: DraftSection[]): string {
+  const bodyHtml = buildExportBodyHtml(content, sections)
 
   return `<!DOCTYPE html>
 <html>
@@ -77,21 +184,12 @@ function buildExportHtml(title: string, content: string, sections?: DraftSection
     <style>
       @page {
         size: A4;
-        /*
-         * Real page margins — the content area is inset by these values.
-         * Defining every margin box with content: '' suppresses Chrome's
-         * own URL / date / title chrome that normally appears in these slots.
-         * Only @bottom-center is given real content: the page number.
-         */
         margin: 1in 1.1in 0.75in 1.1in;
-
         @top-left    { content: ''; }
         @top-center  { content: ''; }
         @top-right   { content: ''; }
         @bottom-left { content: ''; }
         @bottom-right { content: ''; }
-
-        /* Page number — bottom center, 0.2 in above the page edge */
         @bottom-center {
           content: counter(page);
           font-size: 10pt;
@@ -100,68 +198,7 @@ function buildExportHtml(title: string, content: string, sections?: DraftSection
           padding-bottom: 0.2in;
         }
       }
-      body {
-        font-family: 'Times New Roman', Times, serif;
-        font-size: 12pt;
-        line-height: 1.6;
-        margin: 0;
-        padding: 0;
-        color: #000;
-        background: #fff;
-      }
-      h1 {
-        font-size: 14pt;
-        font-weight: bold;
-        margin-bottom: 24pt;
-      }
-      h2 {
-        font-size: 13pt;
-        font-weight: bold;
-        margin-top: 18pt;
-        margin-bottom: 12pt;
-        text-transform: uppercase;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 4pt;
-      }
-      p {
-        margin-bottom: 12pt;
-        text-align: justify;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 12pt 0;
-        font-size: 11pt;
-      }
-      th, td {
-        border: 1px solid #333;
-        padding: 6pt 8pt;
-        text-align: left;
-        vertical-align: top;
-      }
-      th {
-        background-color: #f5f5f5;
-        font-weight: bold;
-      }
-      tr:nth-child(even) {
-        background-color: #fafafa;
-      }
-      blockquote {
-        border-left: 3px solid #ccc;
-        padding-left: 12pt;
-        margin: 12pt 0;
-        color: #555;
-        font-style: italic;
-      }
-      ul, ol {
-        margin: 8pt 0;
-        padding-left: 24pt;
-        line-height: 1.6;
-      }
-      li {
-        margin-bottom: 4pt;
-        text-align: justify;
-      }
+      ${buildExportCss()}
     </style>
   </head>
   <body>
@@ -192,35 +229,6 @@ export function downloadAsTxt(title: string, content: string, sections?: DraftSe
     text = sorted.map((s) => `=== ${s.title.toUpperCase()} ===\n\n${s.content}`).join('\n\n')
   }
   triggerDownload(new Blob([text], { type: 'text/plain' }), `${sanitizeFilename(title)}.txt`)
-}
-
-export function downloadAsDoc(title: string, content: string, sections?: DraftSection[], _contentFormat?: string): void {
-  const fullHtml = buildExportHtml(title, content, sections)
-  const wordDoc = fullHtml
-    .replace('<html>', `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">`)
-    .replace('</head>', `  <meta name="ProgId" content="Word.Document">\n  <meta name="Generator" content="Knowlex Platform">\n  <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]-->\n  </head>`)
-  triggerDownload(new Blob([wordDoc], { type: 'application/msword' }), `${sanitizeFilename(title)}.doc`)
-}
-
-export function downloadAsPdf(title: string, content: string, sections?: DraftSection[], _contentFormat?: string): void {
-  const sects = sections?.length ? sections : undefined
-  const html = buildExportHtml(title, content, sects)
-
-  const iframe = document.createElement('iframe')
-  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;'
-  document.body.appendChild(iframe)
-
-  const doc = iframe.contentDocument || iframe.contentWindow?.document
-  if (!doc) { document.body.removeChild(iframe); return }
-
-  doc.open()
-  doc.write(html)
-  doc.close()
-
-  iframe.onload = () => {
-    iframe.contentWindow?.print()
-    setTimeout(() => { document.body.removeChild(iframe) }, 1000)
-  }
 }
 
 export function printDraft(title: string, content: string, sections?: DraftSection[], _contentFormat?: string): void {

@@ -1,7 +1,7 @@
-import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { LandingHeader } from './landing-header'
 import { LandingFooter } from './landing-footer'
+import { goToDashboard } from '@/lib/hosts'
 
 const VALUES = [
   {
@@ -23,15 +23,13 @@ const VALUES = [
 ]
 
 export function CareersPage() {
-  const navigate = useNavigate()
-
   const scrollToRoles = () => {
     document.getElementById('open-roles')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   return (
     <div className="min-h-screen bg-white force-light flex flex-col">
-      <LandingHeader onSignIn={() => navigate('/login')} />
+      <LandingHeader onSignIn={() => goToDashboard('/login')} />
 
       <main className="flex-1">
         {/* Hero */}

@@ -2,6 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import type { CasePrecedent } from '@knowlex/core/types'
 
+function pickDocumentJobStatus(doc: { jobStatus?: string; status?: string } | null | undefined): string {
+  const v = doc?.jobStatus ?? doc?.status
+  return v == null ? '' : String(v)
+}
+
 export function usePrecedent(caseId: string) {
   const [precedent, setPrecedent] = useState<CasePrecedent | null>(null)
   const [isLoading] = useState(false)
@@ -31,7 +36,8 @@ export function usePrecedent(caseId: string) {
   }
 
   const resolveTerminal = useCallback(async (documentId: string, jobStatus: string, downloadUrl?: string | null, signedUrl?: string | null) => {
-    const rawStatus = jobStatus.toLowerCase()
+    const rawStatus = (jobStatus ?? '').toString().toLowerCase()
+    if (!rawStatus) return
     if (rawStatus === 'completed') {
       let fetchedContent = ''
       try {
@@ -48,12 +54,12 @@ export function usePrecedent(caseId: string) {
   const startStream = useCallback((documentId: string) => {
     stopStream()
     let receivedTerminal = false
-    streamCtrlRef.current = workspaceApi.streamDocumentStatus(documentId, {
+    streamCtrlRef.current = workspaceApi.pollDocumentStatus(documentId, {
       onStatus: async (doc) => {
-        const s = (doc.jobStatus ?? '').toLowerCase()
-        if (s === 'completed' || s === 'failed') {
+        const st = pickDocumentJobStatus(doc).toLowerCase()
+        if (st === 'completed' || st === 'failed') {
           receivedTerminal = true
-          await resolveTerminal(documentId, doc.jobStatus, doc.downloadUrl, doc.signedUrl)
+          await resolveTerminal(documentId, pickDocumentJobStatus(doc), doc.downloadUrl, doc.signedUrl)
           stopStream()
         }
       },
@@ -64,9 +70,9 @@ export function usePrecedent(caseId: string) {
           // Stream ended before a terminal event — fetch final state once
           try {
             const raw = await workspaceApi.getDocument('', documentId) as RawDoc
-            const s = (raw.status ?? raw.jobStatus ?? '').toLowerCase()
-            if (s === 'completed' || s === 'failed') {
-              await resolveTerminal(documentId, s, raw.downloadUrl, raw.signedUrl)
+            const st = pickDocumentJobStatus(raw).toLowerCase()
+            if (st === 'completed' || st === 'failed') {
+              await resolveTerminal(documentId, pickDocumentJobStatus(raw), raw.downloadUrl, raw.signedUrl)
             }
           } catch { /* ignore */ }
         }

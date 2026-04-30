@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { CalendarDays, Bell, PenLine, Files, Languages, Scale, Sparkles, FileText, File, Search, Users } from 'lucide-react'
+import { CalendarDays, Bell, PenLine, Languages, Scale, Sparkles, FileText, File, Users } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
 import { useNavigate } from 'react-router-dom'
 import { useDashboardAnalytics } from '@/hooks/use-dashboard-analytics'
 import { StatsOverview } from './stats-overview'
 import { UpcomingHearingsWidget } from './upcoming-hearings-widget'
+import { OpenTasksWidget } from './open-tasks-widget'
 import { EmptyState } from '@/components/ui/empty-state'
 import type { RecentDocument } from '@knowlex/core/api/dashboard-api'
 
@@ -80,7 +81,6 @@ export function DashboardHome() {
 
   const [notifOpen, setNotifOpen] = useState(false)
   const notifRef = useRef<HTMLDivElement>(null)
-  const [searchQuery, setSearchQuery] = useState('')
 
   const displayName = user?.firstName || user?.username || 'there'
   const greeting = getGreeting()
@@ -93,10 +93,6 @@ export function DashboardHome() {
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [notifOpen])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) navigate(`/cases?search=${encodeURIComponent(searchQuery.trim())}`)
-  }
 
   return (
     <div className="space-y-6 md:space-y-8 min-w-0">
@@ -109,26 +105,6 @@ export function DashboardHome() {
           <p className="text-sm text-ledger-gray-500 mt-1">Here's an overview of your practice</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Search bar */}
-          <form onSubmit={handleSearch} className="relative hidden sm:block">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ledger-gray-400 pointer-events-none" />
-            <input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search cases..."
-              className="w-44 h-9 pl-8 pr-3 text-xs rounded-lg border border-kx-card-border bg-kx-card text-kx-primary-900 placeholder:text-ledger-gray-400 focus:outline-none focus:border-kx-primary-400 focus:w-56 transition-all"
-            />
-          </form>
-          {/* All Documents shortcut */}
-          <button
-            type="button"
-            onClick={() => navigate('/documents')}
-            className="h-9 w-9 flex items-center justify-center rounded-lg border border-kx-card-border bg-kx-card shadow-sm hover:bg-ledger-gray-50 dark:hover:bg-white/5 transition-colors"
-            title="All Documents"
-          >
-            <Files className="h-4 w-4 text-kx-primary-700" />
-          </button>
-
           {/* Notification bell */}
           <div className="relative" ref={notifRef}>
             <button
@@ -175,6 +151,9 @@ export function DashboardHome() {
             </div>
             <UpcomingHearingsWidget />
           </section>
+
+          {/* Open Tasks */}
+          <OpenTasksWidget />
 
           {/* Quick links */}
           <div className="flex gap-3">

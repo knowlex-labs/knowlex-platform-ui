@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles, LayoutGrid } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,7 @@ import { useUIState } from '@/contexts/ui-context'
 import { useAuth } from '@/contexts/auth-context'
 import { useTheme } from '@/contexts/theme-context'
 import { useSubscription } from '@/hooks/use-subscription'
+import { useSubscriptionPreferences } from '@/contexts/subscription-preferences-context'
 import { SIDEBAR_TABS, APP_NAME, DEMO_USER_USERNAME } from '@/lib/constants'
 import * as React from 'react'
 
@@ -33,6 +34,7 @@ const iconMap = {
   brain: Brain,
   files: Files,
   'pen-line': PenLine,
+  'layout-grid': LayoutGrid,
 }
 
 // Derive active tab ID from the current pathname
@@ -55,10 +57,15 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const location = useLocation()
   const { user, logout } = useAuth()
   const { resolvedTheme, setTheme } = useTheme()
+  const { isLocked } = useSubscriptionPreferences()
   const [showHelpDialog, setShowHelpDialog] = React.useState(false)
   const [showUserMenu, setShowUserMenu] = React.useState(false)
 
   const activeTab = getActiveTabFromPath(location.pathname)
+  const visibleTabs = React.useMemo(
+    () => SIDEBAR_TABS.filter((tab) => !(tab.featureFlag && isLocked(tab.featureFlag))),
+    [isLocked]
+  )
 
   const handleLogout = () => {
     logout()
@@ -77,7 +84,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const isDemoUser = user?.username === DEMO_USER_USERNAME
 
   const handleTabChange = (value: string) => {
-    const tab = SIDEBAR_TABS.find(t => t.id === value)
+    const tab = visibleTabs.find(t => t.id === value)
     if (tab) {
       navigate(tab.path)
     }
@@ -138,7 +145,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
             orientation="vertical"
           >
             <TabsList>
-              {SIDEBAR_TABS.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const Icon = iconMap[tab.icon as keyof typeof iconMap]
 
                 if (tab.locked) {
@@ -249,10 +256,10 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
               )}
             </button>
 
-            {/* Dropdown Menu */}
+            {/* Dropdown Menu — opens upward, above the user button */}
             {showUserMenu && (
               <div className={cn(
-                "absolute bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden z-50",
+                "absolute bg-kx-card border border-kx-card-border rounded-lg shadow-lg overflow-hidden z-[100]",
                 collapsed
                   ? "left-full bottom-0 ml-2 w-56"
                   : "bottom-full left-0 right-0 mb-2"
@@ -361,7 +368,7 @@ export function Sidebar() {
   const navigate = useNavigate()
 
   return (
-    <aside className={`fixed left-0 top-0 h-screen bg-kx-card border-r border-kx-card-border shadow-sm flex-col hidden md:flex transition-all duration-300 overscroll-contain ${collapsed ? 'w-16' : 'w-60'}`}>
+    <aside className={`fixed left-0 top-0 z-40 h-screen bg-kx-card border-r border-kx-card-border shadow-sm flex-col hidden md:flex transition-all duration-300 overscroll-contain ${collapsed ? 'w-16' : 'w-60'}`}>
       {/* Logo + Collapse Toggle */}
       <div className="px-4 py-4 border-b border-ledger-gray-200">
         {collapsed ? (

@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Check, Sparkles } from 'lucide-react'
 import { useScrollReveal } from '@/hooks/use-scroll-reveal'
 import { useAuth } from '@/contexts/auth-context'
 import { getAdapters } from '@knowlex/core/api/runtime'
 import { usePlans } from '@/hooks/use-plans'
+import { goToDashboard } from '@/lib/hosts'
 import type { PlanType, BillingCycle } from '@knowlex/core/types'
 
 type BillingPeriod = 'monthly' | 'annual'
@@ -102,26 +102,24 @@ export function PricingSection() {
   const [billing, setBilling] = useState<BillingPeriod>('monthly')
   const { isAuthenticated } = useAuth()
   const { subscribe, isSubscribing } = usePlans()
-  const navigate = useNavigate()
 
   const handleSubscribe = async (plan: Plan) => {
     if (plan.planType === 'FREE') {
-      navigate('/signup')
+      goToDashboard('/signup')
       return
     }
     if (!getAdapters().env.enablePayment) {
-      // Payments disabled: let users start the trial flow via login (no signup).
-      navigate('/login')
+      goToDashboard('/login')
       return
     }
     if (!isAuthenticated) {
-      navigate('/signup', { state: { from: { pathname: '/', hash: '#pricing' } } })
+      goToDashboard('/signup')
       return
     }
     const billingCycle: BillingCycle = billing === 'monthly' ? 'MONTHLY' : 'YEARLY'
     const success = await subscribe(plan.planType, billingCycle)
     if (success) {
-      navigate('/home')
+      goToDashboard('/home')
     }
   }
 
