@@ -20,6 +20,7 @@ import { TranslateAction } from './translate-action'
 import { TransliteratePanel } from './transliterate-panel'
 import { Loader2, Languages } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { toast } from '@/hooks/use-toast'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
 
@@ -88,6 +89,7 @@ export function DocumentEditor({
     },
   })
 
+  const lastErrorAtRef = useRef<number>(0)
   const flushSave = useCallback(async () => {
     if (!editor) return
     setIsSaving(true)
@@ -96,6 +98,20 @@ export function DocumentEditor({
       await updateEditState(editingDocumentIdRef.current, json)
       setHasChanges(false)
     } catch (e) {
+      // Surface autosave failures so the user doesn't keep typing under the
+      // illusion that their work is being persisted. Throttle to one toast per
+      // 10 s to avoid spamming when offline — hasChanges stays true so the next
+      // attempt will retry.
+      const now = Date.now()
+      if (now - lastErrorAtRef.current > 10_000) {
+        lastErrorAtRef.current = now
+        const description = e instanceof Error ? e.message : 'Network error'
+        toast({
+          title: 'Failed to save changes',
+          description,
+          variant: 'destructive',
+        })
+      }
       console.warn('autosave failed', e)
     } finally {
       setIsSaving(false)
