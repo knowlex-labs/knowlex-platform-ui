@@ -465,6 +465,14 @@ function DocumentViewer({
       return
     }
 
+    // DOCX_COPY's canonical content is the editor's edit state — there is no
+    // standalone binary to preview. Skip the fetch; the user clicks Edit to
+    // open the editor.
+    if (doc.type === DocumentType.DOCX_COPY) {
+      setIsLoadingContent(false)
+      return
+    }
+
     async function load() {
       try {
         if (isMarkdownOrText) {
@@ -494,7 +502,7 @@ function DocumentViewer({
     }
     load()
     return () => { cancelled = true }
-  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isDocx, isGenerating, isGenFailed, isGeneratedDoc])
+  }, [doc.id, doc.type, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isDocx, isGenerating, isGenFailed, isGeneratedDoc])
 
   useEffect(() => { return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) } }, [blobUrl])
 
@@ -587,7 +595,9 @@ function DocumentViewer({
         <span className={cn('flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide', meta.className)}>
           {meta.label}
         </span>
-        {doc.type === DocumentType.USER_UPLOADED && (isMarkdownOrText || isPdf || isDocx) && viewerMode === 'view' && (
+        {((doc.type === DocumentType.USER_UPLOADED && (isMarkdownOrText || isPdf || isDocx))
+          || doc.type === DocumentType.DOCX_COPY)
+          && viewerMode === 'view' && (
           <Button size="sm" onClick={handleEdit} className="gap-1.5 h-7 text-xs flex-shrink-0">
             <PenLine className="h-3.5 w-3.5" /> Edit
           </Button>
