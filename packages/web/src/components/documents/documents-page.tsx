@@ -110,6 +110,7 @@ const TYPE_META: Record<DocumentType, {
   [DocumentType.BRIEF]:         { label: 'Brief',       className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
   [DocumentType.TRANSLATION]:   { label: 'Translated', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', icon: Languages },
   [DocumentType.PRECEDENT]:     { label: 'Precedents', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300', icon: Search },
+  [DocumentType.DOCX_COPY]:     { label: 'Editable Copy', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300', icon: FileText },
 }
 
 // ─── Tools config ─────────────────────────────────────────────────────────────

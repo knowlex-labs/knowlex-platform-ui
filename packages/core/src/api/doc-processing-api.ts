@@ -401,6 +401,13 @@ export interface EditStateResponse {
   format: 'tiptap-json' | 'html' | 'markdown'
   content: string
   freshConversion: boolean
+  /**
+   * The document ID that actually holds this edit state. For PDF documents this
+   * is a DOCX_COPY row with a different ID than the original PDF. For DOCX
+   * documents edited in-place it equals the ID passed to getEditState.
+   * Use this ID for all subsequent PUT /edit-state and export calls.
+   */
+  editingDocumentId: string
 }
 
 /** GET /api/v1/documents/{id}/edit-state */

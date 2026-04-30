@@ -57,6 +57,9 @@ export function DocumentEditor({
   const [showTransliterate, setShowTransliterate] = useState(false)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipNextChangeRef = useRef(true)
+  // For PDF documents, the backend creates a DOCX_COPY with a different ID.
+  // All write operations (autosave, export) must use this ID, not the original.
+  const editingDocumentIdRef = useRef<string>(documentId)
 
   const editor = useEditor({
     editable: !readOnly,
@@ -90,14 +93,14 @@ export function DocumentEditor({
     setIsSaving(true)
     try {
       const json = JSON.stringify(editor.getJSON())
-      await updateEditState(documentId, json)
+      await updateEditState(editingDocumentIdRef.current, json)
       setHasChanges(false)
     } catch (e) {
       console.warn('autosave failed', e)
     } finally {
       setIsSaving(false)
     }
-  }, [editor, documentId])
+  }, [editor])
 
   const scheduleAutosave = useCallback(() => {
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
@@ -115,6 +118,8 @@ export function DocumentEditor({
     getEditState(documentId)
       .then((res: EditStateResponse) => {
         if (cancelled) return
+        // Use the copy's ID for all subsequent writes (differs from documentId for PDFs)
+        editingDocumentIdRef.current = res.editingDocumentId ?? documentId
         skipNextChangeRef.current = true
         if (res.format === 'tiptap-json' && res.content) {
           try {
@@ -169,7 +174,7 @@ export function DocumentEditor({
       const html = editor.getHTML()
       const title = documentTitle?.trim() || 'document'
       try {
-        await exportGeneratedDocument(documentId, format, title, html)
+        await exportGeneratedDocument(editingDocumentIdRef.current, format, title, html)
       } catch (e) {
         console.warn('export failed', e)
       }
