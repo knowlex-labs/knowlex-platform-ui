@@ -105,7 +105,6 @@ export function MoodboardBoard() {
     isLoading,
     error,
     refresh,
-    updateBoard,
     createTask,
     updateTask,
     deleteTask,
@@ -114,8 +113,6 @@ export function MoodboardBoard() {
     removeTaskImage,
   } = useMoodboard()
 
-  const [editingName, setEditingName] = useState(false)
-  const [nameDraft, setNameDraft] = useState('')
   const [backlogOpen, setBacklogOpen] = useState(false)
   const [archiveOpen, setArchiveOpen] = useState(false)
   const [newTaskStatus, setNewTaskStatus] = useState<MoodboardStatus | null>(null)
@@ -205,36 +202,9 @@ export function MoodboardBoard() {
       <header className="flex-shrink-0 px-6 md:px-8 py-4 border-b border-kx-card-border bg-kx-card">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            {editingName ? (
-              <input
-                autoFocus
-                value={nameDraft}
-                onChange={(e) => setNameDraft(e.target.value)}
-                onBlur={() => {
-                  setEditingName(false)
-                  if (nameDraft.trim() && nameDraft.trim() !== board?.name) {
-                    updateBoard({ name: nameDraft.trim() })
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                  if (e.key === 'Escape') setEditingName(false)
-                }}
-                className="font-serif text-xl font-semibold bg-transparent border-b border-kx-primary-500 focus:outline-none w-full"
-              />
-            ) : (
-              <h1
-                className="font-serif text-xl md:text-2xl font-semibold text-kx-text-primary truncate cursor-text"
-                onClick={() => {
-                  if (board) {
-                    setNameDraft(board.name)
-                    setEditingName(true)
-                  }
-                }}
-              >
-                {board?.name ?? 'Tasks'}
-              </h1>
-            )}
+            <h1 className="font-serif text-xl md:text-2xl font-semibold text-kx-text-primary truncate">
+              Tasks
+            </h1>
             {board?.description && (
               <p className="text-sm text-ledger-gray-500 mt-0.5 truncate">{board.description}</p>
             )}
