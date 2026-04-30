@@ -15,7 +15,7 @@ import {
   type EditStateResponse,
   type GeneratedDocExportFormat,
 } from '@knowlex/core/api'
-import { FormattingToolbar } from '../cases/case-workspace/formatting-toolbar'
+import { FormattingToolbar } from './formatting-toolbar'
 import { TranslateAction } from './translate-action'
 import { TransliteratePanel } from './transliterate-panel'
 import { Loader2, Languages } from 'lucide-react'
@@ -61,6 +61,11 @@ export function DocumentEditor({
   // For PDF documents, the backend creates a DOCX_COPY with a different ID.
   // All write operations (autosave, export) must use this ID, not the original.
   const editingDocumentIdRef = useRef<string>(documentId)
+  // Mirror hasChanges + flushSave into refs so the unmount-flush effect can run
+  // with empty deps — otherwise its cleanup fires on every hasChanges change
+  // and triggers a redundant save right after each successful autosave.
+  const hasChangesRef = useRef(false)
+  const flushSaveRef = useRef<() => Promise<void>>(async () => {})
 
   const editor = useEditor({
     editable: !readOnly,
@@ -84,6 +89,7 @@ export function DocumentEditor({
         skipNextChangeRef.current = false
         return
       }
+      hasChangesRef.current = true
       setHasChanges(true)
       scheduleAutosave()
     },
@@ -96,6 +102,7 @@ export function DocumentEditor({
     try {
       const json = JSON.stringify(editor.getJSON())
       await updateEditState(editingDocumentIdRef.current, json)
+      hasChangesRef.current = false
       setHasChanges(false)
     } catch (e) {
       // Surface autosave failures so the user doesn't keep typing under the
@@ -173,13 +180,20 @@ export function DocumentEditor({
     }
   }, [editor, documentId, flushSave])
 
+  // Keep flushSaveRef pointing at the current flushSave closure so the unmount
+  // effect (empty deps) can call the latest version.
+  useEffect(() => {
+    flushSaveRef.current = flushSave
+  }, [flushSave])
+
   // Best-effort flush on unmount so a quick close doesn't drop the latest edits.
+  // Empty deps so cleanup only runs on real unmount, not on every hasChanges flip.
   useEffect(() => {
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
-      if (hasChanges) void flushSave()
+      if (hasChangesRef.current) void flushSaveRef.current()
     }
-  }, [hasChanges, flushSave])
+  }, [])
 
   const onExport = useCallback(
     async (format: GeneratedDocExportFormat) => {

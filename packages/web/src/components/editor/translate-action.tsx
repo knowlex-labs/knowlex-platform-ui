@@ -42,8 +42,8 @@ export function TranslateAction({ editor }: TranslateActionProps) {
 
     setBusy(true)
     try {
-      // Sarvam auto-detects when source is unspecified; we send 'auto' marker.
-      const result = await translateText(text, 'auto', target)
+      // Omit source language so the backend uses Sarvam's auto-detect default.
+      const result = await translateText(text, target)
       editor
         .chain()
         .focus()

@@ -439,14 +439,21 @@ export interface TranslateTextResponse {
   targetLanguage: string
 }
 
+/**
+ * `sourceLanguage` is optional — when omitted the backend falls back to its
+ * configured default (Sarvam auto-detect). Don't send a sentinel string here;
+ * Sarvam's API does not treat 'auto' as a valid BCP-47 code.
+ */
 export async function translateText(
   text: string,
-  sourceLanguage: string,
   targetLanguage: string,
+  sourceLanguage?: string,
 ): Promise<TranslateTextResponse> {
+  const body: Record<string, string> = { text, target_language: targetLanguage }
+  if (sourceLanguage) body.source_language = sourceLanguage
   const res = await apiClient.post<ApiResponse<TranslateTextResponse>>(
     '/api/v1/documents/translate',
-    { text, source_language: sourceLanguage, target_language: targetLanguage },
+    body,
   )
   return res.data
 }

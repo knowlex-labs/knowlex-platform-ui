@@ -27,7 +27,7 @@ import { downloadDocument, uploadToolboxFile } from '@knowlex/core/api/doc-proce
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
-import { FormattingToolbar } from '@/components/cases/case-workspace/formatting-toolbar'
+import { FormattingToolbar } from '@/components/editor'
 import { toast } from '@/hooks/use-toast'
 import type { Draft, DraftTemplate, TemplateFormData } from '@knowlex/core/types'
 import { DRAFT_TEMPLATES } from '@knowlex/core/types'
