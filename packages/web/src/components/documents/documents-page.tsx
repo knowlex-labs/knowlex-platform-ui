@@ -3,7 +3,7 @@ import {
   Upload, Scissors, Minimize2, Layers, RefreshCw,
   FileText, File, Download, Eye, Image, FileCode2,
   Loader2, PenLine, Languages, Scale,
-  BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2,
+  BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2, FolderOpen,
   AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
@@ -37,7 +37,7 @@ import { MergerDialog } from '@/components/toolbox/merger-dialog'
 import { ConverterDialog } from '@/components/toolbox/converter-dialog'
 import { CompressorDialog } from '@/components/toolbox/compressor-dialog'
 import { TranslationDialog } from '@/components/toolbox/translation-dialog'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import type {
   DocumentRecord,
   ProcessedDocumentInfo,
@@ -423,8 +423,9 @@ function DocumentViewer({
   const [isLoadingContent, setIsLoadingContent] = useState(true)
   const [isDirty, setIsDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [onlyOfficeOpen, setOnlyOfficeOpen] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
 
+  const navigate = useNavigate()
   const editorRef = useRef<HTMLDivElement>(null)
   const formatting = useEditorFormatting(editorRef, () => setIsDirty(true))
 
@@ -456,7 +457,7 @@ function DocumentViewer({
     setRawTextEdit('')
     setViewerMode('view')
     setIsDirty(false)
-    setOnlyOfficeOpen(false)
+    setEditorOpen(false)
     setIsLoadingContent(true)
 
     // Don't attempt to load content for documents still being generated
@@ -521,7 +522,7 @@ function DocumentViewer({
     } else if ((isDraft || isSummary) && textContent !== null) {
       setViewerMode('text-edit')
     } else {
-      setOnlyOfficeOpen(true)
+      setEditorOpen(true)
     }
   }
 
@@ -578,8 +579,9 @@ function DocumentViewer({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header — Documents is a standalone page, so "back" always returns to
-          the document list regardless of which case the doc happens to live in. */}
+      {/* Header — back button always returns to the documents list. When the
+          doc is attached to a case, surface a separate "Open case" shortcut on
+          the right so the relationship is visible without overloading back-nav. */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-kx-card-border flex-shrink-0 bg-kx-card">
         <button
           type="button"
@@ -595,6 +597,17 @@ function DocumentViewer({
         <span className={cn('flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide', meta.className)}>
           {meta.label}
         </span>
+        {doc.caseId && doc.caseTitle && (
+          <button
+            type="button"
+            onClick={() => navigate(`/cases/${doc.caseId!}`)}
+            title={`Open case: ${doc.caseTitle}`}
+            className="flex-shrink-0 flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors max-w-[180px]"
+          >
+            <FolderOpen className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">{doc.caseTitle}</span>
+          </button>
+        )}
         {((doc.type === DocumentType.USER_UPLOADED && (isMarkdownOrText || isPdf || isDocx))
           || doc.type === DocumentType.DOCX_COPY)
           && viewerMode === 'view' && (
@@ -715,11 +728,11 @@ function DocumentViewer({
         )}
       </div>
 
-      {onlyOfficeOpen && (
+      {editorOpen && (
         <DocumentEditorModal
           documentId={doc.id}
           documentTitle={doc.name ?? doc.originalFilename ?? undefined}
-          onClose={() => setOnlyOfficeOpen(false)}
+          onClose={() => setEditorOpen(false)}
         />
       )}
     </div>

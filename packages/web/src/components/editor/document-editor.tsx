@@ -192,10 +192,16 @@ export function DocumentEditor({
       try {
         await exportGeneratedDocument(editingDocumentIdRef.current, format, title, html)
       } catch (e) {
+        const description = e instanceof Error ? e.message : 'Network error'
+        toast({
+          title: 'Export failed',
+          description,
+          variant: 'destructive',
+        })
         console.warn('export failed', e)
       }
     },
-    [editor, hasChanges, flushSave, documentId, documentTitle],
+    [editor, hasChanges, flushSave, documentTitle],
   )
 
   const toolbarHandlers = useMemo(() => {
@@ -229,7 +235,7 @@ export function DocumentEditor({
   }
 
   return (
-    <div className={cn('flex flex-col h-full bg-white', className)}>
+    <div className={cn('flex flex-col h-full bg-white dark:bg-ledger-gray-900', className)}>
       {toolbarHandlers && (
         <div className="flex items-center justify-between border-b border-ledger-gray-200">
           <FormattingToolbar

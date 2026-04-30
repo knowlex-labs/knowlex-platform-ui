@@ -46,7 +46,7 @@ export function TransliteratePanel({ editor, onClose }: TransliteratePanelProps)
   return (
     <div
       className={cn(
-        'fixed bottom-6 right-6 z-40 w-[360px] rounded-lg border border-ledger-gray-200',
+        'fixed bottom-6 right-6 z-[60] w-[360px] rounded-lg border border-ledger-gray-200',
         'bg-white shadow-2xl',
       )}
     >
@@ -88,20 +88,30 @@ export function TransliteratePanel({ editor, onClose }: TransliteratePanelProps)
           value={text}
           onChangeText={(v: string) => setText(v)}
           lang={lang}
-          renderComponent={(props: Record<string, unknown>) => (
-            <textarea
-              {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
-              rows={3}
-              placeholder="Type in roman, e.g. 'namaste' → नमस्ते"
-              className="w-full text-sm px-2 py-1.5 border border-ledger-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-kx-primary-500"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                  e.preventDefault()
-                  insertAndClear()
-                }
-              }}
-            />
-          )}
+          renderComponent={(props: Record<string, unknown>) => {
+            // Compose with the library's onKeyDown so suggestion-popup nav
+            // (arrow keys / Enter to select) keeps working — only short-circuit
+            // on Cmd/Ctrl+Enter, which is our insert shortcut.
+            const libOnKeyDown = props.onKeyDown as
+              | ((e: React.KeyboardEvent<HTMLTextAreaElement>) => void)
+              | undefined
+            return (
+              <textarea
+                {...(props as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+                rows={3}
+                placeholder="Type in roman, e.g. 'namaste' → नमस्ते"
+                className="w-full text-sm px-2 py-1.5 border border-ledger-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-kx-primary-500"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault()
+                    insertAndClear()
+                    return
+                  }
+                  libOnKeyDown?.(e)
+                }}
+              />
+            )
+          }}
         />
         <div className="flex items-center justify-between mt-2">
           <span className="text-[10px] text-ledger-gray-500">
