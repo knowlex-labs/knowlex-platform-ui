@@ -18,7 +18,7 @@ import { useSynopsis } from '@/hooks/use-synopsis'
 import { usePrecedent } from '@/hooks/use-precedent'
 import { DraftChatPanel } from './draft-chat-panel'
 import { AddSourceModal } from './add-source-modal'
-import { OnlyOfficeEditor } from './onlyoffice-editor'
+import { DocumentEditorModal } from '@/components/editor'
 import { CaseDetailsModal } from './case-details-modal'
 import { WorkspaceSourcesPanel } from './workspace-sources-panel'
 import { CaseStudioPanel } from './case-studio-panel'
@@ -693,9 +693,9 @@ export function CaseWorkspace() {
       />
 
       {editingDocument && (
-        <OnlyOfficeEditor
+        <DocumentEditorModal
           documentId={editingDocument.id}
-          caseId={caseId}
+          documentTitle={editingDocument.name ?? editingDocument.originalFilename ?? undefined}
           onClose={() => setEditingDocument(null)}
         />
       )}

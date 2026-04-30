@@ -3,7 +3,7 @@ import { Trash2, AlertCircle, RotateCw, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
-import { FormattingToolbar } from './formatting-toolbar'
+import { FormattingToolbar } from '@/components/editor'
 import {
   renderDraftToHtml,
   printDraft,

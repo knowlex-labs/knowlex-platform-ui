@@ -7,6 +7,7 @@ export enum DocumentType {
   JUDGMENT     = 'JUDGMENT',
   BRIEF        = 'BRIEF',
   TRANSLATION  = 'TRANSLATION',
+  DOCX_COPY    = 'DOCX_COPY',
 }
 
 /** Document types that have a jobStatus lifecycle (show generating/failed states). */

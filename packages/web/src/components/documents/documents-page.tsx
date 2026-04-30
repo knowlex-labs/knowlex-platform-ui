@@ -3,7 +3,7 @@ import {
   Upload, Scissors, Minimize2, Layers, RefreshCw,
   FileText, File, Download, Eye, Image, FileCode2,
   Loader2, PenLine, Languages, Scale,
-  BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2,
+  BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2, FolderOpen,
   AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
@@ -27,11 +27,11 @@ import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { getAdapters } from '@knowlex/core/api/runtime'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { ApiError } from '@knowlex/core/api/api-client'
-import { OnlyOfficeEditor } from '@/components/cases/case-workspace/onlyoffice-editor'
+import { DocumentEditorModal } from '@/components/editor'
 import { toast } from '@/hooks/use-toast'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
-import { FormattingToolbar } from '@/components/cases/case-workspace/formatting-toolbar'
+import { FormattingToolbar } from '@/components/editor'
 import { SplitterDialog } from '@/components/toolbox/splitter-dialog'
 import { MergerDialog } from '@/components/toolbox/merger-dialog'
 import { ConverterDialog } from '@/components/toolbox/converter-dialog'
@@ -110,6 +110,7 @@ const TYPE_META: Record<DocumentType, {
   [DocumentType.BRIEF]:         { label: 'Brief',       className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300', icon: FileText },
   [DocumentType.TRANSLATION]:   { label: 'Translated', className: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300', icon: Languages },
   [DocumentType.PRECEDENT]:     { label: 'Precedents', className: 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300', icon: Search },
+  [DocumentType.DOCX_COPY]:     { label: 'Editable Copy', className: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300', icon: FileText },
 }
 
 // ─── Tools config ─────────────────────────────────────────────────────────────
@@ -422,7 +423,7 @@ function DocumentViewer({
   const [isLoadingContent, setIsLoadingContent] = useState(true)
   const [isDirty, setIsDirty] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [onlyOfficeOpen, setOnlyOfficeOpen] = useState(false)
+  const [editorOpen, setEditorOpen] = useState(false)
 
   const navigate = useNavigate()
   const editorRef = useRef<HTMLDivElement>(null)
@@ -434,6 +435,8 @@ function DocumentViewer({
   const isTextual = TEXT_DOC_TYPES.has(doc.type)
   const isGeneratedDoc = GENERATED_DOC_TYPES.has(doc.type)
   const isPdf = doc.fileType === 'PDF' || /^application\/pdf$/i.test(doc.fileType ?? '') || /\.pdf$/i.test(doc.originalFilename ?? doc.name ?? '')
+  const isDocx = doc.fileType === 'DOCX' || doc.fileType === 'DOC'
+    || /\.docx?$/i.test(doc.originalFilename ?? doc.name ?? '')
   const isImage = !isPdf && (
     IMAGE_TYPES.has((doc.fileType ?? '').toUpperCase()) ||
     /^image\//i.test(doc.fileType ?? '') ||
@@ -454,11 +457,19 @@ function DocumentViewer({
     setRawTextEdit('')
     setViewerMode('view')
     setIsDirty(false)
-    setOnlyOfficeOpen(false)
+    setEditorOpen(false)
     setIsLoadingContent(true)
 
     // Don't attempt to load content for documents still being generated
     if (isGenerating || isGenFailed) {
+      setIsLoadingContent(false)
+      return
+    }
+
+    // DOCX_COPY's canonical content is the editor's edit state — there is no
+    // standalone binary to preview. Skip the fetch; the user clicks Edit to
+    // open the editor.
+    if (doc.type === DocumentType.DOCX_COPY) {
       setIsLoadingContent(false)
       return
     }
@@ -477,6 +488,9 @@ function DocumentViewer({
         } else if (isTextual) {
           const text = await workspaceApi.fetchDocumentContent({ id: doc.id, signedUrl: doc.storageUrl, downloadUrl: doc.downloadUrl })
           if (!cancelled) setTextContent(text)
+        } else if (isDocx) {
+          const url = await workspaceApi.resolveDocumentPreviewUrl({ id: doc.id })
+          if (!cancelled) setBlobUrl(url)
         } else {
           const url = await workspaceApi.resolveDocumentUrl({ id: doc.id, downloadUrl: doc.downloadUrl, signedUrl: doc.storageUrl })
           if (!cancelled) setBlobUrl(url)
@@ -489,7 +503,7 @@ function DocumentViewer({
     }
     load()
     return () => { cancelled = true }
-  }, [doc.id, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isGenerating, isGenFailed, isGeneratedDoc])
+  }, [doc.id, doc.type, doc.downloadUrl, doc.storageUrl, isTextual, isMarkdownOrText, isDocx, isGenerating, isGenFailed, isGeneratedDoc])
 
   useEffect(() => { return () => { if (blobUrl) URL.revokeObjectURL(blobUrl) } }, [blobUrl])
 
@@ -508,7 +522,7 @@ function DocumentViewer({
     } else if ((isDraft || isSummary) && textContent !== null) {
       setViewerMode('text-edit')
     } else {
-      setOnlyOfficeOpen(true)
+      setEditorOpen(true)
     }
   }
 
@@ -565,27 +579,16 @@ function DocumentViewer({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
+      {/* Header — back button always returns to the documents list. When the
+          doc is attached to a case, surface a separate "Open case" shortcut on
+          the right so the relationship is visible without overloading back-nav. */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-kx-card-border flex-shrink-0 bg-kx-card">
-        {doc.caseId && doc.caseTitle && (
-          <>
-            <button
-              type="button"
-              onClick={() => navigate(`/cases/${doc.caseId!}`)}
-              className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors font-medium"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              {doc.caseTitle}
-            </button>
-            <span className="text-ledger-gray-300 text-sm flex-shrink-0">/</span>
-          </>
-        )}
         <button
           type="button"
           onClick={onClose}
           className="flex-shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-lg text-sm text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors font-medium"
         >
-          {!doc.caseId && <ArrowLeft className="h-4 w-4" />}
+          <ArrowLeft className="h-4 w-4" />
           Documents
         </button>
         <span className="text-ledger-gray-300 text-sm flex-shrink-0">/</span>
@@ -594,7 +597,20 @@ function DocumentViewer({
         <span className={cn('flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide', meta.className)}>
           {meta.label}
         </span>
-        {doc.type === DocumentType.USER_UPLOADED && isMarkdownOrText && viewerMode === 'view' && (
+        {doc.caseId && doc.caseTitle && (
+          <button
+            type="button"
+            onClick={() => navigate(`/cases/${doc.caseId!}`)}
+            title={`Open case: ${doc.caseTitle}`}
+            className="flex-shrink-0 flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-ledger-gray-500 hover:text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-700 transition-colors max-w-[180px]"
+          >
+            <FolderOpen className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="truncate">{doc.caseTitle}</span>
+          </button>
+        )}
+        {((doc.type === DocumentType.USER_UPLOADED && (isMarkdownOrText || isPdf || isDocx))
+          || doc.type === DocumentType.DOCX_COPY)
+          && viewerMode === 'view' && (
           <Button size="sm" onClick={handleEdit} className="gap-1.5 h-7 text-xs flex-shrink-0">
             <PenLine className="h-3.5 w-3.5" /> Edit
           </Button>
@@ -691,7 +707,7 @@ function DocumentViewer({
               )}
             </div>
           </div>
-        ) : blobUrl && (isPdf || doc.type === DocumentType.JUDGMENT) ? (
+        ) : blobUrl && (isPdf || isDocx || doc.type === DocumentType.JUDGMENT) ? (
           <div className="flex-1 min-h-0">
             <iframe src={blobUrl} className="w-full h-full border-0" title={displayName} />
           </div>
@@ -712,11 +728,11 @@ function DocumentViewer({
         )}
       </div>
 
-      {onlyOfficeOpen && (
-        <OnlyOfficeEditor
+      {editorOpen && (
+        <DocumentEditorModal
           documentId={doc.id}
-          caseId={doc.caseId ?? null}
-          onClose={() => setOnlyOfficeOpen(false)}
+          documentTitle={doc.name ?? doc.originalFilename ?? undefined}
+          onClose={() => setEditorOpen(false)}
         />
       )}
     </div>
@@ -1431,7 +1447,7 @@ export function DocumentsPage() {
       </div>
 
       {/* ── RIGHT TOOLS PANEL ── */}
-      {toolsPanelOpen && !viewerOpen ? (
+      {toolsPanelOpen ? (
         <div className="w-56 flex-shrink-0 border-l border-kx-card-border bg-nb-panel flex flex-col overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-nb-panel-border flex-shrink-0">
@@ -1511,7 +1527,7 @@ export function DocumentsPage() {
               switch (tool.id) {
                 case 'split':       return <SplitterDialog   onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'merge':       return <MergerDialog     onBack={closeTool} initialDocs={toolCtx.initialDocs} />
-                case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
+                case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} onOpenDoc={(id) => { closeTool(); setSelectedDocId(id) }} />
                 case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'translation': return <TranslationDialog onBack={closeTool} initialDoc={toolCtx.initialDoc} onJobStarted={handleTranslationJobStarted} />
                 default:            return null

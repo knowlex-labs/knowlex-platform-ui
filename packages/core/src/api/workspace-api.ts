@@ -463,4 +463,16 @@ export const workspaceApi = {
     const blob = await res.blob()
     return fileHandler.createObjectUrl(blob)
   },
+
+  async resolveDocumentPreviewUrl(doc: { id: string }): Promise<string> {
+    // Hits /preview, which returns inline-viewable PDF bytes for any document type.
+    // PDFs pass through; DOCX/DOC are converted via LibreOffice on the backend (cached).
+    const { fileHandler } = getAdapters()
+    const res = await fetch(`${getBaseUrl()}/api/v1/documents/${doc.id}/preview`, {
+      headers: getAuthHeaders(),
+    })
+    if (!res.ok) throw new Error(`Failed to load preview: ${res.status}`)
+    const blob = await res.blob()
+    return fileHandler.createObjectUrl(blob)
+  },
 }
