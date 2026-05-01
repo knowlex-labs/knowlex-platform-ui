@@ -1,13 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import type { DraftChatMessage, DraftChatSettings, DraftChatSession, DocumentCitation } from '@knowlex/core/types'
+import type {
+  DraftChatMessage,
+  DraftChatSettings,
+  DraftChatSession,
+  DraftChatModel,
+  DocumentCitation,
+} from '@knowlex/core/types'
 import { draftChatApi } from '@knowlex/core/api/draft-chat-api'
 
 type ToolCall = DraftChatMessage['toolCalls'] extends Array<infer T> | undefined ? T : never
 
+const VALID_MODELS: DraftChatModel[] = ['gpt_5_mini', 'gpt_5', 'gemini_flash', 'gemini_pro']
+
 const DEFAULT_SETTINGS: DraftChatSettings = {
   tone: 'conversational',
   style: 'detailed',
-  model: 'gemini_flash',
+  model: 'gpt_5_mini',
 }
 
 const SETTINGS_STORAGE_KEY = 'knowlex_draft_chat_settings'
@@ -15,8 +23,14 @@ const SETTINGS_STORAGE_KEY = 'knowlex_draft_chat_settings'
 function loadPersistedSettings(): DraftChatSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY)
-    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }
-  } catch { /* ignore */ }
+    if (!raw) return DEFAULT_SETTINGS
+    const parsed = JSON.parse(raw) as Partial<DraftChatSettings>
+    const model =
+      parsed.model && VALID_MODELS.includes(parsed.model) ? parsed.model : DEFAULT_SETTINGS.model
+    return { ...DEFAULT_SETTINGS, ...parsed, model }
+  } catch {
+    /* ignore */
+  }
   return DEFAULT_SETTINGS
 }
 

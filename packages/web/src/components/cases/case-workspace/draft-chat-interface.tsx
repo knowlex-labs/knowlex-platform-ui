@@ -9,10 +9,10 @@ import { cn } from '@/lib/utils'
 import type { DraftChatMessage, DraftChatSettings, DraftChatModel } from '@knowlex/core/types'
 
 const MODEL_OPTIONS: { value: DraftChatModel; label: string; short: string }[] = [
-  { value: 'gemini_flash', label: 'Gemini 3.1 Flash', short: 'Flash' },
-  { value: 'gemini_pro', label: 'Gemini 3.1 Pro', short: 'Gemini Pro' },
   { value: 'gpt_5_mini', label: 'GPT 5 Mini', short: 'GPT Mini' },
   { value: 'gpt_5', label: 'GPT 5 Pro', short: 'GPT Pro' },
+  { value: 'gemini_flash', label: 'Gemini 3.1 Flash', short: 'Flash' },
+  { value: 'gemini_pro', label: 'Gemini 3.1 Pro', short: 'Gemini Pro' },
 ]
 
 interface TempAttachment {
