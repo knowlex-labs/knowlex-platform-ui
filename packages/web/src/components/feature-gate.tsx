@@ -3,16 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { Lock, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useSubscriptionPreferences } from '@/contexts/subscription-preferences-context'
-import type { FeatureName } from '@knowlex/core/types'
 
 interface FeatureGateProps {
-  name: FeatureName
+  name: string
   children: React.ReactNode
   fallback?: React.ReactNode
-}
-
-const FEATURE_LABELS: Partial<Record<FeatureName, string>> = {
-  MOODBOARD: 'Tasks',
 }
 
 export function FeatureGate({ name, children, fallback }: FeatureGateProps) {
@@ -35,15 +30,13 @@ export function FeatureGate({ name, children, fallback }: FeatureGateProps) {
   return <DefaultUpsellScreen featureName={name} />
 }
 
-function DefaultUpsellScreen({ featureName }: { featureName: FeatureName }) {
+function DefaultUpsellScreen({ featureName }: { featureName: string }) {
   const navigate = useNavigate()
-  const featureLabel =
-    FEATURE_LABELS[featureName] ??
-    featureName
-      .toLowerCase()
-      .split('_')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(' ')
+  const pretty = featureName
+    .toLowerCase()
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-6">
@@ -51,10 +44,12 @@ function DefaultUpsellScreen({ featureName }: { featureName: FeatureName }) {
         <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-kx-primary-50 flex items-center justify-center">
           <Lock className="h-5 w-5 text-kx-primary-700" />
         </div>
-        <h2 className="text-xl font-serif font-semibold text-kx-text-primary mb-2">Upgrade your plan</h2>
+        <h2 className="text-xl font-serif font-semibold text-kx-text-primary mb-2">
+          {pretty} is on a paid plan
+        </h2>
         <p className="text-sm text-kx-text-secondary mb-6 leading-relaxed">
-          Please upgrade your plan to access <span className="font-medium text-kx-text-primary">{featureLabel}</span>.
-          Start a free trial or choose a plan that includes this feature.
+          This feature isn't available on your current plan. Upgrade to unlock
+          it along with the rest of the Knowlex suite.
         </p>
         <div className="flex flex-col gap-2">
           <Button
@@ -62,9 +57,13 @@ function DefaultUpsellScreen({ featureName }: { featureName: FeatureName }) {
             className="w-full bg-kx-primary-700 text-white hover:bg-kx-primary-800"
           >
             <Sparkles className="h-4 w-4 mr-2" />
-            View plans & free trial
+            View plans
           </Button>
-          <Button variant="ghost" onClick={() => navigate('/home')} className="w-full">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/home')}
+            className="w-full"
+          >
             Back to home
           </Button>
         </div>
