@@ -15,6 +15,7 @@ import { useSubscription } from '@/hooks/use-subscription'
 import { usePlans } from '@/hooks/use-plans'
 import { subscriptionApi } from '@knowlex/core/api/subscription-api'
 import { cn } from '@/lib/utils'
+import { marketingUrl } from '@/lib/hosts'
 import type { SubscriptionStatus, BillingCycle, PlanType, PaymentRecord } from '@knowlex/core/types'
 
 const STATUS_BADGE_COLORS: Record<SubscriptionStatus, string> = {
@@ -223,6 +224,18 @@ function PlanSelector({ currentPlanName, currentBillingCycle, onSuccess }: PlanS
           )
         })}
       </div>
+
+      <p className="text-center mt-4 mb-0">
+        <a
+          href={marketingUrl('/pricing')}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-medium text-kx-primary-700 hover:text-kx-primary-800 hover:underline inline-flex items-center justify-center gap-1.5"
+        >
+          Compare plans and features on our pricing page
+          <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-80" aria-hidden />
+        </a>
+      </p>
     </div>
   )
 }
