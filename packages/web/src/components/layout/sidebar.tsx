@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles, LayoutGrid } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles, LayoutGrid, Lock } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -62,10 +62,6 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const [showUserMenu, setShowUserMenu] = React.useState(false)
 
   const activeTab = getActiveTabFromPath(location.pathname)
-  const visibleTabs = React.useMemo(
-    () => SIDEBAR_TABS.filter((tab) => !(tab.featureFlag && isLocked(tab.featureFlag))),
-    [isLocked]
-  )
 
   const handleLogout = () => {
     logout()
@@ -84,7 +80,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const isDemoUser = user?.username === DEMO_USER_USERNAME
 
   const handleTabChange = (value: string) => {
-    const tab = visibleTabs.find(t => t.id === value)
+    const tab = SIDEBAR_TABS.find((t) => t.id === value)
     if (tab) {
       navigate(tab.path)
     }
@@ -145,8 +141,9 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
             orientation="vertical"
           >
             <TabsList>
-              {visibleTabs.map((tab) => {
+              {SIDEBAR_TABS.map((tab) => {
                 const Icon = iconMap[tab.icon as keyof typeof iconMap]
+                const gatedLocked = Boolean(tab.featureFlag && isLocked(tab.featureFlag))
 
                 if (tab.locked) {
                   return (
@@ -176,11 +173,35 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="min-h-[44px]"
-                    title={collapsed ? tab.label : undefined}
+                    className={cn('min-h-[44px]', gatedLocked && 'text-ledger-gray-500')}
+                    title={
+                      collapsed
+                        ? gatedLocked
+                          ? `${tab.label} — upgrade plan to unlock`
+                          : tab.label
+                        : undefined
+                    }
                   >
-                    {Icon && <Icon className="h-4 w-4" />}
-                    {!collapsed && <span>{tab.label}</span>}
+                    {Icon &&
+                      (collapsed && gatedLocked ? (
+                        <span className="relative inline-flex shrink-0">
+                          <Icon className="h-4 w-4" />
+                          <Lock
+                            className="absolute -right-1 -top-0.5 h-2.5 w-2.5 text-ledger-gray-400"
+                            aria-hidden
+                          />
+                        </span>
+                      ) : (
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                      ))}
+                    {!collapsed && (
+                      <>
+                        <span className="truncate">{tab.label}</span>
+                        {gatedLocked && (
+                          <Lock className="h-3.5 w-3.5 flex-shrink-0 ml-auto text-ledger-gray-400" aria-hidden />
+                        )}
+                      </>
+                    )}
                   </TabsTrigger>
                 )
               })}
