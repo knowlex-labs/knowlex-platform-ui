@@ -429,7 +429,7 @@ export async function updateDocumentContent(documentId: string, content: string)
     headers: { 'Content-Type': 'text/plain', ...getAuthHeaders() },
     body: content,
   })
-  if (!res.ok) throw new ApiError(res.status, `Failed to update document content (${res.status})`)
+  if (!res.ok) throw new ApiError(`Failed to update document content (${res.status})`, res.status)
 }
 
 /**
