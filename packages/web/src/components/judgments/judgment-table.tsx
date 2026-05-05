@@ -157,11 +157,13 @@ function SortableHeader({
         >
             <span className="inline-flex items-center gap-1">
                 {label}
-                <Icon className={cn(
-                    'h-3.5 w-3.5',
-                    isActive ? 'text-kx-primary-600' : 'text-ledger-gray-400'
-                )}
-                strokeWidth={isActive ? 2.5 : 2} />
+                <Icon
+                    className={cn(
+                        'h-3.5 w-3.5',
+                        isActive ? 'text-kx-primary-600' : 'text-ledger-gray-400'
+                    )}
+                    strokeWidth={isActive ? 2.5 : 2}
+                />
                 {showPriority && (
                     <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-kx-primary-100 text-kx-primary-700 text-[10px] font-semibold">
                         {idx + 1}

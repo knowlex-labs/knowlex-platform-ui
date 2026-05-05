@@ -31,9 +31,11 @@ function formatSize(bytes: number) {
 interface CompressorDialogProps {
   onBack: () => void
   initialDoc?: ProcessedDocumentInfo
+  /** When the source document is attached to a case, persist the saved compressed copy under the same case. */
+  initialCaseId?: string
 }
 
-export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) {
+export function CompressorDialog({ onBack, initialDoc, initialCaseId }: CompressorDialogProps) {
   const [stage, setStage] = useState<Stage>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
@@ -104,6 +106,7 @@ export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) 
         tempKey: preview.tempKey,
         fileName: preview.fileName,
         sourceDocumentId,
+        caseId: initialCaseId,
       })
       setIsSaved(true)
       toast({ title: 'Saved to your documents' })

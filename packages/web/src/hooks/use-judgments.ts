@@ -35,6 +35,19 @@ interface UseJudgmentsResult {
 
 const DEFAULT_SORTS: JudgmentSort[] = [{ field: 'decisionDate', direction: 'desc' }]
 
+const ALL_SORT_FIELDS: readonly SortField[] = [
+    'decisionDate', 'title', 'citation', 'court', 'authorJudge', 'disposalNature',
+] as const
+
+function isSortField(s: string): s is SortField {
+    return (ALL_SORT_FIELDS as readonly string[]).includes(s)
+}
+
+/** Date-like fields default to descending (newest first) on first click; everything else defaults to ascending. */
+function defaultDirectionFor(field: SortField): 'asc' | 'desc' {
+    return field === 'decisionDate' ? 'desc' : 'asc'
+}
+
 function parseFiltersFromParams(params: URLSearchParams): JudgmentFilters {
     const filters: JudgmentFilters = {}
     const search = params.get('search')
@@ -57,15 +70,24 @@ function parseFiltersFromParams(params: URLSearchParams): JudgmentFilters {
 }
 
 function parseSortsFromParams(params: URLSearchParams): JudgmentSort[] {
-    // URL form: ?sort=field,dir&sort=field,dir (Spring Data convention)
+    // URL form: ?sort=field,dir&sort=field,dir (Spring Data convention).
+    // Legacy form (?sortField=...&sortDir=...) kept for shared/bookmarked links predating multi-sort.
     const raw = params.getAll('sort')
-    if (raw.length === 0) return DEFAULT_SORTS
+    if (raw.length === 0) {
+        const legacyField = params.get('sortField')
+        const legacyDir = params.get('sortDir')
+        if (legacyField && isSortField(legacyField)) {
+            const direction: 'asc' | 'desc' = legacyDir === 'asc' ? 'asc' : 'desc'
+            return [{ field: legacyField, direction }]
+        }
+        return DEFAULT_SORTS
+    }
     const parsed: JudgmentSort[] = []
     for (const entry of raw) {
         const [field, dir] = entry.split(',')
-        if (!field) continue
-        const direction: 'asc' | 'desc' = dir === 'asc' ? 'asc' : 'desc'
-        parsed.push({ field: field as SortField, direction })
+        if (!field || !isSortField(field)) continue
+        if (dir !== 'asc' && dir !== 'desc') continue
+        parsed.push({ field, direction: dir })
     }
     return parsed.length > 0 ? parsed : DEFAULT_SORTS
 }
@@ -206,21 +228,23 @@ export function useJudgments(): UseJudgmentsResult {
         setSortsState((prev) => {
             const idx = prev.findIndex((s) => s.field === field)
             let next: JudgmentSort[]
+            const initial = defaultDirectionFor(field)
+            const flipped: 'asc' | 'desc' = initial === 'asc' ? 'desc' : 'asc'
             if (multi) {
                 if (idx === -1) {
-                    next = [...prev, { field, direction: 'asc' }]
-                } else if (prev[idx].direction === 'asc') {
-                    next = prev.map((s, i) => i === idx ? { ...s, direction: 'desc' } : s)
+                    next = [...prev, { field, direction: initial }]
+                } else if (prev[idx].direction === initial) {
+                    next = prev.map((s, i) => i === idx ? { ...s, direction: flipped } : s)
                 } else {
-                    // 'desc' → remove this column from the sort list
+                    // second-press direction → remove this column from the sort list
                     next = prev.filter((_, i) => i !== idx)
                     if (next.length === 0) next = DEFAULT_SORTS
                 }
             } else {
                 if (idx === -1 || prev.length !== 1) {
-                    next = [{ field, direction: 'asc' }]
-                } else if (prev[idx].direction === 'asc') {
-                    next = [{ field, direction: 'desc' }]
+                    next = [{ field, direction: initial }]
+                } else if (prev[idx].direction === initial) {
+                    next = [{ field, direction: flipped }]
                 } else {
                     next = DEFAULT_SORTS
                 }
