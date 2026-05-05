@@ -14,7 +14,7 @@ export function Judgments() {
         setPageSize,
         isLoading,
         error,
-        sort,
+        sorts,
         toggleSort,
         refresh,
     } = useJudgments()
@@ -29,7 +29,7 @@ export function Judgments() {
                             Judgments
                         </h2>
                         <p className="text-sm text-ledger-gray-500 mt-1">
-                            Browse Supreme Court judgments
+                            Browse Supreme Court Judgments
                         </p>
                     </div>
                     <RefreshButton onClick={refresh} isLoading={isLoading} className="w-full sm:w-auto" />
@@ -53,7 +53,7 @@ export function Judgments() {
                     <JudgmentTable
                         judgments={judgments}
                         isLoading={isLoading}
-                        sort={sort}
+                        sorts={sorts}
                         toggleSort={toggleSort}
                     />
 

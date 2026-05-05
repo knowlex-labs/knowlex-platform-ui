@@ -1242,8 +1242,8 @@ export function DocumentsPage() {
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                        <thead className="sticky top-0 z-20">
+                          <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border [&>th]:bg-ledger-gray-50 dark:[&>th]:bg-ledger-gray-100">
                             <th className="pl-4 pr-2 py-3 w-10 align-middle" onClick={toggleAll}>
                               <input
                                 type="checkbox"

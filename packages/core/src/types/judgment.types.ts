@@ -30,7 +30,7 @@ export interface JudgmentFilters {
     dateTo?: string
 }
 
-export type SortField = 'decisionDate' | 'title'
+export type SortField = 'decisionDate' | 'title' | 'citation' | 'court' | 'authorJudge' | 'disposalNature'
 export type SortDirection = 'asc' | 'desc'
 
 export interface JudgmentSort {

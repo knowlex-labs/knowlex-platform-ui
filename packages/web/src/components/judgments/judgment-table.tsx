@@ -7,11 +7,11 @@ import { formatJudgmentDate, getDisposalColor } from './judgment-utils'
 interface JudgmentTableProps {
     judgments: Judgment[]
     isLoading: boolean
-    sort: JudgmentSort | null
-    toggleSort: (field: SortField) => void
+    sorts: JudgmentSort[]
+    toggleSort: (field: SortField, multi?: boolean) => void
 }
 
-export function JudgmentTable({ judgments, isLoading, sort, toggleSort }: JudgmentTableProps) {
+export function JudgmentTable({ judgments, isLoading, sorts, toggleSort }: JudgmentTableProps) {
     const navigate = useNavigate()
 
     if (isLoading) {
@@ -40,30 +40,12 @@ export function JudgmentTable({ judgments, isLoading, sort, toggleSort }: Judgme
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
-                                Citation
-                            </th>
-                            <SortableHeader
-                                label="Title"
-                                field="title"
-                                sort={sort}
-                                onToggle={toggleSort}
-                            />
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
-                                Court
-                            </th>
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
-                                Judge(s)
-                            </th>
-                            <SortableHeader
-                                label="Decision Date"
-                                field="decisionDate"
-                                sort={sort}
-                                onToggle={toggleSort}
-                            />
-                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden xl:table-cell">
-                                Verdict
-                            </th>
+                            <SortableHeader label="Citation" field="citation" sorts={sorts} onToggle={toggleSort} />
+                            <SortableHeader label="Title" field="title" sorts={sorts} onToggle={toggleSort} />
+                            <SortableHeader label="Court" field="court" sorts={sorts} onToggle={toggleSort} className="hidden lg:table-cell" />
+                            <SortableHeader label="Judge(s)" field="authorJudge" sorts={sorts} onToggle={toggleSort} className="hidden md:table-cell" />
+                            <SortableHeader label="Decision Date" field="decisionDate" sorts={sorts} onToggle={toggleSort} />
+                            <SortableHeader label="Verdict" field="disposalNature" sorts={sorts} onToggle={toggleSort} className="hidden xl:table-cell" />
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-kx-card-border">
@@ -146,19 +128,20 @@ export function JudgmentTable({ judgments, isLoading, sort, toggleSort }: Judgme
 function SortableHeader({
     label,
     field,
-    sort,
+    sorts,
     onToggle,
     className,
 }: {
     label: string
     field: SortField
-    sort: JudgmentSort | null
-    onToggle: (field: SortField) => void
+    sorts: JudgmentSort[]
+    onToggle: (field: SortField, multi?: boolean) => void
     className?: string
 }) {
-    const isActive = sort?.field === field
-    const direction = isActive ? sort.direction : null
-
+    const idx = sorts.findIndex((s) => s.field === field)
+    const direction = idx === -1 ? null : sorts[idx].direction
+    const isActive = idx !== -1
+    const showPriority = isActive && sorts.length > 1
     const Icon = direction === 'asc' ? ArrowUp : direction === 'desc' ? ArrowDown : ArrowUpDown
 
     return (
@@ -166,16 +149,24 @@ function SortableHeader({
             className={cn(
                 'text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap',
                 'cursor-pointer select-none hover:text-kx-primary-600 transition-colors',
+                isActive && 'text-kx-primary-700',
                 className
             )}
-            onClick={() => onToggle(field)}
+            onClick={(e) => onToggle(field, e.shiftKey)}
+            title="Click to sort. Shift-click to add as a secondary sort."
         >
             <span className="inline-flex items-center gap-1">
                 {label}
                 <Icon className={cn(
-                    'h-3 w-3',
+                    'h-3.5 w-3.5',
                     isActive ? 'text-kx-primary-600' : 'text-ledger-gray-400'
-                )} />
+                )}
+                strokeWidth={isActive ? 2.5 : 2} />
+                {showPriority && (
+                    <span className="ml-0.5 inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-kx-primary-100 text-kx-primary-700 text-[10px] font-semibold">
+                        {idx + 1}
+                    </span>
+                )}
             </span>
         </th>
     )

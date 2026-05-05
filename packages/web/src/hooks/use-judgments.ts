@@ -26,11 +26,14 @@ interface UseJudgmentsResult {
     setPageSize: (size: number) => void
     isLoading: boolean
     error: string | null
-    sort: JudgmentSort | null
-    setSort: (sort: JudgmentSort | null) => void
-    toggleSort: (field: SortField) => void
+    sorts: JudgmentSort[]
+    setSorts: (sorts: JudgmentSort[]) => void
+    /** Click cycles asc → desc → cleared. With shift held, the column is added/cycled as a secondary sort instead of replacing the current sort. */
+    toggleSort: (field: SortField, multi?: boolean) => void
     refresh: () => void
 }
+
+const DEFAULT_SORTS: JudgmentSort[] = [{ field: 'decisionDate', direction: 'desc' }]
 
 function parseFiltersFromParams(params: URLSearchParams): JudgmentFilters {
     const filters: JudgmentFilters = {}
@@ -53,17 +56,30 @@ function parseFiltersFromParams(params: URLSearchParams): JudgmentFilters {
     return filters
 }
 
-function parseSortFromParams(params: URLSearchParams): JudgmentSort | null {
-    const sortField = params.get('sortField') as SortField | null
-    const sortDir = params.get('sortDir') as 'asc' | 'desc' | null
-    if (sortField && sortDir) return { field: sortField, direction: sortDir }
-    return { field: 'decisionDate', direction: 'desc' }
+function parseSortsFromParams(params: URLSearchParams): JudgmentSort[] {
+    // URL form: ?sort=field,dir&sort=field,dir (Spring Data convention)
+    const raw = params.getAll('sort')
+    if (raw.length === 0) return DEFAULT_SORTS
+    const parsed: JudgmentSort[] = []
+    for (const entry of raw) {
+        const [field, dir] = entry.split(',')
+        if (!field) continue
+        const direction: 'asc' | 'desc' = dir === 'asc' ? 'asc' : 'desc'
+        parsed.push({ field: field as SortField, direction })
+    }
+    return parsed.length > 0 ? parsed : DEFAULT_SORTS
+}
+
+function isDefaultSorts(sorts: JudgmentSort[]): boolean {
+    return sorts.length === 1
+        && sorts[0].field === 'decisionDate'
+        && sorts[0].direction === 'desc'
 }
 
 function buildSearchParams(
     filters: JudgmentFilters,
     page: number,
-    sort: JudgmentSort | null,
+    sorts: JudgmentSort[],
     pageSize: number
 ): URLSearchParams {
     const params = new URLSearchParams()
@@ -77,9 +93,8 @@ function buildSearchParams(
     if (filters.dateTo) params.set('dateTo', filters.dateTo)
     if (page > 0) params.set('page', String(page))
     if (pageSize !== DEFAULT_PAGE_SIZE) params.set('size', String(pageSize))
-    if (sort && (sort.field !== 'decisionDate' || sort.direction !== 'desc')) {
-        params.set('sortField', sort.field)
-        params.set('sortDir', sort.direction)
+    if (!isDefaultSorts(sorts)) {
+        for (const s of sorts) params.append('sort', `${s.field},${s.direction}`)
     }
     return params
 }
@@ -89,14 +104,14 @@ export function useJudgments(): UseJudgmentsResult {
 
     const initialFilters = parseFiltersFromParams(searchParams)
     const initialPage = Number(searchParams.get('page') || '0')
-    const initialSort = parseSortFromParams(searchParams)
+    const initialSorts = parseSortsFromParams(searchParams)
     const initialSize = clampPageSize(Number(searchParams.get('size') || String(DEFAULT_PAGE_SIZE)))
 
     const [judgments, setJudgments] = useState<Judgment[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [filters, setFiltersState] = useState<JudgmentFilters>(initialFilters)
-    const [sort, setSortState] = useState<JudgmentSort | null>(initialSort)
+    const [sorts, setSortsState] = useState<JudgmentSort[]>(initialSorts)
     const [pagination, setPagination] = useState<Pagination>({
         page: initialPage,
         size: initialSize,
@@ -108,23 +123,18 @@ export function useJudgments(): UseJudgmentsResult {
     filtersRef.current = filters
     const paginationRef = useRef(pagination)
     paginationRef.current = pagination
-    const sortRef = useRef(sort)
-    sortRef.current = sort
+    const sortsRef = useRef(sorts)
+    sortsRef.current = sorts
 
-    const updateUrl = useCallback((f: JudgmentFilters, page: number, s: JudgmentSort | null, pageSize?: number) => {
+    const updateUrl = useCallback((f: JudgmentFilters, page: number, s: JudgmentSort[], pageSize?: number) => {
         const params = buildSearchParams(f, page, s, pageSize ?? paginationRef.current.size)
         setSearchParams(params, { replace: true })
     }, [setSearchParams])
 
-    const formatSort = (s: JudgmentSort | null): string | undefined => {
-        if (!s) return undefined
-        return `${s.field},${s.direction}`
-    }
-
     const fetchJudgments = useCallback(async (
         currentFilters: JudgmentFilters,
         page: number,
-        currentSort: JudgmentSort | null,
+        currentSorts: JudgmentSort[],
         pageSize?: number
     ) => {
         const size = pageSize ?? paginationRef.current.size
@@ -135,7 +145,9 @@ export function useJudgments(): UseJudgmentsResult {
                 ...currentFilters,
                 page,
                 size,
-                sort: formatSort(currentSort),
+                sort: currentSorts.length > 0
+                    ? currentSorts.map((s) => `${s.field},${s.direction}`)
+                    : undefined,
             })
             const pageData = response.data
             const meta = pageData.page ?? pageData
@@ -156,42 +168,62 @@ export function useJudgments(): UseJudgmentsResult {
 
     // Initial fetch
     useEffect(() => {
-        fetchJudgments(filters, pagination.page, sort)
+        fetchJudgments(filters, pagination.page, sorts)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const setFilters = useCallback((newFilters: JudgmentFilters) => {
         setFiltersState(newFilters)
-        updateUrl(newFilters, 0, sortRef.current)
-        fetchJudgments(newFilters, 0, sortRef.current)
+        updateUrl(newFilters, 0, sortsRef.current)
+        fetchJudgments(newFilters, 0, sortsRef.current)
     }, [fetchJudgments, updateUrl])
 
     const setPage = useCallback((page: number) => {
         setPagination((prev) => ({ ...prev, page }))
-        updateUrl(filtersRef.current, page, sortRef.current)
-        fetchJudgments(filtersRef.current, page, sortRef.current)
+        updateUrl(filtersRef.current, page, sortsRef.current)
+        fetchJudgments(filtersRef.current, page, sortsRef.current)
     }, [fetchJudgments, updateUrl])
 
     const setPageSize = useCallback((newSize: number) => {
         const size = clampPageSize(newSize)
         setPagination((prev) => ({ ...prev, size, page: 0 }))
-        updateUrl(filtersRef.current, 0, sortRef.current, size)
-        fetchJudgments(filtersRef.current, 0, sortRef.current, size)
+        updateUrl(filtersRef.current, 0, sortsRef.current, size)
+        fetchJudgments(filtersRef.current, 0, sortsRef.current, size)
     }, [fetchJudgments, updateUrl])
 
-    const setSort = useCallback((newSort: JudgmentSort | null) => {
-        setSortState(newSort)
-        updateUrl(filtersRef.current, 0, newSort)
-        fetchJudgments(filtersRef.current, 0, newSort)
+    const setSorts = useCallback((newSorts: JudgmentSort[]) => {
+        // Empty sorts → fall back to default decisionDate desc.
+        const effective = newSorts.length === 0 ? DEFAULT_SORTS : newSorts
+        setSortsState(effective)
+        updateUrl(filtersRef.current, 0, effective)
+        fetchJudgments(filtersRef.current, 0, effective)
     }, [fetchJudgments, updateUrl])
 
-    const toggleSort = useCallback((field: SortField) => {
-        setSortState((prev) => {
-            let next: JudgmentSort
-            if (!prev || prev.field !== field) {
-                next = { field, direction: 'asc' }
+    // 3-state per column: asc → desc → cleared. With `multi` (shift-click), the column is
+    // appended as a secondary sort and cycled in place; without it, the column replaces all
+    // sorts.
+    const toggleSort = useCallback((field: SortField, multi: boolean = false) => {
+        setSortsState((prev) => {
+            const idx = prev.findIndex((s) => s.field === field)
+            let next: JudgmentSort[]
+            if (multi) {
+                if (idx === -1) {
+                    next = [...prev, { field, direction: 'asc' }]
+                } else if (prev[idx].direction === 'asc') {
+                    next = prev.map((s, i) => i === idx ? { ...s, direction: 'desc' } : s)
+                } else {
+                    // 'desc' → remove this column from the sort list
+                    next = prev.filter((_, i) => i !== idx)
+                    if (next.length === 0) next = DEFAULT_SORTS
+                }
             } else {
-                next = { field, direction: prev.direction === 'asc' ? 'desc' : 'asc' }
+                if (idx === -1 || prev.length !== 1) {
+                    next = [{ field, direction: 'asc' }]
+                } else if (prev[idx].direction === 'asc') {
+                    next = [{ field, direction: 'desc' }]
+                } else {
+                    next = DEFAULT_SORTS
+                }
             }
             updateUrl(filtersRef.current, 0, next)
             fetchJudgments(filtersRef.current, 0, next)
@@ -200,7 +232,7 @@ export function useJudgments(): UseJudgmentsResult {
     }, [fetchJudgments, updateUrl])
 
     const refresh = useCallback(() => {
-        fetchJudgments(filtersRef.current, paginationRef.current.page, sortRef.current)
+        fetchJudgments(filtersRef.current, paginationRef.current.page, sortsRef.current)
     }, [fetchJudgments])
 
     return {
@@ -212,8 +244,8 @@ export function useJudgments(): UseJudgmentsResult {
         setPageSize,
         isLoading,
         error,
-        sort,
-        setSort,
+        sorts,
+        setSorts,
         toggleSort,
         refresh,
     }

@@ -4,7 +4,8 @@ import type { ApiResponse, PaginatedData, Judgment, JudgmentFilters } from '../t
 export interface JudgmentListParams extends JudgmentFilters {
     page?: number
     size?: number
-    sort?: string
+    /** One or more `field,direction` strings. Spring Data reads multiple `sort` query params for multi-column sort. */
+    sort?: string[]
 }
 
 export const judgmentsApi = {
@@ -13,7 +14,9 @@ export const judgmentsApi = {
 
         if (params.page !== undefined) searchParams.set('page', params.page.toString())
         if (params.size !== undefined) searchParams.set('size', params.size.toString())
-        if (params.sort) searchParams.set('sort', params.sort)
+        if (params.sort?.length) {
+            for (const s of params.sort) searchParams.append('sort', s)
+        }
         if (params.search) searchParams.set('q', params.search)
         if (params.court) searchParams.set('court', params.court)
         if (params.judge) searchParams.set('judge', params.judge)
