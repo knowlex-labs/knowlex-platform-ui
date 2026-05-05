@@ -126,7 +126,7 @@ function CaseCard({ summary, onClick }: { summary: ClientCaseSummary; onClick: (
 
 export function ClientHeader({ client, onEdit, onDelete }: ClientHeaderProps) {
   const navigate = useNavigate()
-  const cases = client.caseSummaries ?? []
+  const cases = client.caseSummaries
 
   return (
     <div className="border border-ledger-gray-200 rounded p-4 md:p-6">

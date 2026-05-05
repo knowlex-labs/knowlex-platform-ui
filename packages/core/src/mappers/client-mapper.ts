@@ -17,6 +17,10 @@ const caseStatusMap: Record<BackendCaseStatus, CaseStatus> = {
   ON_HOLD: 'on-hold',
 }
 
+function toCaseStatus(s: BackendCaseStatus | string | null | undefined): CaseStatus {
+  return (s && caseStatusMap[s as BackendCaseStatus]) || 'pending'
+}
+
 function mapCaseSummary(s: BackendClientCaseSummary): ClientCaseSummary {
   const hasActivity = s.latestActivityType || s.latestActivityLabel || s.latestActivityAt
   return {
@@ -24,7 +28,7 @@ function mapCaseSummary(s: BackendClientCaseSummary): ClientCaseSummary {
     caseNumber: s.caseNumber,
     caseTitle: s.caseTitle,
     caseType: s.caseType,
-    caseStatus: caseStatusMap[s.caseStatus],
+    caseStatus: toCaseStatus(s.caseStatus),
     courtName: s.courtName,
     nextHearingDate: s.nextHearingDate ? new Date(s.nextHearingDate) : null,
     latestActivity: hasActivity

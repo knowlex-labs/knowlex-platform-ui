@@ -990,8 +990,19 @@ export function DocumentsPage() {
   const handleDeleteDocs = async (ids: string[]) => {
     setIsDeleting(true)
     try {
-      await workspaceApi.deleteDocuments(ids)
-      toast({ title: `${ids.length} document${ids.length !== 1 ? 's' : ''} deleted` })
+      const { deleted, skipped } = await workspaceApi.deleteDocuments(ids)
+      if (deleted === 0) {
+        toast({
+          title: 'Nothing deleted',
+          description: skipped > 0
+            ? "Selected items can't be deleted from this view."
+            : 'The selected items no longer exist.',
+          variant: 'destructive',
+        })
+      } else {
+        const skipNote = skipped > 0 ? ` (${skipped} skipped)` : ''
+        toast({ title: `${deleted} document${deleted !== 1 ? 's' : ''} deleted${skipNote}` })
+      }
       setCheckedIds(new Set())
       if (ids.includes(selectedDocId ?? '')) setSelectedDocId(null)
       fetchDocs()

@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { draftsApi } from '@knowlex/core/api/drafts-api'
 import { caseApi } from '@knowlex/core/api/case-api'
-import { uploadToolboxFile, getDocument } from '@knowlex/core/api/doc-processing-api'
+import { uploadToolboxFile, getDocument, updateDocumentContent } from '@knowlex/core/api/doc-processing-api'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
@@ -131,6 +131,7 @@ export function DraftingPage() {
   const [inlinePreview, setInlinePreview] = useState<InlinePreview | null>(null)
   const [isEditingPreview, setIsEditingPreview] = useState(false)
   const [previewDirty, setPreviewDirty] = useState(false)
+  const [isSavingPreview, setIsSavingPreview] = useState(false)
   const previewEditorRef = useRef<HTMLDivElement>(null)
   const previewFormatting = useEditorFormatting(previewEditorRef, () => setPreviewDirty(true))
 
@@ -326,10 +327,21 @@ export function DraftingPage() {
     }
   }, [])
 
-  const handleSavePreview = () => {
-    toast({ title: 'Draft saved' })
-    setIsEditingPreview(false)
-    setPreviewDirty(false)
+  const handleSavePreview = async () => {
+    if (!inlinePreview || !previewEditorRef.current || isSavingPreview) return
+    const html = previewEditorRef.current.innerHTML
+    setIsSavingPreview(true)
+    try {
+      await updateDocumentContent(inlinePreview.docId, html)
+      setInlinePreview({ ...inlinePreview, contentHtml: html })
+      setIsEditingPreview(false)
+      setPreviewDirty(false)
+      toast({ title: 'Draft saved' })
+    } catch {
+      toast({ title: "Couldn't save draft", description: 'Please try again.', variant: 'destructive' })
+    } finally {
+      setIsSavingPreview(false)
+    }
   }
 
   const handleBackToList = () => {
@@ -337,6 +349,13 @@ export function DraftingPage() {
     setIsEditingPreview(false)
     setPreviewDirty(false)
     setMode('home')
+  }
+
+  const handleRetryFromFailed = () => {
+    setInlinePreview(null)
+    setIsEditingPreview(false)
+    setPreviewDirty(false)
+    setMode('list')
   }
 
   // ── Render ──
@@ -373,7 +392,7 @@ export function DraftingPage() {
             onBulletList={previewFormatting.handleBulletList}
             onNumberedList={previewFormatting.handleNumberedList}
             onFontSize={previewFormatting.handleFontSize}
-            isSaving={false}
+            isSaving={isSavingPreview}
             hasChanges={previewDirty}
           />
         )}
@@ -385,9 +404,14 @@ export function DraftingPage() {
             <AlertCircle className="h-10 w-10 text-red-400" />
             <p className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200">Draft generation failed</p>
             <p className="text-xs text-ledger-gray-400 text-center max-w-xs">Something went wrong with this draft.</p>
-            <Button variant="outline" size="sm" onClick={handleBackToList}>
-              Back to drafts
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleBackToList}>
+                Back to drafts
+              </Button>
+              <Button size="sm" onClick={handleRetryFromFailed} className="bg-kx-primary-600 hover:bg-kx-primary-700 text-white">
+                Try again
+              </Button>
+            </div>
           </div>
         ) : isEditingPreview ? (
           <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">

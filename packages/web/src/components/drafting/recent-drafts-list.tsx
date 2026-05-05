@@ -11,6 +11,12 @@ import { toast } from '@/hooks/use-toast'
 
 const PAGE_SIZE = 5
 
+// Module-scoped so a tracked draft survives navigation away from /drafts.
+// If the user submits a draft, leaves, and returns, the next mount can still
+// fire the toast either via SSE (still PROCESSING) or via reconciliation
+// against the freshly-fetched list (already terminal).
+const trackedJobs = new Map<string, string>() // docId → display label
+
 export interface RecentDraftsListHandle {
   refresh: () => void
   /** Mark a draft we just submitted so we toast on completion. */
@@ -51,7 +57,6 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
     const [isLoading, setIsLoading] = useState(true)
 
     const streamsRef = useRef<Map<string, AbortController>>(new Map())
-    const trackedJobsRef = useRef<Map<string, string>>(new Map()) // docId → display label
 
     const fetchDrafts = useCallback(async () => {
       try {
@@ -61,9 +66,24 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
           size: PAGE_SIZE,
           sort: 'updatedAt,desc',
         })
+        // Reconcile tracked jobs that completed while we weren't watching:
+        // any tracked doc that comes back already terminal still owes a toast.
+        for (const doc of result.documents) {
+          const label = trackedJobs.get(doc.id)
+          if (!label) continue
+          const s = (doc.jobStatus ?? '').toString().toUpperCase()
+          if (s === 'COMPLETED') {
+            trackedJobs.delete(doc.id)
+            toast({ title: 'Draft ready', description: label })
+          } else if (s === 'FAILED' || s === 'CANCELLED') {
+            trackedJobs.delete(doc.id)
+            toast({ title: 'Draft generation failed', description: 'Please try again.', variant: 'destructive' })
+          }
+        }
         setDocs(result.documents)
       } catch {
         setDocs([])
+        toast({ title: "Couldn't load recent drafts", variant: 'destructive' })
       } finally {
         setIsLoading(false)
       }
@@ -76,7 +96,7 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
     useImperativeHandle(ref, () => ({
       refresh: fetchDrafts,
       trackJob: (docId, label) => {
-        trackedJobsRef.current.set(docId, label)
+        trackedJobs.set(docId, label)
       },
     }), [fetchDrafts])
 
@@ -93,9 +113,9 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
             if (s === 'COMPLETED' || s === 'FAILED' || s === 'CANCELLED') {
               streamsRef.current.get(docId)?.abort()
               streamsRef.current.delete(docId)
-              const label = trackedJobsRef.current.get(docId)
+              const label = trackedJobs.get(docId)
               if (label) {
-                trackedJobsRef.current.delete(docId)
+                trackedJobs.delete(docId)
                 if (s === 'COMPLETED') {
                   toast({ title: 'Draft ready', description: label })
                 } else {

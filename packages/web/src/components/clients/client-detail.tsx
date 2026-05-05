@@ -113,7 +113,7 @@ export function ClientDetail() {
         onOpenChange={setShowDeleteDialog}
         clientId={client.id}
         clientName={client.name}
-        linkedCaseCount={client.caseSummaries?.length ?? client.cases.length}
+        linkedCaseCount={client.caseSummaries.length}
         onSuccess={() => navigate('/clients')}
       />
     </div>

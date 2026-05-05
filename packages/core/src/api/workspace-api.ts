@@ -196,17 +196,25 @@ export const workspaceApi = {
     return response.data.uploadUrl
   },
 
-  async deleteDocuments(documentIds: string[]): Promise<void> {
-    await fetch(`${getBaseUrl()}/api/v1/documents`, {
+  async deleteDocuments(
+    documentIds: string[],
+  ): Promise<{ deleted: number; notFound: number; skipped: number }> {
+    const res = await fetch(`${getBaseUrl()}/api/v1/documents`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ documentIds }),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const body: { message?: string } = await res.json().catch(() => ({}))
-        throw new Error(body?.message ?? `Delete failed: ${res.status}`)
-      }
     })
+    if (!res.ok) {
+      const body: { message?: string } = await res.json().catch(() => ({}))
+      throw new Error(body?.message ?? `Delete failed: ${res.status}`)
+    }
+    const body: { data?: { deleted?: number; notFound?: number; skipped?: number } } =
+      await res.json().catch(() => ({}))
+    return {
+      deleted: body.data?.deleted ?? 0,
+      notFound: body.data?.notFound ?? 0,
+      skipped: body.data?.skipped ?? 0,
+    }
   },
 
   async sendChatQuery(query: string, filterFileIds: string[]): Promise<ChatResponse> {
