@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Loader2, Download, RotateCcw, ArrowLeft, FileText, X } from 'lucide-react'
+import { Loader2, Download, RotateCcw, ArrowLeft, FileText, X, Save, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { FileUploadZone } from './file-upload-zone'
@@ -12,7 +12,7 @@ import { draftsApi } from '@knowlex/core/api/drafts-api'
 import { ApiError } from '@knowlex/core/api/api-client'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
-import type { ProcessedDocumentInfo } from '@knowlex/core/api/doc-processing-api'
+import type { ProcessedDocumentInfo, CompressPreviewResponse } from '@knowlex/core/api/doc-processing-api'
 
 type Stage = 'upload' | 'processing' | 'done' | 'error'
 type Quality = 'low' | 'medium' | 'high'
@@ -31,32 +31,40 @@ function formatSize(bytes: number) {
 interface CompressorDialogProps {
   onBack: () => void
   initialDoc?: ProcessedDocumentInfo
+  /** When the source document is attached to a case, persist the saved compressed copy under the same case. */
+  initialCaseId?: string
 }
 
-export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) {
+export function CompressorDialog({ onBack, initialDoc, initialCaseId }: CompressorDialogProps) {
   const [stage, setStage] = useState<Stage>('upload')
   const [file, setFile] = useState<File | null>(null)
   const [preloadedDoc, setPreloadedDoc] = useState<ProcessedDocumentInfo | null>(initialDoc ?? null)
   const [quality, setQuality] = useState<Quality>('medium')
-  const [result, setResult] = useState<ProcessedDocumentInfo | null>(null)
+  const [preview, setPreview] = useState<CompressPreviewResponse | null>(null)
+  const [sourceDocumentId, setSourceDocumentId] = useState<string | null>(null)
   const [originalSize, setOriginalSize] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
   const reset = () => {
     setStage('upload')
     setFile(null)
     setPreloadedDoc(initialDoc ?? null)
     setQuality('medium')
-    setResult(null)
+    setPreview(null)
+    setSourceDocumentId(null)
     setOriginalSize(0)
     setError(null)
+    setIsSaved(false)
   }
 
   const handleCompress = async () => {
     if (!preloadedDoc && !file) return
     setStage('processing')
     setError(null)
+    setIsSaved(false)
     try {
       let orig = preloadedDoc ? preloadedDoc.fileSize : file!.size
       if (preloadedDoc && (!orig || orig <= 0)) {
@@ -66,8 +74,9 @@ export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) 
       setOriginalSize(orig)
       // Use existing doc ID if pre-loaded, otherwise upload the file first
       const documentId = preloadedDoc ? preloadedDoc.id : await uploadToolboxFile(file!)
-      const res = await docProcessingApi.compress({ documentId, quality })
-      setResult(res.data?.document ?? null)
+      setSourceDocumentId(documentId)
+      const res = await docProcessingApi.compressPreview({ documentId, quality })
+      setPreview(res.data ?? null)
       setStage('done')
       toast({ title: 'Compression complete' })
     } catch (e) {
@@ -78,14 +87,34 @@ export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) 
   }
 
   const handleDownload = async () => {
-    if (!result) return
+    if (!preview) return
     setIsDownloading(true)
     try {
-      await downloadDocument(result.downloadUrl ?? result.id, result.fileName)
+      await downloadDocument(preview.downloadUrl, preview.fileName)
     } catch {
       toast({ title: 'Download failed', variant: 'destructive' })
     } finally {
       setIsDownloading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    if (!preview || !sourceDocumentId) return
+    setIsSaving(true)
+    try {
+      await docProcessingApi.saveCompressed({
+        tempKey: preview.tempKey,
+        fileName: preview.fileName,
+        sourceDocumentId,
+        caseId: initialCaseId,
+      })
+      setIsSaved(true)
+      toast({ title: 'Saved to your documents' })
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Save failed'
+      toast({ title: msg, variant: 'destructive' })
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -177,7 +206,7 @@ export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) 
               </div>
             ) : (
               <div className="space-y-4">
-                {result && (
+                {preview && (
                   <div className="rounded-lg border border-kx-card-border bg-ledger-gray-50 dark:bg-ledger-gray-800/40 p-4 space-y-1">
                     <div className="flex justify-between text-sm">
                       <span className="text-ledger-gray-500">Original size</span>
@@ -187,26 +216,39 @@ export function CompressorDialog({ onBack, initialDoc }: CompressorDialogProps) 
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-ledger-gray-500">Compressed size</span>
-                      <span className="text-kx-primary-900">{formatSize(result.fileSize)}</span>
+                      <span className="text-kx-primary-900">{formatSize(preview.fileSize)}</span>
                     </div>
-                    {originalSize > 0 && result.fileSize < originalSize && (
+                    {originalSize > 0 && preview.fileSize < originalSize && (
                       <div className="flex justify-between text-sm font-medium">
                         <span className="text-green-600 dark:text-green-400">Saved</span>
                         <span className="text-green-600 dark:text-green-400">
-                          {Math.round((1 - result.fileSize / originalSize) * 100)}%
+                          {Math.round((1 - preview.fileSize / originalSize) * 100)}%
                         </span>
                       </div>
                     )}
                   </div>
                 )}
-                {result && (
-                  <Button className="w-full gap-2" disabled={isDownloading} onClick={handleDownload}>
-                    {isDownloading
-                      ? <Loader2 className="h-4 w-4 animate-spin" />
-                      : <Download className="h-4 w-4" />
-                    }
-                    Download compressed PDF
-                  </Button>
+                {preview && (
+                  <>
+                    <Button className="w-full gap-2" disabled={isDownloading} onClick={handleDownload}>
+                      {isDownloading
+                        ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : <Download className="h-4 w-4" />
+                      }
+                      Download compressed PDF
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="w-full gap-2"
+                      disabled={isSaving || isSaved}
+                      onClick={handleSave}
+                    >
+                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin" />
+                        : isSaved ? <Check className="h-4 w-4" />
+                        : <Save className="h-4 w-4" />}
+                      {isSaved ? 'Saved to your documents' : 'Save to my documents'}
+                    </Button>
+                  </>
                 )}
                 <Button variant="ghost" className="w-full gap-2" onClick={reset}>
                   <RotateCcw className="h-4 w-4" />

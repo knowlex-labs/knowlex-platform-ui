@@ -52,6 +52,8 @@ interface ToolContext {
   id: ActiveToolId
   initialDoc?: ProcessedDocumentInfo
   initialDocs?: ProcessedDocumentInfo[]
+  /** Case the source document belongs to (when known) — propagated so saved outputs stay attached to that case. */
+  initialCaseId?: string
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
@@ -1088,7 +1090,7 @@ export function DocumentsPage() {
       toast({ title: 'Please select a document first' })
       return
     }
-    openTool(id, { initialDoc: toProcessed(source) })
+    openTool(id, { initialDoc: toProcessed(source), initialCaseId: source.caseId ?? undefined })
   }
 
 
@@ -1242,8 +1244,8 @@ export function DocumentsPage() {
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                        <thead className="sticky top-0 z-20">
+                          <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border [&>th]:bg-ledger-gray-50 dark:[&>th]:bg-ledger-gray-100">
                             <th className="pl-4 pr-2 py-3 w-10 align-middle" onClick={toggleAll}>
                               <input
                                 type="checkbox"
@@ -1472,7 +1474,7 @@ export function DocumentsPage() {
                 case 'split':       return <SplitterDialog   onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'merge':       return <MergerDialog     onBack={closeTool} initialDocs={toolCtx.initialDocs} />
                 case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} onOpenDoc={(id) => { closeTool(); setSelectedDocId(id) }} />
-                case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
+                case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} initialCaseId={toolCtx.initialCaseId} />
                 case 'translation': return <TranslationDialog onBack={closeTool} initialDoc={toolCtx.initialDoc} onJobStarted={handleTranslationJobStarted} />
                 default:            return null
               }
