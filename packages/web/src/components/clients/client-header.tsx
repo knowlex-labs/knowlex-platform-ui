@@ -1,9 +1,10 @@
-import { Mail, Phone, Calendar, Building, MapPin, Pencil, Trash2 } from 'lucide-react'
+import { Mail, Phone, Calendar, Building, MapPin, Pencil, Trash2, ChevronRight, Clock } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 import { STATUS_COLORS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
-import type { ClientDetailView, CaseStatus } from '@knowlex/core/types'
+import type { ClientDetailView, ClientCaseSummary, CaseStatus } from '@knowlex/core/types'
 
 interface ClientHeaderProps {
   client: ClientDetailView
@@ -16,7 +17,7 @@ function StatusBadge({ status }: { status: CaseStatus }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center px-3 py-1 text-sm font-medium rounded-sm',
+        'inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-sm',
         STATUS_COLORS[status]
       )}
     >
@@ -33,23 +34,115 @@ function formatDate(date: Date): string {
   }).format(date)
 }
 
+const ACTIVITY_TYPE_LABELS: Record<string, string> = {
+  DRAFT: 'Draft',
+  SUMMARY: 'Summary',
+  SYNOPSIS: 'Synopsis',
+  JUDGMENT: 'Judgment',
+  USER_UPLOADED: 'Document',
+  TRANSLATION: 'Translation',
+  PRECEDENT: 'Precedent',
+  BRIEF: 'Brief',
+  DOCX_COPY: 'Editable copy',
+}
+
+function formatActivityType(type: string | null | undefined): string {
+  if (!type) return 'Activity'
+  return ACTIVITY_TYPE_LABELS[type] ?? type.charAt(0) + type.slice(1).toLowerCase().replace(/_/g, ' ')
+}
+
+function relativeTime(date: Date): string {
+  const ms = Date.now() - date.getTime()
+  if (ms < 0) return 'just now'
+  const sec = Math.floor(ms / 1000)
+  if (sec < 60) return 'just now'
+  const min = Math.floor(sec / 60)
+  if (min < 60) return `${min} min${min === 1 ? '' : 's'} ago`
+  const hr = Math.floor(min / 60)
+  if (hr < 24) return `${hr} hour${hr === 1 ? '' : 's'} ago`
+  const day = Math.floor(hr / 24)
+  if (day < 30) return `${day} day${day === 1 ? '' : 's'} ago`
+  const month = Math.floor(day / 30)
+  if (month < 12) return `${month} month${month === 1 ? '' : 's'} ago`
+  const year = Math.floor(day / 365)
+  return `${year} year${year === 1 ? '' : 's'} ago`
+}
+
+function CaseCard({ summary, onClick }: { summary: ClientCaseSummary; onClick: () => void }) {
+  const activity = summary.latestActivity
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left border border-ledger-gray-200 rounded p-4 hover:border-kx-primary-300 hover:bg-kx-primary-50/40 transition-colors group"
+    >
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="min-w-0">
+          <p className="text-base font-serif font-semibold text-kx-primary-900 truncate">
+            {summary.caseTitle ?? 'Untitled case'}
+          </p>
+          {summary.caseNumber && (
+            <code className="text-xs font-mono text-ledger-gray-500 mt-0.5 inline-block">
+              {summary.caseNumber}
+            </code>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <StatusBadge status={summary.caseStatus} />
+          <ChevronRight className="h-4 w-4 text-ledger-gray-400 group-hover:text-kx-primary-600 transition-colors" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+        {summary.courtName && (
+          <div className="flex items-center gap-1.5 text-ledger-gray-600 min-w-0">
+            <Building className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
+            <span className="truncate">{summary.courtName}</span>
+          </div>
+        )}
+        {summary.nextHearingDate && (
+          <div className="flex items-center gap-1.5 text-ledger-gray-600">
+            <Calendar className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
+            <span>Next hearing: {formatDate(summary.nextHearingDate)}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 pt-3 border-t border-ledger-gray-100 flex items-center gap-1.5 text-xs">
+        <Clock className="h-3.5 w-3.5 text-ledger-gray-400 flex-shrink-0" />
+        {activity && activity.at ? (
+          <span className="text-ledger-gray-600 truncate">
+            <span className="font-medium text-kx-primary-900">{formatActivityType(activity.type)}</span>
+            {activity.label ? ` · ${activity.label}` : ''}
+            <span className="text-ledger-gray-400"> · {relativeTime(activity.at)}</span>
+          </span>
+        ) : (
+          <span className="text-ledger-gray-400">No activity yet</span>
+        )}
+      </div>
+    </button>
+  )
+}
+
 export function ClientHeader({ client, onEdit, onDelete }: ClientHeaderProps) {
-  const caseData = client.cases[0] ?? null
+  const navigate = useNavigate()
+  const cases = client.caseSummaries ?? []
 
   return (
     <div className="border border-ledger-gray-200 rounded p-4 md:p-6">
-      {/* Top Section */}
+      {/* Top Section — client identity + actions */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="min-w-0">
           <h2 className="text-lg md:text-xl font-serif font-semibold text-kx-primary-900">
             {client.name}
           </h2>
-          <p className="text-sm text-ledger-gray-500 mt-1 truncate">
-            {caseData?.caseTitle ?? 'No case assigned'}
+          <p className="text-sm text-ledger-gray-500 mt-1">
+            {cases.length === 0
+              ? 'No cases linked'
+              : `${cases.length} case${cases.length === 1 ? '' : 's'} linked`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {caseData?.status && <StatusBadge status={caseData.status} />}
           {onEdit && (
             <Button variant="outline" size="sm" onClick={onEdit}>
               <Pencil className="h-4 w-4 mr-2" />
@@ -67,62 +160,7 @@ export function ClientHeader({ client, onEdit, onDelete }: ClientHeaderProps) {
 
       <Separator className="my-4" />
 
-      {/* Info Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        {/* Case Number */}
-        <div>
-          <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
-            Case ID
-          </p>
-          <code className="text-sm font-mono text-kx-primary-900 break-all">
-            {caseData?.caseNumber ?? '-'}
-          </code>
-        </div>
-
-        {/* Case Type */}
-        <div>
-          <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
-            Case Type
-          </p>
-          <p className="text-sm text-kx-primary-900 capitalize">
-            {caseData?.caseType ?? '-'}
-          </p>
-        </div>
-
-        {/* Court */}
-        {caseData?.courtName && (
-          <div>
-            <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
-              Court
-            </p>
-            <div className="flex items-start gap-1.5">
-              <Building className="h-3.5 w-3.5 text-ledger-gray-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-kx-primary-900">
-                {caseData.courtName}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Next Hearing */}
-        {caseData?.nextHearingDate && (
-          <div>
-            <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-1">
-              Next Hearing
-            </p>
-            <div className="flex items-start gap-1.5">
-              <Calendar className="h-3.5 w-3.5 text-ledger-gray-400 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-kx-primary-900">
-                {formatDate(caseData.nextHearingDate)}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <Separator className="my-4" />
-
-      {/* Contact Info - Stack vertically on mobile */}
+      {/* Contact Info */}
       <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 sm:gap-6">
         {client.email && (
           <a
@@ -155,6 +193,30 @@ export function ClientHeader({ client, onEdit, onDelete }: ClientHeaderProps) {
         <div className="flex items-center text-sm text-ledger-gray-500 min-h-[44px]">
           Client since: {formatDate(client.createdAt)}
         </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Cases */}
+      <div>
+        <p className="text-xs text-ledger-gray-500 uppercase tracking-wide mb-3">
+          Cases
+        </p>
+        {cases.length === 0 ? (
+          <div className="text-sm text-ledger-gray-500 border border-dashed border-ledger-gray-200 rounded p-6 text-center">
+            No cases linked to this client yet.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {cases.map((c) => (
+              <CaseCard
+                key={c.caseId}
+                summary={c}
+                onClick={() => navigate(`/cases/${c.caseId}`)}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

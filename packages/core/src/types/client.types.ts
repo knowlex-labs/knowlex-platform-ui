@@ -22,14 +22,23 @@ export interface Activity {
   metadata?: Record<string, string>
 }
 
-export interface AIResearchItem {
-  id: string
-  title: string
-  summary: string
-  relevance: 'high' | 'medium' | 'low'
-  source: string
-  createdAt: Date
-  tags: string[]
+// Latest activity recorded against a case (most recently updated document)
+export interface CaseLatestActivity {
+  type: string | null
+  label: string | null
+  at: Date | null
+}
+
+// Compact summary of a case linked to a client
+export interface ClientCaseSummary {
+  caseId: string
+  caseNumber: string | null
+  caseTitle: string | null
+  caseType: string | null
+  caseStatus: CaseStatus
+  courtName: string | null
+  nextHearingDate: Date | null
+  latestActivity: CaseLatestActivity | null
 }
 
 // Simplified Client interface matching backend
@@ -41,6 +50,7 @@ export interface Client {
   address: string | null
   clientType: ClientType
   caseIds: string[]
+  caseSummaries: ClientCaseSummary[]
   createdAt: Date
   updatedAt: Date
 }
@@ -50,8 +60,7 @@ export interface ClientWithCase extends Client {
   cases: Case[]
 }
 
-// Full client view with activities and research (for detail page)
+// Full client view with activities (for detail page)
 export interface ClientDetailView extends ClientWithCase {
   activities: Activity[]
-  aiResearch: AIResearchItem[]
 }

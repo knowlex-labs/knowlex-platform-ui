@@ -59,8 +59,22 @@ export interface BackendClient {
   address: string | null
   clientType: BackendClientType
   caseIds: string[]
+  caseSummaries?: BackendClientCaseSummary[]
   createdAt: string // ISO datetime string
   updatedAt: string // ISO datetime string
+}
+
+export interface BackendClientCaseSummary {
+  caseId: string
+  caseNumber: string | null
+  caseTitle: string | null
+  caseType: BackendCaseType | null
+  caseStatus: BackendCaseStatus
+  courtName: string | null
+  nextHearingDate: string | null // ISO date
+  latestActivityType: string | null
+  latestActivityLabel: string | null
+  latestActivityAt: string | null // ISO datetime
 }
 
 // API Response wrapper

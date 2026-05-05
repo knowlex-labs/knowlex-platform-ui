@@ -1,11 +1,40 @@
 // Map backend Client to frontend Client
 
-import type { BackendClient, BackendClientType } from '../types/api.types'
-import type { Client, ClientType } from '../types/client.types'
+import type { BackendClient, BackendClientCaseSummary, BackendClientType, BackendCaseStatus } from '../types/api.types'
+import type { Client, ClientCaseSummary, ClientType, CaseStatus } from '../types/client.types'
 
 const clientTypeMap: Record<BackendClientType, ClientType> = {
   INDIVIDUAL: 'individual',
   COMPANY: 'company',
+}
+
+const caseStatusMap: Record<BackendCaseStatus, CaseStatus> = {
+  OPEN: 'active',
+  PENDING: 'pending',
+  CLOSED: 'closed',
+  ARCHIVED: 'archived',
+  ACTIVE: 'active',
+  ON_HOLD: 'on-hold',
+}
+
+function mapCaseSummary(s: BackendClientCaseSummary): ClientCaseSummary {
+  const hasActivity = s.latestActivityType || s.latestActivityLabel || s.latestActivityAt
+  return {
+    caseId: s.caseId,
+    caseNumber: s.caseNumber,
+    caseTitle: s.caseTitle,
+    caseType: s.caseType,
+    caseStatus: caseStatusMap[s.caseStatus],
+    courtName: s.courtName,
+    nextHearingDate: s.nextHearingDate ? new Date(s.nextHearingDate) : null,
+    latestActivity: hasActivity
+      ? {
+          type: s.latestActivityType,
+          label: s.latestActivityLabel,
+          at: s.latestActivityAt ? new Date(s.latestActivityAt) : null,
+        }
+      : null,
+  }
 }
 
 export function mapBackendClient(backendClient: BackendClient): Client {
@@ -17,6 +46,7 @@ export function mapBackendClient(backendClient: BackendClient): Client {
     address: backendClient.address,
     clientType: clientTypeMap[backendClient.clientType],
     caseIds: backendClient.caseIds ?? [],
+    caseSummaries: (backendClient.caseSummaries ?? []).map(mapCaseSummary),
     createdAt: new Date(backendClient.createdAt),
     updatedAt: new Date(backendClient.updatedAt),
   }

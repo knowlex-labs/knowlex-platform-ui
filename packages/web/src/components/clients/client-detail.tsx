@@ -6,7 +6,6 @@ import { ClientDetailSkeleton } from '@/components/ui/skeleton'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { ClientHeader } from './client-header'
 import { ActivityFeed } from './activity-feed'
-import { ResearchSummary } from './research-summary'
 import { EditClientModal } from './edit-client-modal'
 import { DeleteClientDialog } from './delete-client-dialog'
 import { useClientDetail } from '@/hooks/use-client-detail'
@@ -99,18 +98,8 @@ export function ClientDetail() {
         <ClientHeader client={client} onEdit={() => setShowEditModal(true)} onDelete={() => setShowDeleteDialog(true)} />
       </div>
 
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-        {/* Activity Feed - 2/3 width on desktop */}
-        <div className="lg:col-span-2">
-          <ActivityFeed activities={client.activities} />
-        </div>
-
-        {/* AI Research - 1/3 width on desktop */}
-        <div className="lg:col-span-1">
-          <ResearchSummary items={client.aiResearch} />
-        </div>
-      </div>
+      {/* Activity Feed */}
+      <ActivityFeed activities={client.activities} />
 
       <EditClientModal
         open={showEditModal}
@@ -124,6 +113,7 @@ export function ClientDetail() {
         onOpenChange={setShowDeleteDialog}
         clientId={client.id}
         clientName={client.name}
+        linkedCaseCount={client.caseSummaries?.length ?? client.cases.length}
         onSuccess={() => navigate('/clients')}
       />
     </div>

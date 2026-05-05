@@ -52,7 +52,6 @@ export function useClientDetail(clientId: string | null): UseClientDetailResult 
         ...mappedClient,
         cases: mappedCases,
         activities: [],
-        aiResearch: [],
       }
 
       setClient(clientDetail)
