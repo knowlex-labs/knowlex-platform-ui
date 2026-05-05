@@ -5,9 +5,9 @@ import { DocumentType, GENERATED_DOC_TYPES, IndexingStatus, JobStatus, type Case
 export const SOURCE_PAGE_SIZE = 20
 
 interface UseCaseDocumentsResult {
-  /** Non-source documents: DRAFT, SUMMARY, JUDGMENT */
+  /** Non-source documents: DRAFT, SUMMARY */
   documents: CaseDocument[]
-  /** Current page of USER_UPLOADED sources */
+  /** Current page of sources (USER_UPLOADED + JUDGMENT) */
   paginatedSources: CaseDocument[]
   sourcePage: number
   sourceTotal: number
@@ -31,9 +31,9 @@ interface UseCaseDocumentsResult {
 }
 
 export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult {
-  // Non-source docs (DRAFT / SUMMARY / JUDGMENT) — fetched all at once
+  // Non-source docs (DRAFT / SUMMARY) — fetched all at once
   const [documents, setDocuments] = useState<CaseDocument[]>([])
-  // Paginated USER_UPLOADED sources
+  // Paginated sources (USER_UPLOADED + JUDGMENT)
   const [paginatedSources, setPaginatedSources] = useState<CaseDocument[]>([])
   const [sourcePage, setSourcePageState] = useState(1)
   const [sourceTotal, setSourceTotal] = useState(0)
@@ -114,7 +114,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
     streamsRef.current.clear()
   }, [])
 
-  // Fetch non-source docs (DRAFT / SUMMARY / JUDGMENT) once per caseId
+  // Fetch non-source docs (DRAFT / SUMMARY) once per caseId
   useEffect(() => {
     stopAllPolling()
     if (!caseId) { setDocuments([]); setSelectedSourceIds(new Set()); return }
@@ -124,7 +124,9 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
       setError(null)
       try {
         const docs = await workspaceApi.getCaseDocuments(caseId)
-        const nonSources = docs.filter((d) => d.type !== DocumentType.USER_UPLOADED)
+        const nonSources = docs.filter(
+          (d) => d.type !== DocumentType.USER_UPLOADED && d.type !== DocumentType.JUDGMENT,
+        )
         setDocuments(nonSources)
 
         // Poll any in-progress non-source docs
@@ -156,7 +158,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
     }
   }, [caseId, documents, startPolling])
 
-  // Fetch paginated USER_UPLOADED sources when caseId or page changes
+  // Fetch paginated sources (USER_UPLOADED + JUDGMENT) when caseId or page changes
   useEffect(() => {
     if (!caseId) { setPaginatedSources([]); setSourceTotal(0); return }
 
@@ -333,7 +335,7 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
         workspaceApi.getCaseDocuments(caseId),
         workspaceApi.getCaseDocumentsPaginated(caseId, { page: sourcePage, limit: SOURCE_PAGE_SIZE }),
       ])
-      setDocuments(nonSourceDocs.filter((d) => d.type !== 'USER_UPLOADED'))
+      setDocuments(nonSourceDocs.filter((d) => d.type !== 'USER_UPLOADED' && d.type !== 'JUDGMENT'))
       setPaginatedSources(sourceDocs)
       setSourceTotal(total)
     } catch (err) {

@@ -132,8 +132,10 @@ export function useWorkspaceTabs(drafts: Draft[]): UseWorkspaceTabsResult {
       const label = source.name.length > 20
         ? source.name.slice(0, 20) + '...'
         : source.name
-      // Derive file type from extension
-      const ext = source.name.split('.').pop()?.toUpperCase() || 'PDF'
+      // Prefer the backend-supplied fileType (e.g. 'PDF') and fall back to extension
+      // inference — judgments use the case title as `name`/`originalFilename`, which
+      // has no file extension, so split('.') alone misclassifies them.
+      const ext = source.fileType?.toUpperCase() || source.name.split('.').pop()?.toUpperCase() || 'PDF'
       const newTab: WorkspaceTabItem = {
         id: `source-${source.id}`,
         type: 'source',
