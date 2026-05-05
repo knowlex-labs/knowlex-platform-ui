@@ -128,7 +128,7 @@ export const workspaceApi = {
   },
 
   /**
-   * List USER_UPLOADED documents with server-side pagination.
+   * List case sources (USER_UPLOADED + JUDGMENT) with server-side pagination.
    */
   async getCaseDocumentsPaginated(
     caseId: string,
@@ -136,10 +136,11 @@ export const workspaceApi = {
   ): Promise<{ documents: CaseDocument[]; total: number }> {
     const params = new URLSearchParams({
       caseId,
-      type: 'USER_UPLOADED',
-      page: String(opts.page - 1),   // hook is 1-based ��� API is 0-based
+      page: String(opts.page - 1),   // hook is 1-based — API is 0-based
       size: String(opts.limit),
     })
+    params.append('type', 'USER_UPLOADED')
+    params.append('type', 'JUDGMENT')
     const response = await apiClient.get<ApiResponse<SpringPage<CaseDocument>>>(
       `/api/v1/documents?${params}`
     )

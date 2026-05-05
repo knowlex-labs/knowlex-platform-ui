@@ -513,7 +513,8 @@ export function CaseWorkspace() {
                   </div>
                   <div className="flex-1 min-h-0 overflow-hidden bg-ledger-gray-50 dark:bg-ledger-gray-900">
                     {(() => {
-                      const ext = (previewingDoc.doc.originalFilename || previewingDoc.doc.name).split('.').pop()?.toLowerCase() || ''
+                      const filenameExt = (previewingDoc.doc.originalFilename || previewingDoc.doc.name).split('.').pop()?.toLowerCase() || ''
+                      const ext = previewingDoc.doc.fileType?.toLowerCase() || filenameExt
                       if (ext === 'pdf') {
                         return <iframe src={previewingDoc.url} className="w-full h-full border-0" title="Document preview" />
                       }
