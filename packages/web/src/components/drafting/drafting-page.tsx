@@ -28,6 +28,7 @@ import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
 import { FormattingToolbar } from '@/components/editor'
+import { GeneratingState } from '@/components/ui/generating-state'
 import { toast } from '@/hooks/use-toast'
 import type { Draft, DraftTemplate, TemplateFormData } from '@knowlex/core/types'
 import { DRAFT_TEMPLATES } from '@knowlex/core/types'
@@ -737,11 +738,6 @@ export function DraftingPage() {
 
           {/* Action bar — single row */}
           <div className="flex items-center gap-2 px-4 py-2 border-b border-kx-card-border flex-shrink-0">
-            {previewDraft?.status !== 'completed' && (
-              <Button variant="outline" size="sm" onClick={() => setMode('details')} className="gap-1.5 text-xs rounded-lg h-8">
-                Edit Details
-              </Button>
-            )}
             {previewDraft?.status === 'completed' && (
               <Button size="sm" onClick={handleSave} className="gap-1.5 text-xs rounded-lg h-8 bg-kx-primary-600 hover:bg-kx-primary-700 text-white">
                 Save Draft
@@ -766,41 +762,7 @@ export function DraftingPage() {
 
           {/* Preview content */}
           {!previewDraft || previewDraft.status === 'pending' ? (
-            <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-5 text-center max-w-sm">
-                <div className="relative">
-                  <div className="h-14 w-14 rounded-full bg-kx-primary-50 dark:bg-kx-primary-900/30 flex items-center justify-center">
-                    <Loader2 className="h-7 w-7 text-kx-primary-600 dark:text-kx-primary-400 animate-spin" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-base font-semibold text-ledger-gray-800 dark:text-ledger-gray-100">
-                    Generating your draft
-                  </p>
-                  <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400">
-                    This usually takes 1-2 minutes. You can navigate away and come back — your draft will be ready when you return.
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 pt-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => { resetAll(); setMode('templates') }}
-                    className="gap-1.5 text-xs rounded-lg h-8"
-                  >
-                    + Create Another
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => { resetAll(); setMode('templates') }}
-                    className="gap-1.5 text-xs rounded-lg h-8 text-ledger-gray-500"
-                  >
-                    Go Back
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <GeneratingState label="Draft" />
           ) : previewDraft.status === 'failed' ? (
             <div className="flex flex-col flex-1 items-center justify-center gap-4">
               <AlertCircle className="h-10 w-10 text-red-400" />
