@@ -801,6 +801,14 @@ export function DocumentsPage() {
   const autoEditParam = searchParams.get('edit') === 'true'
   const autoToolParam = searchParams.get('tool') as ActiveToolId | null
 
+  // Seed type filter from ?type=DRAFT (or any DocumentType) on mount.
+  // One-shot so we don't fight the user's later changes to the filter.
+  useEffect(() => {
+    const typeParam = searchParams.get('type') as DocumentRecordType | null
+    if (typeParam) setTypeFilters(new Set([typeParam]))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const selectedDoc = allDocs.find(d => d.id === selectedDocId) ?? null
   const viewerOpen = selectedDocId !== null
 
