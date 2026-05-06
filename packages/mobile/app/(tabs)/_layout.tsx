@@ -35,40 +35,43 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="documents"
+        name="index"
         options={{
-          title: 'Documents',
-          tabBarIcon: ({ color, size }) => <Ionicons name="document-text-outline" size={22} color={color} />,
+          title: 'Home',
+          tabBarIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="cases"
         options={{
           title: 'Cases',
-          tabBarIcon: ({ color, size }) => <Ionicons name="briefcase-outline" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="briefcase-outline" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="index"
+        name="cause-lists"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={22} color={color} />,
+          title: 'Cause Lists',
+          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="drafts"
+        name="clients"
         options={{
-          title: 'Drafts',
-          tabBarIcon: ({ color, size }) => <Ionicons name="create-outline" size={22} color={color} />,
+          title: 'Clients',
+          tabBarIcon: ({ color }) => <Ionicons name="people-outline" size={22} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={22} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={22} color={color} />,
         }}
       />
+      {/* Accessible via router.push — not shown in tab bar */}
+      <Tabs.Screen name="drafts" options={{ href: null }} />
+      <Tabs.Screen name="documents" options={{ href: null }} />
       <Tabs.Screen name="viewer" options={{ href: null }} />
     </Tabs>
   );

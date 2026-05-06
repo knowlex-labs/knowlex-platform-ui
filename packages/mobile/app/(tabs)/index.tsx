@@ -84,6 +84,63 @@ export default function DashboardScreen() {
           )}
         </View>
 
+        {/* Quick Access */}
+        <Text style={[styles.sectionTitle, { color: colors.kxTextPrimary, fontFamily: typography.fontFamily.sans, marginTop: spacing['3xl'] }]}>
+          Quick Access
+        </Text>
+        <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.md }}>
+          <Pressable
+            onPress={() => router.push('/drafts' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Go to Drafts"
+            style={({ pressed }) => ({
+              flex: 1,
+              backgroundColor: pressed ? colors.kxPrimary[50] : colors.kxCardBg,
+              borderWidth: 1,
+              borderColor: colors.kxCardBorder,
+              borderRadius: radius.lg,
+              padding: spacing.md,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+            })}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: colors.kxPrimary[50], alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 18 }}>✏️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>Drafts</Text>
+              <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }}>Legal documents</Text>
+            </View>
+            <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.lg }}>›</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => router.push('/documents' as any)}
+            accessibilityRole="button"
+            accessibilityLabel="Go to Documents"
+            style={({ pressed }) => ({
+              flex: 1,
+              backgroundColor: pressed ? colors.kxPrimary[50] : colors.kxCardBg,
+              borderWidth: 1,
+              borderColor: colors.kxCardBorder,
+              borderRadius: radius.lg,
+              padding: spacing.md,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+            })}
+          >
+            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: colors.kxAccent[50], alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 18 }}>🗂️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>Documents</Text>
+              <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }}>Files & uploads</Text>
+            </View>
+            <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.lg }}>›</Text>
+          </Pressable>
+        </View>
+
         {/* Upcoming Hearings */}
         <Text style={[styles.sectionTitle, { color: colors.kxTextPrimary, fontFamily: typography.fontFamily.sans, marginTop: spacing['3xl'] }]}>
           Upcoming Hearings
