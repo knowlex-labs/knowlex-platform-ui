@@ -10,14 +10,14 @@ export interface SidebarTabConfig {
 }
 
 export const SIDEBAR_TABS: SidebarTabConfig[] = [
-  { id: 'dashboard', label: 'Home', icon: 'home', path: '/home' },
-  { id: 'cases', label: 'Cases', icon: 'briefcase', path: '/cases' },
-  { id: 'drafting', label: 'Drafting', icon: 'pen-line', path: '/drafting' },
-  { id: 'cause-lists', label: 'Cause Lists', icon: 'clipboard-list', path: '/cause-lists' },
-  { id: 'clients', label: 'Clients', icon: 'users', path: '/clients' },
-  { id: 'judgments', label: 'Legal Library', icon: 'scale', path: '/judgments' },
-  { id: 'moodboard', label: 'Tasks', icon: 'layout-grid', path: '/moodboard', featureFlag: 'MOODBOARD' },
-  { id: 'documents', label: 'Documents', icon: 'files', path: '/documents' },
+  { id: 'dashboard',   label: 'Home',         icon: 'home',           path: '/home' },
+  { id: 'cases',       label: 'Cases',         icon: 'briefcase',      path: '/cases' },
+  { id: 'cause-lists', label: 'Cause Lists',   icon: 'clipboard-list', path: '/cause-lists' },
+  { id: 'clients',     label: 'Clients',       icon: 'users',          path: '/clients' },
+  { id: 'drafting',    label: 'Drafting',      icon: 'pen-line',       path: '/drafting' },
+  { id: 'documents',   label: 'Documents',     icon: 'files',          path: '/documents' },
+  { id: 'moodboard',   label: 'Tasks',         icon: 'layout-grid',    path: '/moodboard', featureFlag: 'MOODBOARD' },
+  { id: 'judgments',   label: 'Legal Library', icon: 'scale',          path: '/judgments' },
 ]
 
 export const STATUS_COLORS = {
