@@ -1,4 +1,4 @@
-import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles, LayoutGrid } from 'lucide-react'
+import { Home, Briefcase, Users, Brain, Scale, ClipboardList, HelpCircle, User as UserIcon, Mail, LogOut, ChevronDown, PanelLeft, Sun, Moon, CreditCard, Wallet, ArrowLeft, Files, PenLine, Sparkles, LayoutGrid, Lock } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
@@ -84,7 +84,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const isDemoUser = user?.username === DEMO_USER_USERNAME
 
   const handleTabChange = (value: string) => {
-    const tab = visibleTabs.find(t => t.id === value)
+    const tab = SIDEBAR_TABS.find((t) => t.id === value)
     if (tab) {
       navigate(tab.path)
     }
@@ -147,6 +147,7 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
             <TabsList>
               {visibleTabs.map((tab) => {
                 const Icon = iconMap[tab.icon as keyof typeof iconMap]
+                const gatedLocked = Boolean(tab.featureFlag && isLocked(tab.featureFlag))
 
                 if (tab.locked) {
                   return (
@@ -176,11 +177,35 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
                   <TabsTrigger
                     key={tab.id}
                     value={tab.id}
-                    className="min-h-[44px]"
-                    title={collapsed ? tab.label : undefined}
+                    className={cn('min-h-[44px]', gatedLocked && 'text-ledger-gray-500')}
+                    title={
+                      collapsed
+                        ? gatedLocked
+                          ? `${tab.label} — upgrade plan to unlock`
+                          : tab.label
+                        : undefined
+                    }
                   >
-                    {Icon && <Icon className="h-4 w-4" />}
-                    {!collapsed && <span>{tab.label}</span>}
+                    {Icon &&
+                      (collapsed && gatedLocked ? (
+                        <span className="relative inline-flex shrink-0">
+                          <Icon className="h-4 w-4" />
+                          <Lock
+                            className="absolute -right-1 -top-0.5 h-2.5 w-2.5 text-ledger-gray-400"
+                            aria-hidden
+                          />
+                        </span>
+                      ) : (
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                      ))}
+                    {!collapsed && (
+                      <>
+                        <span className="truncate">{tab.label}</span>
+                        {gatedLocked && (
+                          <Lock className="h-3.5 w-3.5 flex-shrink-0 ml-auto text-ledger-gray-400" aria-hidden />
+                        )}
+                      </>
+                    )}
                   </TabsTrigger>
                 )
               })}
@@ -195,42 +220,42 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
         <Button
           variant="ghost"
           className={cn(
-            "w-full h-9 text-kx-primary-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 dark:hover:bg-white/5",
-            collapsed ? "justify-center px-0" : "justify-start px-4"
+            "w-full h-8 text-kx-primary-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 dark:hover:bg-white/5",
+            collapsed ? "justify-center px-0" : "justify-start px-3"
           )}
           onClick={() => navigate('/settings/billing')}
           title="Upgrade Account"
         >
-          <Sparkles className="h-4 w-4 flex-shrink-0" />
-          {!collapsed && <span className="ml-3">Upgrade Account</span>}
+          <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+          {!collapsed && <span className="ml-2.5 text-xs font-medium">Upgrade Account</span>}
         </Button>
 
         {/* Help and Support Button */}
         <Button
           variant="ghost"
           className={cn(
-            "w-full text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 h-9",
-            collapsed ? "justify-center px-0" : "justify-start px-4"
+            "w-full h-8 text-ledger-gray-500 hover:text-kx-primary-700 hover:bg-kx-primary-50",
+            collapsed ? "justify-center px-0" : "justify-start px-3"
           )}
           onClick={() => setShowHelpDialog(true)}
           title="Help and Support"
         >
-          <HelpCircle className="h-4 w-4" />
-          {!collapsed && <span className="ml-3">Help & Support</span>}
+          <HelpCircle className="h-3.5 w-3.5 flex-shrink-0" />
+          {!collapsed && <span className="ml-2.5 text-xs">Help & Support</span>}
         </Button>
 
         {/* Dark/Light Mode Toggle */}
         <Button
           variant="ghost"
           className={cn(
-            "w-full text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 h-9",
-            collapsed ? "justify-center px-0" : "justify-start px-4"
+            "w-full h-8 text-ledger-gray-500 hover:text-kx-primary-700 hover:bg-kx-primary-50",
+            collapsed ? "justify-center px-0" : "justify-start px-3"
           )}
           onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {resolvedTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-          {!collapsed && <span className="ml-3">{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+          {resolvedTheme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          {!collapsed && <span className="ml-2.5 text-xs">{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </Button>
 
         <Separator />
@@ -304,10 +329,10 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
               <div>
                 <p className="text-sm font-medium text-kx-primary-900">Email us</p>
                 <a
-                  href="mailto:nakul.jain@getknowlex.com"
+                  href="mailto:support@getknowlex.com"
                   className="text-sm text-ledger-gray-600 hover:text-kx-primary-700 underline"
                 >
-                  nakul.jain@getknowlex.com
+                  support@getknowlex.com
                 </a>
               </div>
             </div>

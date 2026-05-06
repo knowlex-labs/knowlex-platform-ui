@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  Upload, Scissors, Minimize2, Layers, RefreshCw,
+  Upload, Scissors, Minimize2, Layers,
   FileText, File, Download, Eye, Image, FileCode2,
   Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2, FolderOpen,
@@ -8,6 +8,7 @@ import {
   ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { cn } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -32,6 +33,7 @@ import { toast } from '@/hooks/use-toast'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
 import { FormattingToolbar } from '@/components/editor'
+import { GeneratingState } from '@/components/ui/generating-state'
 import { SplitterDialog } from '@/components/toolbox/splitter-dialog'
 import { MergerDialog } from '@/components/toolbox/merger-dialog'
 import { ConverterDialog } from '@/components/toolbox/converter-dialog'
@@ -51,6 +53,8 @@ interface ToolContext {
   id: ActiveToolId
   initialDoc?: ProcessedDocumentInfo
   initialDocs?: ProcessedDocumentInfo[]
+  /** Case the source document belongs to (when known) — propagated so saved outputs stay attached to that case. */
+  initialCaseId?: string
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100]
@@ -327,82 +331,6 @@ function DocTableRow({
         </div>
       </td>
     </tr>
-  )
-}
-
-// ─── GeneratingState ──────────────────────────────────────────────────────────
-
-const GENERATING_PHRASES: Record<string, string[]> = {
-  Translation: ['Translating document…', 'Converting language…', 'Reviewing translation…', 'Almost there…'],
-  Draft:       ['Analysing case details…', 'Drafting legal content…', 'Reviewing structure…', 'Finalising document…'],
-  Summary:     ['Reading document…', 'Extracting key points…', 'Composing summary…'],
-  Synopsis:    ['Processing document…', 'Building synopsis…', 'Finalising…'],
-  default:     ['Processing…', 'Working on it…', 'Almost ready…'],
-}
-
-function GeneratingState({ label }: { label: string }) {
-  const phrases = GENERATING_PHRASES[label] ?? GENERATING_PHRASES.default
-  const [phraseIdx, setPhraseIdx] = useState(0)
-  const [displayed, setDisplayed] = useState('')
-  const [typing, setTyping] = useState(true)
-
-  useEffect(() => {
-    const target = phrases[phraseIdx]
-    if (typing) {
-      if (displayed.length < target.length) {
-        const t = setTimeout(() => setDisplayed(target.slice(0, displayed.length + 1)), 38)
-        return () => clearTimeout(t)
-      } else {
-        const t = setTimeout(() => setTyping(false), 1600)
-        return () => clearTimeout(t)
-      }
-    } else {
-      if (displayed.length > 0) {
-        const t = setTimeout(() => setDisplayed(d => d.slice(0, -1)), 18)
-        return () => clearTimeout(t)
-      } else {
-        setPhraseIdx(i => (i + 1) % phrases.length)
-        setTyping(true)
-      }
-    }
-  }, [displayed, typing, phraseIdx, phrases])
-
-  return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-8 p-8 bg-kx-surface">
-      {/* Animated ring */}
-      <div className="relative flex items-center justify-center h-16 w-16">
-        <svg className="animate-spin absolute inset-0 h-16 w-16 text-kx-primary-200" viewBox="0 0 64 64" fill="none">
-          <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="4" />
-          <path d="M32 4 a28 28 0 0 1 28 28" stroke="var(--color-kx-primary-600)" strokeWidth="4" strokeLinecap="round" />
-        </svg>
-        <FileText className="h-6 w-6 text-kx-primary-600" />
-      </div>
-
-      {/* Typewriter text */}
-      <div className="text-center space-y-2">
-        <p className="text-base font-semibold text-kx-primary-900">Generating {label}</p>
-        <p className="text-sm text-kx-primary-600 font-medium min-h-[1.5rem]">
-          {displayed}<span className="animate-pulse opacity-70">|</span>
-        </p>
-        <p className="text-xs text-ledger-gray-400">This usually takes 1–2 minutes</p>
-      </div>
-
-      {/* Fake document preview */}
-      <div className="w-full max-w-lg bg-white dark:bg-ledger-gray-800 border border-ledger-gray-100 dark:border-ledger-gray-700 rounded-xl shadow-sm p-6 space-y-4">
-        {[
-          { w: 55, lines: [100, 92, 78] },
-          { w: 40, lines: [100, 88, 95, 60] },
-          { w: 48, lines: [100, 85, 72] },
-        ].map((s, si) => (
-          <div key={si} className="space-y-1.5">
-            <div className="h-2.5 rounded-full bg-kx-primary-100 dark:bg-kx-primary-900/40 animate-pulse" style={{ width: `${s.w}%`, animationDelay: `${si * 0.2}s` }} />
-            {s.lines.map((w, li) => (
-              <div key={li} className="h-2 rounded-full bg-ledger-gray-100 dark:bg-ledger-gray-700 animate-pulse" style={{ width: `${w}%`, animationDelay: `${(si * 3 + li) * 0.07}s` }} />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -876,6 +804,14 @@ export function DocumentsPage() {
   const autoEditParam = searchParams.get('edit') === 'true'
   const autoToolParam = searchParams.get('tool') as ActiveToolId | null
 
+  // Seed type filter from ?type=DRAFT (or any DocumentType) on mount.
+  // One-shot so we don't fight the user's later changes to the filter.
+  useEffect(() => {
+    const typeParam = searchParams.get('type') as DocumentRecordType | null
+    if (typeParam) setTypeFilters(new Set([typeParam]))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const selectedDoc = allDocs.find(d => d.id === selectedDocId) ?? null
   const viewerOpen = selectedDocId !== null
 
@@ -1057,8 +993,19 @@ export function DocumentsPage() {
   const handleDeleteDocs = async (ids: string[]) => {
     setIsDeleting(true)
     try {
-      await workspaceApi.deleteDocuments(ids)
-      toast({ title: `${ids.length} document${ids.length !== 1 ? 's' : ''} deleted` })
+      const { deleted, skipped } = await workspaceApi.deleteDocuments(ids)
+      if (deleted === 0) {
+        toast({
+          title: 'Nothing deleted',
+          description: skipped > 0
+            ? "Selected items can't be deleted from this view."
+            : 'The selected items no longer exist.',
+          variant: 'destructive',
+        })
+      } else {
+        const skipNote = skipped > 0 ? ` (${skipped} skipped)` : ''
+        toast({ title: `${deleted} document${deleted !== 1 ? 's' : ''} deleted${skipNote}` })
+      }
       setCheckedIds(new Set())
       if (ids.includes(selectedDocId ?? '')) setSelectedDocId(null)
       fetchDocs()
@@ -1144,7 +1091,7 @@ export function DocumentsPage() {
       toast({ title: 'Please select a document first' })
       return
     }
-    openTool(id, { initialDoc: toProcessed(source) })
+    openTool(id, { initialDoc: toProcessed(source), initialCaseId: source.caseId ?? undefined })
   }
 
 
@@ -1202,9 +1149,7 @@ export function DocumentsPage() {
                   </p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                  <Button size="sm" variant="outline" className="h-9 px-3" onClick={fetchDocs} title="Refresh">
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </Button>
+                  <RefreshButton onClick={fetchDocs} isLoading={isLoading} />
                   <Button size="sm" className="gap-1.5 h-9 px-3 text-xs flex-1 sm:flex-none" onClick={() => setUploadDialogOpen(true)}>
                     <Upload className="h-3.5 w-3.5" /> Upload
                   </Button>
@@ -1298,8 +1243,8 @@ export function DocumentsPage() {
                   ) : (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                        <thead className="sticky top-0 z-20">
+                          <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border [&>th]:bg-ledger-gray-50 dark:[&>th]:bg-ledger-gray-100">
                             <th className="pl-4 pr-2 py-3 w-10 align-middle" onClick={toggleAll}>
                               <input
                                 type="checkbox"
@@ -1528,7 +1473,7 @@ export function DocumentsPage() {
                 case 'split':       return <SplitterDialog   onBack={closeTool} initialDoc={toolCtx.initialDoc} />
                 case 'merge':       return <MergerDialog     onBack={closeTool} initialDocs={toolCtx.initialDocs} />
                 case 'convert':     return <ConverterDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} onOpenDoc={(id) => { closeTool(); setSelectedDocId(id) }} />
-                case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} />
+                case 'compress':    return <CompressorDialog  onBack={closeTool} initialDoc={toolCtx.initialDoc} initialCaseId={toolCtx.initialCaseId} />
                 case 'translation': return <TranslationDialog onBack={closeTool} initialDoc={toolCtx.initialDoc} onJobStarted={handleTranslationJobStarted} />
                 default:            return null
               }

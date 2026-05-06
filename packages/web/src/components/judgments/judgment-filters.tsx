@@ -216,20 +216,17 @@ export function JudgmentFiltersBar({ filters, onFiltersChange }: JudgmentFilters
             .catch(() => {/* non-fatal */})
     }, [])
 
-    // Re-fetch judges when court filter changes (cascading)
+    // Re-fetch judges when court filter changes (read-only — never calls onFiltersChange).
+    // Judge is cleared at the moment Court changes (in the Court onChange handler), so this
+    // effect must not call onFiltersChange or it will overwrite other filters with a stale
+    // closure (e.g. a search term the user just typed).
     useEffect(() => {
         judgmentsApi.getJudges(filters.court)
             .then((list) => {
-                // Filter out null/empty values from backend
                 const filtered = list.filter((j): j is string => !!j && j.trim() !== '')
                 setJudges(filtered)
-                // Clear selected judge if no longer in the filtered list
-                if (filters.judge && !filtered.includes(filters.judge)) {
-                    onFiltersChange({ ...filters, judge: undefined })
-                }
             })
             .catch(() => {/* non-fatal */})
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filters.court])
 
     const advancedBadgeCount = countAdvanced(pickAdvanced(filters))
@@ -256,10 +253,18 @@ export function JudgmentFiltersBar({ filters, onFiltersChange }: JudgmentFilters
                 )}
             </div>
 
-            {/* Court */}
+            {/* Court — clears the selected judge atomically when court changes,
+                because the available judge list is court-scoped. */}
             <Select
                 value={filters.court ?? ''}
-                onChange={(e) => onFiltersChange({ ...filters, court: e.target.value || undefined })}
+                onChange={(e) => {
+                    const newCourt = e.target.value || undefined
+                    onFiltersChange({
+                        ...filters,
+                        court: newCourt,
+                        judge: newCourt === filters.court ? filters.judge : undefined,
+                    })
+                }}
                 searchable
                 searchPlaceholder="Search court..."
                 className="w-[170px]"

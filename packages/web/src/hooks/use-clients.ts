@@ -1,9 +1,11 @@
-// Hook for fetching paginated client list with associated cases
+// Hook for fetching paginated client list.
+// The list response now includes lightweight `caseSummaries`, so we no longer
+// fetch each case individually — `client.cases` is synthesized from those summaries.
 
 import { useState, useEffect, useCallback } from 'react'
-import { clientApi, caseApi, ApiError } from '@knowlex/core/api'
-import { mapBackendClient, mapBackendCase } from '@knowlex/core/mappers'
-import type { ClientWithCase } from '@knowlex/core/types'
+import { clientApi, ApiError } from '@knowlex/core/api'
+import { mapBackendClient } from '@knowlex/core/mappers'
+import type { ClientWithCase, Case } from '@knowlex/core/types'
 
 interface UseClientsOptions {
   page?: number
@@ -36,7 +38,6 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
     setError(null)
 
     try {
-      // Fetch clients
       const clientsResponse = await clientApi.getAll({
         page: currentPage,
         size: pageSize,
@@ -47,32 +48,25 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
       }
 
       const paginatedData = clientsResponse.data
-      const backendClients = paginatedData.content
-      const mappedClients = backendClients.map(mapBackendClient)
+      const mappedClients = paginatedData.content.map(mapBackendClient)
 
-      // Fetch associated cases for each client
-      const allCaseIds = [...new Set(backendClients.flatMap((c) => c.caseIds ?? []))]
-
-      const casePromises = allCaseIds.map((id) =>
-        caseApi.getById(id).catch(() => null)
-      )
-      const caseResponses = await Promise.all(casePromises)
-
-      // Create a map of caseId -> Case
-      const casesMap = new Map<string, ReturnType<typeof mapBackendCase>>()
-      caseResponses.forEach((response) => {
-        if (response?.status === 'success' && response.data) {
-          const mappedCase = mapBackendCase(response.data)
-          casesMap.set(mappedCase.id, mappedCase)
-        }
-      })
-
-      // Combine clients with their cases
+      // Synthesize the minimal Case[] the list UI needs (id + status + a couple of
+      // display fields) directly from caseSummaries — no extra round-trips.
       const clientsWithCases: ClientWithCase[] = mappedClients.map((client) => ({
         ...client,
-        cases: client.caseIds
-          .map((cId) => casesMap.get(cId))
-          .filter((c): c is NonNullable<typeof c> => c != null),
+        cases: client.caseSummaries.map((s): Case => ({
+          id: s.caseId,
+          caseNumber: s.caseNumber,
+          caseType: null,
+          status: s.caseStatus,
+          caseTitle: s.caseTitle,
+          judgeName: null,
+          courtName: s.courtName,
+          courtLocation: null,
+          nextHearingDate: s.nextHearingDate,
+          createdAt: client.createdAt,
+          updatedAt: client.updatedAt,
+        })),
       }))
 
       setClients(clientsWithCases)

@@ -128,7 +128,7 @@ export const workspaceApi = {
   },
 
   /**
-   * List USER_UPLOADED documents with server-side pagination.
+   * List case sources (USER_UPLOADED + JUDGMENT) with server-side pagination.
    */
   async getCaseDocumentsPaginated(
     caseId: string,
@@ -136,10 +136,11 @@ export const workspaceApi = {
   ): Promise<{ documents: CaseDocument[]; total: number }> {
     const params = new URLSearchParams({
       caseId,
-      type: 'USER_UPLOADED',
-      page: String(opts.page - 1),   // hook is 1-based ��� API is 0-based
+      page: String(opts.page - 1),   // hook is 1-based — API is 0-based
       size: String(opts.limit),
     })
+    params.append('type', 'USER_UPLOADED')
+    params.append('type', 'JUDGMENT')
     const response = await apiClient.get<ApiResponse<SpringPage<CaseDocument>>>(
       `/api/v1/documents?${params}`
     )
@@ -196,17 +197,25 @@ export const workspaceApi = {
     return response.data.uploadUrl
   },
 
-  async deleteDocuments(documentIds: string[]): Promise<void> {
-    await fetch(`${getBaseUrl()}/api/v1/documents`, {
+  async deleteDocuments(
+    documentIds: string[],
+  ): Promise<{ deleted: number; notFound: number; skipped: number }> {
+    const res = await fetch(`${getBaseUrl()}/api/v1/documents`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify({ documentIds }),
-    }).then(async (res) => {
-      if (!res.ok) {
-        const body: { message?: string } = await res.json().catch(() => ({}))
-        throw new Error(body?.message ?? `Delete failed: ${res.status}`)
-      }
     })
+    if (!res.ok) {
+      const body: { message?: string } = await res.json().catch(() => ({}))
+      throw new Error(body?.message ?? `Delete failed: ${res.status}`)
+    }
+    const body: { data?: { deleted?: number; notFound?: number; skipped?: number } } =
+      await res.json().catch(() => ({}))
+    return {
+      deleted: body.data?.deleted ?? 0,
+      notFound: body.data?.notFound ?? 0,
+      skipped: body.data?.skipped ?? 0,
+    }
   },
 
   async sendChatQuery(query: string, filterFileIds: string[]): Promise<ChatResponse> {

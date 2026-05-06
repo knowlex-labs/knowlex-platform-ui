@@ -14,14 +14,14 @@ export function Judgments() {
         setPageSize,
         isLoading,
         error,
-        sort,
+        sorts,
         toggleSort,
         refresh,
     } = useJudgments()
 
     return (
         <div>
-            <div className="px-2 py-4 space-y-4">
+            <div className="px-2 pb-4 space-y-4">
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
                     <div>
@@ -29,7 +29,7 @@ export function Judgments() {
                             Judgments
                         </h2>
                         <p className="text-sm text-ledger-gray-500 mt-1">
-                            Browse Supreme Court judgments
+                            Browse Supreme Court Judgments
                         </p>
                     </div>
                     <RefreshButton onClick={refresh} isLoading={isLoading} className="w-full sm:w-auto" />
@@ -53,7 +53,7 @@ export function Judgments() {
                     <JudgmentTable
                         judgments={judgments}
                         isLoading={isLoading}
-                        sort={sort}
+                        sorts={sorts}
                         toggleSort={toggleSort}
                     />
 

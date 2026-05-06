@@ -9,8 +9,14 @@ import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import type { CaseDocument } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
 
-function getFileExt(name: string): string {
-  return name.split('.').pop()?.toUpperCase() || 'FILE'
+function getFileExt(name: string, fileType?: string | null): string {
+  if (fileType) return fileType.toUpperCase()
+  const dot = name.lastIndexOf('.')
+  if (dot < 0 || dot === name.length - 1) return 'FILE'
+  const ext = name.slice(dot + 1)
+  // Sanity guard: real extensions are short. If the "ext" is long, treat as no extension.
+  if (ext.length > 6) return 'FILE'
+  return ext.toUpperCase()
 }
 
 function formatRelativeTime(date: Date | string): string {
@@ -25,8 +31,8 @@ function formatRelativeTime(date: Date | string): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function FileIconBadge({ name }: { name: string }) {
-  const ext = getFileExt(name)
+function FileIconBadge({ name, fileType }: { name: string; fileType?: string | null }) {
+  const ext = getFileExt(name, fileType)
   const isPdf = ext === 'PDF'
   const isDoc = ext === 'DOCX' || ext === 'DOC'
   return (
@@ -370,9 +376,9 @@ export function WorkspaceSourcesPanel({
                 <div
                   key={doc.id}
                   className="group flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-kx-primary-50 dark:hover:bg-kx-primary-950/20 cursor-pointer transition-colors"
-                  onDoubleClick={() => onDoubleClickDocument?.(doc)}
+                  onClick={() => { if (!isRenaming) onDoubleClickDocument?.(doc) }}
                 >
-                  <FileIconBadge name={name} />
+                  <FileIconBadge name={name} fileType={doc.fileType} />
                   <div className="flex-1 min-w-0">
                     {isRenaming ? (
                       <InlineRenameInput
@@ -390,7 +396,7 @@ export function WorkspaceSourcesPanel({
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5 flex-wrap min-w-0">
                           <span className="text-[10px] text-ledger-gray-500 font-medium shrink-0">
-                            {getFileExt(name)}
+                            {getFileExt(name, doc.fileType)}
                           </span>
                           <span className="text-[10px] text-ledger-gray-400 shrink-0" aria-hidden>·</span>
                           <IndexingStatusInline status={doc.indexingStatus} />

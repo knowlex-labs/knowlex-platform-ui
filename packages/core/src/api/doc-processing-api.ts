@@ -60,6 +60,22 @@ export interface CompressResponse {
   document: ProcessedDocumentInfo
 }
 
+/** Returned by /compress/preview — file is staged in S3, not yet in the user's library. */
+export interface CompressPreviewResponse {
+  tempKey: string
+  downloadUrl: string
+  fileName: string
+  fileSize: number
+  pageCount: number
+}
+
+export interface SaveCompressedRequest {
+  tempKey: string
+  caseId?: string
+  fileName: string
+  sourceDocumentId: string
+}
+
 /** Alias so call-sites can import DocumentRecordType without changing imports. */
 export type DocumentRecordType = DocumentType
 
@@ -349,6 +365,13 @@ export const docProcessingApi = {
   compress: (data: CompressRequest) =>
     apiClient.post<ApiResponse<CompressResponse>>('/api/v1/doc-processing/compress', data),
 
+  /** Compress and stage the result in a temp S3 location; user must call saveCompressed() to persist. */
+  compressPreview: (data: CompressRequest) =>
+    apiClient.post<ApiResponse<CompressPreviewResponse>>('/api/v1/doc-processing/compress/preview', data),
+
+  saveCompressed: (data: SaveCompressedRequest) =>
+    apiClient.post<ApiResponse<CompressResponse>>('/api/v1/doc-processing/compress/save', data),
+
   editPdf: (data: EditPdfRequest) =>
     apiClient.post<ApiResponse<EditPdfResponse>>('/api/v1/doc-processing/edit', data),
 }
@@ -416,6 +439,20 @@ export async function getEditState(documentId: string): Promise<EditStateRespons
     `/api/v1/documents/${documentId}/edit-state`,
   )
   return res.data
+}
+
+/**
+ * PUT /api/v1/documents/{id}/content — replace the document's rendered content
+ * (HTML or markdown). Body is sent as text/plain; backend stores as-is.
+ */
+export async function updateDocumentContent(documentId: string, content: string): Promise<void> {
+  const { env } = getAdapters()
+  const res = await fetch(`${env.apiBaseUrl}/api/v1/documents/${documentId}/content`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'text/plain', ...getAuthHeaders() },
+    body: content,
+  })
+  if (!res.ok) throw new ApiError(`Failed to update document content (${res.status})`, res.status)
 }
 
 /**

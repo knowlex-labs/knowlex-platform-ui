@@ -16,10 +16,11 @@ interface DeleteClientDialogProps {
   onOpenChange: (open: boolean) => void
   clientId: string
   clientName: string
+  linkedCaseCount?: number
   onSuccess: () => void
 }
 
-export function DeleteClientDialog({ open, onOpenChange, clientId, clientName, onSuccess }: DeleteClientDialogProps) {
+export function DeleteClientDialog({ open, onOpenChange, clientId, clientName, linkedCaseCount = 0, onSuccess }: DeleteClientDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,6 +61,13 @@ export function DeleteClientDialog({ open, onOpenChange, clientId, clientName, o
             Are you sure you want to delete <span className="font-semibold text-kx-primary-900">{clientName}</span>? This action cannot be undone.
           </DialogDescription>
         </DialogHeader>
+
+        {linkedCaseCount > 0 && (
+          <div className="p-3 text-sm text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded">
+            This will unlink <span className="font-semibold">{linkedCaseCount} case{linkedCaseCount === 1 ? '' : 's'}</span> from this client.
+            The case{linkedCaseCount === 1 ? '' : 's'} and {linkedCaseCount === 1 ? 'its' : 'their'} documents will remain — you can re-assign {linkedCaseCount === 1 ? 'it' : 'them'} to another client.
+          </div>
+        )}
 
         {error && (
           <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded">
