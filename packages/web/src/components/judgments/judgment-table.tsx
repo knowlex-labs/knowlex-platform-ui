@@ -41,11 +41,11 @@ export function JudgmentTable({ judgments, isLoading, sorts, toggleSort }: Judgm
                     <thead>
                         <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
                             <SortableHeader label="Citation" field="citation" sorts={sorts} onToggle={toggleSort} />
-                            <SortableHeader label="Title" field="title" sorts={sorts} onToggle={toggleSort} />
-                            <SortableHeader label="Court" field="court" sorts={sorts} onToggle={toggleSort} className="hidden lg:table-cell" />
-                            <SortableHeader label="Judge(s)" field="authorJudge" sorts={sorts} onToggle={toggleSort} className="hidden md:table-cell" />
+                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Title</th>
+                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Court</th>
+                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden md:table-cell">Judge(s)</th>
                             <SortableHeader label="Decision Date" field="decisionDate" sorts={sorts} onToggle={toggleSort} />
-                            <SortableHeader label="Verdict" field="disposalNature" sorts={sorts} onToggle={toggleSort} className="hidden xl:table-cell" />
+                            <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden xl:table-cell">Verdict</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-kx-card-border">

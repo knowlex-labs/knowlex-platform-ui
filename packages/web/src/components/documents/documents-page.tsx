@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
-  Upload, Scissors, Minimize2, Layers, RefreshCw,
+  Upload, Scissors, Minimize2, Layers,
   FileText, File, Download, Eye, Image, FileCode2,
   Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2, FolderOpen,
@@ -8,6 +8,7 @@ import {
   ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { RefreshButton } from '@/components/ui/refresh-button'
 import { cn } from '@/lib/utils'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -1148,9 +1149,7 @@ export function DocumentsPage() {
                   </p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                  <Button size="sm" variant="outline" className="h-9 px-3" onClick={fetchDocs} title="Refresh">
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  </Button>
+                  <RefreshButton onClick={fetchDocs} isLoading={isLoading} />
                   <Button size="sm" className="gap-1.5 h-9 px-3 text-xs flex-1 sm:flex-none" onClick={() => setUploadDialogOpen(true)}>
                     <Upload className="h-3.5 w-3.5" /> Upload
                   </Button>
