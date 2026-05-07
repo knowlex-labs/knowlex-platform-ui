@@ -161,9 +161,9 @@ export default function ClientDetailScreen() {
               paddingHorizontal: 10,
               paddingVertical: 3,
               borderRadius: radius.full,
-              backgroundColor: client.clientType === 'company' ? colors.kxAccent[50] : colors.kxPrimary[50],
+              backgroundColor: client.clientType === 'company' ? colors.kxAccent[400] + '20' : colors.kxPrimary[50],
             }}>
-              <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: client.clientType === 'company' ? colors.kxAccent[700] : colors.kxPrimary[700], textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: client.clientType === 'company' ? colors.kxAccent[600] : colors.kxPrimary[700], textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 {client.clientType === 'company' ? 'Company' : 'Individual'}
               </Text>
             </View>

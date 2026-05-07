@@ -130,7 +130,7 @@ export default function DashboardScreen() {
               gap: spacing.sm,
             })}
           >
-            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: colors.kxAccent[50], alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: 36, height: 36, borderRadius: radius.md, backgroundColor: colors.kxAccent[400] + '20', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ fontSize: 18 }}>🗂️</Text>
             </View>
             <View style={{ flex: 1 }}>
