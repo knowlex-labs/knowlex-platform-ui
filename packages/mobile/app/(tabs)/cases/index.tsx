@@ -56,7 +56,7 @@ export default function CaseListScreen() {
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       {/* Header + Search */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
-        <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }}>
+        <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, fontFamily: typography.fontFamily.serif }}>
           Cases
         </Text>
         <TextInput

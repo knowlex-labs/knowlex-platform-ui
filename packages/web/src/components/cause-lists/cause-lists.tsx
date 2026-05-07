@@ -140,7 +140,7 @@ export function CauseLists() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)] md:h-[calc(100vh-16px)]">
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+      <div className="flex-1 overflow-y-auto space-y-4">
         {/* Header */}
         <div className="space-y-3 mb-4 md:mb-6">
           <div className="flex items-center justify-between">

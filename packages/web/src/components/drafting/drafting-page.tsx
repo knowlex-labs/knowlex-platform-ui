@@ -363,7 +363,7 @@ export function DraftingPage() {
   // ═══ Inline preview ═══
   if (mode === 'inline-preview' && inlinePreview) {
     return (
-      <div className="px-6 pt-6 flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
+      <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
         <div className="flex items-center gap-3 mb-4 flex-shrink-0">
           <button
             type="button"
@@ -458,7 +458,7 @@ export function DraftingPage() {
   // ═══ Details (form) ═══
   if (mode === 'details' && selectedTemplate) {
     return (
-      <div className="px-6 pt-6 flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
+      <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
         <div className="flex items-center gap-3 mb-5 flex-shrink-0">
           <button
             type="button"
@@ -591,12 +591,14 @@ export function DraftingPage() {
   // ═══ Home splash: choose between predefined / custom + recent drafts ═══
   if (mode === 'home') {
     return (
-      <div className="px-6 pt-6 pb-10">
-        <div className="mb-8">
-          <h1 className="text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">Drafts</h1>
-          <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
-            Generate legal documents with AI. Start from a built-in template or your own.
-          </p>
+      <div className="pb-10">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+          <div>
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">Drafts</h2>
+            <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
+              Generate legal documents with AI. Start from a built-in template or your own.
+            </p>
+          </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mb-10">
           <button
@@ -645,20 +647,22 @@ export function DraftingPage() {
 
   // ═══ Predefined templates landing: templates grid + recent drafts list ═══
   return (
-    <div className="px-6 pt-6 pb-10">
-      <div className="mb-6">
-        <button
-          type="button"
-          onClick={() => setMode('home')}
-          className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors mb-3"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </button>
-        <h1 className="text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">Predefined Templates</h1>
-        <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
-          Pick a template to generate a new draft.
-        </p>
+    <div className="pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+        <div>
+          <button
+            type="button"
+            onClick={() => setMode('home')}
+            className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors mb-1"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">Predefined Templates</h2>
+          <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
+            Pick a template to generate a new draft.
+          </p>
+        </div>
       </div>
 
       {/* Templates */}

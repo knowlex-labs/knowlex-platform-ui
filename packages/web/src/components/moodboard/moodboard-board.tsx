@@ -199,35 +199,32 @@ export function MoodboardBoard() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-var(--mobile-header-height,0px))]">
-      <header className="flex-shrink-0 px-6 md:px-8 py-4 border-b border-kx-card-border bg-kx-card">
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="font-serif text-xl md:text-2xl font-semibold text-kx-text-primary truncate">
-              Tasks
-            </h1>
-            {board?.description && (
-              <p className="text-sm text-ledger-gray-500 mt-0.5 truncate">{board.description}</p>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => setBacklogOpen(true)}
-              className="px-2.5 py-1.5 rounded-md text-xs font-medium text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-white/5 hover:text-kx-primary-600 transition-colors"
-            >
-              Backlog
-            </button>
-            <button
-              type="button"
-              onClick={() => setArchiveOpen(true)}
-              className="px-2.5 py-1.5 rounded-md text-xs font-medium text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-white/5 hover:text-kx-primary-600 transition-colors"
-            >
-              Archive
-            </button>
-          </div>
+      <div className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
+            Tasks
+          </h2>
+          {board?.description && (
+            <p className="text-sm text-ledger-gray-500 mt-1">{board.description}</p>
+          )}
         </div>
-      </header>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setBacklogOpen(true)}
+            className="px-2.5 py-1.5 rounded-md text-xs font-medium text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-white/5 hover:text-kx-primary-600 transition-colors"
+          >
+            Backlog
+          </button>
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(true)}
+            className="px-2.5 py-1.5 rounded-md text-xs font-medium text-ledger-gray-500 hover:bg-ledger-gray-100 dark:hover:bg-white/5 hover:text-kx-primary-600 transition-colors"
+          >
+            Archive
+          </button>
+        </div>
+      </div>
 
       <div className="flex-1 overflow-hidden p-4 md:p-6">
         {error && <ErrorDisplay message={error} onRetry={refresh} />}
