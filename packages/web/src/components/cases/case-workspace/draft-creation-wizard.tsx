@@ -217,14 +217,13 @@ export function DraftCreationWizard({
   }
 
   const handleSourceToggle = (sourceId: string) => {
-    let isAdding = false
+    const isAdding = !localSourceIds.has(sourceId)
     setLocalSourceIds((prev) => {
       const next = new Set(prev)
       if (next.has(sourceId)) {
         next.delete(sourceId)
       } else {
         next.add(sourceId)
-        isAdding = true
       }
       return next
     })
