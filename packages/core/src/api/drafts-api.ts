@@ -97,4 +97,15 @@ export const draftsApi = {
     )
     return response.data
   },
+
+  // Synchronously extract suggested form-field values from an uploaded source PDF.
+  // Used by the drafting form's auto-fill (Bug 5). Returns only the fields the
+  // document evidences; FE merges non-destructively (never clobbers user input).
+  extractFields: async (fileId: string): Promise<Record<string, string>> => {
+    const response = await apiClient.post<ApiResponse<{ suggested_fields: Record<string, string> }>>(
+      '/api/v1/drafts/extract-fields',
+      { file_id: fileId }
+    )
+    return response.data?.suggested_fields ?? {}
+  },
 }

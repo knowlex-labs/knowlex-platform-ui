@@ -20,7 +20,7 @@ import {
   TEMPLATE_TO_SUB_TYPE as CORE_TEMPLATE_TO_SUB_TYPE,
   buildCreateDraftPayload,
 } from '@knowlex/core/api/draft-helpers'
-import { clientApi } from '@knowlex/core/api'
+import { clientApi, draftsApi } from '@knowlex/core/api'
 import { mapBackendClient } from '@knowlex/core/mappers'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 
@@ -42,6 +42,14 @@ export interface DraftCreationWizardProps {
   judgments?: CaseDocument[]
   client: Client | null
   respondentDetails?: string
+  // Optional. When supplied, the wizard pre-fills court_details and
+  // case_number form fields from the selected case (Bug 5 — auto-fill).
+  // Structural shape so it accepts both BackendCase and Case.
+  caseInfo?: {
+    caseNumber?: string | null
+    courtName?: string | null
+    courtLocation?: string | null
+  } | null
   onSaveRespondent?: (details: string) => void
   onGenerate: (request: CreateDraftRequest) => void
   onSave: () => void
@@ -90,7 +98,7 @@ const CLIENT_FIELD_IDS = new Set([
 ])
 
 export function DraftCreationWizard({
-  sources, judgments = [], client, respondentDetails, onSaveRespondent,
+  sources, judgments = [], client, respondentDetails, caseInfo, onSaveRespondent,
   onGenerate, onSave, onDiscard, onCancel, previewDraft = null,
   defaultTemplateId, initialFormValues,
 }: DraftCreationWizardProps) {
@@ -109,11 +117,15 @@ export function DraftCreationWizard({
   const [isEditingPreview, setIsEditingPreview] = useState(false)
   const previewEditorRef = useRef<HTMLDivElement>(null)
 
-  // Pre-fill form when template changes: client → first-party field, respondent → opposing-party field
+  // Pre-fill form when template changes: client → first-party field, respondent → opposing-party field,
+  // and selected-case metadata → court_details / case_number where applicable (Bug 5).
   useEffect(() => {
     if (!selectedTemplate) return
     const clientText = client
       ? [client.name, client.address, client.phone].filter(Boolean).join(', ')
+      : ''
+    const courtDetailsFromCase = caseInfo
+      ? [caseInfo.courtName, caseInfo.courtLocation].filter(Boolean).join(', ')
       : ''
     const initial: TemplateFormData = {}
     selectedTemplate.fields.forEach((field) => {
@@ -129,6 +141,10 @@ export function DraftCreationWizard({
         } else {
           initial[field.id] = ''
         }
+      } else if (field.id === 'court_details' && courtDetailsFromCase) {
+        initial[field.id] = courtDetailsFromCase
+      } else if (field.id === 'case_number' && caseInfo?.caseNumber) {
+        initial[field.id] = caseInfo.caseNumber
       } else {
         initial[field.id] = ''
       }
@@ -203,11 +219,42 @@ export function DraftCreationWizard({
   }
 
   const handleSourceToggle = (sourceId: string) => {
+    let isAdding = false
     setLocalSourceIds((prev) => {
       const next = new Set(prev)
-      next.has(sourceId) ? next.delete(sourceId) : next.add(sourceId)
+      if (next.has(sourceId)) {
+        next.delete(sourceId)
+      } else {
+        next.add(sourceId)
+        isAdding = true
+      }
       return next
     })
+    // On add, ask the backend to extract suggested form values from the
+    // source PDF and merge them into formData — only filling fields the
+    // user hasn't already typed into. Best-effort; failures are silent.
+    if (isAdding) {
+      draftsApi
+        .extractFields(sourceId)
+        .then((suggested) => {
+          if (!suggested || Object.keys(suggested).length === 0) return
+          setFormData((prev) => {
+            const next = { ...prev }
+            for (const [k, v] of Object.entries(suggested)) {
+              const existing = typeof next[k] === 'string' ? (next[k] as string).trim() : ''
+              if (!existing && v && v.trim()) {
+                next[k] = v
+              }
+            }
+            return next
+          })
+        })
+        .catch((err) => {
+          // Auto-fill is best-effort; an extraction failure shouldn't
+          // disrupt the form.
+          console.warn('[draft] extractFields failed', err)
+        })
+    }
   }
 
   const titleValue = (formData['title'] as string) || ''
