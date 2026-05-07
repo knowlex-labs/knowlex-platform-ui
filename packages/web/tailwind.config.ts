@@ -60,7 +60,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        serif: ['"Times New Roman"', 'Times', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       borderRadius: {

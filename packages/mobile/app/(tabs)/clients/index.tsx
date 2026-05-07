@@ -72,7 +72,7 @@ export default function ClientsScreen() {
       {/* Header */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
-          <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }}>
+          <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, fontFamily: typography.fontFamily.serif }}>
             Clients
           </Text>
           {!loading && (

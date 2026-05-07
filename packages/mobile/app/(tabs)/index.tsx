@@ -62,7 +62,7 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.kxPrimary[600]} />}
       >
         {/* Greeting */}
-        <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, fontFamily: typography.fontFamily.sans }}>
+        <Text style={{ fontSize: typography.fontSize['2xl'], fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, fontFamily: typography.fontFamily.serif }}>
           {getGreeting()},{'\n'}
           <Text style={{ color: colors.kxPrimary[600] }}>{user?.firstName || 'Counsellor'}</Text>
         </Text>

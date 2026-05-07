@@ -190,7 +190,7 @@ export const darkColors = {
 export const typography = {
   fontFamily: {
     sans: 'Inter',
-    serif: 'PlayfairDisplay',
+    serif: 'Times New Roman',
     mono: 'JetBrainsMono',
   },
   fontSize: {

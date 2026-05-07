@@ -97,11 +97,11 @@ export function DashboardHome() {
   return (
     <div className="space-y-6 md:space-y-8 min-w-0">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-lg md:text-xl font-serif font-semibold text-kx-primary-900">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+        <div>
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
             {greeting}, {displayName}
-          </h1>
+          </h2>
           <p className="text-sm text-ledger-gray-500 mt-1">Here's an overview of your practice</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
