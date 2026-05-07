@@ -42,8 +42,6 @@ export interface DraftCreationWizardProps {
   judgments?: CaseDocument[]
   client: Client | null
   respondentDetails?: string
-  // Optional. When supplied, the wizard pre-fills court_details and
-  // case_number form fields from the selected case (Bug 5 — auto-fill).
   // Structural shape so it accepts both BackendCase and Case.
   caseInfo?: {
     caseNumber?: string | null
@@ -118,7 +116,7 @@ export function DraftCreationWizard({
   const previewEditorRef = useRef<HTMLDivElement>(null)
 
   // Pre-fill form when template changes: client → first-party field, respondent → opposing-party field,
-  // and selected-case metadata → court_details / case_number where applicable (Bug 5).
+  // and selected-case metadata → court_details / case_number where applicable.
   useEffect(() => {
     if (!selectedTemplate) return
     const clientText = client
@@ -230,9 +228,8 @@ export function DraftCreationWizard({
       }
       return next
     })
-    // On add, ask the backend to extract suggested form values from the
-    // source PDF and merge them into formData — only filling fields the
-    // user hasn't already typed into. Best-effort; failures are silent.
+    // Best-effort auto-fill on source-add: only populate fields the user
+    // hasn't typed into yet, and never block on failure.
     if (isAdding) {
       draftsApi
         .extractFields(sourceId)
@@ -250,8 +247,6 @@ export function DraftCreationWizard({
           })
         })
         .catch((err) => {
-          // Auto-fill is best-effort; an extraction failure shouldn't
-          // disrupt the form.
           console.warn('[draft] extractFields failed', err)
         })
     }
