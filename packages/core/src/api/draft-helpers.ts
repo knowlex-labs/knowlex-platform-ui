@@ -79,7 +79,7 @@ export function assembleBody(templateId: string, formData: TemplateFormData): st
   const g = (k: string) => get(formData, k)
   switch (templateId) {
     case 'notice':
-      return `Draft a legal notice to ${g('recipient')}. ${g('body')}`.trim()
+      return `Draft a legal notice from ${g('sender')} to ${g('recipient')}. ${g('body')}`.trim()
     case 'patent':
       return `Draft a patent application. Applicant: ${g('applicant')}. Inventor: ${g('inventor')}. Description: ${g('description')}`.trim()
     case 'application-draft':

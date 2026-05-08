@@ -87,7 +87,7 @@ function PreviewSkeleton() {
 }
 
 // Field ids that represent the opposing party / respondent side
-const RESPONDENT_FIELD_IDS = new Set(['respondent', 'opposite_party', 'defendant', 'judgment_debtor'])
+const RESPONDENT_FIELD_IDS = new Set(['respondent', 'opposite_party', 'defendant', 'judgment_debtor', 'recipient'])
 
 // Field ids that represent the client / sender side (first party)
 const CLIENT_FIELD_IDS = new Set([
