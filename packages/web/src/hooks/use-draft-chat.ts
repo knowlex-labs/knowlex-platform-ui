@@ -192,12 +192,11 @@ export function useDraftChat(caseId: string) {
   const sendMessage = useCallback(
     async (message: string, fileIds: string[], webSearch?: boolean) => {
       const trimmed = message.trim()
-      if (!trimmed || !activeSessionId) return
-      // If a stream is already in flight, abort it before starting the next
-      // one so users can interrupt and re-ask without waiting for completion.
-      if (abortControllerRef.current) {
-        stopStreaming()
-      }
+      // Two-click protocol: while a response is streaming, the user must
+      // click Stop first (which sets isStreaming=false), then send. We
+      // refuse to send while a stream is in flight so the stop step is
+      // explicit and intentional.
+      if (!trimmed || isStreaming || !activeSessionId) return
 
       const userMsg: DraftChatMessage = {
         id: `msg-${Date.now()}-user`,
@@ -383,7 +382,7 @@ export function useDraftChat(caseId: string) {
 
       abortControllerRef.current = controller
     },
-    [caseId, activeSessionId, settings, stopStreaming]
+    [caseId, activeSessionId, isStreaming, settings]
   )
 
   const clearChat = useCallback(async () => {

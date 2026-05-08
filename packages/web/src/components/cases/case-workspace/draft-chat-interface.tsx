@@ -252,15 +252,17 @@ export function DraftChatInterface({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim()) return
+    // Two-click protocol: while a response is streaming, ignore submits
+    // (Enter or button) — the user must click Stop first, then Send. The
+    // textarea stays enabled so they can draft their next question in the
+    // meantime.
+    if (!input.trim() || isStreaming) return
     const query = input.trim()
     const fileIds = tempAttachments
       .filter((a) => a.documentId)
       .map((a) => a.documentId!)
     setInput('')
     setTempAttachments([])
-    // sendMessage handles the in-flight abort itself; pressing Enter while
-    // streaming interrupts the current response and sends the new one.
     await onSendMessage(query, fileIds)
   }
 
