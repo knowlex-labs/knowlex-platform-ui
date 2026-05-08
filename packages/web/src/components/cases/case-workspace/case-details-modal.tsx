@@ -17,12 +17,9 @@ interface CaseDetailsModalProps {
 }
 
 const STATUS_OPTIONS: { value: BackendCaseStatus; label: string }[] = [
-  { value: 'OPEN', label: 'Open' },
   { value: 'ACTIVE', label: 'Active' },
-  { value: 'PENDING', label: 'Pending' },
   { value: 'ON_HOLD', label: 'On Hold' },
   { value: 'CLOSED', label: 'Closed' },
-  { value: 'ARCHIVED', label: 'Archived' },
 ]
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
@@ -63,7 +60,7 @@ export function CaseDetailsModal({
   // Case fields
   const [caseTitle, setCaseTitle] = useState('')
   const [caseNumber, setCaseNumber] = useState('')
-  const [caseStatus, setCaseStatus] = useState<BackendCaseStatus>('OPEN')
+  const [caseStatus, setCaseStatus] = useState<BackendCaseStatus>('ACTIVE')
   const [caseType, setCaseType] = useState('')
   const [judgeName, setJudgeName] = useState('')
   const [courtName, setCourtName] = useState('')

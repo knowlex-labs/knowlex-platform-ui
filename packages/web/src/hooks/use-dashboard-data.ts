@@ -61,7 +61,7 @@ export function useDashboardData(): UseDashboardDataResult {
       // Compute stats from real data
       const now = new Date()
       const activeCases = mappedCases.filter(
-        (c) => c.status === 'active' || c.status === 'pending' || c.status === 'on-hold'
+        (c) => c.status === 'active' || c.status === 'on-hold'
       ).length
 
       const upcomingHearings = mappedCases.filter(

@@ -1,24 +1,12 @@
 // Map backend Client to frontend Client
 
-import type { BackendClient, BackendClientCaseSummary, BackendClientType, BackendCaseStatus } from '../types/api.types'
-import type { Client, ClientCaseSummary, ClientType, CaseStatus } from '../types/client.types'
+import type { BackendClient, BackendClientCaseSummary, BackendClientType } from '../types/api.types'
+import type { Client, ClientCaseSummary, ClientType } from '../types/client.types'
+import { mapCaseStatus } from './case-mapper'
 
 const clientTypeMap: Record<BackendClientType, ClientType> = {
   INDIVIDUAL: 'individual',
   COMPANY: 'company',
-}
-
-const caseStatusMap: Record<BackendCaseStatus, CaseStatus> = {
-  OPEN: 'active',
-  PENDING: 'pending',
-  CLOSED: 'closed',
-  ARCHIVED: 'archived',
-  ACTIVE: 'active',
-  ON_HOLD: 'on-hold',
-}
-
-function toCaseStatus(s: BackendCaseStatus | string | null | undefined): CaseStatus {
-  return (s && caseStatusMap[s as BackendCaseStatus]) || 'pending'
 }
 
 function mapCaseSummary(s: BackendClientCaseSummary): ClientCaseSummary {
@@ -28,7 +16,7 @@ function mapCaseSummary(s: BackendClientCaseSummary): ClientCaseSummary {
     caseNumber: s.caseNumber,
     caseTitle: s.caseTitle,
     caseType: s.caseType,
-    caseStatus: toCaseStatus(s.caseStatus),
+    caseStatus: mapCaseStatus(s.caseStatus),
     courtName: s.courtName,
     nextHearingDate: s.nextHearingDate ? new Date(s.nextHearingDate) : null,
     latestActivity: hasActivity
