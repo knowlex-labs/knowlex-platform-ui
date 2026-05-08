@@ -4,7 +4,6 @@ import { LandingFooter } from '@/components/landing/landing-footer'
 import { goToDashboard } from '@/lib/hosts'
 
 export function BlogLayout() {
-  const navigate = useNavigate()
   return (
     <div className="force-light min-h-screen bg-white">
       <LandingHeader onSignIn={() => goToDashboard('/login')} />

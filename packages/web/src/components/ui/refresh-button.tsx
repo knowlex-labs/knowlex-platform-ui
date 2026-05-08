@@ -15,8 +15,9 @@ export function RefreshButton({ onClick, isLoading, disabled, className }: Refre
       onClick={onClick}
       disabled={disabled ?? isLoading}
       className={cn(
-        'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
-        'text-ledger-gray-400 hover:text-kx-primary-700 hover:bg-ledger-gray-100',
+        'inline-flex items-center gap-1.5 h-9 px-3 rounded-md text-xs font-medium transition-colors',
+        'border border-kx-card-border bg-transparent text-kx-primary-700',
+        'hover:bg-kx-primary-50 hover:border-kx-primary-300',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         className
       )}

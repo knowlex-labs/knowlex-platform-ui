@@ -155,14 +155,14 @@ export function CauseLists() {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                variant="outline"
+                className="gap-1.5 h-9 px-3 text-xs"
                 onClick={openSyncDialog}
                 disabled={isFetching}
               >
                 {isFetching ? (
-                  <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Download className="h-4 w-4 mr-1.5" />
+                  <Download className="h-3.5 w-3.5" />
                 )}
                 {isFetching ? 'Syncing...' : 'Sync from Court'}
               </Button>
