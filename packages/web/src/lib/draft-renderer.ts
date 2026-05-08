@@ -31,8 +31,10 @@ export function renderDraftToHtml(
   _templateType?: string,
   _contentFormat?: 'markdown' | 'html' | 'plain'
 ): string {
-  // Content is already HTML (saved from the editor after user edits)
-  if (content.trim().startsWith('<')) {
+  // Editor-saved drafts begin with a real opening tag. Don't match a
+  // leading HTML comment (e.g. cause-title marker) — that must still go
+  // through marked so the markdown body is parsed.
+  if (/^<[a-zA-Z]/.test(content.trim())) {
     return content
   }
 
@@ -161,7 +163,7 @@ function buildExportCss(scope?: string): string {
 }
 
 export function buildExportBodyHtml(content: string, sections?: DraftSection[]): string {
-  if (content.trim().startsWith('<')) {
+  if (/^<[a-zA-Z]/.test(content.trim())) {
     return content
   }
   if (sections && sections.length > 0) {

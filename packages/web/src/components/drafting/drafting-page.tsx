@@ -23,8 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { draftsApi } from '@knowlex/core/api/drafts-api'
 import { caseApi } from '@knowlex/core/api/case-api'
-import { uploadToolboxFile, getDocument, updateDocumentContent } from '@knowlex/core/api/doc-processing-api'
-import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import { uploadToolboxFile, getDocument, getEditState, updateEditState } from '@knowlex/core/api/doc-processing-api'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 import { useEditorFormatting } from '@/hooks/use-editor-formatting'
 import { FormattingToolbar } from '@/components/editor'
@@ -94,6 +93,9 @@ type PageMode = 'home' | 'list' | 'details' | 'inline-preview'
 
 interface InlinePreview {
   docId: string
+  // ID to use for edit-state PUTs. Diverges from `docId` for PDF documents
+  // where the backend creates a DOCX_COPY row to hold edits.
+  editingDocumentId: string
   title: string
   // 'loading' = we're fetching a known-existing draft's content (skeleton).
   // 'pending' = the agent is still generating it (typewriter animation).
@@ -326,7 +328,7 @@ export function DraftingPage() {
     setMode('inline-preview')
     setIsEditingPreview(false)
     setPreviewDirty(false)
-    setInlinePreview({ docId, title: 'Loading…', status: 'loading', contentHtml: '' })
+    setInlinePreview({ docId, editingDocumentId: docId, title: 'Loading…', status: 'loading', contentHtml: '' })
     try {
       const doc = await getDocument(docId)
       const js = (doc.jobStatus ?? '').toString().toUpperCase()
@@ -334,24 +336,23 @@ export function DraftingPage() {
         js === 'COMPLETED' ? 'completed' :
         js === 'FAILED' ? 'failed' : 'pending'
       let contentHtml = ''
+      let editingDocumentId = docId
       if (status === 'completed') {
         try {
-          const content = await workspaceApi.fetchDocumentContent({
-            id: doc.id,
-            signedUrl: doc.signedUrl,
-            downloadUrl: doc.downloadUrl,
-          })
-          contentHtml = renderDraftToHtml(content)
+          const editState = await getEditState(docId)
+          editingDocumentId = editState.editingDocumentId ?? docId
+          contentHtml = renderDraftToHtml(editState.content)
         } catch { /* content unavailable */ }
       }
       setInlinePreview({
         docId,
+        editingDocumentId,
         title: doc.originalFilename || doc.name || 'Draft',
         status,
         contentHtml,
       })
     } catch {
-      setInlinePreview({ docId, title: 'Draft', status: 'failed', contentHtml: '' })
+      setInlinePreview({ docId, editingDocumentId: docId, title: 'Draft', status: 'failed', contentHtml: '' })
     }
   }, [])
 
@@ -360,8 +361,10 @@ export function DraftingPage() {
     const html = previewEditorRef.current.innerHTML
     setIsSavingPreview(true)
     try {
-      await updateDocumentContent(inlinePreview.docId, html)
-      setInlinePreview({ ...inlinePreview, contentHtml: html })
+      const editState = await getEditState(inlinePreview.docId)
+      const editingDocumentId = editState.editingDocumentId ?? inlinePreview.docId
+      await updateEditState(editingDocumentId, html)
+      setInlinePreview({ ...inlinePreview, editingDocumentId, contentHtml: html })
       setIsEditingPreview(false)
       setPreviewDirty(false)
       toast({ title: 'Draft saved' })
