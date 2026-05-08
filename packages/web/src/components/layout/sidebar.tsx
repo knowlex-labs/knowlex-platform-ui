@@ -62,10 +62,9 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
   const [showUserMenu, setShowUserMenu] = React.useState(false)
 
   const activeTab = getActiveTabFromPath(location.pathname)
-  const visibleTabs = React.useMemo(
-    () => SIDEBAR_TABS.filter((tab) => !(tab.featureFlag && isLocked(tab.featureFlag))),
-    [isLocked]
-  )
+  // Keep all tabs visible — feature-gated ones render with a lock icon and
+  // route to the upgrade page on click. Filtering them out hid the upsell entry.
+  const visibleTabs = SIDEBAR_TABS
 
   const handleLogout = () => {
     logout()
