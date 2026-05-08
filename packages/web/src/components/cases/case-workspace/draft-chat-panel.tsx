@@ -210,7 +210,7 @@ export function DraftChatPanel({
               <PopoverPrimitive.Trigger asChild>
                 <button
                   type="button"
-                  className="flex-shrink-0 p-1.5 rounded-lg text-ledger-gray-400 hover:text-kx-primary-600 hover:bg-kx-primary-50 transition-colors outline-none"
+                  className="ml-auto flex-shrink-0 p-1.5 rounded-lg text-ledger-gray-400 hover:text-kx-primary-600 hover:bg-kx-primary-50 transition-colors outline-none"
                   title="Chat history"
                 >
                   <Clock className="h-3.5 w-3.5" />
