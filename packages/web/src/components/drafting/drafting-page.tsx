@@ -23,10 +23,9 @@ import {
 } from '@/components/ui/dialog'
 import { draftsApi } from '@knowlex/core/api/drafts-api'
 import { caseApi } from '@knowlex/core/api/case-api'
-import { uploadToolboxFile, getDocument, getEditState, updateEditState } from '@knowlex/core/api/doc-processing-api'
-import { renderDraftToHtml } from '@/lib/draft-renderer'
-import { useEditorFormatting } from '@/hooks/use-editor-formatting'
-import { FormattingToolbar } from '@/components/editor'
+import { uploadToolboxFile, getDocument } from '@knowlex/core/api/doc-processing-api'
+import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import { DocumentEditor } from '@/components/editor'
 import { GeneratingState } from '@/components/ui/generating-state'
 import { toast } from '@/hooks/use-toast'
 import type { DraftTemplate, TemplateFormData } from '@knowlex/core/types'
@@ -93,14 +92,10 @@ type PageMode = 'home' | 'list' | 'details' | 'inline-preview'
 
 interface InlinePreview {
   docId: string
-  // ID to use for edit-state PUTs. Diverges from `docId` for PDF documents
-  // where the backend creates a DOCX_COPY row to hold edits.
-  editingDocumentId: string
   title: string
-  // 'loading' = we're fetching a known-existing draft's content (skeleton).
-  // 'pending' = the agent is still generating it (typewriter animation).
+  // 'loading' = we're resolving the doc's status.
+  // 'pending' = the agent is still generating it.
   status: 'loading' | 'pending' | 'completed' | 'failed'
-  contentHtml: string
 }
 
 // A4-shaped skeleton shown while we fetch a completed draft's content.
@@ -159,23 +154,10 @@ export function DraftingPage() {
 
   // Inline preview (when user clicks a recent draft)
   const [inlinePreview, setInlinePreview] = useState<InlinePreview | null>(null)
-  const [isEditingPreview, setIsEditingPreview] = useState(false)
-  const [previewDirty, setPreviewDirty] = useState(false)
-  const [isSavingPreview, setIsSavingPreview] = useState(false)
-  const previewEditorRef = useRef<HTMLDivElement>(null)
-  const previewFormatting = useEditorFormatting(previewEditorRef, () => setPreviewDirty(true))
 
   // Recent drafts list — exposes refresh() and trackJob() so we can mark a
   // freshly-submitted draft and refresh after submission.
   const recentDraftsRef = useRef<RecentDraftsListHandle>(null)
-
-  // Populate editor content after the contentEditable div mounts
-  useEffect(() => {
-    if (isEditingPreview && previewEditorRef.current && inlinePreview?.contentHtml) {
-      previewEditorRef.current.innerHTML = inlinePreview.contentHtml
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditingPreview])
 
   // Fetch cases when entering details step
   useEffect(() => {
@@ -326,66 +308,52 @@ export function DraftingPage() {
   // ── Inline preview (open a completed draft from the list) ──
   const handleOpenDraft = useCallback(async (docId: string) => {
     setMode('inline-preview')
-    setIsEditingPreview(false)
-    setPreviewDirty(false)
-    setInlinePreview({ docId, editingDocumentId: docId, title: 'Loading…', status: 'loading', contentHtml: '' })
+    setInlinePreview({ docId, title: 'Loading…', status: 'loading' })
     try {
       const doc = await getDocument(docId)
       const js = (doc.jobStatus ?? '').toString().toUpperCase()
       const status: InlinePreview['status'] =
         js === 'COMPLETED' ? 'completed' :
         js === 'FAILED' ? 'failed' : 'pending'
-      let contentHtml = ''
-      let editingDocumentId = docId
-      if (status === 'completed') {
-        try {
-          const editState = await getEditState(docId)
-          editingDocumentId = editState.editingDocumentId ?? docId
-          contentHtml = renderDraftToHtml(editState.content)
-        } catch { /* content unavailable */ }
-      }
       setInlinePreview({
         docId,
-        editingDocumentId,
         title: doc.originalFilename || doc.name || 'Draft',
         status,
-        contentHtml,
       })
     } catch {
-      setInlinePreview({ docId, editingDocumentId: docId, title: 'Draft', status: 'failed', contentHtml: '' })
+      setInlinePreview({ docId, title: 'Draft', status: 'failed' })
     }
   }, [])
 
-  const handleSavePreview = async () => {
-    if (!inlinePreview || !previewEditorRef.current || isSavingPreview) return
-    const html = previewEditorRef.current.innerHTML
-    setIsSavingPreview(true)
-    try {
-      const editState = await getEditState(inlinePreview.docId)
-      const editingDocumentId = editState.editingDocumentId ?? inlinePreview.docId
-      await updateEditState(editingDocumentId, html)
-      setInlinePreview({ ...inlinePreview, editingDocumentId, contentHtml: html })
-      setIsEditingPreview(false)
-      setPreviewDirty(false)
-      toast({ title: 'Draft saved' })
-    } catch {
-      toast({ title: "Couldn't save draft", description: 'Please try again.', variant: 'destructive' })
-    } finally {
-      setIsSavingPreview(false)
-    }
-  }
+  // Stream status while the draft is generating so the editor mounts the
+  // moment the agent finishes — no manual refresh needed.
+  const pendingDocId =
+    inlinePreview?.status === 'pending' ? inlinePreview.docId : null
+  useEffect(() => {
+    if (!pendingDocId) return
+    const ctrl = workspaceApi.pollDocumentStatus(pendingDocId, {
+      onStatus: (statusDoc) => {
+        const s = (statusDoc.jobStatus ?? '').toString().toUpperCase()
+        if (s !== 'COMPLETED' && s !== 'FAILED' && s !== 'CANCELLED') return
+        setInlinePreview((prev) =>
+          prev && prev.docId === pendingDocId
+            ? { ...prev, status: s === 'COMPLETED' ? 'completed' : 'failed' }
+            : prev
+        )
+      },
+      onError: () => {},
+      onEnd: () => {},
+    })
+    return () => ctrl.abort()
+  }, [pendingDocId])
 
   const handleBackToList = () => {
     setInlinePreview(null)
-    setIsEditingPreview(false)
-    setPreviewDirty(false)
     setMode('home')
   }
 
   const handleRetryFromFailed = () => {
     setInlinePreview(null)
-    setIsEditingPreview(false)
-    setPreviewDirty(false)
     setMode('list')
   }
 
@@ -408,26 +376,6 @@ export function DraftingPage() {
           <h1 className="text-base font-semibold text-kx-primary-900 truncate">{inlinePreview.title}</h1>
         </div>
 
-        {inlinePreview.status === 'completed' && (
-          <FormattingToolbar
-            isEditing={isEditingPreview}
-            onEdit={() => setIsEditingPreview(true)}
-            onSave={handleSavePreview}
-            onCancel={() => { setIsEditingPreview(false); setPreviewDirty(false) }}
-            onBold={previewFormatting.handleBold}
-            onItalic={previewFormatting.handleItalic}
-            onUnderline={previewFormatting.handleUnderline}
-            onAlignLeft={previewFormatting.handleAlignLeft}
-            onAlignCenter={previewFormatting.handleAlignCenter}
-            onAlignRight={previewFormatting.handleAlignRight}
-            onBulletList={previewFormatting.handleBulletList}
-            onNumberedList={previewFormatting.handleNumberedList}
-            onFontSize={previewFormatting.handleFontSize}
-            isSaving={isSavingPreview}
-            hasChanges={previewDirty}
-          />
-        )}
-
         {inlinePreview.status === 'loading' ? (
           <DraftPreviewSkeleton />
         ) : inlinePreview.status === 'pending' ? (
@@ -446,43 +394,11 @@ export function DraftingPage() {
               </Button>
             </div>
           </div>
-        ) : isEditingPreview ? (
-          <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
-            <div
-              ref={previewEditorRef}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={() => setPreviewDirty(true)}
-              className="legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none ring-2 ring-kx-primary-300"
-              style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: '12pt',
-                lineHeight: '1.6',
-                color: '#000',
-                width: '794px',
-                maxWidth: 'calc(100% - 48px)',
-                minHeight: '900px',
-                padding: '72px 96px',
-              }}
-            />
-          </div>
         ) : (
-          <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
-            <div
-              className="legal-document bg-white mx-auto my-4 shadow-sm cursor-default"
-              style={{
-                fontFamily: "'Times New Roman', Times, serif",
-                fontSize: '12pt',
-                lineHeight: '1.6',
-                color: '#000',
-                width: '794px',
-                maxWidth: 'calc(100% - 48px)',
-                minHeight: '900px',
-                padding: '72px 96px',
-              }}
-              dangerouslySetInnerHTML={{ __html: inlinePreview.contentHtml }}
-            />
-          </div>
+          <DocumentEditor
+            documentId={inlinePreview.docId}
+            className="flex-1"
+          />
         )}
       </div>
     )

@@ -8,26 +8,103 @@ import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableHeader from '@tiptap/extension-table-header'
 import TableCell from '@tiptap/extension-table-cell'
+import TextStyle from '@tiptap/extension-text-style'
 import {
   getEditState,
   updateEditState,
+  resetEditState,
   exportGeneratedDocument,
   type EditStateResponse,
   type GeneratedDocExportFormat,
 } from '@knowlex/core/api'
 import { FormattingToolbar } from './formatting-toolbar'
-import { TranslateAction } from './translate-action'
-import { TransliteratePanel } from './transliterate-panel'
-import { Loader2, Languages } from 'lucide-react'
+import { renderDraftToHtml } from '@/lib/draft-renderer'
+import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 
 const AUTOSAVE_DEBOUNCE_MS = 2000
 
+// Adds a `fontSize` attribute to the TextStyle mark so the toolbar's font-size
+// dropdown can apply per-selection font sizes. StarterKit ships no FontSize
+// mark; this is the standard TipTap v2 idiom.
+const TextStyleWithFontSize = TextStyle.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      fontSize: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.style.fontSize || null,
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.fontSize ? { style: `font-size: ${attrs.fontSize as string}` } : {},
+      },
+    }
+  },
+})
+
+// TipTap's default Table/TableCell schemas drop the `class` and inline `style`
+// attributes. The cause-title block uses a 1-row borderless table for the
+// `Mob.no. NNNN ………Role` line — without these attributes, the table inherits
+// the editor's default visible borders and padding. Preserve them so our CSS
+// selector `.cause-title-row` and per-cell `text-align` survive round-trips.
+const TableWithClass = Table.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute('class'),
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.class ? { class: attrs.class as string } : {},
+      },
+      style: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute('style'),
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.style ? { style: attrs.style as string } : {},
+      },
+    }
+  },
+})
+const TableCellWithStyle = TableCell.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute('style'),
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.style ? { style: attrs.style as string } : {},
+      },
+    }
+  },
+})
+
+// Heuristic: a TipTap JSON doc that still contains literal markdown markers
+// inside text nodes was saved before the markdown→HTML render fix. Proper
+// parsing would have promoted these to heading / bold marks, so any leftover
+// is a corruption signal — re-bootstrap from source.
+const MARKDOWN_LITERAL = /^##\s|^\*\*[^*]+\*\*|^\[\/\/\]:/m
+function looksLikeUnrenderedMarkdown(node: unknown): boolean {
+  if (!node || typeof node !== 'object') return false
+  const n = node as { type?: string; text?: string; content?: unknown[] }
+  if (n.type === 'text' && typeof n.text === 'string' && MARKDOWN_LITERAL.test(n.text)) {
+    return true
+  }
+  if (Array.isArray(n.content)) {
+    return n.content.some(looksLikeUnrenderedMarkdown)
+  }
+  return false
+}
+
 interface DocumentEditorProps {
   documentId: string
   documentTitle?: string
-  /** When true, mounts the toolbar in view-only mode. Default false (edit mode). */
+  /**
+   * When true, suppresses the Edit button entirely (always view-only).
+   * When false / omitted (default), the editor mounts in read-only mode but
+   * shows an Edit button that toggles into edit mode with Save / Cancel.
+   */
   readOnly?: boolean
   className?: string
 }
@@ -55,7 +132,7 @@ export function DocumentEditor({
   const [loadState, setLoadState] = useState<LoadState>({ phase: 'loading' })
   const [isSaving, setIsSaving] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
-  const [showTransliterate, setShowTransliterate] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipNextChangeRef = useRef(true)
   // For PDF documents, the backend creates a DOCX_COPY with a different ID.
@@ -66,17 +143,21 @@ export function DocumentEditor({
   // and triggers a redundant save right after each successful autosave.
   const hasChangesRef = useRef(false)
   const flushSaveRef = useRef<() => Promise<void>>(async () => {})
+  // Snapshot of editor JSON taken when entering edit mode (or after a save) —
+  // Cancel restores from this so unsaved edits are discarded.
+  const baselineRef = useRef<object | null>(null)
 
   const editor = useEditor({
-    editable: !readOnly,
+    editable: false,
     extensions: [
       StarterKit,
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Table.configure({ resizable: true }),
+      TableWithClass.configure({ resizable: true }),
       TableRow,
       TableHeader,
-      TableCell,
+      TableCellWithStyle,
+      TextStyleWithFontSize,
       Placeholder.configure({
         placeholder: 'Start typing, or open an existing document above…',
       }),
@@ -100,8 +181,9 @@ export function DocumentEditor({
     if (!editor) return
     setIsSaving(true)
     try {
-      const json = JSON.stringify(editor.getJSON())
-      await updateEditState(editingDocumentIdRef.current, json)
+      const snapshot = editor.getJSON()
+      await updateEditState(editingDocumentIdRef.current, JSON.stringify(snapshot))
+      baselineRef.current = snapshot
       hasChangesRef.current = false
       setHasChanges(false)
     } catch (e) {
@@ -138,26 +220,51 @@ export function DocumentEditor({
     let cancelled = false
     setLoadState({ phase: 'loading' })
 
-    getEditState(documentId)
-      .then((res: EditStateResponse) => {
+    const applyResponse = (res: EditStateResponse) => {
+      editingDocumentIdRef.current = res.editingDocumentId ?? documentId
+      skipNextChangeRef.current = true
+      if (res.format === 'tiptap-json' && res.content) {
+        try {
+          const parsed = JSON.parse(res.content)
+          editor.commands.setContent(parsed)
+        } catch {
+          editor.commands.setContent(res.content)
+        }
+      } else {
+        // markdown / html / fallback — run through renderDraftToHtml so
+        // markdown markers (## headings, **bold**, [//]: # link-refs) are
+        // converted to HTML. The renderer passes raw HTML through unchanged,
+        // so HTML bootstraps are unaffected.
+        const html = renderDraftToHtml(res.content || '')
+        editor.commands.setContent(html)
+      }
+      baselineRef.current = editor.getJSON()
+    }
+
+    const load = async () => {
+      try {
+        let res = await getEditState(documentId)
         if (cancelled) return
-        // Use the copy's ID for all subsequent writes (differs from documentId for PDFs)
-        editingDocumentIdRef.current = res.editingDocumentId ?? documentId
-        skipNextChangeRef.current = true
+
+        // Recovery path: a saved Tiptap JSON containing literal markdown text
+        // means a prior autosave landed before the markdown→HTML fix shipped.
+        // Drop the corrupt blob and re-fetch — the backend will re-bootstrap
+        // from the original source markdown.
         if (res.format === 'tiptap-json' && res.content) {
           try {
             const parsed = JSON.parse(res.content)
-            editor.commands.setContent(parsed)
+            if (looksLikeUnrenderedMarkdown(parsed)) {
+              await resetEditState(documentId)
+              if (cancelled) return
+              res = await getEditState(documentId)
+              if (cancelled) return
+            }
           } catch {
-            // Backend reported tiptap-json but content didn't parse — fall back
-            // to treating it as a string so the user sees something instead of a
-            // blank editor.
-            editor.commands.setContent(res.content)
+            // Parse failure is handled by applyResponse fallback below.
           }
-        } else {
-          // HTML or markdown bootstrap — Tiptap's setContent accepts HTML directly.
-          editor.commands.setContent(res.content || '')
         }
+
+        applyResponse(res)
         setLoadState({ phase: 'ready' })
 
         // If the backend just produced a fresh HTML conversion, persist it as
@@ -168,17 +275,24 @@ export function DocumentEditor({
             void flushSave()
           }, 0)
         }
-      })
-      .catch((e: unknown) => {
+      } catch (e: unknown) {
         if (cancelled) return
         const message = e instanceof Error ? e.message : 'Failed to load document'
         setLoadState({ phase: 'error', message })
-      })
+      }
+    }
+    void load()
 
     return () => {
       cancelled = true
     }
   }, [editor, documentId, flushSave])
+
+  // Reflect isEditing in the live editor. `readOnly=true` locks editing off.
+  useEffect(() => {
+    if (!editor) return
+    editor.setEditable(isEditing && !readOnly)
+  }, [editor, isEditing, readOnly])
 
   // Keep flushSaveRef pointing at the current flushSave closure so the unmount
   // effect (empty deps) can call the latest version.
@@ -218,6 +332,30 @@ export function DocumentEditor({
     [editor, hasChanges, flushSave, documentTitle],
   )
 
+  const handleEdit = useCallback(() => {
+    if (!editor) return
+    baselineRef.current = editor.getJSON()
+    setIsEditing(true)
+  }, [editor])
+
+  const handleSave = useCallback(async () => {
+    await flushSave()
+    setIsEditing(false)
+  }, [flushSave])
+
+  const handleCancel = useCallback(() => {
+    if (!editor) return
+    if (baselineRef.current) {
+      skipNextChangeRef.current = true
+      editor.commands.setContent(baselineRef.current)
+    }
+    hasChangesRef.current = false
+    setHasChanges(false)
+    setIsEditing(false)
+    // Persist the revert so the on-disk state matches what the user sees.
+    void flushSave()
+  }, [editor, flushSave])
+
   const toolbarHandlers = useMemo(() => {
     if (!editor) return null
     return {
@@ -229,16 +367,22 @@ export function DocumentEditor({
       onAlignRight: () => editor.chain().focus().setTextAlign('right').run(),
       onBulletList: () => editor.chain().focus().toggleBulletList().run(),
       onNumberedList: () => editor.chain().focus().toggleOrderedList().run(),
-      // Font-size is intentionally a no-op in v1 — Tiptap StarterKit doesn't
-      // ship a TextStyle/FontSize mark and we are deferring that until users
-      // ask for it.
-      onFontSize: () => {},
-      onSave: () => void flushSave(),
+      onFontSize: (size: string) => {
+        if (!size) return
+        editor
+          .chain()
+          .focus()
+          .setMark('textStyle', { fontSize: `${size}pt` })
+          .run()
+      },
+      onEdit: readOnly ? undefined : handleEdit,
+      onSave: handleSave,
+      onCancel: handleCancel,
       onDownloadDoc: () => void onExport('DOCX'),
       onDownloadPdf: () => void onExport('PDF'),
       onDownloadMd: () => void onExport('MARKDOWN'),
     }
-  }, [editor, flushSave, onExport])
+  }, [editor, readOnly, handleEdit, handleSave, handleCancel, onExport])
 
   if (loadState.phase === 'error') {
     return (
@@ -251,32 +395,13 @@ export function DocumentEditor({
   return (
     <div className={cn('flex flex-col h-full bg-white dark:bg-ledger-gray-900', className)}>
       {toolbarHandlers && (
-        <div className="flex items-center justify-between border-b border-ledger-gray-200">
-          <FormattingToolbar
-            isEditing={!readOnly}
-            isSaving={isSaving}
-            hasChanges={hasChanges}
-            documentTitle={documentTitle}
-            {...toolbarHandlers}
-          />
-          <div className="flex items-center gap-1 px-2">
-            <TranslateAction editor={editor} />
-            <button
-              type="button"
-              onClick={() => setShowTransliterate((v) => !v)}
-              className={cn(
-                'flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors',
-                showTransliterate
-                  ? 'bg-kx-primary-100 text-kx-primary-800'
-                  : 'text-ledger-gray-600 hover:bg-ledger-gray-100',
-              )}
-              title="Toggle Indic typing panel"
-            >
-              <Languages className="h-3.5 w-3.5" />
-              हिन्दी
-            </button>
-          </div>
-        </div>
+        <FormattingToolbar
+          isEditing={isEditing}
+          isSaving={isSaving}
+          hasChanges={hasChanges}
+          documentTitle={documentTitle}
+          {...toolbarHandlers}
+        />
       )}
 
       <div className="flex-1 overflow-auto">
@@ -286,29 +411,43 @@ export function DocumentEditor({
             Preparing document…
           </div>
         ) : (
-          <div className="max-w-[820px] mx-auto px-10 py-8">
+          <div
+            className="max-w-[820px] mx-auto px-10 py-8 text-black"
+            style={{
+              fontFamily: "'Times New Roman', Times, serif",
+              fontSize: '12pt',
+              lineHeight: 1.5,
+            }}
+          >
             <EditorContent
               editor={editor}
               className={cn(
                 'focus:outline-none [&_*]:focus:outline-none',
-                // Headings
-                '[&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mt-6 [&_h1]:mb-3',
-                '[&_h2]:text-xl [&_h2]:font-bold [&_h2]:mt-5 [&_h2]:mb-2',
-                '[&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2',
-                // Paragraphs
-                '[&_p]:my-2 [&_p]:leading-relaxed',
+                // Headings — keep weight, drop the size bumps so the doc reads
+                // at a uniform 12pt Times New Roman. Tight margins to match
+                // canonical court draft density.
+                '[&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1',
+                '[&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1',
+                '[&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1',
+                // Paragraphs — tight spacing (matches the reference PDF)
+                '[&_p]:my-1 [&_p]:leading-snug',
                 // Lists
-                '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2',
-                '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-2',
+                '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-1',
+                '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-1',
                 '[&_li]:my-0.5',
                 '[&_li_ul]:list-[circle] [&_li_ul]:pl-6 [&_li_ul]:my-0',
                 '[&_li_ol]:list-[lower-alpha] [&_li_ol]:pl-6 [&_li_ol]:my-0',
-                // Tables — borders + padding so they look like tables, not aligned text
-                '[&_table]:w-full [&_table]:border-collapse [&_table]:my-3',
+                // Default tables — visible borders so real tables look like tables.
+                '[&_table]:w-full [&_table]:border-collapse [&_table]:my-2',
                 '[&_table]:border [&_table]:border-ledger-gray-300',
                 '[&_th]:border [&_th]:border-ledger-gray-300 [&_th]:px-3 [&_th]:py-2',
                 '[&_th]:bg-ledger-gray-100 [&_th]:font-semibold [&_th]:text-left',
                 '[&_td]:border [&_td]:border-ledger-gray-300 [&_td]:px-3 [&_td]:py-2',
+                // Cause-title same-line Mob+Role table — explicitly borderless
+                // so the role tag sits flush right next to the mobile number.
+                '[&_table.cause-title-row]:my-0 [&_table.cause-title-row]:border-0',
+                '[&_table.cause-title-row_td]:border-0 [&_table.cause-title-row_td]:p-0',
+                '[&_table.cause-title-row_th]:border-0 [&_table.cause-title-row_th]:p-0',
                 // Inline marks
                 '[&_strong]:font-semibold [&_em]:italic',
                 '[&_a]:text-kx-primary-700 [&_a]:underline',
@@ -320,12 +459,6 @@ export function DocumentEditor({
         )}
       </div>
 
-      {showTransliterate && (
-        <TransliteratePanel
-          editor={editor}
-          onClose={() => setShowTransliterate(false)}
-        />
-      )}
     </div>
   )
 }
