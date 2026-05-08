@@ -182,6 +182,7 @@ export function CaseWorkspace() {
     isLoadingSessions,
     settings: chatSettings,
     sendMessage: draftSendMessage,
+    stopStreaming: stopChatStreaming,
     clearChat,
     deleteSession: deleteChatSession,
     selectSession,
@@ -616,6 +617,7 @@ export function CaseWorkspace() {
             indexingCount={indexingCount}
             settings={chatSettings}
             onSendMessage={handleSendMessage}
+            onStopStreaming={stopChatStreaming}
             onUploadFile={handleUploadChatFile}
             onClearChat={clearChat}
             onDeleteSession={deleteChatSession}

@@ -154,10 +154,50 @@ export function useDraftChat(caseId: string) {
     }
   }, [caseId])
 
+  const stopStreaming = useCallback(() => {
+    const controller = abortControllerRef.current
+    if (!controller) return
+    controller.abort()
+    abortControllerRef.current = null
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    const finalContent = answerContentRef.current
+    const finalToolCalls =
+      toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+    const finalCitations = documentCitationsRef.current
+    const msgId = streamingMsgIdRef.current
+    if (msgId) {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === msgId
+            ? {
+                ...msg,
+                content: finalContent || '_Stopped by user._',
+                toolCalls: finalToolCalls,
+                isStreaming: false,
+                streamingPhase: undefined,
+                documentCitations: finalCitations ?? msg.documentCitations,
+              }
+            : msg
+        )
+      )
+    }
+    setIsStreaming(false)
+    streamingMsgIdRef.current = null
+    documentCitationsRef.current = undefined
+  }, [])
+
   const sendMessage = useCallback(
     async (message: string, fileIds: string[], webSearch?: boolean) => {
       const trimmed = message.trim()
-      if (!trimmed || isStreaming || !activeSessionId) return
+      if (!trimmed || !activeSessionId) return
+      // If a stream is already in flight, abort it before starting the next
+      // one so users can interrupt and re-ask without waiting for completion.
+      if (abortControllerRef.current) {
+        stopStreaming()
+      }
 
       const userMsg: DraftChatMessage = {
         id: `msg-${Date.now()}-user`,
@@ -343,7 +383,7 @@ export function useDraftChat(caseId: string) {
 
       abortControllerRef.current = controller
     },
-    [caseId, activeSessionId, isStreaming, settings]
+    [caseId, activeSessionId, settings, stopStreaming]
   )
 
   const clearChat = useCallback(async () => {
@@ -431,6 +471,7 @@ export function useDraftChat(caseId: string) {
     isLoadingSessions,
     settings,
     sendMessage,
+    stopStreaming,
     clearChat,
     deleteSession,
     selectSession,

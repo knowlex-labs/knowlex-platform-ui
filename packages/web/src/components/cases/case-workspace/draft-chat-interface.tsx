@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '@/contexts/auth-context'
-import { ArrowUp, Loader2, MessageSquareDot, Search, ChevronDown, ChevronRight, Wrench, Plus, Paperclip, SlidersHorizontal, Wand2, X, Sparkles, Globe } from 'lucide-react'
+import { ArrowUp, Loader2, MessageSquareDot, Search, ChevronDown, ChevronRight, Wrench, Plus, Paperclip, SlidersHorizontal, Wand2, X, Sparkles, Globe, Square } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { MarkdownRenderer } from '@/components/ui/markdown-renderer'
 import { StreamingIndicator } from '@/components/ui/streaming-indicator'
@@ -154,6 +154,7 @@ interface DraftChatInterfaceProps {
   indexingCount?: number
   settings: DraftChatSettings
   onSendMessage: (message: string, fileIds?: string[]) => Promise<void>
+  onStopStreaming?: () => void
   onUploadFile: (file: File) => Promise<string>
   onUpdateSettings: (updates: Partial<DraftChatSettings>) => void
   showGreeting?: boolean
@@ -187,6 +188,7 @@ export function DraftChatInterface({
   indexingCount = 0,
   settings,
   onSendMessage,
+  onStopStreaming,
   onUploadFile,
   onUpdateSettings,
   showGreeting = false,
@@ -250,13 +252,15 @@ export function DraftChatInterface({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || isStreaming) return
+    if (!input.trim()) return
     const query = input.trim()
     const fileIds = tempAttachments
       .filter((a) => a.documentId)
       .map((a) => a.documentId!)
     setInput('')
     setTempAttachments([])
+    // sendMessage handles the in-flight abort itself; pressing Enter while
+    // streaming interrupts the current response and sends the new one.
     await onSendMessage(query, fileIds)
   }
 
@@ -539,7 +543,6 @@ export function DraftChatInterface({
                 className="flex-1 bg-transparent border-none outline-none text-sm text-ledger-gray-800 placeholder:text-nb-text-muted resize-none overflow-y-auto p-0 m-0 align-middle"
                 style={{ height: '20px', maxHeight: '120px', lineHeight: '20px', verticalAlign: 'middle' }}
                 rows={1}
-                disabled={isStreaming}
               />
 
               {/* Model selector */}
@@ -584,18 +587,29 @@ export function DraftChatInterface({
                 </PopoverPrimitive.Portal>
               </PopoverPrimitive.Root>
 
-              {/* Send button */}
-              <button
-                type="submit"
-                className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center bg-kx-primary-600 text-white hover:bg-kx-primary-700 shadow-sm disabled:opacity-40 transition-colors mb-px"
-                disabled={!input.trim() || isStreaming || tempAttachments.some((a) => a.isUploading)}
-              >
-                {isStreaming ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
+              {/* Send / Stop button — toggles to a stop control while streaming
+                  so users can abort without waiting for the response to finish. */}
+              {isStreaming ? (
+                <button
+                  type="button"
+                  onClick={() => onStopStreaming?.()}
+                  className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center bg-kx-primary-600 text-white hover:bg-kx-primary-700 shadow-sm transition-colors mb-px"
+                  title="Stop response"
+                  aria-label="Stop response"
+                >
+                  <Square className="h-3 w-3 fill-current" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="h-7 w-7 rounded-full flex-shrink-0 flex items-center justify-center bg-kx-primary-600 text-white hover:bg-kx-primary-700 shadow-sm disabled:opacity-40 transition-colors mb-px"
+                  disabled={!input.trim() || tempAttachments.some((a) => a.isUploading)}
+                  title="Send message"
+                  aria-label="Send message"
+                >
                   <ArrowUp className="h-3 w-3" />
-                )}
-              </button>
+                </button>
+              )}
             </div>
           </form>
         </div>
