@@ -85,6 +85,12 @@ const TableCellWithStyle = TableCell.extend({
 // parsing would have promoted these to heading / bold marks, so any leftover
 // is a corruption signal — re-bootstrap from source.
 const MARKDOWN_LITERAL = /^##\s|^\*\*[^*]+\*\*|^\[\/\/\]:/m
+// Tracks documents we've already attempted to recover during this session.
+// Prevents an infinite loop in the rare case where the second GET still
+// returns content that trips the heuristic (e.g. the source markdown contains
+// real `**bold**` literals the user wrote). Lives at module scope so it
+// survives the editor's mount/unmount cycle.
+const recoveryAttempted = new Set<string>()
 function looksLikeUnrenderedMarkdown(node: unknown): boolean {
   if (!node || typeof node !== 'object') return false
   const n = node as { type?: string; text?: string; content?: unknown[] }
@@ -143,9 +149,10 @@ export function DocumentEditor({
   // and triggers a redundant save right after each successful autosave.
   const hasChangesRef = useRef(false)
   const flushSaveRef = useRef<() => Promise<void>>(async () => {})
-  // Snapshot of editor JSON taken when entering edit mode (or after a save) —
-  // Cancel restores from this so unsaved edits are discarded.
-  const baselineRef = useRef<object | null>(null)
+  // Snapshot of editor JSON taken when entering edit mode. Cancel restores
+  // from this so *every* edit since the user clicked Edit is discarded — not
+  // just the edits since the most recent autosave.
+  const editStartBaselineRef = useRef<object | null>(null)
 
   const editor = useEditor({
     editable: false,
@@ -183,7 +190,6 @@ export function DocumentEditor({
     try {
       const snapshot = editor.getJSON()
       await updateEditState(editingDocumentIdRef.current, JSON.stringify(snapshot))
-      baselineRef.current = snapshot
       hasChangesRef.current = false
       setHasChanges(false)
     } catch (e) {
@@ -238,7 +244,6 @@ export function DocumentEditor({
         const html = renderDraftToHtml(res.content || '')
         editor.commands.setContent(html)
       }
-      baselineRef.current = editor.getJSON()
     }
 
     const load = async () => {
@@ -249,11 +254,20 @@ export function DocumentEditor({
         // Recovery path: a saved Tiptap JSON containing literal markdown text
         // means a prior autosave landed before the markdown→HTML fix shipped.
         // Drop the corrupt blob and re-fetch — the backend will re-bootstrap
-        // from the original source markdown.
-        if (res.format === 'tiptap-json' && res.content) {
+        // from the original source markdown. Guarded by `recoveryAttempted`
+        // so a false-positive (real `**foo**` text the user typed) can't loop.
+        if (
+          res.format === 'tiptap-json' &&
+          res.content &&
+          !recoveryAttempted.has(documentId)
+        ) {
           try {
             const parsed = JSON.parse(res.content)
             if (looksLikeUnrenderedMarkdown(parsed)) {
+              recoveryAttempted.add(documentId)
+              console.warn(
+                `[DocumentEditor] recovering ${documentId}: stored Tiptap JSON contains markdown literals; resetting edit-state`,
+              )
               await resetEditState(documentId)
               if (cancelled) return
               res = await getEditState(documentId)
@@ -334,7 +348,7 @@ export function DocumentEditor({
 
   const handleEdit = useCallback(() => {
     if (!editor) return
-    baselineRef.current = editor.getJSON()
+    editStartBaselineRef.current = editor.getJSON()
     setIsEditing(true)
   }, [editor])
 
@@ -345,14 +359,22 @@ export function DocumentEditor({
 
   const handleCancel = useCallback(() => {
     if (!editor) return
-    if (baselineRef.current) {
+    // If the user never typed anything, just flip out of edit mode — no need
+    // to round-trip a no-op write to the server (and no risk of a misleading
+    // "Failed to save" toast on a flaky network).
+    if (!hasChangesRef.current) {
+      setIsEditing(false)
+      return
+    }
+    if (editStartBaselineRef.current) {
       skipNextChangeRef.current = true
-      editor.commands.setContent(baselineRef.current)
+      editor.commands.setContent(editStartBaselineRef.current)
     }
     hasChangesRef.current = false
     setHasChanges(false)
     setIsEditing(false)
-    // Persist the revert so the on-disk state matches what the user sees.
+    // Persist the revert so the on-disk state matches what the user sees —
+    // autosave may have already written the in-progress edits.
     void flushSave()
   }, [editor, flushSave])
 
