@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
-  ArrowLeft, FileText, Sparkles, Lock,
+  ArrowLeft, FileText, Sparkles, Lock, Paperclip,
   Search, X, AlertCircle, Loader2,
   FileWarning, Lightbulb, FileClock, Scale, Gavel, ShieldAlert,
   ScrollText, ClipboardList, AlignLeft, Landmark, Star, Ban,
@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { FileUploadZone } from '@/components/toolbox/file-upload-zone'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import {
@@ -418,13 +417,13 @@ export function DraftingPage() {
             Cancel
           </button>
           <div className="h-4 w-px bg-ledger-gray-200" />
-          <h1 className="text-lg font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">
+          <h1 className="text-lg font-serif font-semibold text-kx-primary-900">
             {selectedTemplate.name}
           </h1>
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto pb-6">
-          <div className="max-w-2xl">
+          <div className="max-w-2xl mx-auto">
             <p className="text-sm text-ledger-gray-500 mb-5">
               Only the title is required. AI will use your documents to fill in missing details.
             </p>
@@ -445,20 +444,13 @@ export function DraftingPage() {
                   <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
                     Reference Files <span className="text-ledger-gray-400 font-normal">(optional)</span>
                   </Label>
-                  <FileUploadZone
+                  <CompactFileUpload
                     accept=".pdf,.doc,.docx,.txt"
-                    multiple
-                    onFilesSelected={handleFilesSelected}
-                    label="Drop files or click to browse"
                     selectedFiles={refFiles}
+                    onFilesSelected={handleFilesSelected}
                     onRemoveFile={handleRemoveFile}
+                    isUploading={isUploadingFiles}
                   />
-                  {isUploadingFiles && (
-                    <p className="text-xs text-kx-primary-600 flex items-center gap-1.5">
-                      <span className="h-3 w-3 border-2 border-kx-primary-600 border-t-transparent rounded-full animate-spin" />
-                      Uploading...
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -540,16 +532,16 @@ export function DraftingPage() {
   // ═══ Home splash: choose between predefined / custom + recent drafts ═══
   if (mode === 'home') {
     return (
-      <div className="pb-10">
+      <div className="pb-10 max-w-4xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
           <div>
-            <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">Drafts</h2>
+            <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Drafts</h2>
             <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
               Generate legal documents with AI. Start from a built-in template or your own.
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
           <button
             type="button"
             onClick={() => setMode('list')}
@@ -597,21 +589,22 @@ export function DraftingPage() {
   // ═══ Predefined templates landing: templates grid + recent drafts list ═══
   return (
     <div className="pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
-        <div>
+      <div className="mb-4 md:mb-6">
+        <div className="flex items-center gap-3 mb-1">
           <button
             type="button"
             onClick={() => setMode('home')}
-            className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors mb-1"
+            className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">Predefined Templates</h2>
-          <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
-            Pick a template to generate a new draft.
-          </p>
+          <div className="h-4 w-px bg-ledger-gray-200" />
+          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Predefined Templates</h2>
         </div>
+        <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
+          Pick a template to generate a new draft.
+        </p>
       </div>
 
       {/* Templates */}
@@ -675,6 +668,94 @@ export function DraftingPage() {
       </section>
 
       <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} onUpgrade={() => navigate('/settings/billing')} />
+    </div>
+  )
+}
+
+function CompactFileUpload({
+  accept,
+  selectedFiles,
+  onFilesSelected,
+  onRemoveFile,
+  isUploading,
+}: {
+  accept: string
+  selectedFiles: File[]
+  onFilesSelected: (files: File[]) => void
+  onRemoveFile: (idx: number) => void
+  isUploading: boolean
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const count = selectedFiles.length
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault()
+          setIsDragging(false)
+          const files = Array.from(e.dataTransfer.files)
+          if (files.length) onFilesSelected(files)
+        }}
+        className={cn(
+          'flex h-10 w-full items-center gap-2 rounded-lg border px-3 text-sm transition-colors',
+          isDragging
+            ? 'border-kx-primary-400 bg-kx-primary-50 dark:bg-kx-primary-950/20'
+            : 'border-ledger-gray-200 dark:border-ledger-gray-600 bg-white dark:bg-ledger-gray-900 hover:border-kx-primary-300 hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800/40'
+        )}
+      >
+        {isUploading
+          ? <Loader2 className="h-4 w-4 flex-shrink-0 text-kx-primary-500 animate-spin" />
+          : <Paperclip className="h-4 w-4 flex-shrink-0 text-ledger-gray-400" />}
+        <span className="flex-1 text-left truncate text-ledger-gray-500 dark:text-ledger-gray-400">
+          {isUploading
+            ? 'Uploading…'
+            : count > 0
+              ? `${count} file${count > 1 ? 's' : ''} attached — click to add more`
+              : 'Drop files or click to browse'}
+        </span>
+        <span className="hidden sm:inline text-[11px] text-ledger-gray-400 flex-shrink-0">
+          PDF, DOC, DOCX, TXT
+        </span>
+      </button>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? [])
+          if (files.length) onFilesSelected(files)
+          e.target.value = ''
+        }}
+      />
+      {count > 0 && (
+        <div className="flex flex-wrap gap-1.5 mt-2">
+          {selectedFiles.map((f, i) => (
+            <span
+              key={`${f.name}-${i}`}
+              className="inline-flex items-center gap-1.5 max-w-[220px] rounded-full bg-kx-primary-50 dark:bg-kx-primary-900/40 pl-2.5 pr-1 py-0.5 text-xs text-kx-primary-700 dark:text-kx-primary-200"
+            >
+              <FileText className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{f.name}</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onRemoveFile(i) }}
+                className="flex-shrink-0 rounded-full p-0.5 hover:bg-kx-primary-100 dark:hover:bg-kx-primary-900 transition-colors"
+                aria-label={`Remove ${f.name}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

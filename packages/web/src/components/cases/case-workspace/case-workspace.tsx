@@ -25,6 +25,7 @@ import { CaseStudioPanel } from './case-studio-panel'
 import { QuickDraftSheet } from './quick-draft-sheet'
 import { DraftCreationWizard } from './draft-creation-wizard'
 import { TranslationDialog } from '@/components/toolbox/translation-dialog'
+import { Dialog, DialogContent } from '@/components/ui/dialog'
 import type { CaseDocument, BackendCase, UpdateCaseRequest, RespondentDetails } from '@knowlex/core/types'
 import { DocumentType, IndexingStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
@@ -481,20 +482,22 @@ export function CaseWorkspace() {
           </div>
         )}
 
-        {/* Translation overlay */}
-        {translationOpen && (
-          <div className="absolute inset-0 z-50 rounded-xl bg-nb-panel overflow-y-auto p-6">
-            <TranslationDialog
-              caseSources={sources.map(s => ({ id: s.id, name: s.originalFilename || s.name }))}
-              onBack={() => { setTranslationOpen(false); void refresh() }}
-              onJobStarted={(_jobId, lang) => {
-                toast({ title: `Translating to ${lang}…`, description: "We'll notify you when it's ready." })
-                setTranslationOpen(false)
-                void refresh()
-              }}
-            />
-          </div>
-        )}
+        {/* Translation popup */}
+        <Dialog open={translationOpen} onOpenChange={open => { if (!open) { setTranslationOpen(false); void refresh() } }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto p-6">
+            {translationOpen && (
+              <TranslationDialog
+                caseSources={sources.map(s => ({ id: s.id, name: s.originalFilename || s.name }))}
+                onBack={() => { setTranslationOpen(false); void refresh() }}
+                onJobStarted={(_jobId, lang) => {
+                  toast({ title: `Translating to ${lang}…`, description: "We'll notify you when it's ready." })
+                  setTranslationOpen(false)
+                  void refresh()
+                }}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
         {/* Left: Sources panel — full when open, icon strip when closed */}
         {leftPanelOpen ? (
           <div className="flex-shrink-0 relative min-h-0" style={{ width: leftPanelWidth }}>

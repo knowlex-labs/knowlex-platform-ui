@@ -230,7 +230,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
         className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
-        Documents
+        Back
       </button>
 
       <div className="mt-4 max-w-xl mx-auto">
