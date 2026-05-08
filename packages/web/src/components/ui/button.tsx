@@ -34,9 +34,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               variant === 'outline',
           },
           {
-            'h-10 min-h-[44px] px-3 text-sm rounded-sm': size === 'sm',
-            'h-11 min-h-[44px] px-4 text-sm rounded': size === 'md',
-            'h-12 min-h-[48px] px-6 text-base rounded': size === 'lg',
+            'h-9 px-3 text-xs rounded-md': size === 'sm',
+            'h-10 px-4 text-sm rounded-md': size === 'md',
+            'h-11 px-6 text-base rounded-md': size === 'lg',
           },
           className
         )}
