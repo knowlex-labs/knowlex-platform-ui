@@ -13,6 +13,9 @@ function getDateLabel(date: Date): { text: string; urgent: boolean } {
   return { text: format(date, 'dd MMM'), urgent: false }
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const isUuid = (s?: string | null) => !!s && UUID_RE.test(s.trim())
+
 export function UpcomingHearingsWidget() {
   const navigate = useNavigate()
   const [hearings, setHearings] = useState<UpcomingHearing[]>([])
@@ -73,13 +76,15 @@ export function UpcomingHearingsWidget() {
           const { text: dateLabel, urgent } = getDateLabel(hearingDate)
 
           return (
-            <div
+            <button
+              type="button"
               key={hearing.id}
+              onClick={() => navigate(`/cases/${hearing.id}`)}
               className={cn(
-                'rounded-lg p-3 animate-bounce-in',
+                'w-full text-left rounded-lg p-3 animate-bounce-in transition-colors hover:ring-1 hover:ring-kx-primary-300 focus:outline-none focus:ring-2 focus:ring-kx-primary-400',
                 urgent
-                  ? 'bg-amber-50 dark:bg-amber-900/10'
-                  : 'bg-ledger-gray-50 dark:bg-ledger-gray-100'
+                  ? 'bg-amber-50 dark:bg-amber-900/10 hover:bg-amber-100/70'
+                  : 'bg-ledger-gray-50 dark:bg-ledger-gray-100 hover:bg-ledger-gray-100'
               )}
               style={{ animationDelay: `${index * 60}ms` }}
             >
@@ -113,7 +118,7 @@ export function UpcomingHearingsWidget() {
                   <p className="text-[10px] text-ledger-gray-400 truncate mt-0.5">{hearing.caseNumber}</p>
                   <span className="flex items-center gap-1 text-[11px] text-ledger-gray-500 truncate mt-0.5">
                     <MapPin className="h-2.5 w-2.5 flex-shrink-0" />
-                    {hearing.courtName}{hearing.courtLocation ? ` · ${hearing.courtLocation}` : ''}
+                    {hearing.courtName}{hearing.courtLocation && !isUuid(hearing.courtLocation) ? ` · ${hearing.courtLocation}` : ''}
                   </span>
                   {hearing.judgeName && (
                     <span className="flex items-center gap-1 text-[11px] text-ledger-gray-500 truncate mt-0.5">
@@ -131,7 +136,7 @@ export function UpcomingHearingsWidget() {
                   </span>
                 </div>
               </div>
-            </div>
+            </button>
           )
         })}
       </div>

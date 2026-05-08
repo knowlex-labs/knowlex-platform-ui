@@ -1091,11 +1091,11 @@ export function DocumentsPage() {
     const SortIcon = isActive ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
     return (
       <th
-        className={cn('px-4 py-3 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:text-kx-primary-600 transition-colors', className)}
+        className={cn('px-4 py-2 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap cursor-pointer select-none hover:text-kx-primary-600 transition-colors', className)}
         onClick={() => handleSort(field)}
       >
         <span className="inline-flex items-center gap-3">
-          {withIconSpacer && <span className="h-8 w-8 flex-shrink-0 inline-block" />}
+          {withIconSpacer && <span className="w-8 flex-shrink-0 inline-block" />}
           <span className="inline-flex items-center gap-1">
             {label}
             <SortIcon className={cn('h-3 w-3', isActive ? 'text-kx-primary-600' : 'text-ledger-gray-400')} />
@@ -1122,10 +1122,10 @@ export function DocumentsPage() {
           /* Full-screen document listing */
           <>
             {/* Sticky header + filters */}
-            <div className="flex-shrink-0 px-6 pt-6 pb-4 space-y-4 border-b border-kx-card-border bg-kx-surface">
+            <div className="flex-shrink-0 px-6 pt-6 pb-3 space-y-3 bg-kx-surface">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                  <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900 dark:text-kx-primary-100">
+                  <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
                     Documents
                   </h2>
                   <p className="text-sm text-ledger-gray-500 mt-1">
@@ -1187,8 +1187,8 @@ export function DocumentsPage() {
 
             {/* Scrollable table area */}
             <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
-              <div className="px-6 py-4">
-                <div className="rounded-lg border border-kx-card-border">
+              <div className="px-6 pb-4">
+                <div className="border-y border-kx-card-border">
                   {isLoading ? (
                     <table className="w-full text-sm">
                       <thead>
@@ -1227,11 +1227,11 @@ export function DocumentsPage() {
                       </p>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <>
                       <table className="w-full text-sm">
                         <thead className="sticky top-0 z-20">
                           <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border [&>th]:bg-ledger-gray-50 dark:[&>th]:bg-ledger-gray-100">
-                            <th className="pl-4 pr-2 py-3 w-10 align-middle" onClick={toggleAll}>
+                            <th className="pl-4 pr-2 py-2 w-10 align-middle" onClick={toggleAll}>
                               <input
                                 type="checkbox"
                                 checked={allChecked}
@@ -1241,7 +1241,7 @@ export function DocumentsPage() {
                               />
                             </th>
                             {someChecked ? (
-                              <th colSpan={4} className="px-4 py-3 text-left">
+                              <th colSpan={4} className="px-4 py-2 text-left">
                                 <div className="flex items-center gap-3">
                                   <span className="h-8 w-8 flex-shrink-0 inline-block" />
                                   <span className="text-xs font-semibold text-kx-primary-700 dark:text-kx-primary-300">
@@ -1265,12 +1265,12 @@ export function DocumentsPage() {
                             ) : (
                               <>
                                 <SortableHeader field="name" label="Name" className="w-[38%]" withIconSpacer />
-                                <th className="px-4 py-3 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Type</th>
-                                <th className="px-4 py-3 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Case</th>
+                                <th className="px-4 py-2 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Type</th>
+                                <th className="px-4 py-2 text-left font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">Case</th>
                                 <SortableHeader field="createdAt" label="Date Added" />
                               </>
                             )}
-                            <th className="pr-3 py-3 w-10" />
+                            <th className="pr-3 py-2 w-10" />
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-kx-card-border">
@@ -1302,7 +1302,7 @@ export function DocumentsPage() {
                           ))}
                         </tbody>
                       </table>
-                    </div>
+                    </>
                   )}
 
                 </div>
