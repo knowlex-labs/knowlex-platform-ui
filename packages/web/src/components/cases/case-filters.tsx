@@ -17,11 +17,8 @@ interface CaseFiltersProps {
 
 const CASE_STATUSES = [
   { value: 'active', label: 'Active' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'closed', label: 'Closed' },
   { value: 'on-hold', label: 'On Hold' },
-  { value: 'appealed', label: 'Appealed' },
-  { value: 'blocked', label: 'Blocked' },
+  { value: 'closed', label: 'Closed' },
 ]
 
 const DATE_RANGES = [

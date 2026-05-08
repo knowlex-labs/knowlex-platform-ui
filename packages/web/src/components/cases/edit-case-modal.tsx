@@ -38,7 +38,7 @@ const initialFormData: FormData = {
   caseTitle: '',
   caseNumber: '',
   caseType: '',
-  caseStatus: 'PENDING',
+  caseStatus: 'ACTIVE',
   courtName: '',
   courtLocation: '',
   judgeName: '',
@@ -225,11 +225,9 @@ export function EditCaseModal({
                 onChange={handleChange}
                 disabled={isSubmitting}
               >
-                <option value="PENDING">Pending</option>
                 <option value="ACTIVE">Active</option>
+                <option value="ON_HOLD">On Hold</option>
                 <option value="CLOSED">Closed</option>
-                <option value="APPEALED">Appealed</option>
-                <option value="BLOCKED">Blocked</option>
               </Select>
             </div>
 
@@ -267,7 +265,7 @@ export function EditCaseModal({
                   name="judgeName"
                   value={formData.judgeName}
                   onChange={handleChange}
-                  placeholder="e.g., Hon. Justice Sharma"
+                  placeholder="e.g., Hon'ble Justice Sharma"
                   disabled={isSubmitting}
                 />
               </div>

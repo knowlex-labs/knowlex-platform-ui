@@ -4,12 +4,13 @@ import type { BackendCase, BackendCaseStatus } from '../types/api.types'
 import type { Case, CaseStatus, CaseType } from '../types/case.types'
 
 const caseStatusMap: Record<BackendCaseStatus, CaseStatus> = {
-  OPEN: 'active',
-  PENDING: 'pending',
-  CLOSED: 'closed',
-  ARCHIVED: 'archived',
   ACTIVE: 'active',
   ON_HOLD: 'on-hold',
+  CLOSED: 'closed',
+}
+
+export function mapCaseStatus(s: BackendCaseStatus | string | null | undefined): CaseStatus {
+  return (s && caseStatusMap[s as BackendCaseStatus]) || 'active'
 }
 
 const caseTypeMap: Record<string, CaseType> = {

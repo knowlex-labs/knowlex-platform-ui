@@ -9,7 +9,7 @@ export interface CaseTypeOption {
   code: string
   displayName: string
 }
-export type BackendCaseStatus = 'OPEN' | 'PENDING' | 'CLOSED' | 'ARCHIVED' | 'ACTIVE' | 'ON_HOLD'
+export type BackendCaseStatus = 'ACTIVE' | 'ON_HOLD' | 'CLOSED'
 
 // Backend Case entity (exact API response type)
 export interface BackendCase {

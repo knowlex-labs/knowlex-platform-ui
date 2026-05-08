@@ -2,8 +2,7 @@
 
 export type CaseType = 'civil' | 'criminal' | 'family' | 'corporate'
 
-// Extended case status to include backend statuses
-export type CaseStatus = 'active' | 'pending' | 'closed' | 'on-hold' | 'appealed' | 'blocked' | 'archived'
+export type CaseStatus = 'active' | 'on-hold' | 'closed'
 
 export interface Case {
   id: string

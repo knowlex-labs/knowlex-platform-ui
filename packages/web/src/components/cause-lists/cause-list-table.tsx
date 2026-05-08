@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, FolderOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { CauseListItem } from '@knowlex/core/types'
+import { formatJudgeName } from '@knowlex/core/utils'
 
 interface CauseListTableProps {
   items: CauseListItem[]
@@ -269,7 +270,7 @@ export function CauseListTable({ items, isLoading }: CauseListTableProps) {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <h3 className="text-base font-serif font-semibold text-kx-primary-800 dark:text-kx-primary-200">
-                  Before Hon'ble {group.judgeName}
+                  Before {formatJudgeName(group.judgeName)}
                 </h3>
                 {group.benchType && (
                   <span className="text-sm font-medium text-kx-primary-600 dark:text-kx-primary-400">
