@@ -453,6 +453,17 @@ export async function updateEditState(documentId: string, content: string): Prom
 }
 
 /**
+ * DELETE /api/v1/documents/{id}/edit-state — drop the saved edit-state blob so
+ * the next GET re-bootstraps from the original source. Used to recover when a
+ * prior autosave persisted corrupted Tiptap JSON (e.g. literal markdown text).
+ */
+export async function resetEditState(documentId: string): Promise<void> {
+  await apiClient.delete<ApiResponse<null>>(
+    `/api/v1/documents/${documentId}/edit-state`,
+  )
+}
+
+/**
  * POST /api/v1/documents/translate — Sarvam translation for the editor's
  * "Translate selection" action. Language codes are Sarvam BCP-47 (e.g. en-IN).
  */
