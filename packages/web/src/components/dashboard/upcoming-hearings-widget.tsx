@@ -5,6 +5,7 @@ import { format, isToday, isTomorrow } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { dashboardApi } from '@knowlex/core/api'
 import type { UpcomingHearing } from '@knowlex/core/api'
+import { formatJudgeName } from '@knowlex/core/utils'
 
 function getDateLabel(date: Date): { text: string; urgent: boolean } {
   if (isToday(date)) return { text: 'Today', urgent: true }
@@ -117,7 +118,7 @@ export function UpcomingHearingsWidget() {
                   {hearing.judgeName && (
                     <span className="flex items-center gap-1 text-[11px] text-ledger-gray-500 truncate mt-0.5">
                       <Gavel className="h-2.5 w-2.5 flex-shrink-0" />
-                      {hearing.judgeName}
+                      {formatJudgeName(hearing.judgeName)}
                     </span>
                   )}
                   <span className={cn(

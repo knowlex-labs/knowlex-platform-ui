@@ -97,4 +97,12 @@ export const draftsApi = {
     )
     return response.data
   },
+
+  extractFields: async (fileId: string): Promise<Record<string, string>> => {
+    const response = await apiClient.post<ApiResponse<{ suggested_fields: Record<string, string> }>>(
+      '/api/v1/drafts/extract-fields',
+      { file_id: fileId }
+    )
+    return response.data?.suggested_fields ?? {}
+  },
 }

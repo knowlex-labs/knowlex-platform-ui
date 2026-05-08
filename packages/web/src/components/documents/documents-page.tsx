@@ -22,10 +22,11 @@ import {
   triggerDirectDownload,
   linkDocumentToCase,
   getDocument,
+  getEditState,
+  updateEditState,
   type DocumentRecordType,
 } from '@knowlex/core/api/doc-processing-api'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
-import { getAdapters } from '@knowlex/core/api/runtime'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { ApiError } from '@knowlex/core/api/api-client'
 import { DocumentEditorModal } from '@/components/editor'
@@ -355,6 +356,9 @@ function DocumentViewer({
 
   const navigate = useNavigate()
   const editorRef = useRef<HTMLDivElement>(null)
+  // Diverges from doc.id for PDF docs where the backend creates a DOCX_COPY row
+  // to hold the edit state. Populated on first getEditState load.
+  const editingDocumentIdRef = useRef<string>(doc.id)
   const formatting = useEditorFormatting(editorRef, () => setIsDirty(true))
 
   const displayName = doc.originalFilename || doc.name
@@ -405,14 +409,10 @@ function DocumentViewer({
     async function load() {
       try {
         if (isMarkdownOrText) {
-          const token = localStorage.getItem('auth_token')
-          const userId = localStorage.getItem('auth_user_id')
-          const headers: Record<string, string> = {}
-          if (token) headers['Authorization'] = `Bearer ${token}`
-          if (userId) headers['x-user-id'] = userId
-          const res = await fetch(`${getAdapters().env.apiBaseUrl}/api/v1/documents/${doc.id}/content`, { headers })
-          if (!res.ok) throw new Error(`Failed to fetch content: ${res.status}`)
-          if (!cancelled) setTextContent(await res.text())
+          const editState = await getEditState(doc.id)
+          if (cancelled) return
+          editingDocumentIdRef.current = editState.editingDocumentId ?? doc.id
+          setTextContent(editState.content)
         } else if (isTextual) {
           const text = await workspaceApi.fetchDocumentContent({ id: doc.id, signedUrl: doc.storageUrl, downloadUrl: doc.downloadUrl })
           if (!cancelled) setTextContent(text)
@@ -465,29 +465,15 @@ function DocumentViewer({
   const handleSave = async () => {
     setIsSaving(true)
     try {
+      const editState = await getEditState(doc.id)
+      editingDocumentIdRef.current = editState.editingDocumentId ?? doc.id
       if (isMarkdownOrText) {
-        const token = localStorage.getItem('auth_token')
-        const userId = localStorage.getItem('auth_user_id')
-        const headers: Record<string, string> = { 'Content-Type': 'text/plain' }
-        if (token) headers['Authorization'] = `Bearer ${token}`
-        if (userId) headers['x-user-id'] = userId
-        const res = await fetch(`${getAdapters().env.apiBaseUrl}/api/v1/documents/${doc.id}/content`, {
-          method: 'PUT', headers, body: rawTextEdit,
-        })
-        if (!res.ok) throw new Error()
+        await updateEditState(editingDocumentIdRef.current, rawTextEdit)
         setTextContent(rawTextEdit)
       } else {
         if (!editorRef.current) return
         const html = editorRef.current.innerHTML
-        const token = localStorage.getItem('auth_token')
-        const userId = localStorage.getItem('auth_user_id')
-        const headers: Record<string, string> = { 'Content-Type': 'text/plain' }
-        if (token) headers['Authorization'] = `Bearer ${token}`
-        if (userId) headers['x-user-id'] = userId
-        const res = await fetch(`${getAdapters().env.apiBaseUrl}/api/v1/documents/${doc.id}/content`, {
-          method: 'PUT', headers, body: html,
-        })
-        if (!res.ok) throw new Error()
+        await updateEditState(editingDocumentIdRef.current, html)
         setTextContent(html)
       }
       setIsDirty(false)

@@ -202,7 +202,6 @@ function StatusBadge({ status }: { status: JobStatus | null }) {
 }
 
 function DraftRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => void }) {
-  const isPending = doc.jobStatus === JobStatus.PROCESSING
   const isFailed = doc.jobStatus === JobStatus.FAILED || doc.jobStatus === JobStatus.CANCELLED
   const title = doc.originalFilename || doc.name || 'Untitled draft'
   const subtypeLabel = formatSubtype(doc.subType)
@@ -211,14 +210,8 @@ function DraftRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => void }) 
     <li>
       <button
         type="button"
-        onClick={isPending ? undefined : onOpen}
-        disabled={isPending}
-        className={cn(
-          'w-full flex items-center gap-4 px-5 py-3 text-left transition-colors group',
-          isPending
-            ? 'cursor-default'
-            : 'hover:bg-kx-primary-50/40 cursor-pointer'
-        )}
+        onClick={onOpen}
+        className="w-full flex items-center gap-4 px-5 py-3 text-left transition-colors group hover:bg-kx-primary-50/40 cursor-pointer"
       >
         <div className={cn(
           'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center',
@@ -250,9 +243,7 @@ function DraftRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => void }) 
         {/* Status + chevron */}
         <div className="flex items-center gap-3 flex-shrink-0">
           <StatusBadge status={doc.jobStatus} />
-          {!isPending && (
-            <ChevronRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-600" />
-          )}
+          <ChevronRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-600" />
         </div>
       </button>
     </li>

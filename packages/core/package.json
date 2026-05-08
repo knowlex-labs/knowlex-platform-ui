@@ -11,7 +11,9 @@
     "./types/*": "./src/types/*",
     "./api": "./src/api/index.ts",
     "./api/*": "./src/api/*",
-    "./mappers": "./src/mappers/index.ts"
+    "./mappers": "./src/mappers/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./utils/*": "./src/utils/*"
   },
   "scripts": {
     "build": "tsc",

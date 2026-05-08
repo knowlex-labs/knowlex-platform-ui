@@ -442,20 +442,6 @@ export async function getEditState(documentId: string): Promise<EditStateRespons
 }
 
 /**
- * PUT /api/v1/documents/{id}/content — replace the document's rendered content
- * (HTML or markdown). Body is sent as text/plain; backend stores as-is.
- */
-export async function updateDocumentContent(documentId: string, content: string): Promise<void> {
-  const { env } = getAdapters()
-  const res = await fetch(`${env.apiBaseUrl}/api/v1/documents/${documentId}/content`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'text/plain', ...getAuthHeaders() },
-    body: content,
-  })
-  if (!res.ok) throw new ApiError(`Failed to update document content (${res.status})`, res.status)
-}
-
-/**
  * PUT /api/v1/documents/{id}/edit-state — autosave the editor's Tiptap JSON.
  * Backend treats `content` as opaque (encrypts and uploads to S3).
  */
@@ -463,6 +449,17 @@ export async function updateEditState(documentId: string, content: string): Prom
   await apiClient.put<ApiResponse<null>>(
     `/api/v1/documents/${documentId}/edit-state`,
     { content },
+  )
+}
+
+/**
+ * DELETE /api/v1/documents/{id}/edit-state — drop the saved edit-state blob so
+ * the next GET re-bootstraps from the original source. Used to recover when a
+ * prior autosave persisted corrupted Tiptap JSON (e.g. literal markdown text).
+ */
+export async function resetEditState(documentId: string): Promise<void> {
+  await apiClient.delete<ApiResponse<null>>(
+    `/api/v1/documents/${documentId}/edit-state`,
   )
 }
 

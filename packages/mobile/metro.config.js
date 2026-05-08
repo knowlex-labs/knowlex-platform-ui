@@ -3,6 +3,7 @@ const path = require('path');
 
 const projectRoot = __dirname;
 const monorepoRoot = path.resolve(projectRoot, '../..');
+const coreRoot = path.resolve(monorepoRoot, 'packages/core/src');
 
 const config = getDefaultConfig(projectRoot);
 
@@ -16,5 +17,12 @@ config.resolver.nodeModulesPaths = [
 ];
 
 config.resolver.disableHierarchicalLookup = false;
+
+// Map @knowlex/core directly to the core src directory so Metro can
+// resolve sub-path imports like @knowlex/core/api/client-api without
+// needing package exports wildcard support.
+config.resolver.extraNodeModules = {
+  '@knowlex/core': coreRoot,
+};
 
 module.exports = config;

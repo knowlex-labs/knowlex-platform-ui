@@ -58,6 +58,7 @@ interface DraftChatPanelProps {
   indexingCount?: number
   settings: DraftChatSettings
   onSendMessage: (message: string, fileIds?: string[]) => Promise<void>
+  onStopStreaming?: () => void
   onUploadFile: (file: File) => Promise<string>
   onClearChat: () => void
   onDeleteSession: (id: string) => void
@@ -80,6 +81,7 @@ export function DraftChatPanel({
   indexingCount = 0,
   settings,
   onSendMessage,
+  onStopStreaming,
   onUploadFile,
   onClearChat,
   onDeleteSession,
@@ -347,6 +349,7 @@ export function DraftChatPanel({
           indexingCount={indexingCount}
           settings={settings}
           onSendMessage={onSendMessage}
+          onStopStreaming={onStopStreaming}
           onUploadFile={onUploadFile}
           onUpdateSettings={onUpdateSettings}
           showGreeting={showGreeting}

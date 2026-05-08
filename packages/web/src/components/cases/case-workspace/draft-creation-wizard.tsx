@@ -20,7 +20,7 @@ import {
   TEMPLATE_TO_SUB_TYPE as CORE_TEMPLATE_TO_SUB_TYPE,
   buildCreateDraftPayload,
 } from '@knowlex/core/api/draft-helpers'
-import { clientApi } from '@knowlex/core/api'
+import { clientApi, draftsApi } from '@knowlex/core/api'
 import { mapBackendClient } from '@knowlex/core/mappers'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
 
@@ -42,6 +42,12 @@ export interface DraftCreationWizardProps {
   judgments?: CaseDocument[]
   client: Client | null
   respondentDetails?: string
+  // Structural shape so it accepts both BackendCase and Case.
+  caseInfo?: {
+    caseNumber?: string | null
+    courtName?: string | null
+    courtLocation?: string | null
+  } | null
   onSaveRespondent?: (details: string) => void
   onGenerate: (request: CreateDraftRequest) => void
   onSave: () => void
@@ -81,7 +87,7 @@ function PreviewSkeleton() {
 }
 
 // Field ids that represent the opposing party / respondent side
-const RESPONDENT_FIELD_IDS = new Set(['respondent', 'opposite_party', 'defendant', 'judgment_debtor'])
+const RESPONDENT_FIELD_IDS = new Set(['respondent', 'opposite_party', 'defendant', 'judgment_debtor', 'recipient'])
 
 // Field ids that represent the client / sender side (first party)
 const CLIENT_FIELD_IDS = new Set([
@@ -90,7 +96,7 @@ const CLIENT_FIELD_IDS = new Set([
 ])
 
 export function DraftCreationWizard({
-  sources, judgments = [], client, respondentDetails, onSaveRespondent,
+  sources, judgments = [], client, respondentDetails, caseInfo, onSaveRespondent,
   onGenerate, onSave, onDiscard, onCancel, previewDraft = null,
   defaultTemplateId, initialFormValues,
 }: DraftCreationWizardProps) {
@@ -109,11 +115,15 @@ export function DraftCreationWizard({
   const [isEditingPreview, setIsEditingPreview] = useState(false)
   const previewEditorRef = useRef<HTMLDivElement>(null)
 
-  // Pre-fill form when template changes: client → first-party field, respondent → opposing-party field
+  // Pre-fill form when template changes: client → first-party field, respondent → opposing-party field,
+  // and selected-case metadata → court_details / case_number where applicable.
   useEffect(() => {
     if (!selectedTemplate) return
     const clientText = client
       ? [client.name, client.address, client.phone].filter(Boolean).join(', ')
+      : ''
+    const courtDetailsFromCase = caseInfo
+      ? [caseInfo.courtName, caseInfo.courtLocation].filter(Boolean).join(', ')
       : ''
     const initial: TemplateFormData = {}
     selectedTemplate.fields.forEach((field) => {
@@ -129,6 +139,10 @@ export function DraftCreationWizard({
         } else {
           initial[field.id] = ''
         }
+      } else if (field.id === 'court_details' && courtDetailsFromCase) {
+        initial[field.id] = courtDetailsFromCase
+      } else if (field.id === 'case_number' && caseInfo?.caseNumber) {
+        initial[field.id] = caseInfo.caseNumber
       } else {
         initial[field.id] = ''
       }
@@ -203,11 +217,38 @@ export function DraftCreationWizard({
   }
 
   const handleSourceToggle = (sourceId: string) => {
+    const isAdding = !localSourceIds.has(sourceId)
     setLocalSourceIds((prev) => {
       const next = new Set(prev)
-      next.has(sourceId) ? next.delete(sourceId) : next.add(sourceId)
+      if (next.has(sourceId)) {
+        next.delete(sourceId)
+      } else {
+        next.add(sourceId)
+      }
       return next
     })
+    // Best-effort auto-fill on source-add: only populate fields the user
+    // hasn't typed into yet, and never block on failure.
+    if (isAdding) {
+      draftsApi
+        .extractFields(sourceId)
+        .then((suggested) => {
+          if (!suggested || Object.keys(suggested).length === 0) return
+          setFormData((prev) => {
+            const next = { ...prev }
+            for (const [k, v] of Object.entries(suggested)) {
+              const existing = typeof next[k] === 'string' ? (next[k] as string).trim() : ''
+              if (!existing && v && v.trim()) {
+                next[k] = v
+              }
+            }
+            return next
+          })
+        })
+        .catch((err) => {
+          console.warn('[draft] extractFields failed', err)
+        })
+    }
   }
 
   const titleValue = (formData['title'] as string) || ''

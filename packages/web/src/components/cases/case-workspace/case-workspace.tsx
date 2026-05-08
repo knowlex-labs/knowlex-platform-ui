@@ -182,6 +182,7 @@ export function CaseWorkspace() {
     isLoadingSessions,
     settings: chatSettings,
     sendMessage: draftSendMessage,
+    stopStreaming: stopChatStreaming,
     clearChat,
     deleteSession: deleteChatSession,
     selectSession,
@@ -456,6 +457,7 @@ export function CaseWorkspace() {
                     sources={sources}
                     client={null}
                     respondentDetails={formattedRespondent}
+                    caseInfo={caseData}
                     onGenerate={(req) => { createDraft(req); setQuickDraftOpen(false); setWizardConfig(null) }}
                     onSave={() => { setQuickDraftOpen(false); setWizardConfig(null) }}
                     onDiscard={(id) => { deleteDraft(id) }}
@@ -615,6 +617,7 @@ export function CaseWorkspace() {
             indexingCount={indexingCount}
             settings={chatSettings}
             onSendMessage={handleSendMessage}
+            onStopStreaming={stopChatStreaming}
             onUploadFile={handleUploadChatFile}
             onClearChat={clearChat}
             onDeleteSession={deleteChatSession}
