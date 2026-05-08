@@ -95,8 +95,36 @@ type PageMode = 'home' | 'list' | 'details' | 'inline-preview'
 interface InlinePreview {
   docId: string
   title: string
-  status: 'pending' | 'completed' | 'failed'
+  // 'loading' = we're fetching a known-existing draft's content (skeleton).
+  // 'pending' = the agent is still generating it (typewriter animation).
+  status: 'loading' | 'pending' | 'completed' | 'failed'
   contentHtml: string
+}
+
+// A4-shaped skeleton shown while we fetch a completed draft's content.
+// Distinct from <GeneratingState>, which lies if the draft is already done.
+function DraftPreviewSkeleton() {
+  return (
+    <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
+      <div
+        className="bg-white dark:bg-ledger-gray-900 mx-auto my-4 shadow-sm p-12"
+        style={{ width: '794px', minHeight: '1100px' }}
+      >
+        <div className="space-y-4 animate-pulse">
+          <div className="h-7 bg-ledger-gray-200 dark:bg-ledger-gray-700 rounded w-2/3 mx-auto mb-8" />
+          <div className="h-4 bg-ledger-gray-200 dark:bg-ledger-gray-700 rounded w-1/2 ml-auto" />
+          <div className="h-4 bg-ledger-gray-200 dark:bg-ledger-gray-700 rounded w-1/3 ml-auto mb-8" />
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="space-y-2 pt-2">
+              <div className="h-3.5 bg-ledger-gray-200 dark:bg-ledger-gray-700 rounded w-full" />
+              <div className="h-3.5 bg-ledger-gray-200 dark:bg-ledger-gray-700 rounded w-11/12" />
+              <div className="h-3.5 bg-ledger-gray-200 dark:bg-ledger-gray-700 rounded w-3/4" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -298,7 +326,7 @@ export function DraftingPage() {
     setMode('inline-preview')
     setIsEditingPreview(false)
     setPreviewDirty(false)
-    setInlinePreview({ docId, title: 'Loading…', status: 'pending', contentHtml: '' })
+    setInlinePreview({ docId, title: 'Loading…', status: 'loading', contentHtml: '' })
     try {
       const doc = await getDocument(docId)
       const js = (doc.jobStatus ?? '').toString().toUpperCase()
@@ -397,7 +425,9 @@ export function DraftingPage() {
           />
         )}
 
-        {inlinePreview.status === 'pending' ? (
+        {inlinePreview.status === 'loading' ? (
+          <DraftPreviewSkeleton />
+        ) : inlinePreview.status === 'pending' ? (
           <GeneratingState label="Draft" />
         ) : inlinePreview.status === 'failed' ? (
           <div className="flex flex-col flex-1 items-center justify-center gap-4">

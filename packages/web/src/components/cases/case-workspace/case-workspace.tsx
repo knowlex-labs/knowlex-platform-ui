@@ -456,6 +456,7 @@ export function CaseWorkspace() {
                     sources={sources}
                     client={null}
                     respondentDetails={formattedRespondent}
+                    caseInfo={caseData}
                     onGenerate={(req) => { createDraft(req); setQuickDraftOpen(false); setWizardConfig(null) }}
                     onSave={() => { setQuickDraftOpen(false); setWizardConfig(null) }}
                     onDiscard={(id) => { deleteDraft(id) }}
