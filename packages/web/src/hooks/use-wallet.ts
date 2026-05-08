@@ -86,7 +86,12 @@ export function useWallet() {
             }
           },
           modal: {
-            ondismiss: () => {
+            // UPI QR / async-method payments don't always trigger the SDK
+            // handler — the webhook is what actually credits the wallet on
+            // the backend. Refresh on dismiss so the user sees the new
+            // balance without a manual reload.
+            ondismiss: async () => {
+              await fetchAll()
               setIsToppingUp(false)
               resolve(false)
             },

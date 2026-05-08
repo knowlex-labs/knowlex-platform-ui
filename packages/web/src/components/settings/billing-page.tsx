@@ -143,7 +143,7 @@ function PlanSelector({ currentPlanName, currentBillingCycle, onSuccess }: PlanS
   return (
     <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-base font-semibold text-kx-primary-900">Upgrade Plan</h3>
+        <h3 className="text-base font-semibold text-kx-primary-900">Change Plan</h3>
 
         {/* Billing cycle toggle */}
         <div className="flex items-center gap-1 bg-ledger-gray-100 dark:bg-white/10 rounded-full p-1">
@@ -174,10 +174,17 @@ function PlanSelector({ currentPlanName, currentBillingCycle, onSuccess }: PlanS
 
       {/* Plan cards — single row */}
       <div className="grid grid-cols-3 gap-3">
-        {paidPlans.map((plan) => {
+        {(() => {
+          const currentKey = currentPlanName?.toUpperCase()
+          const currentPlan = paidPlans.find((p) => getPlanTypeKey(p) === currentKey)
+          const currentPrice = currentPlan
+            ? billingCycle === 'MONTHLY' ? currentPlan.monthlyPrice : currentPlan.yearlyPrice
+            : 0
+          return paidPlans.map((plan) => {
           const planKey = getPlanTypeKey(plan)
-          const isCurrent = currentPlanName?.toUpperCase() === planKey
+          const isCurrent = currentKey === planKey
           const price = billingCycle === 'MONTHLY' ? plan.monthlyPrice : plan.yearlyPrice
+          const action = isCurrent ? 'Current Plan' : price < currentPrice ? 'Downgrade' : 'Upgrade'
 
           return (
             <div
@@ -218,11 +225,12 @@ function PlanSelector({ currentPlanName, currentBillingCycle, onSuccess }: PlanS
                 onClick={() => handleSubscribe(plan)}
                 className={cn('w-full', !isCurrent && 'bg-kx-primary-600 hover:bg-kx-primary-700 text-white')}
               >
-                {isCurrent ? 'Current Plan' : isSubscribing ? 'Processing...' : 'Upgrade'}
+                {isSubscribing && !isCurrent ? 'Processing...' : action}
               </Button>
             </div>
           )
-        })}
+        })
+        })()}
       </div>
 
       <p className="text-center mt-4 mb-0">
