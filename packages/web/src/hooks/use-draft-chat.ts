@@ -154,9 +154,48 @@ export function useDraftChat(caseId: string) {
     }
   }, [caseId])
 
+  const stopStreaming = useCallback(() => {
+    const controller = abortControllerRef.current
+    if (!controller) return
+    controller.abort()
+    abortControllerRef.current = null
+    if (rafIdRef.current !== null) {
+      cancelAnimationFrame(rafIdRef.current)
+      rafIdRef.current = null
+    }
+    const finalContent = answerContentRef.current
+    const finalToolCalls =
+      toolCallsRef.current.length > 0 ? [...toolCallsRef.current] : undefined
+    const finalCitations = documentCitationsRef.current
+    const msgId = streamingMsgIdRef.current
+    if (msgId) {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === msgId
+            ? {
+                ...msg,
+                content: finalContent || '_Stopped by user._',
+                toolCalls: finalToolCalls,
+                isStreaming: false,
+                streamingPhase: undefined,
+                documentCitations: finalCitations ?? msg.documentCitations,
+              }
+            : msg
+        )
+      )
+    }
+    setIsStreaming(false)
+    streamingMsgIdRef.current = null
+    documentCitationsRef.current = undefined
+  }, [])
+
   const sendMessage = useCallback(
     async (message: string, fileIds: string[], webSearch?: boolean) => {
       const trimmed = message.trim()
+      // Two-click protocol: while a response is streaming, the user must
+      // click Stop first (which sets isStreaming=false), then send. We
+      // refuse to send while a stream is in flight so the stop step is
+      // explicit and intentional.
       if (!trimmed || isStreaming || !activeSessionId) return
 
       const userMsg: DraftChatMessage = {
@@ -431,6 +470,7 @@ export function useDraftChat(caseId: string) {
     isLoadingSessions,
     settings,
     sendMessage,
+    stopStreaming,
     clearChat,
     deleteSession,
     selectSession,
