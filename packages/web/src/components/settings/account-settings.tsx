@@ -140,9 +140,13 @@ export function AccountSettings() {
                             id="phone"
                             type="tel"
                             value={formData.phone}
-                            onChange={handleChange('phone')}
                             placeholder="Enter phone number"
+                            readOnly
+                            disabled
                         />
+                        <p className="text-xs text-ledger-gray-500">
+                            Phone number is set at signup and cannot be changed here.
+                        </p>
                     </div>
 
                     <div className="pt-3 space-y-2">
