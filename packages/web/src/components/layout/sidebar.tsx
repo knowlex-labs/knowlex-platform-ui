@@ -215,47 +215,47 @@ export function SidebarContent({ onItemClick, collapsed = false }: SidebarConten
       </nav>
 
       {/* User Section */}
-      <div className="border-t border-ledger-gray-200 p-3 space-y-2">
+      <div className="border-t border-ledger-gray-200 py-3 space-y-1">
         {/* Upgrade Account Button */}
         <Button
           variant="ghost"
           className={cn(
-            "w-full h-8 text-kx-primary-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 dark:hover:bg-white/5",
-            collapsed ? "justify-center px-0" : "justify-start px-3"
+            "w-full min-h-[44px] gap-3 text-sm font-medium text-kx-primary-600 hover:text-kx-primary-700 hover:bg-kx-primary-50 dark:hover:bg-white/5",
+            collapsed ? "justify-center px-0" : "justify-start px-4"
           )}
           onClick={() => navigate('/settings/billing')}
           title="Upgrade Account"
         >
-          <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
-          {!collapsed && <span className="ml-2.5 text-xs font-medium">Upgrade Account</span>}
+          <Sparkles className="h-4 w-4 flex-shrink-0" />
+          {!collapsed && <span>Upgrade Account</span>}
         </Button>
 
         {/* Help and Support Button */}
         <Button
           variant="ghost"
           className={cn(
-            "w-full h-8 text-ledger-gray-500 hover:text-kx-primary-700 hover:bg-kx-primary-50",
-            collapsed ? "justify-center px-0" : "justify-start px-3"
+            "w-full min-h-[44px] gap-3 text-sm font-medium text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50",
+            collapsed ? "justify-center px-0" : "justify-start px-4"
           )}
           onClick={() => setShowHelpDialog(true)}
           title="Help and Support"
         >
-          <HelpCircle className="h-3.5 w-3.5 flex-shrink-0" />
-          {!collapsed && <span className="ml-2.5 text-xs">Help & Support</span>}
+          <HelpCircle className="h-4 w-4 flex-shrink-0" />
+          {!collapsed && <span>Help & Support</span>}
         </Button>
 
         {/* Dark/Light Mode Toggle */}
         <Button
           variant="ghost"
           className={cn(
-            "w-full h-8 text-ledger-gray-500 hover:text-kx-primary-700 hover:bg-kx-primary-50",
-            collapsed ? "justify-center px-0" : "justify-start px-3"
+            "w-full min-h-[44px] gap-3 text-sm font-medium text-ledger-gray-600 hover:text-kx-primary-700 hover:bg-kx-primary-50",
+            collapsed ? "justify-center px-0" : "justify-start px-4"
           )}
           onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {resolvedTheme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
-          {!collapsed && <span className="ml-2.5 text-xs">{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+          {resolvedTheme === 'dark' ? <Sun className="h-4 w-4 flex-shrink-0" /> : <Moon className="h-4 w-4 flex-shrink-0" />}
+          {!collapsed && <span>{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
         </Button>
 
         <Separator />

@@ -20,44 +20,49 @@ export function Judgments() {
     } = useJudgments()
 
     return (
-        <div className="space-y-4">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
-                    <div>
-                        <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
-                            Judgments
-                        </h2>
-                        <p className="text-sm text-ledger-gray-500 mt-1">
-                            Browse Supreme Court Judgments
-                        </p>
+        <div className="h-full overflow-hidden bg-kx-surface flex">
+            <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+                {/* Sticky header + filters */}
+                <div className="flex-shrink-0 px-6 pt-6 pb-3 space-y-3 bg-kx-surface">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">
+                                Judgments
+                            </h2>
+                            <p className="text-sm text-ledger-gray-500 mt-1">
+                                Browse Supreme Court Judgments
+                            </p>
+                        </div>
+                        <RefreshButton onClick={refresh} isLoading={isLoading} className="w-full sm:w-auto" />
                     </div>
-                    <RefreshButton onClick={refresh} isLoading={isLoading} className="w-full sm:w-auto" />
+
+                    {error && (
+                        <div className="px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+                            {error}
+                        </div>
+                    )}
+
+                    <JudgmentFiltersBar
+                        filters={filters}
+                        onFiltersChange={setFilters}
+                    />
                 </div>
 
-                {/* Error banner */}
-                {error && (
-                    <div className="px-4 py-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
-                        {error}
+                {/* Scrollable table area */}
+                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin">
+                    <div className="px-6 pb-4">
+                        <div className="border-y border-kx-card-border">
+                            <JudgmentTable
+                                judgments={judgments}
+                                isLoading={isLoading}
+                                sorts={sorts}
+                                toggleSort={toggleSort}
+                            />
+                        </div>
                     </div>
-                )}
-
-                {/* Filters */}
-                <JudgmentFiltersBar
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                />
-
-                {/* Table + Pagination */}
-                <div className="p-4 rounded-lg border border-kx-card-border">
-                    <JudgmentTable
-                        judgments={judgments}
-                        isLoading={isLoading}
-                        sorts={sorts}
-                        toggleSort={toggleSort}
-                    />
 
                     {!isLoading && judgments.length > 0 && (
-                        <div className="pt-4 mt-4 border-t border-ledger-gray-200">
+                        <div className="px-6 py-4 mt-2 border-t border-kx-card-border">
                             <JudgmentPagination
                                 page={pagination.page}
                                 totalPages={pagination.totalPages}
@@ -70,6 +75,7 @@ export function Judgments() {
                         </div>
                     )}
                 </div>
+            </div>
         </div>
     )
 }

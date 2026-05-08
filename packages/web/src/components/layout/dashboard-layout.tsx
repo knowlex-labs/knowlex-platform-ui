@@ -15,7 +15,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { sidebarCollapsed } = useUIState()
   const location = useLocation()
 
-  const isFullBleed = /^\/cases\/[^/]+/.test(location.pathname) || location.pathname === '/documents'
+  const isFullBleed = /^\/cases\/[^/]+/.test(location.pathname) || location.pathname === '/documents' || location.pathname === '/judgments'
 
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
