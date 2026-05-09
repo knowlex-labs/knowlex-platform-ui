@@ -498,102 +498,124 @@
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Legal document styles for export HTML and read-only markdown views */
+/* Legal document styles — kept in sync with the TipTap document editor
+   (`components/editor/document-editor.tsx`). Both render the same draft:
+   `/drafting` via TipTap, `/documents` and case-workspace via a custom
+   contentEditable using these rules. Any visual change here should be
+   mirrored in the TipTap class list, and vice-versa. */
 .legal-document {
-  line-height: 1.8;
+  line-height: 1.5;
 }
 
 .legal-document h1 {
-  font-size: 17px;
   font-weight: 700;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  margin: 12px 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #333;
+  margin: 16px 0 8px;
 }
 
 .legal-document h2 {
-  font-size: 15px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.2px;
-  margin: 20px 0 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #d0d0d0;
-  color: #1a1a1a;
+  margin: 16px 0 8px;
 }
 
 .legal-document h3 {
-  font-size: 14px;
-  font-weight: 700;
-  margin: 14px 0 6px;
-  color: #333;
+  font-weight: 600;
+  margin: 12px 0 8px;
 }
 
 .legal-document hr {
   border: none;
   border-top: 1px solid #ccc;
-  margin: 20px 0;
+  margin: 16px 0;
 }
 
 .legal-document p {
-  margin: 4px 0 10px;
-  line-height: 1.8;
-  text-align: justify;
+  margin: 8px 0;
+  line-height: 1.5;
 }
 
 .legal-document strong {
-  font-weight: 700;
+  font-weight: 600;
+}
+
+.legal-document em {
+  font-style: italic;
 }
 
 .legal-document table {
   width: 100%;
   border-collapse: collapse;
-  margin: 16px 0;
-  font-size: 13px;
+  margin: 8px 0;
+  border: 1px solid #cbd5e1;
 }
 
 .legal-document th,
 .legal-document td {
-  border: 1px solid #555;
+  border: 1px solid #cbd5e1;
   padding: 8px 12px;
   text-align: left;
   vertical-align: top;
 }
 
 .legal-document th {
-  background-color: #f0f0f0;
-  font-weight: 700;
+  background-color: #f1f5f9;
+  font-weight: 600;
 }
 
-.legal-document tr:nth-child(even) {
-  background-color: #fafafa;
+/* Cause-title borderless mob+role row — mirrors the
+   `[&_table.cause-title-row]` rules in document-editor.tsx so the role tag
+   sits flush right next to the mobile number with no border or padding. */
+.legal-document table.cause-title-row {
+  margin: 0;
+  border: 0;
+}
+.legal-document table.cause-title-row th,
+.legal-document table.cause-title-row td {
+  border: 0;
+  padding: 0;
 }
 
-.legal-document ul,
+.legal-document ul {
+  list-style-type: disc;
+  padding-left: 24px;
+  margin: 4px 0;
+}
+
 .legal-document ol {
-  margin: 6px 0 10px;
-  padding-left: 28px;
-  line-height: 1.8;
+  list-style-type: decimal;
+  padding-left: 24px;
+  margin: 4px 0;
 }
 
 .legal-document li {
-  margin-bottom: 5px;
-  text-align: justify;
+  margin: 2px 0;
 }
 
-.legal-document li > ul,
+.legal-document li > ul {
+  list-style-type: circle;
+  padding-left: 24px;
+  margin: 0;
+}
+
 .legal-document li > ol {
-  margin-top: 4px;
-  margin-bottom: 2px;
+  list-style-type: lower-alpha;
+  padding-left: 24px;
+  margin: 0;
 }
 
 .legal-document blockquote {
-  border-left: 3px solid #888;
-  padding-left: 14px;
-  margin: 14px 0 14px 12px;
-  color: #444;
+  border-left: 4px solid #cbd5e1;
+  padding-left: 12px;
   font-style: italic;
+}
+
+.legal-document a {
+  color: var(--kx-primary-700, #1d4ed8);
+  text-decoration: underline;
+}
+
+.legal-document code {
+  background-color: #f1f5f9;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.875em;
 }

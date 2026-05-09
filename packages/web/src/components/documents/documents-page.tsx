@@ -585,7 +585,7 @@ function DocumentViewer({
                 suppressContentEditableWarning
                 onInput={() => setIsDirty(true)}
                 className="legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none ring-2 ring-kx-primary-300"
-                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', color: '#000', maxWidth: '820px', padding: '32px 40px' }}
               />
             </div>
           )
@@ -593,7 +593,7 @@ function DocumentViewer({
           <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
             <div
               className="legal-document bg-white mx-auto my-4 shadow-sm"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', color: '#000', maxWidth: '820px', padding: '32px 40px' }}
               dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }}
             />
           </div>

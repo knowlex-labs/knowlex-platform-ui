@@ -772,12 +772,9 @@ export function DraftCreationWizard({
                   style={{
                     fontFamily: "'Times New Roman', Times, serif",
                     fontSize: '12pt',
-                    lineHeight: '1.6',
                     color: '#000',
-                    width: '794px',
-                    maxWidth: 'calc(100% - 48px)',
-                    minHeight: '900px',
-                    padding: '72px 96px',
+                    maxWidth: '820px',
+                    padding: '32px 40px',
                   }}
                   dangerouslySetInnerHTML={{ __html: previewHtml }}
                 />

@@ -385,7 +385,7 @@ export function CaseStudioPanel({
   const exportDocument = async (
     documentId: string | undefined,
     title: string,
-    format: 'PDF' | 'DOCX' | 'MARKDOWN',
+    format: 'PDF' | 'DOCX',
     content: string,
     sections?: Draft['sections']
   ) => {
@@ -401,8 +401,7 @@ export function CaseStudioPanel({
         } catch { /* leave empty and let exporter decide */ }
       }
       const htmlBody = buildExportBodyHtml(resolvedContent, sections)
-      const markdownBody = format === 'MARKDOWN' && !resolvedContent.trim().startsWith('<') ? resolvedContent : undefined
-      await exportGeneratedDocument(documentId, format, title, htmlBody, markdownBody)
+      await exportGeneratedDocument(documentId, format, title, htmlBody, undefined)
     } catch (error) {
       toast({
         variant: 'destructive',

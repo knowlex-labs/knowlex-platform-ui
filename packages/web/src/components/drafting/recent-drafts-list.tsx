@@ -64,7 +64,10 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
           type: DocumentType.DRAFT,
           page: 0,
           size: PAGE_SIZE,
-          sort: 'updatedAt,desc',
+          // Sort by createdAt — `updatedAt` gets touched by status flips,
+          // re-indexing, and signed-URL refresh, which can leapfrog a newer
+          // draft below an older one that was just touched.
+          sort: 'createdAt,desc',
         })
         // Reconcile tracked jobs that completed while we weren't watching:
         // any tracked doc that comes back already terminal still owes a toast.
@@ -235,7 +238,7 @@ function DraftRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => void }) 
               </span>
             </span>
             <span className="text-ledger-gray-400 whitespace-nowrap">
-              {relativeTime(doc.updatedAt)}
+              {relativeTime(doc.createdAt ?? doc.updatedAt)}
             </span>
           </div>
         </div>
