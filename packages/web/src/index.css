@@ -574,6 +574,27 @@
   padding: 0;
 }
 
+/* Post-PRAYER and post-VERIFICATION signature tables — borderless,
+   transparent. Without these, the editor's default `[&_table]:border` and
+   `[&_td]:border` rules paint visible cell boxes around the signature row,
+   and any zebra-stripe rule on the consumer side (e.g. the Java PDF
+   exporter) leaks a grey band behind alternating rows. Mirrored in
+   document-editor.tsx and DraftExportHtmlBuilder.java. */
+.legal-document table.signature-block {
+  margin: 0.5rem 0;
+  border: 0;
+  background: transparent;
+}
+.legal-document table.signature-block tr {
+  background: transparent;
+}
+.legal-document table.signature-block th,
+.legal-document table.signature-block td {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
 .legal-document ul {
   list-style-type: disc;
   padding-left: 24px;

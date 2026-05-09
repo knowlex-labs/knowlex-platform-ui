@@ -469,6 +469,12 @@ export function DocumentEditor({
                 '[&_table.cause-title-row]:my-0 [&_table.cause-title-row]:border-0',
                 '[&_table.cause-title-row_td]:border-0 [&_table.cause-title-row_td]:p-0',
                 '[&_table.cause-title-row_th]:border-0 [&_table.cause-title-row_th]:p-0',
+                // Signature blocks (post-PRAYER 3-col, post-VERIFICATION 2-col).
+                // Without explicit overrides the default [&_table]:border rules
+                // above paint visible cell boxes around the row.
+                '[&_table.signature-block]:my-2 [&_table.signature-block]:border-0',
+                '[&_table.signature-block_td]:border-0 [&_table.signature-block_td]:p-0',
+                '[&_table.signature-block_th]:border-0 [&_table.signature-block_th]:p-0',
                 // Inline marks
                 '[&_strong]:font-semibold [&_em]:italic',
                 '[&_a]:text-kx-primary-700 [&_a]:underline',
