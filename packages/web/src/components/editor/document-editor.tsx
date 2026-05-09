@@ -402,7 +402,6 @@ export function DocumentEditor({
       onCancel: handleCancel,
       onDownloadDoc: () => void onExport('DOCX'),
       onDownloadPdf: () => void onExport('PDF'),
-      onDownloadMd: () => void onExport('MARKDOWN'),
     }
   }, [editor, readOnly, handleEdit, handleSave, handleCancel, onExport])
 
@@ -446,13 +445,13 @@ export function DocumentEditor({
               className={cn(
                 'focus:outline-none [&_*]:focus:outline-none',
                 // Headings — keep weight, drop the size bumps so the doc reads
-                // at a uniform 12pt Times New Roman. Tight margins to match
-                // canonical court draft density.
-                '[&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1',
-                '[&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1',
-                '[&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1',
-                // Paragraphs — tight spacing (matches the reference PDF)
-                '[&_p]:my-1 [&_p]:leading-snug',
+                // at a uniform 12pt Times New Roman.
+                '[&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2',
+                '[&_h2]:font-bold [&_h2]:mt-4 [&_h2]:mb-2',
+                '[&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2',
+                // Paragraphs — moderate spacing for readability between
+                // numbered paragraphs in court drafts.
+                '[&_p]:my-2 [&_p]:leading-normal',
                 // Lists
                 '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-1',
                 '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-1',
