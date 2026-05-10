@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { ArrowLeft, Calendar, Users, Building2, Gavel, FileText, FolderPlus, Check, Loader2 } from 'lucide-react'
+import { ArrowLeft, Calendar, Users, Building2, Gavel, FileText, FolderPlus, Check, Loader2, BookOpen, FileDown } from 'lucide-react'
 import { useParams, useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useJudgmentDetail } from '@/hooks/use-judgment-detail'
 import { caseApi } from '@knowlex/core/api/case-api'
+import { judgmentsApi } from '@knowlex/core/api/judgments-api'
 import { cn } from '@/lib/utils'
 import type { BackendCase } from '@knowlex/core/types'
 import { formatJudgmentDate, getDisposalColor } from './judgment-utils'
@@ -213,6 +217,144 @@ export function JudgmentDetail() {
     const navigate = useNavigate()
     const { judgment, pdfUrl, isLoading, isPdfLoading, error, refresh } = useJudgmentDetail(judgmentId ?? null)
 
+    const [summaryText, setSummaryText] = useState<string | null>(null)
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false)
+    const [summaryDialogOpen, setSummaryDialogOpen] = useState(false)
+    const [summaryError, setSummaryError] = useState<string | null>(null)
+    const summaryContentRef = useRef<HTMLDivElement>(null)
+
+    // Pre-load summary text from DB without auto-opening the dialog
+    useEffect(() => {
+        if (judgment?.summary) {
+            setSummaryText(judgment.summary)
+        }
+    }, [judgment?.summary])
+
+    const handleGetSummary = async () => {
+        if (summaryText) {
+            setSummaryDialogOpen(true)
+            return
+        }
+        setIsSummaryLoading(true)
+        setSummaryError(null)
+        try {
+            const text = await judgmentsApi.generateSummary(judgmentId!)
+            setSummaryText(text)
+            setSummaryDialogOpen(true)
+        } catch {
+            setSummaryError('Failed to generate summary. Please try again.')
+            setSummaryDialogOpen(true)
+        } finally {
+            setIsSummaryLoading(false)
+        }
+    }
+
+    const handleDownloadPdf = async () => {
+        const { default: jsPDF } = await import('jspdf')
+        const caseName = judgment ? `${judgment.petitioner} v. ${judgment.respondent}` : 'Judgment Summary'
+        const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+        const pageW = doc.internal.pageSize.getWidth()
+        const margin = 18
+        const maxW = pageW - margin * 2
+        let y = margin
+
+        const addPage = () => { doc.addPage(); y = margin }
+        const checkPage = (needed: number) => { if (y + needed > 278) addPage() }
+
+        // Case title header
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(13)
+        const titleLines = doc.splitTextToSize(caseName, maxW)
+        checkPage(titleLines.length * 6 + 6)
+        doc.text(titleLines, margin, y)
+        y += titleLines.length * 6 + 2
+        doc.setDrawColor(180, 180, 180)
+        doc.setLineWidth(0.3)
+        doc.line(margin, y, pageW - margin, y)
+        y += 6
+
+        // Parse markdown lines
+        const lines = (summaryText || '').split('\n')
+        for (const rawLine of lines) {
+            const line = rawLine.trimEnd()
+
+            if (line === '---') {
+                checkPage(6)
+                doc.setDrawColor(200, 200, 200)
+                doc.setLineWidth(0.2)
+                doc.line(margin, y, pageW - margin, y)
+                y += 5
+                continue
+            }
+
+            // Strip inline bold markers for display
+            const stripped = line.replace(/\*\*/g, '').trim()
+            if (!stripped) { y += 3; continue }
+
+            // Full-line bold heading (e.g. **1. PARTIES**)
+            const isFullBold = /^\*\*[^*]+\*\*$/.test(line.trim()) || /^\d+\.\s/.test(line.trim())
+            const isBullet = /^[-•]\s/.test(stripped) || /^\s{2,}[-•]\s/.test(line)
+            const isSubBullet = /^\s{4,}[-•]\s/.test(line)
+
+            if (isFullBold && !isBullet) {
+                doc.setFont('helvetica', 'bold')
+                doc.setFontSize(10.5)
+                const wrapped = doc.splitTextToSize(stripped, maxW)
+                checkPage(wrapped.length * 5.5 + 4)
+                y += 2
+                doc.text(wrapped, margin, y)
+                y += wrapped.length * 5.5 + 2
+            } else if (isSubBullet) {
+                doc.setFont('helvetica', 'normal')
+                doc.setFontSize(9.5)
+                const text = stripped.replace(/^[-•]\s/, '')
+                const wrapped = doc.splitTextToSize(`◦ ${text}`, maxW - 12)
+                checkPage(wrapped.length * 4.8 + 1)
+                doc.text(wrapped, margin + 10, y)
+                y += wrapped.length * 4.8 + 1
+            } else if (isBullet) {
+                doc.setFont('helvetica', 'normal')
+                doc.setFontSize(9.5)
+                const text = stripped.replace(/^[-•]\s/, '')
+                const wrapped = doc.splitTextToSize(`• ${text}`, maxW - 6)
+                checkPage(wrapped.length * 4.8 + 1)
+                doc.text(wrapped, margin + 4, y)
+                y += wrapped.length * 4.8 + 1
+            } else {
+                doc.setFont('helvetica', 'normal')
+                doc.setFontSize(9.5)
+                const wrapped = doc.splitTextToSize(stripped, maxW)
+                checkPage(wrapped.length * 4.8 + 1)
+                doc.text(wrapped, margin, y)
+                y += wrapped.length * 4.8 + 1
+            }
+        }
+
+        doc.save(`${caseName.replace(/[^\w\s]/g, '').trim().slice(0, 60)}-summary.pdf`)
+    }
+
+    const handleDownloadWord = () => {
+        const inner = summaryContentRef.current?.innerHTML || ''
+        const caseName = judgment ? `${judgment.petitioner} v. ${judgment.respondent}` : 'Judgment Summary'
+        const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${caseName}</title>
+<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>90</w:Zoom></w:WordDocument></xml><![endif]-->
+<style>body{font-family:Georgia,serif;font-size:12pt;line-height:1.6;color:#1a1a2e}
+h1{font-size:16pt;border-bottom:1px solid #ccc;padding-bottom:6pt}
+h2{font-size:13pt;margin-top:18pt}h3{font-size:11pt}
+strong{font-weight:bold}hr{border-top:1px solid #ddd}
+ul,ol{margin-left:20pt}li{margin:3pt 0}p{margin:6pt 0}</style>
+</head><body><h1>${caseName}</h1>${inner}</body></html>`
+        const blob = new Blob(['﻿', html], { type: 'application/msword' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${caseName.replace(/[^\w\s]/g, '').trim().slice(0, 60)}-summary.doc`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
     const goBack = () => navigate(-1)
 
     if (isLoading) {
@@ -270,6 +412,7 @@ export function JudgmentDetail() {
     const decisionDate = formatJudgmentDate(judgment.decisionDate)
 
     return (
+        <>
         <div className="flex flex-col h-[calc(100vh-56px)] md:h-[calc(100vh-16px)] overflow-y-auto">
             {/* Top bar */}
             <div className="px-6 py-4 border-b border-kx-card-border bg-kx-card sticky top-0 z-10">
@@ -284,7 +427,23 @@ export function JudgmentDetail() {
                         Back to Judgments
                     </Button>
 
-                    <AddToWorkspace judgmentId={judgmentId!} />
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGetSummary}
+                            disabled={isSummaryLoading}
+                            className="gap-2"
+                        >
+                            {isSummaryLoading ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <BookOpen className="h-3.5 w-3.5" />
+                            )}
+                            {isSummaryLoading ? 'Generating...' : summaryText ? 'View Summary' : 'Get Summary'}
+                        </Button>
+                        <AddToWorkspace judgmentId={judgmentId!} />
+                    </div>
                 </div>
             </div>
 
@@ -396,6 +555,72 @@ export function JudgmentDetail() {
                 )}
             </div>
         </div>
+
+        {/* Summary Dialog */}
+        <Dialog open={summaryDialogOpen} onOpenChange={setSummaryDialogOpen}>
+            <DialogContent className="max-w-4xl w-[92vw] h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
+                {/* Dialog header */}
+                <div className="flex items-start justify-between pl-6 pr-14 py-4 border-b border-kx-card-border flex-shrink-0">
+                    <div className="min-w-0 pr-4">
+                        <DialogTitle className="text-base">AI Legal Summary</DialogTitle>
+                        <p className="text-sm text-ledger-gray-500 mt-0.5 truncate">
+                            {judgment.petitioner} v. {judgment.respondent}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                        {summaryText && (
+                            <>
+                                <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="gap-1.5 h-8 px-3 text-xs">
+                                    <FileDown className="h-3 w-3" />
+                                    PDF
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={handleDownloadWord} className="gap-1.5 h-8 px-3 text-xs">
+                                    <FileDown className="h-3 w-3" />
+                                    Word
+                                </Button>
+                            </>
+                        )}
+                    </div>
+                </div>
+
+                {/* Scrollable content */}
+                <div className="flex-1 overflow-y-auto">
+                    {summaryError ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-3">
+                            <p className="text-sm text-red-500">{summaryError}</p>
+                            <Button variant="outline" size="sm" onClick={() => {
+                                setSummaryDialogOpen(false)
+                                setSummaryError(null)
+                            }}>
+                                Close
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="max-w-3xl mx-auto px-8 py-8">
+                            <div ref={summaryContentRef} className="text-sm text-kx-primary-900 leading-relaxed font-sans">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                        h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 font-serif text-kx-primary-900">{children}</h1>,
+                                        h2: ({ children }) => <h2 className="text-base font-semibold mt-6 mb-2 font-serif text-kx-primary-900">{children}</h2>,
+                                        h3: ({ children }) => <h3 className="text-sm font-semibold mt-4 mb-1 text-kx-primary-900">{children}</h3>,
+                                        p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
+                                        ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-0.5">{children}</ul>,
+                                        ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-0.5">{children}</ol>,
+                                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                        hr: () => <hr className="my-4 border-ledger-gray-200" />,
+                                    }}
+                                >
+                                    {summaryText!}
+                                </ReactMarkdown>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+        </>
     )
 }
 
