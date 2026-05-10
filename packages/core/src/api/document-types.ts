@@ -7,6 +7,8 @@ export type DocumentType =
   | 'agreement'
   | 'legal_notice'
   | 'demand_notice'
+  | 'cheque_bounce_notice'
+  | 'eviction_notice'
   | 'petition'
   | 'affidavit'
   | 'application'
