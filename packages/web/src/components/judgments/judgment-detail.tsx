@@ -8,7 +8,6 @@ import { Separator } from '@/components/ui/separator'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useJudgmentDetail } from '@/hooks/use-judgment-detail'
 import { caseApi } from '@knowlex/core/api/case-api'
-import { judgmentsApi } from '@knowlex/core/api/judgments-api'
 import { cn } from '@/lib/utils'
 import type { BackendCase } from '@knowlex/core/types'
 import { formatJudgmentDate, getDisposalColor } from './judgment-utils'
@@ -217,39 +216,11 @@ export function JudgmentDetail() {
     const navigate = useNavigate()
     const { judgment, pdfUrl, isLoading, isPdfLoading, error, refresh } = useJudgmentDetail(judgmentId ?? null)
 
-    const [summaryText, setSummaryText] = useState<string | null>(null)
-    const [isSummaryLoading, setIsSummaryLoading] = useState(false)
     const [summaryDialogOpen, setSummaryDialogOpen] = useState(false)
-    const [summaryError, setSummaryError] = useState<string | null>(null)
     const summaryContentRef = useRef<HTMLDivElement>(null)
 
-    // Pre-load summary text from DB without auto-opening the dialog
-    useEffect(() => {
-        if (judgment?.summary) {
-            setSummaryText(judgment.summary)
-        }
-    }, [judgment?.summary])
-
-    const handleGetSummary = async () => {
-        if (summaryText) {
-            setSummaryDialogOpen(true)
-            return
-        }
-        setIsSummaryLoading(true)
-        setSummaryError(null)
-        try {
-            const text = await judgmentsApi.generateSummary(judgmentId!)
-            setSummaryText(text)
-            setSummaryDialogOpen(true)
-        } catch {
-            setSummaryError('Failed to generate summary. Please try again.')
-            setSummaryDialogOpen(true)
-        } finally {
-            setIsSummaryLoading(false)
-        }
-    }
-
     const handleDownloadPdf = async () => {
+        if (!judgment) return
         const { default: jsPDF } = await import('jspdf')
         const caseName = judgment ? `${judgment.petitioner} v. ${judgment.respondent}` : 'Judgment Summary'
         const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
@@ -274,7 +245,7 @@ export function JudgmentDetail() {
         y += 6
 
         // Parse markdown lines
-        const lines = (summaryText || '').split('\n')
+        const lines = (judgment.summary || '').split('\n')
         for (const rawLine of lines) {
             const line = rawLine.trimEnd()
 
@@ -428,20 +399,27 @@ ul,ol{margin-left:20pt}li{margin:3pt 0}p{margin:6pt 0}</style>
                     </Button>
 
                     <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleGetSummary}
-                            disabled={isSummaryLoading}
-                            className="gap-2"
-                        >
-                            {isSummaryLoading ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
+                        {judgment.summary ? (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSummaryDialogOpen(true)}
+                                className="gap-2"
+                            >
                                 <BookOpen className="h-3.5 w-3.5" />
-                            )}
-                            {isSummaryLoading ? 'Generating...' : summaryText ? 'View Summary' : 'Get Summary'}
-                        </Button>
+                                View Summary
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled
+                                className="gap-2"
+                            >
+                                <BookOpen className="h-3.5 w-3.5" />
+                                Generate Summary
+                            </Button>
+                        )}
                         <AddToWorkspace judgmentId={judgmentId!} />
                     </div>
                 </div>
@@ -568,7 +546,7 @@ ul,ol{margin-left:20pt}li{margin:3pt 0}p{margin:6pt 0}</style>
                         </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                        {summaryText && (
+                        {judgment.summary && (
                             <>
                                 <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="gap-1.5 h-8 px-3 text-xs">
                                     <FileDown className="h-3 w-3" />
@@ -585,38 +563,26 @@ ul,ol{margin-left:20pt}li{margin:3pt 0}p{margin:6pt 0}</style>
 
                 {/* Scrollable content */}
                 <div className="flex-1 overflow-y-auto">
-                    {summaryError ? (
-                        <div className="flex flex-col items-center justify-center h-full gap-3">
-                            <p className="text-sm text-red-500">{summaryError}</p>
-                            <Button variant="outline" size="sm" onClick={() => {
-                                setSummaryDialogOpen(false)
-                                setSummaryError(null)
-                            }}>
-                                Close
-                            </Button>
+                    <div className="max-w-3xl mx-auto px-8 py-8">
+                        <div ref={summaryContentRef} className="text-sm text-kx-primary-900 leading-relaxed font-sans">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 font-serif text-kx-primary-900">{children}</h1>,
+                                    h2: ({ children }) => <h2 className="text-base font-semibold mt-6 mb-2 font-serif text-kx-primary-900">{children}</h2>,
+                                    h3: ({ children }) => <h3 className="text-sm font-semibold mt-4 mb-1 text-kx-primary-900">{children}</h3>,
+                                    p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
+                                    ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-0.5">{children}</ul>,
+                                    ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-0.5">{children}</ol>,
+                                    li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                                    strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                                    hr: () => <hr className="my-4 border-ledger-gray-200" />,
+                                }}
+                            >
+                                {judgment.summary!}
+                            </ReactMarkdown>
                         </div>
-                    ) : (
-                        <div className="max-w-3xl mx-auto px-8 py-8">
-                            <div ref={summaryContentRef} className="text-sm text-kx-primary-900 leading-relaxed font-sans">
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm]}
-                                    components={{
-                                        h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 font-serif text-kx-primary-900">{children}</h1>,
-                                        h2: ({ children }) => <h2 className="text-base font-semibold mt-6 mb-2 font-serif text-kx-primary-900">{children}</h2>,
-                                        h3: ({ children }) => <h3 className="text-sm font-semibold mt-4 mb-1 text-kx-primary-900">{children}</h3>,
-                                        p: ({ children }) => <p className="my-2 leading-relaxed">{children}</p>,
-                                        ul: ({ children }) => <ul className="my-2 ml-4 list-disc space-y-0.5">{children}</ul>,
-                                        ol: ({ children }) => <ol className="my-2 ml-4 list-decimal space-y-0.5">{children}</ol>,
-                                        li: ({ children }) => <li className="leading-relaxed">{children}</li>,
-                                        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                                        hr: () => <hr className="my-4 border-ledger-gray-200" />,
-                                    }}
-                                >
-                                    {summaryText!}
-                                </ReactMarkdown>
-                            </div>
-                        </div>
-                    )}
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
