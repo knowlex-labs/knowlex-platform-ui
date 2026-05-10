@@ -1,5 +1,6 @@
 import { FileText, CalendarDays, MessagesSquare, CheckCircle, BookOpen, Users, FileStack } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { DRAFT_TEMPLATES } from '@knowlex/core/types'
 
 
 const CAUSE_LIST_ITEMS = [
@@ -57,7 +58,7 @@ export function FeaturesSection() {
                 Court-ready drafts<br />in under 60 seconds
               </h3>
               <p className="text-base text-kx-text-secondary leading-relaxed mb-6">
-                Start from 20+ pre-built Indian legal templates or create your own custom
+                Start from {DRAFT_TEMPLATES.length} pre-built Indian legal templates or create your own custom
                 templates to match your exact style and format. Knowlex writes each section with
                 the correct provisions auto-sourced — then lets you refine any paragraph in chat.
               </p>
