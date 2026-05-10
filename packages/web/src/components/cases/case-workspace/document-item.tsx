@@ -28,6 +28,19 @@ function getFileIcon(fileName: string) {
   return File
 }
 
+// Suggested filename for the browser's download popup. Keeps the displayed
+// title intact, strips only filesystem-illegal chars (Windows-reserved set),
+// and appends the right extension from fileType so the popup shows
+// "Application for Bail.docx" instead of an extensionless / browser-mangled
+// name.
+function buildDownloadFilename(displayName: string, fileType?: string | null): string {
+  const cleaned = displayName.replace(/[\\/:*?"<>|\x00-\x1f]/g, '').replace(/\s+/g, ' ').trim()
+  const base = cleaned || 'document'
+  const ext = (fileType || '').toLowerCase()
+  if (!ext) return base
+  return base.toLowerCase().endsWith(`.${ext}`) ? base : `${base}.${ext}`
+}
+
 function getTypeBadge(type: string) {
   const config: Record<string, { color: string; text: string }> = {
     USER_UPLOADED: { color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800', text: 'Source' },
@@ -95,7 +108,7 @@ export function DocumentItem({ document }: DocumentItemProps) {
       // Trigger download - use window.document to avoid shadowing the prop
       const link = window.document.createElement('a')
       link.href = url
-      link.download = displayName
+      link.download = buildDownloadFilename(displayName, document.fileType)
       link.target = '_blank'
       window.document.body.appendChild(link)
       link.click()
