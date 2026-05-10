@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
+import Paragraph from '@tiptap/extension-paragraph'
 import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableHeader from '@tiptap/extension-table-header'
@@ -70,6 +71,32 @@ const TableCellWithStyle = TableCell.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute('style'),
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.style ? { style: attrs.style as string } : {},
+      },
+    }
+  },
+})
+
+// TipTap's bundled Paragraph schema discards inline `style` and `class`. The
+// notice prompts use per-paragraph margins (e.g. `margin:0` for tight
+// recipient-block lines, `margin:1rem 0 0` for block-start lines) and
+// `padding:0 3.5rem;` for the body inset; without preserving these attrs
+// every <p> collapses to the editor's default `[&_p]:my-2` and the layout
+// flattens. Mirrors the TableWithClass / TableCellWithStyle pattern above.
+const ParagraphWithStyle = Paragraph.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute('class'),
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.class ? { class: attrs.class as string } : {},
+      },
       style: {
         default: null,
         parseHTML: (el: HTMLElement) => el.getAttribute('style'),
@@ -157,7 +184,8 @@ export function DocumentEditor({
   const editor = useEditor({
     editable: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({ paragraph: false }),
+      ParagraphWithStyle,
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TableWithClass.configure({ resizable: true }),
