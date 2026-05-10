@@ -15,7 +15,7 @@ export function TemplatesMarquee() {
           Templates
         </p>
         <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold text-kx-text-primary mb-3 leading-tight">
-          {DRAFT_TEMPLATES.length}+ templates. Built for Indian courts.
+          {DRAFT_TEMPLATES.length} templates. Built for Indian courts.
         </h2>
         <p className="text-base sm:text-lg text-kx-text-secondary">
           Drafting that knows the format — from bail applications to writ petitions, in seconds.

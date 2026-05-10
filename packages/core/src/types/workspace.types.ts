@@ -223,6 +223,8 @@ export interface DraftTemplate {
   description: string
   icon: string
   fields: TemplateField[]
+  /** Sort key for the wizard grid; lower = earlier. Templates without one sort last. */
+  displayOrder?: number
 }
 
 export interface TemplateFormData {
@@ -280,20 +282,108 @@ export interface DraftChatSession {
 export const DRAFT_TEMPLATES: DraftTemplate[] = [
   {
     id: 'notice',
-    name: 'Notice',
-    description: 'Draft legal notices, demand letters, and statutory communications',
-    icon: 'FileWarning',
+    name: 'Legal Notice',
+    description: 'General legal notice — cease & desist, defamation, breach of contract, Sec 80 CPC, IP infringement, statutory show-cause',
+    icon: 'FileText',
+    displayOrder: 1,
     fields: [
       { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'Enter notice title' },
-      { id: 'sender', label: 'Sender Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'recipient', label: 'Recipient Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile (e.g., Mr. Rajesh Kumar, 45, Business Owner, 123 MG Road, Koramangala, Bangalore, Karnataka 560034, +91-9876543210)' },
-      { id: 'body', label: 'Notice Content', type: 'textarea', required: false, placeholder: 'Enter initial content (optional)' },
+      { id: 'sender', label: 'Sender Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
+      { id: 'recipient', label: 'Recipient Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
+      { id: 'subject', label: 'Subject of Notice', type: 'text', required: false, placeholder: 'e.g., Cease and desist notice for trademark infringement' },
+      { id: 'body', label: 'Notice Content', type: 'textarea', required: false, placeholder: 'Enter the underlying facts, dates, communications, and what your client wants the recipient to do' },
       { id: 'language', label: 'Language', type: 'select', required: false, options: [
         { label: 'English', value: 'english' },
         { label: 'Hindi', value: 'hindi' },
         { label: 'Bilingual', value: 'bilingual' },
       ] },
       { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
+    ],
+  },
+  {
+    id: 'demand-notice',
+    name: 'Demand Notice',
+    description: 'Recovery of money — unpaid invoices, undisputed dues, refund of advances, breach causing quantified loss',
+    icon: 'Receipt',
+    displayOrder: 2,
+    fields: [
+      { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'e.g., Demand Notice for recovery of Rs. 8,42,000/-' },
+      { id: 'sender', label: 'Sender (Client) Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
+      { id: 'recipient', label: 'Recipient (Debtor) Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, address, designation' },
+      { id: 'instrument', label: 'Underlying Instrument', type: 'text', required: false, placeholder: 'e.g., Master Services Agreement dated 04/01/2025 / Loan Agreement dated 02/12/2025 / Invoice No. 2025/041' },
+      { id: 'principal_amount', label: 'Principal Amount', type: 'text', required: false, placeholder: 'e.g., Rs. 8,00,000/- (in figures and words)' },
+      { id: 'interest_rate', label: 'Interest Rate (% p.a.)', type: 'text', required: false, placeholder: 'e.g., 18 (contractual) / leave blank for Section 34 CPC commercial rate' },
+      { id: 'due_date', label: 'Due Date / Date of Default', type: 'text', required: false, placeholder: 'DD/MM/YYYY' },
+      { id: 'prior_demands', label: 'Prior Demands / Reminders', type: 'textarea', required: false, placeholder: 'List dates of prior emails / WhatsApp messages / reminders sent to the debtor' },
+      { id: 'body', label: 'Facts of the Transaction', type: 'textarea', required: false, placeholder: 'Briefly: services rendered / goods supplied / loan advanced — what, when, where, supporting documents available' },
+      { id: 'language', label: 'Language', type: 'select', required: false, options: [
+        { label: 'English', value: 'english' },
+        { label: 'Hindi', value: 'hindi' },
+        { label: 'Bilingual', value: 'bilingual' },
+      ] },
+      { id: 'sources', label: 'Reference Documents', type: 'sources', required: false },
+    ],
+  },
+  {
+    id: 'cheque-bounce-notice',
+    name: 'Cheque Bounce Notice',
+    description: 'Statutory notice under Section 138 NI Act, 1881 — pre-condition to a Section 138 r/w 142 complaint',
+    icon: 'FileWarning',
+    displayOrder: 3,
+    fields: [
+      { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'e.g., Section 138 NI Act Notice for cheque bearing No. 412567' },
+      { id: 'sender', label: 'Payee (Client) Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
+      { id: 'recipient', label: 'Drawer Details', type: 'client-select', required: false, placeholder: 'Enter drawer of the cheque — name, address, drawer capacity (individual / partner / director)' },
+      { id: 'cheque_number', label: 'Cheque Number', type: 'text', required: false, placeholder: 'e.g., 412567' },
+      { id: 'cheque_date', label: 'Cheque Date', type: 'text', required: false, placeholder: 'DD/MM/YYYY' },
+      { id: 'cheque_amount', label: 'Cheque Amount', type: 'text', required: false, placeholder: 'e.g., Rs. 5,00,000/- (in figures and words)' },
+      { id: 'drawee_bank', label: 'Drawee Bank & Branch', type: 'text', required: false, placeholder: 'e.g., HDFC Bank, Pune Camp Branch' },
+      { id: 'account_number', label: "Drawer's Account Number", type: 'text', required: false, placeholder: 'Last 4 digits suffice; full will be masked' },
+      { id: 'presentation_date', label: 'Presentation Date', type: 'text', required: false, placeholder: 'DD/MM/YYYY' },
+      { id: 'dishonour_date', label: 'Date of Cheque Return Memo', type: 'text', required: false, placeholder: 'DD/MM/YYYY' },
+      { id: 'dishonour_reason', label: 'Reason for Dishonour', type: 'text', required: false, placeholder: 'e.g., FUNDS INSUFFICIENT / ACCOUNT CLOSED / PAYMENT STOPPED BY DRAWER / SIGNATURE DIFFERS' },
+      { id: 'memo_received_date', label: 'Date Client Received Memo', type: 'text', required: false, placeholder: 'DD/MM/YYYY (Day 0 for the 30-day window)' },
+      { id: 'underlying_debt', label: 'Underlying Legally Enforceable Debt', type: 'textarea', required: false, placeholder: 'e.g., friendly loan of Rs. 5,00,000/- advanced on 02/12/2025, evidenced by receipt and UPI ref. — mandatory recital under Section 138' },
+      { id: 'language', label: 'Language', type: 'select', required: false, options: [
+        { label: 'English', value: 'english' },
+        { label: 'Hindi', value: 'hindi' },
+        { label: 'Bilingual', value: 'bilingual' },
+      ] },
+      { id: 'sources', label: 'Reference Documents (cheque copy, return memo, agreement)', type: 'sources', required: false },
+    ],
+  },
+  {
+    id: 'eviction-notice',
+    name: 'Eviction Notice',
+    description: 'Notice under Section 106 TP Act, 1882 (read with State Rent Control Act) — terminate tenancy + recover possession + arrears',
+    icon: 'DoorOpen',
+    displayOrder: 4,
+    fields: [
+      { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'e.g., Eviction Notice — Flat No. 426, Lotus Nandanvan Apartment, Moshi' },
+      { id: 'sender', label: 'Landlord (Client) Details', type: 'client-select', required: false, placeholder: 'Enter full details — name, age, occupation, address, mobile' },
+      { id: 'recipient', label: 'Tenant Details', type: 'client-select', required: false, placeholder: 'Enter tenant details — name, age, occupation, address, mobile' },
+      { id: 'premises', label: 'Suit Premises Description', type: 'textarea', required: false, placeholder: 'Flat / shop number, floor, carpet area, Survey No./CTS No., full address, boundaries' },
+      { id: 'title_document', label: 'Landlord Title Document', type: 'text', required: false, placeholder: 'e.g., Sale Deed dated 18/06/2018 bearing Doc. No. 4521/2018 at SRO Pimpri' },
+      { id: 'tenancy_start_date', label: 'Tenancy Commencement Date', type: 'text', required: false, placeholder: 'DD/MM/YYYY' },
+      { id: 'tenancy_mode', label: 'Mode of Tenancy', type: 'select', required: false, options: [
+        { label: 'Oral monthly tenancy', value: 'oral_monthly' },
+        { label: 'Registered Lease Deed', value: 'registered_lease' },
+        { label: 'Leave & Licence Agreement', value: 'leave_licence' },
+        { label: 'Tenancy at will / by sufferance', value: 'tenancy_at_will' },
+      ] },
+      { id: 'monthly_rent', label: 'Monthly Rent', type: 'text', required: false, placeholder: 'e.g., Rs. 8,500/- (in figures and words)' },
+      { id: 'security_deposit', label: 'Security Deposit', type: 'text', required: false, placeholder: 'e.g., Rs. 20,000/-' },
+      { id: 'arrears_period', label: 'Period of Arrears', type: 'text', required: false, placeholder: 'e.g., 05/03/2022 to 04/05/2026 (50 months)' },
+      { id: 'arrears_amount', label: 'Total Arrears', type: 'text', required: false, placeholder: 'e.g., Rs. 4,25,000/- (excluding interest)' },
+      { id: 'state_rent_act', label: 'Applicable State Rent Control Act (if any)', type: 'text', required: false, placeholder: 'e.g., Maharashtra Rent Control Act, 1999 / Delhi Rent Control Act, 1958' },
+      { id: 'grounds', label: 'Grounds for Eviction', type: 'textarea', required: false, placeholder: 'Default in rent / unlawful sub-letting / change of user / structural alteration / nuisance / bona-fide requirement' },
+      { id: 'market_rent', label: 'Market Rent (for mesne profits)', type: 'text', required: false, placeholder: 'e.g., Rs. 18,000/- per month' },
+      { id: 'language', label: 'Language', type: 'select', required: false, options: [
+        { label: 'English', value: 'english' },
+        { label: 'Hindi', value: 'hindi' },
+        { label: 'Bilingual', value: 'bilingual' },
+      ] },
+      { id: 'sources', label: 'Reference Documents (lease deed, rent receipts, title)', type: 'sources', required: false },
     ],
   },
   {
