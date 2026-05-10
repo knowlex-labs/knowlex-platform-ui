@@ -396,6 +396,7 @@ export function DraftingPage() {
         ) : (
           <DocumentEditor
             documentId={inlinePreview.docId}
+            documentTitle={inlinePreview.title}
             className="flex-1"
           />
         )}
