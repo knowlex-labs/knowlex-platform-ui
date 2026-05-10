@@ -9,6 +9,10 @@ import type { JudgmentFilters } from '@knowlex/core/types'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: CURRENT_YEAR - 1949 }, (_, i) => CURRENT_YEAR - i)
+// Only show judges whose stored value has been canonicalised through
+// `normalize_judge_name` (Hon'ble … Justice <Name>). Hides ingestion noise
+// like 'AHMEDABAD', 'A.K.', 'K. SUBBA (CJ) & WANCHOO' from the picker.
+const HON_PREFIX = /^\s*Hon['‘’]?ble\s/i
 
 // --- AdvancedFiltersDropdown ---
 
@@ -223,7 +227,7 @@ export function JudgmentFiltersBar({ filters, onFiltersChange }: JudgmentFilters
     useEffect(() => {
         judgmentsApi.getJudges(filters.court)
             .then((list) => {
-                const filtered = list.filter((j): j is string => !!j && j.trim() !== '')
+                const filtered = list.filter((j): j is string => !!j && HON_PREFIX.test(j))
                 setJudges(filtered)
             })
             .catch(() => {/* non-fatal */})
