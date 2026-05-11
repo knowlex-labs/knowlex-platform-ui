@@ -11,16 +11,8 @@ import { toast } from '@/hooks/use-toast'
 
 const PAGE_SIZE = 5
 
-// Module-scoped so a tracked draft survives navigation away from /drafts.
-// If the user submits a draft, leaves, and returns, the next mount can still
-// fire the toast either via SSE (still PROCESSING) or via reconciliation
-// against the freshly-fetched list (already terminal).
-const trackedJobs = new Map<string, string>() // docId → display label
-
 export interface RecentDraftsListHandle {
   refresh: () => void
-  /** Mark a draft we just submitted so we toast on completion. */
-  trackJob: (docId: string, label: string) => void
 }
 
 interface RecentDraftsListProps {
@@ -69,20 +61,6 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
           // draft below an older one that was just touched.
           sort: 'createdAt,desc',
         })
-        // Reconcile tracked jobs that completed while we weren't watching:
-        // any tracked doc that comes back already terminal still owes a toast.
-        for (const doc of result.documents) {
-          const label = trackedJobs.get(doc.id)
-          if (!label) continue
-          const s = (doc.jobStatus ?? '').toString().toUpperCase()
-          if (s === 'COMPLETED') {
-            trackedJobs.delete(doc.id)
-            toast({ title: 'Draft ready', description: label })
-          } else if (s === 'FAILED' || s === 'CANCELLED') {
-            trackedJobs.delete(doc.id)
-            toast({ title: 'Draft generation failed', description: 'Please try again.', variant: 'destructive' })
-          }
-        }
         setDocs(result.documents)
       } catch {
         setDocs([])
@@ -98,12 +76,11 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
 
     useImperativeHandle(ref, () => ({
       refresh: fetchDrafts,
-      trackJob: (docId, label) => {
-        trackedJobs.set(docId, label)
-      },
     }), [fetchDrafts])
 
-    // Open SSE stream for any PROCESSING draft. Mirrors documents-page.tsx:907–943.
+    // Watch any visible PROCESSING row and re-fetch the list on terminal
+    // status so the badge flips. The "Draft ready" toast itself is owned by
+    // the globally-mounted <DraftTracker /> - we don't fire toasts here.
     useEffect(() => {
       for (const doc of docs) {
         if (doc.jobStatus !== JobStatus.PROCESSING) continue
@@ -116,15 +93,6 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
             if (s === 'COMPLETED' || s === 'FAILED' || s === 'CANCELLED') {
               streamsRef.current.get(docId)?.abort()
               streamsRef.current.delete(docId)
-              const label = trackedJobs.get(docId)
-              if (label) {
-                trackedJobs.delete(docId)
-                if (s === 'COMPLETED') {
-                  toast({ title: 'Draft ready', description: label })
-                } else {
-                  toast({ title: 'Draft generation failed', description: 'Please try again.', variant: 'destructive' })
-                }
-              }
               fetchDrafts()
             }
           },

@@ -448,7 +448,6 @@ export function DocumentEditor({
           isEditing={isEditing}
           isSaving={isSaving}
           hasChanges={hasChanges}
-          documentTitle={documentTitle}
           {...toolbarHandlers}
         />
       )}

@@ -458,7 +458,7 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
   },
   {
     id: 'bail-application',
-    name: 'Bail Application',
+    name: '1st Bail Application',
     description: 'Draft bail applications with FIR details and criminal history',
     icon: 'Gavel',
     fields: [
