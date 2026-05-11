@@ -75,14 +75,10 @@ export function CaseSourcesView({ caseId, selectedDocIds, onSelectionChange }: C
       if (result.canceled || !result.assets?.length) return;
       setUploading(true);
       for (const asset of result.assets) {
-        const file = { uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'application/octet-stream' } as unknown as Blob;
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('caseId', caseId);
-        const { env } = (await import('@knowlex/core/api/runtime')).getAdapters();
-        const { getAuthHeaders } = await import('@knowlex/core/api/auth-headers');
-        await fetch(`${env.apiBaseUrl}/api/v1/documents/upload`, {
-          method: 'POST', headers: getAuthHeaders(), body: formData,
+        await workspaceApi.uploadDocument(caseId, {
+          uri: asset.uri,
+          name: asset.name,
+          type: asset.mimeType ?? 'application/octet-stream',
         });
       }
       await fetchSources();

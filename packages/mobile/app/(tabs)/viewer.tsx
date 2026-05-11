@@ -95,6 +95,16 @@ export default function ViewerScreen() {
     const { getAuthHeaders } = await import('@knowlex/core/api/auth-headers');
     const path = params.downloadUrl || `/api/v1/documents/${params.docId}/download`;
     const fullUrl = path.startsWith('http') ? path : `${env.apiBaseUrl}${path}`;
+    // Only attach the bearer token when the request stays on our API origin.
+    // If the backend ever hands back an absolute non-API URL (CDN/S3 redirect)
+    // in `downloadUrl`, sending Authorization would leak the token to that host.
+    let sameOrigin = false;
+    try {
+      sameOrigin = new URL(fullUrl).origin === new URL(env.apiBaseUrl).origin;
+    } catch {
+      sameOrigin = false;
+    }
+    const headers = sameOrigin ? getAuthHeaders() : undefined;
     const rawName = params.name ?? `document_${params.docId}`;
     // Replace anything non-filename-safe AND drop apostrophes/quotes that some
     // iOS APIs choke on.
@@ -107,20 +117,17 @@ export default function ViewerScreen() {
     const hasWanted = wantedExt && safeName.toLowerCase().endsWith(wantedExt);
     const finalName = hasWanted ? safeName : `${safeName}${wantedExt}`;
     const cacheUri = (FileSystem.cacheDirectory ?? '') + finalName;
-    console.log('[viewer] downloadToCache', { fullUrl, cacheUri, category });
-    const result = await FileSystem.downloadAsync(fullUrl, cacheUri, { headers: getAuthHeaders() });
+    console.log('[viewer] downloadToCache', { fullUrl, cacheUri, category, sameOrigin });
+    const result = await FileSystem.downloadAsync(fullUrl, cacheUri, headers ? { headers } : undefined);
     console.log('[viewer] downloadToCache result', { status: result.status, uri: result.uri });
     if (result.status >= 400) throw new Error(`Download failed: ${result.status}`);
     // Sanity-check the bytes: a 0-byte response renders as a blank WebView with no
     // error, which is what the user sees when the backend returned an empty body.
-    try {
-      const info = await FileSystem.getInfoAsync(result.uri);
-      console.log('[viewer] downloaded file info', info);
-      if (info.exists && 'size' in info && info.size === 0) {
-        throw new Error('Downloaded file is empty (0 bytes)');
-      }
-    } catch (probeErr) {
-      console.log('[viewer] file probe failed', probeErr);
+    // Throw outside any catch so the empty-file error actually propagates.
+    const info = await FileSystem.getInfoAsync(result.uri);
+    console.log('[viewer] downloaded file info', info);
+    if (info.exists && 'size' in info && info.size === 0) {
+      throw new Error('Downloaded file is empty (0 bytes)');
     }
     return result.uri;
   };
