@@ -1,13 +1,29 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { causeListApi } from '@knowlex/core/api/cause-list-api';
 import type { CauseListItem } from '@knowlex/core/types';
+import { formatJudgeName } from '@knowlex/core/utils';
 import { useTheme } from '@/theme/useTheme';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 
 type SyncState = 'idle' | 'triggering' | 'polling' | 'completed' | 'failed';
+
+interface SubGroup {
+  hearingType: string;
+  hearingCategory: string;
+  items: CauseListItem[];
+}
+
+interface JudgeGroup {
+  judgeName: string;
+  benchType: string | null;
+  courtHallNo: string | null;
+  date: string;
+  subGroups: SubGroup[];
+}
 
 const toISODate = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -29,17 +45,64 @@ function getDateStrip(center: string): string[] {
   });
 }
 
-function groupByJudge(items: CauseListItem[]): [string, CauseListItem[]][] {
-  const map: Record<string, CauseListItem[]> = {};
+// Backend joins judge + bench-type with a tab in `judgeName`. Web parses them
+// apart; mobile used to render the raw key (with the embedded \t) — strip it.
+function parseJudgeName(raw: string): { judgeName: string; benchType: string | null } {
+  const parts = raw.split('\t');
+  return {
+    judgeName: parts[0]?.trim() || raw,
+    benchType: parts[1]?.trim() || null,
+  };
+}
+
+// Mirror web `cause-list-table.tsx::groupByJudge`: group by judge, then
+// sub-group by hearingType + hearingCategory so the user sees the same
+// per-hearing-type dividers as on the web.
+function groupItems(items: CauseListItem[]): JudgeGroup[] {
+  const byJudge = new Map<string, CauseListItem[]>();
   for (const item of items) {
-    const key = item.judgeName?.trim() || 'Unknown Judge';
-    (map[key] = map[key] ?? []).push(item);
+    const key = item.judgeName ?? 'Unknown Judge';
+    if (!byJudge.has(key)) byJudge.set(key, []);
+    byJudge.get(key)!.push(item);
   }
-  return Object.entries(map).sort(([a], [b]) => a.localeCompare(b));
+
+  const groups: JudgeGroup[] = [];
+  for (const [rawJudge, groupItems] of byJudge) {
+    const { judgeName, benchType } = parseJudgeName(rawJudge);
+
+    const subMap = new Map<string, CauseListItem[]>();
+    for (const item of groupItems) {
+      const subKey = `${item.hearingType}|||${item.metadata?.hearing_category ?? ''}`;
+      if (!subMap.has(subKey)) subMap.set(subKey, []);
+      subMap.get(subKey)!.push(item);
+    }
+
+    const subGroups: SubGroup[] = [];
+    for (const [subKey, subItems] of subMap) {
+      const [hearingType, hearingCategory] = subKey.split('|||');
+      subItems.sort((a, b) => a.serialNumber - b.serialNumber);
+      subGroups.push({ hearingType, hearingCategory, items: subItems });
+    }
+
+    groups.push({
+      judgeName,
+      benchType,
+      courtHallNo: groupItems[0]?.courtHallNo ?? groupItems[0]?.metadata?.court_hall_no ?? null,
+      date: groupItems[0]?.causeListDate ?? '',
+      subGroups,
+    });
+  }
+
+  return groups.sort((a, b) => a.judgeName.localeCompare(b.judgeName));
+}
+
+function splitLines(value: string | null | undefined): string[] {
+  return value ? value.split('\n').map((s) => s.trim()).filter(Boolean) : [];
 }
 
 export function ScheduleView() {
   const { colors, typography, spacing, radius } = useTheme();
+  const router = useRouter();
   const today = toISODate(new Date());
   const [selectedDate, setSelectedDate] = useState(today);
   const [items, setItems] = useState<CauseListItem[]>([]);
@@ -128,7 +191,7 @@ export function ScheduleView() {
   };
 
   const dateStrip = getDateStrip(selectedDate);
-  const grouped = groupByJudge(items);
+  const grouped = groupItems(items);
   const isSyncing = syncState === 'triggering' || syncState === 'polling';
   const syncBannerColor =
     syncState === 'completed' ? colors.success
@@ -235,79 +298,113 @@ export function ScheduleView() {
             />
           }
         >
-          {grouped.map(([judge, judgeItems]) => (
-            <View key={judge} style={{ marginBottom: spacing.lg }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: colors.kxCardBorder }} />
-                <Text style={{ marginHorizontal: spacing.sm, fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.kxTextSecondary, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  {judge}
+          {grouped.map((group, gi) => (
+            <View key={gi} style={{ marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.kxCardBorder, borderRadius: radius.lg, overflow: 'hidden' }}>
+              {/* Judge header */}
+              <View style={{ backgroundColor: colors.kxPrimary[50], paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
+                <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.kxPrimary[800], fontFamily: typography.fontFamily.serif }}>
+                  Before {formatJudgeName(group.judgeName)}
                 </Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: colors.kxCardBorder }} />
+                {group.benchType && (
+                  <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxPrimary[600], fontWeight: typography.fontWeight.medium, marginTop: 1 }}>
+                    {group.benchType}
+                  </Text>
+                )}
+                {group.courtHallNo && (
+                  <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>
+                    Court Hall {group.courtHallNo}
+                  </Text>
+                )}
               </View>
 
-              {judgeItems.map((item) => {
-                const expanded = expandedIds.has(item.id);
-                return (
-                  <Pressable
-                    key={item.id}
-                    onPress={() => toggleExpand(item.id)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Case ${item.caseNumber}`}
-                    style={({ pressed }) => ({
-                      backgroundColor: pressed ? colors.ledgerGray[50] : colors.kxCardBg,
-                      borderWidth: 1, borderColor: colors.kxCardBorder, borderRadius: radius.lg,
-                      padding: spacing.md, marginBottom: spacing.sm,
-                    })}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                      <Text style={{ width: 28, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, fontWeight: typography.fontWeight.semibold, marginTop: 2 }}>
-                        {item.serialNumber}.
+              {/* Sub-groups by hearing type + category */}
+              {group.subGroups.map((sub, si) => (
+                <View key={si}>
+                  <View style={{ backgroundColor: colors.ledgerGray[50], paddingHorizontal: spacing.md, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 10, fontWeight: typography.fontWeight.bold, color: colors.kxTextSecondary, textTransform: 'uppercase', letterSpacing: 1 }}>
+                      — {sub.hearingType || 'General'} —
+                    </Text>
+                    {sub.hearingCategory && sub.hearingCategory !== 'undefined' && (
+                      <Text style={{ fontSize: 10, color: colors.ledgerGray[400], marginTop: 1 }}>
+                        {sub.hearingCategory}
                       </Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }} numberOfLines={expanded ? undefined : 1}>
-                          {item.metadata?.petitioner || '—'} vs {item.metadata?.respondent || '—'}
-                        </Text>
-                        <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>
-                          {item.caseNumber}
-                          {item.metadata?.cl_number ? `  •  CL ${item.metadata.cl_number}` : ''}
-                        </Text>
-                        {item.hearingType && (
-                          <View style={{ marginTop: 4, alignSelf: 'flex-start', backgroundColor: colors.kxPrimary[50], borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 }}>
-                            <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxPrimary[700], fontWeight: typography.fontWeight.medium }}>
-                              {item.hearingType}
+                    )}
+                  </View>
+
+                  {sub.items.map((item) => {
+                    const expanded = expandedIds.has(item.id);
+                    const petAdvocates = splitLines(item.metadata?.advocates_petitioner);
+                    const resAdvocates = splitLines(item.metadata?.advocates_respondent);
+                    return (
+                      <Pressable
+                        key={item.id}
+                        onPress={() => toggleExpand(item.id)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Case ${item.caseNumber}`}
+                        style={({ pressed }) => ({
+                          backgroundColor: pressed ? colors.ledgerGray[50] : colors.kxCardBg,
+                          borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder,
+                          padding: spacing.md,
+                        })}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                          <Text style={{ width: 28, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, fontWeight: typography.fontWeight.semibold, marginTop: 2 }}>
+                            {item.serialNumber}.
+                          </Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }} numberOfLines={expanded ? undefined : 1}>
+                              {item.metadata?.petitioner || '—'} vs {item.metadata?.respondent || '—'}
                             </Text>
+                            <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>
+                              {item.caseNumber}
+                              {item.metadata?.cl_number ? `  •  CL ${item.metadata.cl_number}` : ''}
+                            </Text>
+                            {!expanded && petAdvocates.length > 0 && (
+                              <Text style={{ fontSize: typography.fontSize.xs, color: colors.ledgerGray[500], marginTop: 2 }} numberOfLines={1}>
+                                {petAdvocates[0]}{petAdvocates.length > 1 ? `  +${petAdvocates.length - 1} more` : ''}
+                              </Text>
+                            )}
+                          </View>
+                          <Ionicons
+                            name={expanded ? 'chevron-up' : 'chevron-down'}
+                            size={16} color={colors.ledgerGray[400]}
+                            style={{ marginLeft: spacing.sm, marginTop: 2 }}
+                          />
+                        </View>
+
+                        {expanded && (
+                          <View style={{ marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.kxCardBorder, gap: spacing.sm }}>
+                            <AdvocateList label="Advocates (Petitioner)" items={petAdvocates} colors={colors} typography={typography} />
+                            <AdvocateList label="Advocates (Respondent)" items={resAdvocates} colors={colors} typography={typography} />
+                            {item.metadata?.remarks && (
+                              <DetailRow label="Remarks" value={item.metadata.remarks} colors={colors} typography={typography} />
+                            )}
+                            {item.lawyerName && (
+                              <DetailRow label="Lawyer" value={item.lawyerName} colors={colors} typography={typography} />
+                            )}
+                            {item.bench && (
+                              <DetailRow label="Bench" value={item.bench} colors={colors} typography={typography} />
+                            )}
+                            {item.caseId && (
+                              <Pressable
+                                onPress={() => router.push(`/cases/${item.caseId}` as any)}
+                                accessibilityRole="button"
+                                accessibilityLabel="View Case"
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.kxCardBorder }}
+                              >
+                                <Ionicons name="folder-open-outline" size={14} color={colors.kxPrimary[700]} />
+                                <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxPrimary[700] }}>
+                                  View Case Documents
+                                </Text>
+                              </Pressable>
+                            )}
                           </View>
                         )}
-                      </View>
-                      <Ionicons
-                        name={expanded ? 'chevron-up' : 'chevron-down'}
-                        size={16} color={colors.ledgerGray[400]}
-                        style={{ marginLeft: spacing.sm, marginTop: 2 }}
-                      />
-                    </View>
-
-                    {expanded && (
-                      <View style={{ marginTop: spacing.md, paddingTop: spacing.md, borderTopWidth: 1, borderTopColor: colors.kxCardBorder, gap: spacing.sm }}>
-                        {item.metadata?.advocates_petitioner && (
-                          <DetailRow label="Petitioner Advocates" value={item.metadata.advocates_petitioner} colors={colors} typography={typography} />
-                        )}
-                        {item.metadata?.advocates_respondent && (
-                          <DetailRow label="Respondent Advocates" value={item.metadata.advocates_respondent} colors={colors} typography={typography} />
-                        )}
-                        {item.courtHallNo && (
-                          <DetailRow label="Court Hall" value={item.courtHallNo} colors={colors} typography={typography} />
-                        )}
-                        {item.lawyerName && (
-                          <DetailRow label="Lawyer" value={item.lawyerName} colors={colors} typography={typography} />
-                        )}
-                        {item.metadata?.remarks && (
-                          <DetailRow label="Remarks" value={item.metadata.remarks} colors={colors} typography={typography} />
-                        )}
-                      </View>
-                    )}
-                  </Pressable>
-                );
-              })}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ))}
             </View>
           ))}
         </ScrollView>
@@ -321,12 +418,33 @@ function DetailRow({ label, value, colors, typography }: {
 }) {
   return (
     <View>
-      <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, fontWeight: typography.fontWeight.medium, marginBottom: 1 }}>
+      <Text style={{ fontSize: 10, color: colors.kxTextSecondary, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
         {label}
       </Text>
       <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextPrimary }}>
         {value}
       </Text>
+    </View>
+  );
+}
+
+function AdvocateList({ label, items, colors, typography }: {
+  label: string; items: string[]; colors: any; typography: any;
+}) {
+  return (
+    <View>
+      <Text style={{ fontSize: 10, color: colors.kxTextSecondary, fontWeight: typography.fontWeight.semibold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 }}>
+        {label}
+      </Text>
+      {items.length === 0 ? (
+        <Text style={{ fontSize: typography.fontSize.sm, color: colors.ledgerGray[400] }}>None listed</Text>
+      ) : (
+        items.map((adv, i) => (
+          <Text key={i} style={{ fontSize: typography.fontSize.sm, color: colors.kxTextPrimary }}>
+            {adv}
+          </Text>
+        ))
+      )}
     </View>
   );
 }
