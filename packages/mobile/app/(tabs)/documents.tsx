@@ -166,7 +166,7 @@ export default function DocumentsScreen() {
                       </Text>
                       {doc.type === 'DRAFT' && doc.jobStatus && (
                         <Badge
-                          label={doc.jobStatus === 'COMPLETED' ? 'Done' : doc.jobStatus === 'FAILED' ? 'Failed' : 'Pending'}
+                          label={doc.jobStatus === 'COMPLETED' ? 'Done' : doc.jobStatus === 'FAILED' ? 'Failed' : 'Processing'}
                           status={doc.jobStatus === 'COMPLETED' ? 'active' : doc.jobStatus === 'FAILED' ? 'blocked' : 'pending' as any}
                         />
                       )}

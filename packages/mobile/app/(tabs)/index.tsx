@@ -270,7 +270,7 @@ export default function DashboardScreen() {
                   {status === 'active'
                     ? <Ionicons name="chevron-forward" size={16} color={colors.ledgerGray[400]} />
                     : <Badge
-                        label={status === 'blocked' ? 'Failed' : 'Pending'}
+                        label={status === 'blocked' ? 'Failed' : 'Processing'}
                         status={status as any}
                       />
                   }

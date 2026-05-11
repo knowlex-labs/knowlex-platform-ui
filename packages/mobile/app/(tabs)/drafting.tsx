@@ -288,7 +288,7 @@ export default function DraftingScreen() {
                 </View>
                 {draft.jobStatus && (
                   <Badge
-                    label={draft.jobStatus === 'COMPLETED' ? 'Done' : draft.jobStatus === 'FAILED' ? 'Failed' : 'Pending'}
+                    label={draft.jobStatus === 'COMPLETED' ? 'Done' : draft.jobStatus === 'FAILED' ? 'Failed' : 'Processing'}
                     status={draftStatus(draft.jobStatus)}
                   />
                 )}

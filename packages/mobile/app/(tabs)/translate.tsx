@@ -264,7 +264,7 @@ export default function TranslateScreen() {
                     </Text>
                   </View>
                   <Badge
-                    label={status === 'active' ? 'Done' : status === 'blocked' ? 'Failed' : 'Pending'}
+                    label={status === 'active' ? 'Done' : status === 'blocked' ? 'Failed' : 'Processing'}
                     status={status}
                   />
                 </Pressable>
