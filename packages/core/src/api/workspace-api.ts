@@ -399,9 +399,9 @@ export const workspaceApi = {
     return response.data
   },
 
-  async updateDocument(caseId: string, documentId: string, data: { name?: string; storage_key?: string }): Promise<CreateDocumentResponse> {
+  async updateDocument(documentId: string, data: { name?: string; storage_key?: string }): Promise<CreateDocumentResponse> {
     const response = await apiClient.put<ApiResponse<CreateDocumentResponse>>(
-      `/api/v1/cases/${caseId}/documents/${documentId}`,
+      `/api/v1/documents/${documentId}`,
       data
     )
     return response.data
