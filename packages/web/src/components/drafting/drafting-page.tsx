@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   ArrowLeft, FileText, Sparkles, Lock, Paperclip,
   Search, X, AlertCircle, Loader2,
-  FileWarning, Lightbulb, FileClock, Scale, Gavel, ShieldAlert,
+  FileWarning, FileClock, Scale, Gavel, ShieldAlert,
   ScrollText, ClipboardList, AlignLeft, Landmark, Star, Ban,
   ShieldCheck, RefreshCcw, Hammer, Users,
 } from 'lucide-react'
@@ -39,7 +39,7 @@ import type { RecentDraftsListHandle } from './recent-drafts-list'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  FileWarning, Lightbulb, FileText, FileClock, Scale, Gavel, ShieldAlert,
+  FileWarning, FileText, FileClock, Scale, Gavel, ShieldAlert,
   ScrollText, ClipboardList, AlignLeft, Landmark, Star, Ban,
   ShieldCheck, RefreshCcw, Hammer, Users,
 }
@@ -49,8 +49,6 @@ function assembleBody(templateId: string, formData: TemplateFormData): string {
   switch (templateId) {
     case 'notice':
       return `Draft a legal notice to ${get('recipient')}. ${get('body')}`.trim()
-    case 'patent':
-      return `Draft a patent application. Applicant: ${get('applicant')}. Inventor: ${get('inventor')}. Description: ${get('description')}`.trim()
     case 'application-draft':
       return `Draft an application for applicant ${get('applicant')}. ${get('body')}`.trim()
     case 'interim-application':
@@ -59,6 +57,8 @@ function assembleBody(templateId: string, formData: TemplateFormData): string {
       return `Draft an affidavit for deponent ${get('deponent')}. Statements: ${get('statements')}`.trim()
     case 'bail-application':
       return `Draft a bail application. Applicant: ${get('applicant')}. Opposite Party: ${get('opposite_party')}. Court: ${get('court_details')}. FIR Details: ${get('fir_details')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
+    case '2nd-bail-application':
+      return `Draft a second / subsequent bail application under Section 483 BNSS. Applicant: ${get('applicant')}. Opposite Party: ${get('opposite_party')}. Court: ${get('court_details')}. FIR Details: ${get('fir_details')}. Facts: ${get('facts')}. Earlier HC Bail: ${get('earlier_hc_bail')}. Lower-Court Rejection: ${get('lower_court_rejection')}. Change in Circumstances / Fresh Grounds: ${get('change_in_circumstances')}. Criminal History: ${get('criminal_history')}. Co-Accused Details: ${get('co_accused_details')}. Relief Sought: ${get('relief_sought')}.`.trim()
     case 'criminal-appeal':
       return `Draft a criminal appeal. Appellant: ${get('appellant')}. Respondent: ${get('respondent')}. Court: ${get('court_details')}. Impugned Order: ${get('impugned_order')}. Facts: ${get('facts')}. Relief Sought: ${get('relief_sought')}.`.trim()
     case 'plaint':

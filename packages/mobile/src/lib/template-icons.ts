@@ -10,11 +10,11 @@ type IoniconsName = ComponentProps<typeof Ionicons>['name'];
  */
 export const TEMPLATE_ICONS: Record<string, IoniconsName> = {
   'notice': 'document-text-outline',
-  'patent': 'bulb-outline',
   'application-draft': 'create-outline',
   'interim-application': 'time-outline',
   'affidavit': 'scale-outline',
   'bail-application': 'hammer-outline',
+  '2nd-bail-application': 'hammer-outline',
   'criminal-appeal': 'shield-outline',
   'plaint': 'reader-outline',
   'written-statement': 'clipboard-outline',

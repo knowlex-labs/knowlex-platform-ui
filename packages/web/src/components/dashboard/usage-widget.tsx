@@ -77,11 +77,21 @@ export function UsageWidget() {
         </Link>
       </div>
       <div className="space-y-3">
-        <MiniBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="weekly" />
-        <MiniBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="weekly" />
-        <MiniBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} />
-        <MiniBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} />
-        <MiniBar label="Storage" used={usage.storageMbUsed} limit={usage.storageMbLimit} />
+        {usage.draftsLimit !== -1 && (
+          <MiniBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="weekly" />
+        )}
+        {(usage.chatMessagesLimit ?? -1) !== -1 && (
+          <MiniBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="weekly" />
+        )}
+        {usage.clientsLimit !== -1 && (
+          <MiniBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} />
+        )}
+        {usage.casesLimit !== -1 && (
+          <MiniBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} />
+        )}
+        {usage.storageMbLimit !== -1 && (
+          <MiniBar label="Storage" used={usage.storageMbUsed} limit={usage.storageMbLimit} />
+        )}
       </div>
     </div>
   )

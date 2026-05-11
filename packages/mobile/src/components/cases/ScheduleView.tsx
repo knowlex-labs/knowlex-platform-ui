@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, ScrollView, Pressable, RefreshControl, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, Pressable, RefreshControl, ActivityIndicator, Modal } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { causeListApi } from '@knowlex/core/api/cause-list-api';
@@ -109,6 +109,128 @@ function formatHearingDate(dateStr: string): string {
   }
 }
 
+interface MonthCalendarProps {
+  visible: boolean;
+  selectedDate: string; // ISO yyyy-MM-dd
+  onSelect: (iso: string) => void;
+  onClose: () => void;
+}
+
+// Pure-RN month calendar so we don't pull in @react-native-community/datetimepicker.
+function MonthCalendar({ visible, selectedDate, onSelect, onClose }: MonthCalendarProps) {
+  const { colors, typography, spacing, radius } = useTheme();
+  const initial = new Date(selectedDate + 'T00:00:00');
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth()); // 0-indexed
+
+  // Reset view to the selected month every time the picker is opened so the
+  // user lands on the right page instead of stale state from a prior open.
+  useEffect(() => {
+    if (!visible) return;
+    const d = new Date(selectedDate + 'T00:00:00');
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  }, [visible, selectedDate]);
+
+  const today = toISODate(new Date());
+  const monthLabel = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+  const firstDayOfWeek = new Date(viewYear, viewMonth, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  const cells: ({ day: number; iso: string } | null)[] = [];
+  for (let i = 0; i < firstDayOfWeek; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    cells.push({ day, iso });
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const stepMonth = (delta: number) => {
+    const d = new Date(viewYear, viewMonth + delta, 1);
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable onPress={onClose} style={{ flex: 1, backgroundColor: colors.backdrop, justifyContent: 'center', alignItems: 'center' }}>
+        <Pressable onPress={(e) => e.stopPropagation()} style={{ backgroundColor: colors.kxCardBg, borderRadius: radius.lg, padding: spacing.lg, width: '88%', maxWidth: 360 }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
+            <Pressable onPress={() => stepMonth(-1)} hitSlop={8} accessibilityLabel="Previous month">
+              <Ionicons name="chevron-back" size={22} color={colors.kxPrimary[600]} />
+            </Pressable>
+            <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary }}>
+              {monthLabel}
+            </Text>
+            <Pressable onPress={() => stepMonth(1)} hitSlop={8} accessibilityLabel="Next month">
+              <Ionicons name="chevron-forward" size={22} color={colors.kxPrimary[600]} />
+            </Pressable>
+          </View>
+
+          {/* Weekday strip */}
+          <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+              <Text key={i} style={{ flex: 1, textAlign: 'center', fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, fontWeight: typography.fontWeight.semibold }}>
+                {d}
+              </Text>
+            ))}
+          </View>
+
+          {/* Day grid */}
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            {cells.map((cell, i) => {
+              if (!cell) return <View key={i} style={{ width: `${100 / 7}%`, aspectRatio: 1 }} />;
+              const isSelected = cell.iso === selectedDate;
+              const isToday = cell.iso === today;
+              return (
+                <Pressable
+                  key={i}
+                  onPress={() => onSelect(cell.iso)}
+                  accessibilityRole="button"
+                  accessibilityLabel={cell.iso}
+                  style={({ pressed }) => ({
+                    width: `${100 / 7}%`, aspectRatio: 1,
+                    alignItems: 'center', justifyContent: 'center',
+                    padding: 2,
+                    opacity: pressed ? 0.7 : 1,
+                  })}
+                >
+                  <View style={{
+                    width: '92%', aspectRatio: 1, borderRadius: 999,
+                    alignItems: 'center', justifyContent: 'center',
+                    backgroundColor: isSelected ? colors.kxPrimary[600] : 'transparent',
+                    borderWidth: !isSelected && isToday ? 1 : 0,
+                    borderColor: colors.kxPrimary[600],
+                  }}>
+                    <Text style={{ fontSize: typography.fontSize.sm, fontWeight: isSelected || isToday ? typography.fontWeight.bold : typography.fontWeight.medium, color: isSelected ? colors.onPrimary : isToday ? colors.kxPrimary[600] : colors.kxTextPrimary }}>
+                      {cell.day}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Today shortcut */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.kxCardBorder }}>
+            <Pressable onPress={() => onSelect(today)} hitSlop={8}>
+              <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxPrimary[600] }}>
+                Today
+              </Text>
+            </Pressable>
+            <Pressable onPress={onClose} hitSlop={8}>
+              <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextSecondary }}>
+                Close
+              </Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export function ScheduleView() {
   const { colors, typography, spacing, radius } = useTheme();
   const router = useRouter();
@@ -120,6 +242,7 @@ export function ScheduleView() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const [syncMessage, setSyncMessage] = useState('');
+  const [pickerVisible, setPickerVisible] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollCountRef = useRef(0);
 
@@ -209,67 +332,66 @@ export function ScheduleView() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Sync action */}
-      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.sm }}>
+      {/* Date strip + inline calendar/sync — single row, no separate header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.lg, paddingTop: spacing.xs, paddingBottom: spacing.sm, gap: spacing.sm }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 1 }}
+          contentContainerStyle={{ gap: spacing.sm, alignItems: 'center' }}
+        >
+          {dateStrip.map((dateStr) => {
+            const { top, bottom, isToday } = formatDatePill(dateStr);
+            const isSelected = dateStr === selectedDate;
+            return (
+              <Pressable
+                key={dateStr}
+                onPress={() => setSelectedDate(dateStr)}
+                accessibilityRole="button"
+                accessibilityLabel={`Select ${dateStr}`}
+                style={{
+                  width: 44, paddingVertical: spacing.sm, borderRadius: radius.md, alignItems: 'center',
+                  backgroundColor: isSelected ? colors.kxPrimary[600] : colors.kxCardBg,
+                  borderWidth: 1, borderColor: isSelected ? colors.kxPrimary[600] : colors.kxCardBorder,
+                }}
+              >
+                <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: isSelected ? colors.onPrimary : colors.kxTextPrimary }}>
+                  {top}
+                </Text>
+                <Text style={{ fontSize: typography.fontSize.xs, color: isSelected ? colors.onPrimary : colors.kxTextSecondary, marginTop: 1 }}>
+                  {bottom}
+                </Text>
+                {isToday && (
+                  <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: isSelected ? colors.onPrimary : colors.kxPrimary[500], marginTop: 3 }} />
+                )}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {/* Pick date — opens full-month calendar */}
         <Pressable
-          onPress={triggerSync}
-          disabled={isSyncing}
+          onPress={() => setPickerVisible(true)}
           accessibilityRole="button"
-          accessibilityLabel="Sync cause list from court"
+          accessibilityLabel="Open date picker"
+          hitSlop={6}
           style={({ pressed }) => ({
-            flexDirection: 'row', alignItems: 'center', gap: 5,
-            paddingVertical: 7, paddingHorizontal: spacing.md,
+            width: 36, height: 44, alignItems: 'center', justifyContent: 'center',
             borderRadius: radius.md,
-            borderWidth: 1, borderColor: isSyncing ? colors.ledgerGray[300] : colors.kxPrimary[600],
             backgroundColor: pressed ? colors.kxPrimary[50] : 'transparent',
-            opacity: isSyncing ? 0.6 : 1,
+            borderWidth: 1, borderColor: colors.kxCardBorder,
           })}
         >
-          {isSyncing
-            ? <ActivityIndicator size="small" color={colors.kxPrimary[600]} />
-            : <Ionicons name="sync-outline" size={15} color={colors.kxPrimary[600]} />
-          }
-          <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, color: colors.kxPrimary[600] }}>
-            Sync from Court
-          </Text>
+          <Ionicons name="calendar-outline" size={18} color={colors.kxPrimary[600]} />
         </Pressable>
       </View>
 
-      {/* Date strip */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={{ paddingHorizontal: spacing.lg, gap: spacing.sm, paddingBottom: spacing.sm, alignItems: 'flex-start' }}
-      >
-        {dateStrip.map((dateStr) => {
-          const { top, bottom, isToday } = formatDatePill(dateStr);
-          const isSelected = dateStr === selectedDate;
-          return (
-            <Pressable
-              key={dateStr}
-              onPress={() => setSelectedDate(dateStr)}
-              accessibilityRole="button"
-              accessibilityLabel={`Select ${dateStr}`}
-              style={{
-                width: 48, paddingVertical: spacing.sm, borderRadius: radius.md, alignItems: 'center',
-                backgroundColor: isSelected ? colors.kxPrimary[600] : colors.kxCardBg,
-                borderWidth: 1, borderColor: isSelected ? colors.kxPrimary[600] : colors.kxCardBorder,
-              }}
-            >
-              <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.bold, color: isSelected ? colors.onPrimary : colors.kxTextPrimary }}>
-                {top}
-              </Text>
-              <Text style={{ fontSize: typography.fontSize.xs, color: isSelected ? colors.onPrimary : colors.kxTextSecondary, marginTop: 1 }}>
-                {bottom}
-              </Text>
-              {isToday && (
-                <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: isSelected ? colors.onPrimary : colors.kxPrimary[500], marginTop: 3 }} />
-              )}
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      <MonthCalendar
+        visible={pickerVisible}
+        selectedDate={selectedDate}
+        onSelect={(iso) => { setSelectedDate(iso); setPickerVisible(false); }}
+        onClose={() => setPickerVisible(false)}
+      />
 
       {/* Sync banner */}
       {syncState !== 'idle' && (
@@ -442,6 +564,35 @@ export function ScheduleView() {
           ))}
         </ScrollView>
       )}
+
+      {/* Floating Sync from Court button — bottom-right. Uses the currently
+          selected date from the date strip / picker. */}
+      <Pressable
+        onPress={triggerSync}
+        disabled={isSyncing}
+        accessibilityRole="button"
+        accessibilityLabel={`Sync cause list from court for ${selectedDate}`}
+        style={({ pressed }) => ({
+          position: 'absolute',
+          bottom: spacing.lg,
+          right: spacing.lg,
+          flexDirection: 'row', alignItems: 'center', gap: 6,
+          paddingVertical: 12, paddingHorizontal: spacing.lg,
+          borderRadius: radius.full,
+          backgroundColor: pressed ? colors.kxPrimary[700] : colors.kxPrimary[600],
+          opacity: isSyncing ? 0.75 : 1,
+          shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 8, shadowOffset: { width: 0, height: 4 },
+          elevation: 4,
+        })}
+      >
+        {isSyncing
+          ? <ActivityIndicator size="small" color={colors.onPrimary} />
+          : <Ionicons name="sync-outline" size={18} color={colors.onPrimary} />
+        }
+        <Text style={{ color: colors.onPrimary, fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold }}>
+          Sync
+        </Text>
+      </Pressable>
     </View>
   );
 }
