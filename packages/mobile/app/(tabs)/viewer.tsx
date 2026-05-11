@@ -12,13 +12,52 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type FileCategory = 'pdf' | 'image' | 'text' | 'other';
 
-function getFileCategory(name: string, fileType?: string): FileCategory {
+function getFileCategory(name: string, fileType?: string, docType?: string): FileCategory {
+  // Doc-type wins when present — translations are always rendered as PDF (WeasyPrint
+  // output), drafts/summaries/synopses are always HTML/markdown text. fileType from
+  // the backend can be null/stale for generated docs, so it's the second source.
+  const dt = (docType ?? '').toUpperCase();
+  if (dt === 'TRANSLATION') return 'pdf';
+  if (dt === 'DRAFT' || dt === 'SUMMARY' || dt === 'SYNOPSIS') return 'text';
+
   const ext = (name ?? '').split('.').pop()?.toLowerCase() ?? '';
   const ft = (fileType ?? ext).toUpperCase();
   if (ft === 'PDF') return 'pdf';
   if (['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'BMP'].includes(ft)) return 'image';
-  if (['TXT', 'MD', 'CSV', 'TEXT'].includes(ft)) return 'text';
+  if (['HTML', 'HTM', 'TXT', 'MD', 'CSV', 'TEXT', 'MARKDOWN'].includes(ft)) return 'text';
+  if (!ft) return 'text';
   return 'other';
+}
+
+function looksLikeHtml(content: string): boolean {
+  // Markdown HTML comments + tag-heavy content → render as HTML.
+  return /<\/?(p|div|h[1-6]|table|tbody|tr|td|th|ul|ol|li|strong|em|u|br|span|hr|blockquote|pre|code|a)\b/i.test(content);
+}
+
+function buildHtmlDoc(content: string, isHtml: boolean): string {
+  const body = isHtml
+    ? content
+    : `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin:0;">${escapeHtml(content)}</pre>`;
+  return `<!doctype html>
+<html><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3" />
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.55; color: #0f172a; padding: 16px 18px 32px; margin: 0; background: #fff; }
+  h1, h2, h3, h4 { font-family: Georgia, "Times New Roman", serif; line-height: 1.3; }
+  p { margin: 0.5em 0; }
+  table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+  td, th { padding: 4px 6px; vertical-align: top; }
+  strong { font-weight: 700; }
+  u { text-decoration: underline; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 1em 0; }
+  /* Strip markdown HTML comments leaked into the doc. */
+</style>
+</head><body>${body}</body></html>`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export default function ViewerScreen() {
@@ -28,6 +67,7 @@ export default function ViewerScreen() {
     downloadUrl?: string;
     signedUrl?: string;
     fileType?: string;
+    type?: string;
   }>();
   const { colors, typography, spacing, radius } = useTheme();
   const router = useRouter();
@@ -39,7 +79,7 @@ export default function ViewerScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [toolboxVisible, setToolboxVisible] = useState(false);
 
-  const category = getFileCategory(params.name ?? '', params.fileType);
+  const category = getFileCategory(params.name ?? '', params.fileType, params.type);
 
   useEffect(() => {
     if (!params.docId) return;
@@ -76,22 +116,16 @@ export default function ViewerScreen() {
         setTextContent(content);
       } else {
         // PDF/images: WebView/Image need a self-authenticating URL.
-        // 1) Trust signedUrl only if it is an absolute http(s) URL
-        // 2) Try a presigned S3 URL via workspaceApi.getDownloadUrl
-        // 3) Fall back to authenticated API download saved to the local file cache
+        // 1) Trust signedUrl only if it is an absolute http(s) URL (already public S3)
+        // 2) Otherwise download via the authenticated /download endpoint — this is the
+        //    only path that runs server-side decryption, so it's required for generated
+        //    docs (translations, encrypted user uploads). Presigned-S3 URLs return raw
+        //    ciphertext and yield a blank/garbled WebView.
         const isAbsolute = params.signedUrl?.startsWith('http');
         if (isAbsolute) {
           setViewUrl(params.signedUrl!);
         } else {
-          let url: string | null = null;
-          try {
-            url = await workspaceApi.getDownloadUrl(params.docId!);
-          } catch {
-            url = null;
-          }
-          if (!url) {
-            url = await downloadToCache();
-          }
+          const url = await downloadToCache();
           setViewUrl(url);
         }
       }
@@ -183,11 +217,20 @@ export default function ViewerScreen() {
           <Image source={{ uri: viewUrl }} style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.4 }} resizeMode="contain" />
         </ScrollView>
       ) : category === 'text' && textContent !== null ? (
-        <ScrollView contentContainerStyle={{ padding: spacing.xl }}>
-          <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextPrimary, lineHeight: 22 }}>
-            {textContent}
-          </Text>
-        </ScrollView>
+        looksLikeHtml(textContent) ? (
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: buildHtmlDoc(textContent, true) }}
+            style={{ flex: 1, backgroundColor: '#fff' }}
+            scalesPageToFit
+          />
+        ) : (
+          <ScrollView contentContainerStyle={{ padding: spacing.xl }}>
+            <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextPrimary, lineHeight: 22 }}>
+              {textContent}
+            </Text>
+          </ScrollView>
+        )
       ) : (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing['3xl'] }}>
           <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>Preview not available</Text>

@@ -65,6 +65,7 @@ export const lightColors = {
     summary: '#16a34a',
     judgment: '#d97706',
     synopsis: '#8b5cf6',
+    translation: '#0d9488',
     other: '#6b7280',
   },
   // Tool accent colors
@@ -158,6 +159,7 @@ export const darkColors = {
     summary: '#4ade80',
     judgment: '#fbbf24',
     synopsis: '#a78bfa',
+    translation: '#2dd4bf',
     other: '#9ca3af',
   },
   toolAccent: {

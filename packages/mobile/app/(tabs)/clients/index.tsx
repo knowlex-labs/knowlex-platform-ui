@@ -67,11 +67,20 @@ export default function ClientsScreen() {
     return matchesSearch && matchesType;
   });
 
+  const handleBack = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/profile' as any);
+  };
+
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
       {/* Header */}
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm }}>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: 2 }}>
+        <Pressable onPress={handleBack} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: spacing.xs }}>
+          <Ionicons name="chevron-back" size={20} color={colors.kxPrimary[600]} />
+          <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.sm }}>Profile</Text>
+        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, marginTop: 2 }}>
           <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, fontFamily: typography.fontFamily.serif }}>
             Clients
           </Text>
