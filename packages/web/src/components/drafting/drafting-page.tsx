@@ -11,8 +11,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { trackJob } from '@/lib/drafts/draft-tracker'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,7 @@ import {
 import { draftsApi } from '@knowlex/core/api/drafts-api'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { uploadToolboxFile, getDocument } from '@knowlex/core/api/doc-processing-api'
-import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { DocumentEditor } from '@/components/editor'
 import { GeneratingState } from '@/components/ui/generating-state'
 import { toast } from '@/hooks/use-toast'
@@ -127,6 +128,7 @@ function DraftPreviewSkeleton() {
 
 export function DraftingPage() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [mode, setMode] = useState<PageMode>('home')
 
@@ -154,8 +156,8 @@ export function DraftingPage() {
   // Inline preview (when user clicks a recent draft)
   const [inlinePreview, setInlinePreview] = useState<InlinePreview | null>(null)
 
-  // Recent drafts list — exposes refresh() and trackJob() so we can mark a
-  // freshly-submitted draft and refresh after submission.
+  // Recent drafts list — exposes refresh() so we can re-fetch after a new
+  // submission. Completion toasts are owned by the global <DraftTracker />.
   const recentDraftsRef = useRef<RecentDraftsListHandle>(null)
 
   // Fetch cases when entering details step
@@ -277,19 +279,16 @@ export function DraftingPage() {
       const res = await draftsApi.createStandalone(request, selectedCaseId || undefined)
       if (!res.data) throw new Error('No data returned')
       // Bounce back to the list immediately. The new draft will appear there
-      // as a "Generating…" row that polls until completion. A toast fires when
-      // the row's status flips (handled by RecentDraftsList via trackJob).
+      // as a "Generating…" row that polls until completion. The completion
+      // toast is fired by the globally-mounted <DraftTracker />.
       const newDocId = res.data.id
       const label = title
-      // Bounce back to the home page where the recent drafts list lives.
-      // The list will receive the new doc id and toast when it completes.
+      // Track globally so the completion toast fires no matter which page
+      // the user navigates to next. The list refreshes once it remounts.
+      trackJob(newDocId, label)
       resetWizard()
       setMode('home')
-      // Defer trackJob/refresh until the list mounts on the next paint.
-      setTimeout(() => {
-        recentDraftsRef.current?.trackJob(newDocId, label)
-        recentDraftsRef.current?.refresh()
-      }, 0)
+      setTimeout(() => recentDraftsRef.current?.refresh(), 0)
       toast({ title: 'Generating draft…', description: "We'll notify you when it's ready." })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start draft generation'
@@ -324,13 +323,29 @@ export function DraftingPage() {
     }
   }, [])
 
+  // ?open=<docId> in the URL means the user clicked the "Open" action on a
+  // "Draft ready" toast (fired by the global DraftTracker). Switch straight
+  // into inline-preview for that doc, then strip the param so a refresh
+  // doesn't re-open it.
+  useEffect(() => {
+    const openId = searchParams.get('open')
+    if (!openId) return
+    handleOpenDraft(openId)
+    const next = new URLSearchParams(searchParams)
+    next.delete('open')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, handleOpenDraft])
+
   // Stream status while the draft is generating so the editor mounts the
   // moment the agent finishes — no manual refresh needed.
   const pendingDocId =
     inlinePreview?.status === 'pending' ? inlinePreview.docId : null
   useEffect(() => {
     if (!pendingDocId) return
-    const ctrl = workspaceApi.pollDocumentStatus(pendingDocId, {
+    // Uses the shared subscribeDocumentStatus watcher so this inline-preview
+    // poll joins (rather than duplicates) the polls the RecentDraftsList row
+    // and the global DraftTracker already have running for the same docId.
+    const unsubscribe = subscribeDocumentStatus(pendingDocId, {
       onStatus: (statusDoc) => {
         const s = (statusDoc.jobStatus ?? '').toString().toUpperCase()
         if (s !== 'COMPLETED' && s !== 'FAILED' && s !== 'CANCELLED') return
@@ -343,7 +358,7 @@ export function DraftingPage() {
       onError: () => {},
       onEnd: () => {},
     })
-    return () => ctrl.abort()
+    return unsubscribe
   }, [pendingDocId])
 
   const handleBackToList = () => {

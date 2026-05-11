@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/contexts/auth-context'
 import { useSubscription } from '@/hooks/use-subscription'
 import { DashboardLayout } from '@/components/layout/dashboard-layout'
+import { DraftTracker } from '@/components/global/draft-tracker'
 import { getAdapters } from '@knowlex/core/api/runtime'
 
 export function ProtectedLayout() {
@@ -50,6 +51,7 @@ export function ProtectedLayout() {
 
   return (
     <DashboardLayout>
+      <DraftTracker />
       <Outlet />
     </DashboardLayout>
   )

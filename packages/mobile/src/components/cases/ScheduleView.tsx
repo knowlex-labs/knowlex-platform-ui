@@ -100,6 +100,15 @@ function splitLines(value: string | null | undefined): string[] {
   return value ? value.split('\n').map((s) => s.trim()).filter(Boolean) : [];
 }
 
+function formatHearingDate(dateStr: string): string {
+  try {
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch {
+    return dateStr;
+  }
+}
+
 export function ScheduleView() {
   const { colors, typography, spacing, radius } = useTheme();
   const router = useRouter();
@@ -301,20 +310,29 @@ export function ScheduleView() {
           {grouped.map((group, gi) => (
             <View key={gi} style={{ marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.kxCardBorder, borderRadius: radius.lg, overflow: 'hidden' }}>
               {/* Judge header */}
-              <View style={{ backgroundColor: colors.kxPrimary[50], paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
-                <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.kxPrimary[800], fontFamily: typography.fontFamily.serif }}>
-                  Before {formatJudgeName(group.judgeName)}
-                </Text>
-                {group.benchType && (
-                  <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxPrimary[600], fontWeight: typography.fontWeight.medium, marginTop: 1 }}>
-                    {group.benchType}
+              <View style={{ backgroundColor: colors.kxPrimary[50], paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.bold, color: colors.kxPrimary[800], fontFamily: typography.fontFamily.serif }}>
+                    Before {formatJudgeName(group.judgeName)}
                   </Text>
-                )}
-                {group.courtHallNo && (
-                  <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>
-                    Court Hall {group.courtHallNo}
-                  </Text>
-                )}
+                  {group.benchType && (
+                    <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxPrimary[600], fontWeight: typography.fontWeight.medium, marginTop: 1 }}>
+                      {group.benchType}
+                    </Text>
+                  )}
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  {group.date && (
+                    <Text style={{ fontSize: 10, color: colors.kxTextSecondary }}>
+                      {formatHearingDate(group.date)}
+                    </Text>
+                  )}
+                  {group.courtHallNo && (
+                    <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, marginTop: 2 }}>
+                      Court {group.courtHallNo}
+                    </Text>
+                  )}
+                </View>
               </View>
 
               {/* Sub-groups by hearing type + category */}
@@ -352,13 +370,28 @@ export function ScheduleView() {
                             {item.serialNumber}.
                           </Text>
                           <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }} numberOfLines={expanded ? undefined : 1}>
-                              {item.metadata?.petitioner || '—'} vs {item.metadata?.respondent || '—'}
-                            </Text>
-                            <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 2 }}>
+                            {/* Case number — preserve newlines so the court's
+                                "Connected Case" suffix (which ships inside the
+                                case_number cell) shows on its own line, matching
+                                the web table. */}
+                            <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>
                               {item.caseNumber}
                               {item.metadata?.cl_number ? `  •  CL ${item.metadata.cl_number}` : ''}
                             </Text>
+                            {/* Parties — render only when at least one is
+                                non-empty. Connected-case rows often ship blank
+                                parties; web shows a faint orphan "Vs.", which
+                                looks broken — we hide instead. */}
+                            {(() => {
+                              const pet = item.metadata?.petitioner?.trim() || '';
+                              const res = item.metadata?.respondent?.trim() || '';
+                              if (!pet && !res) return null;
+                              return (
+                                <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 3 }} numberOfLines={expanded ? undefined : 2}>
+                                  {pet || '—'} <Text style={{ color: colors.ledgerGray[400] }}>vs</Text> {res || '—'}
+                                </Text>
+                              );
+                            })()}
                             {!expanded && petAdvocates.length > 0 && (
                               <Text style={{ fontSize: typography.fontSize.xs, color: colors.ledgerGray[500], marginTop: 2 }} numberOfLines={1}>
                                 {petAdvocates[0]}{petAdvocates.length > 1 ? `  +${petAdvocates.length - 1} more` : ''}

@@ -57,7 +57,7 @@ interface CreateDocumentRequest {
   [key: string]: unknown
 }
 
-interface CreateDocumentResponse {
+export interface CreateDocumentResponse {
   id: string
   jobId: string
   name: string | null

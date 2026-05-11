@@ -47,7 +47,7 @@ export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
   'application-draft': 'Application',
   'interim-application': 'Interim',
   'affidavit': 'Affidavit',
-  'bail-application': 'Bail',
+  'bail-application': '1st Bail Application',
   'criminal-appeal': 'CriminalAppeal',
   'plaint': 'Plaint',
   'written-statement': 'WrittenStatement',

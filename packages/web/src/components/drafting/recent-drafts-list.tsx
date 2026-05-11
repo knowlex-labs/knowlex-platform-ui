@@ -5,22 +5,14 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api'
 import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api'
-import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { DocumentType, JobStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
 
 const PAGE_SIZE = 5
 
-// Module-scoped so a tracked draft survives navigation away from /drafts.
-// If the user submits a draft, leaves, and returns, the next mount can still
-// fire the toast either via SSE (still PROCESSING) or via reconciliation
-// against the freshly-fetched list (already terminal).
-const trackedJobs = new Map<string, string>() // docId → display label
-
 export interface RecentDraftsListHandle {
   refresh: () => void
-  /** Mark a draft we just submitted so we toast on completion. */
-  trackJob: (docId: string, label: string) => void
 }
 
 interface RecentDraftsListProps {
@@ -56,7 +48,9 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
     const [docs, setDocs] = useState<DocumentRecord[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    const streamsRef = useRef<Map<string, AbortController>>(new Map())
+    // Per-docId unsubscribers from the shared status watcher. Refs (not
+    // state) so we don't re-render every time a watch starts/stops.
+    const streamsRef = useRef<Map<string, () => void>>(new Map())
 
     const fetchDrafts = useCallback(async () => {
       try {
@@ -69,20 +63,6 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
           // draft below an older one that was just touched.
           sort: 'createdAt,desc',
         })
-        // Reconcile tracked jobs that completed while we weren't watching:
-        // any tracked doc that comes back already terminal still owes a toast.
-        for (const doc of result.documents) {
-          const label = trackedJobs.get(doc.id)
-          if (!label) continue
-          const s = (doc.jobStatus ?? '').toString().toUpperCase()
-          if (s === 'COMPLETED') {
-            trackedJobs.delete(doc.id)
-            toast({ title: 'Draft ready', description: label })
-          } else if (s === 'FAILED' || s === 'CANCELLED') {
-            trackedJobs.delete(doc.id)
-            toast({ title: 'Draft generation failed', description: 'Please try again.', variant: 'destructive' })
-          }
-        }
         setDocs(result.documents)
       } catch {
         setDocs([])
@@ -98,45 +78,37 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
 
     useImperativeHandle(ref, () => ({
       refresh: fetchDrafts,
-      trackJob: (docId, label) => {
-        trackedJobs.set(docId, label)
-      },
     }), [fetchDrafts])
 
-    // Open SSE stream for any PROCESSING draft. Mirrors documents-page.tsx:907–943.
+    // Watch any visible PROCESSING row and re-fetch the list on terminal
+    // status so the badge flips. The "Draft ready" toast itself is owned by
+    // the globally-mounted <DraftTracker /> - we don't fire toasts here.
+    // Uses the shared subscribeDocumentStatus watcher so multiple components
+    // watching the same docId share a single poll.
     useEffect(() => {
       for (const doc of docs) {
         if (doc.jobStatus !== JobStatus.PROCESSING) continue
         if (streamsRef.current.has(doc.id)) continue
 
         const docId = doc.id
-        const ctrl = workspaceApi.pollDocumentStatus(docId, {
+        const unsubscribe = subscribeDocumentStatus(docId, {
           onStatus: (statusDoc) => {
             const s = (statusDoc.jobStatus ?? '').toUpperCase()
             if (s === 'COMPLETED' || s === 'FAILED' || s === 'CANCELLED') {
-              streamsRef.current.get(docId)?.abort()
+              streamsRef.current.get(docId)?.()
               streamsRef.current.delete(docId)
-              const label = trackedJobs.get(docId)
-              if (label) {
-                trackedJobs.delete(docId)
-                if (s === 'COMPLETED') {
-                  toast({ title: 'Draft ready', description: label })
-                } else {
-                  toast({ title: 'Draft generation failed', description: 'Please try again.', variant: 'destructive' })
-                }
-              }
               fetchDrafts()
             }
           },
           onError: () => { streamsRef.current.delete(docId) },
           onEnd: () => { streamsRef.current.delete(docId) },
         })
-        streamsRef.current.set(docId, ctrl)
+        streamsRef.current.set(docId, unsubscribe)
       }
     }, [docs, fetchDrafts])
 
     useEffect(() => () => {
-      for (const ctrl of streamsRef.current.values()) ctrl.abort()
+      for (const unsubscribe of streamsRef.current.values()) unsubscribe()
       streamsRef.current.clear()
     }, [])
 
