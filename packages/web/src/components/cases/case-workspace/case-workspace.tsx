@@ -331,13 +331,13 @@ export function CaseWorkspace() {
   }
 
   const handleRenameSummary = async (documentId: string, name: string) => {
-    if (documentId) await workspaceApi.updateDocument(caseId, documentId, { name })
+    if (documentId) await workspaceApi.updateDocument(documentId, { name })
   }
   const handleRenameSynopsis = async (documentId: string, name: string) => {
-    if (documentId) await workspaceApi.updateDocument(caseId, documentId, { name })
+    if (documentId) await workspaceApi.updateDocument(documentId, { name })
   }
   const handleRenamePrecedent = async (name: string) => {
-    if (precedent?.id) await workspaceApi.updateDocument(caseId, precedent.id, { name })
+    if (precedent?.id) await workspaceApi.updateDocument(precedent.id, { name })
   }
 
   const handleFindPrecedents = () => navigate('/ai-research')
