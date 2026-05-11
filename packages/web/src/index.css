@@ -606,6 +606,16 @@
   width: 100%;
   margin: 0.5rem 0;
   background: #ffffff;
+  /* Mirror of the print/export pagination rule in
+     DraftExportHtmlBuilder.java EXPORT_CSS - keeps small court-form
+     tables (e.g. Annexure-A/1) from splitting between the header row
+     and the Nil data row on print. */
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.legal-document table.court-form tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 .legal-document table.court-form td {
   border: 1px solid #000;
