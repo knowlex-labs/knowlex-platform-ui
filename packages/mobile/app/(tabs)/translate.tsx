@@ -275,9 +275,13 @@ export default function TranslateScreen() {
       </ScrollView>
 
       {/* Document picker (single or multi for merge) */}
+      {/* Don't clear activeTool here — the picker fires onSelect immediately
+          followed by onClose, so resetting activeTool would race the deferred
+          setToolSheetVisible(true) and hide the tool sheet. closeToolSheet
+          handles the cleanup once the tool sheet itself closes. */}
       <DocumentPickerSheet
         visible={pickerVisible}
-        onClose={() => { setPickerVisible(false); setActiveTool(null); }}
+        onClose={() => setPickerVisible(false)}
         title={activeTool === 'merge' ? 'Select documents to merge' : `Select document to ${activeTool ?? 'process'}`}
         multiSelect={activeTool === 'merge'}
         onSelect={handleDocSelected}
