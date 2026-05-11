@@ -17,7 +17,7 @@ export const SIDEBAR_TABS: SidebarTabConfig[] = [
   { id: 'drafting',    label: 'Drafting',      icon: 'pen-line',       path: '/drafting' },
   { id: 'documents',   label: 'Documents',     icon: 'files',          path: '/documents' },
   { id: 'moodboard',   label: 'Tasks',         icon: 'layout-grid',    path: '/moodboard', featureFlag: 'MOODBOARD' },
-  { id: 'judgments',   label: 'Legal Library', icon: 'scale',          path: '/judgments' },
+  { id: 'judgments',   label: 'Judgments',     icon: 'scale',          path: '/judgments' },
 ]
 
 export const STATUS_COLORS = {

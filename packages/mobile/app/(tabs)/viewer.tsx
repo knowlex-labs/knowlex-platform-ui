@@ -12,13 +12,52 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type FileCategory = 'pdf' | 'image' | 'text' | 'other';
 
-function getFileCategory(name: string, fileType?: string): FileCategory {
+function getFileCategory(name: string, fileType?: string, docType?: string): FileCategory {
+  // Doc-type wins when present — translations are always rendered as PDF (WeasyPrint
+  // output), drafts/summaries/synopses are always HTML/markdown text. fileType from
+  // the backend can be null/stale for generated docs, so it's the second source.
+  const dt = (docType ?? '').toUpperCase();
+  if (dt === 'TRANSLATION') return 'pdf';
+  if (dt === 'DRAFT' || dt === 'SUMMARY' || dt === 'SYNOPSIS') return 'text';
+
   const ext = (name ?? '').split('.').pop()?.toLowerCase() ?? '';
   const ft = (fileType ?? ext).toUpperCase();
   if (ft === 'PDF') return 'pdf';
   if (['PNG', 'JPG', 'JPEG', 'GIF', 'WEBP', 'BMP'].includes(ft)) return 'image';
-  if (['TXT', 'MD', 'CSV', 'TEXT'].includes(ft)) return 'text';
+  if (['HTML', 'HTM', 'TXT', 'MD', 'CSV', 'TEXT', 'MARKDOWN'].includes(ft)) return 'text';
+  if (!ft) return 'text';
   return 'other';
+}
+
+function looksLikeHtml(content: string): boolean {
+  // Markdown HTML comments + tag-heavy content → render as HTML.
+  return /<\/?(p|div|h[1-6]|table|tbody|tr|td|th|ul|ol|li|strong|em|u|br|span|hr|blockquote|pre|code|a)\b/i.test(content);
+}
+
+function buildHtmlDoc(content: string, isHtml: boolean): string {
+  const body = isHtml
+    ? content
+    : `<pre style="white-space: pre-wrap; word-wrap: break-word; font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin:0;">${escapeHtml(content)}</pre>`;
+  return `<!doctype html>
+<html><head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3" />
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 15px; line-height: 1.55; color: #0f172a; padding: 16px 18px 32px; margin: 0; background: #fff; }
+  h1, h2, h3, h4 { font-family: Georgia, "Times New Roman", serif; line-height: 1.3; }
+  p { margin: 0.5em 0; }
+  table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
+  td, th { padding: 4px 6px; vertical-align: top; }
+  strong { font-weight: 700; }
+  u { text-decoration: underline; }
+  hr { border: none; border-top: 1px solid #e2e8f0; margin: 1em 0; }
+  /* Strip markdown HTML comments leaked into the doc. */
+</style>
+</head><body>${body}</body></html>`;
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export default function ViewerScreen() {
@@ -28,6 +67,7 @@ export default function ViewerScreen() {
     downloadUrl?: string;
     signedUrl?: string;
     fileType?: string;
+    type?: string;
   }>();
   const { colors, typography, spacing, radius } = useTheme();
   const router = useRouter();
@@ -39,7 +79,7 @@ export default function ViewerScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [toolboxVisible, setToolboxVisible] = useState(false);
 
-  const category = getFileCategory(params.name ?? '', params.fileType);
+  const category = getFileCategory(params.name ?? '', params.fileType, params.type);
 
   useEffect(() => {
     if (!params.docId) return;
@@ -55,10 +95,40 @@ export default function ViewerScreen() {
     const { getAuthHeaders } = await import('@knowlex/core/api/auth-headers');
     const path = params.downloadUrl || `/api/v1/documents/${params.docId}/download`;
     const fullUrl = path.startsWith('http') ? path : `${env.apiBaseUrl}${path}`;
-    const safeName = (params.name ?? `document_${params.docId}`).replace(/[^a-zA-Z0-9._-]/g, '_');
-    const cacheUri = (FileSystem.cacheDirectory ?? '') + safeName;
-    const result = await FileSystem.downloadAsync(fullUrl, cacheUri, { headers: getAuthHeaders() });
+    // Only attach the bearer token when the request stays on our API origin.
+    // If the backend ever hands back an absolute non-API URL (CDN/S3 redirect)
+    // in `downloadUrl`, sending Authorization would leak the token to that host.
+    let sameOrigin = false;
+    try {
+      sameOrigin = new URL(fullUrl).origin === new URL(env.apiBaseUrl).origin;
+    } catch {
+      sameOrigin = false;
+    }
+    const headers = sameOrigin ? getAuthHeaders() : undefined;
+    const rawName = params.name ?? `document_${params.docId}`;
+    // Replace anything non-filename-safe AND drop apostrophes/quotes that some
+    // iOS APIs choke on.
+    const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    // iOS WebView refuses to render file:// URIs without a recognized extension.
+    // Force the right one based on the doc category — translations are PDFs even
+    // when the display name lacks `.pdf`.
+    const extByCategory: Record<FileCategory, string> = { pdf: '.pdf', image: '.png', text: '.txt', other: '' };
+    const wantedExt = extByCategory[category];
+    const hasWanted = wantedExt && safeName.toLowerCase().endsWith(wantedExt);
+    const finalName = hasWanted ? safeName : `${safeName}${wantedExt}`;
+    const cacheUri = (FileSystem.cacheDirectory ?? '') + finalName;
+    console.log('[viewer] downloadToCache', { fullUrl, cacheUri, category, sameOrigin });
+    const result = await FileSystem.downloadAsync(fullUrl, cacheUri, headers ? { headers } : undefined);
+    console.log('[viewer] downloadToCache result', { status: result.status, uri: result.uri });
     if (result.status >= 400) throw new Error(`Download failed: ${result.status}`);
+    // Sanity-check the bytes: a 0-byte response renders as a blank WebView with no
+    // error, which is what the user sees when the backend returned an empty body.
+    // Throw outside any catch so the empty-file error actually propagates.
+    const info = await FileSystem.getInfoAsync(result.uri);
+    console.log('[viewer] downloaded file info', info);
+    if (info.exists && 'size' in info && info.size === 0) {
+      throw new Error('Downloaded file is empty (0 bytes)');
+    }
     return result.uri;
   };
 
@@ -76,22 +146,16 @@ export default function ViewerScreen() {
         setTextContent(content);
       } else {
         // PDF/images: WebView/Image need a self-authenticating URL.
-        // 1) Trust signedUrl only if it is an absolute http(s) URL
-        // 2) Try a presigned S3 URL via workspaceApi.getDownloadUrl
-        // 3) Fall back to authenticated API download saved to the local file cache
+        // 1) Trust signedUrl only if it is an absolute http(s) URL (already public S3)
+        // 2) Otherwise download via the authenticated /download endpoint — this is the
+        //    only path that runs server-side decryption, so it's required for generated
+        //    docs (translations, encrypted user uploads). Presigned-S3 URLs return raw
+        //    ciphertext and yield a blank/garbled WebView.
         const isAbsolute = params.signedUrl?.startsWith('http');
         if (isAbsolute) {
           setViewUrl(params.signedUrl!);
         } else {
-          let url: string | null = null;
-          try {
-            url = await workspaceApi.getDownloadUrl(params.docId!);
-          } catch {
-            url = null;
-          }
-          if (!url) {
-            url = await downloadToCache();
-          }
+          const url = await downloadToCache();
           setViewUrl(url);
         }
       }
@@ -105,18 +169,26 @@ export default function ViewerScreen() {
 
   const handleShare = async () => {
     try {
-      const url = viewUrl ?? (params.signedUrl || '');
-      if (!url) { Alert.alert('No URL available'); return; }
-
       const FileSystem = await import('expo-file-system/legacy');
       const Sharing = await import('expo-sharing');
-      const fileName = params.name ?? `document_${params.docId}`;
-      const cacheUri = (FileSystem.cacheDirectory ?? '') + fileName;
-      const result = await FileSystem.downloadAsync(url, cacheUri);
+
+      // Get a local file:// URI we can hand to the share sheet:
+      // - if viewUrl is already file://, use it directly
+      // - otherwise download (either viewUrl if remote, or via the authenticated
+      //   /download endpoint) into the cache.
+      let localUri: string;
+      if (viewUrl && viewUrl.startsWith('file://')) {
+        localUri = viewUrl;
+      } else {
+        localUri = await downloadToCache();
+      }
+
       const canShare = await Sharing.isAvailableAsync();
-      if (canShare) await Sharing.shareAsync(result.uri);
-    } catch {
-      Alert.alert('Error', 'Could not share file');
+      if (canShare) await Sharing.shareAsync(localUri);
+      else Alert.alert('Sharing not available on this device');
+    } catch (err) {
+      console.log('[viewer] handleShare error', err);
+      Alert.alert('Error', err instanceof Error ? err.message : 'Could not share file');
     }
   };
 
@@ -158,20 +230,42 @@ export default function ViewerScreen() {
             Failed to load document
           </Text>
           <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextSecondary, textAlign: 'center', marginTop: spacing.sm }}>{error}</Text>
-          <Pressable onPress={loadDocument} style={{ marginTop: spacing.xl, paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, backgroundColor: colors.kxPrimary[600], borderRadius: radius.md }}>
-            <Text style={{ color: colors.onPrimary, fontWeight: typography.fontWeight.semibold }}>Retry</Text>
-          </Pressable>
+          <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.xl }}>
+            <Pressable onPress={loadDocument} style={{ paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, backgroundColor: colors.kxPrimary[600], borderRadius: radius.md }}>
+              <Text style={{ color: colors.onPrimary, fontWeight: typography.fontWeight.semibold }}>Retry</Text>
+            </Pressable>
+            <Pressable onPress={handleShare} style={{ paddingHorizontal: spacing.xl, paddingVertical: spacing.sm, borderWidth: 1, borderColor: colors.kxPrimary[600], borderRadius: radius.md }}>
+              <Text style={{ color: colors.kxPrimary[600], fontWeight: typography.fontWeight.semibold }}>Open Externally</Text>
+            </Pressable>
+          </View>
         </View>
       ) : category === 'pdf' && viewUrl ? (
         <WebView
           source={{ uri: viewUrl }}
           style={{ flex: 1, backgroundColor: colors.kxSurface }}
+          originWhitelist={['*']}
+          allowFileAccess
+          allowFileAccessFromFileURLs
+          allowUniversalAccessFromFileURLs
+          // iOS WKWebView sandboxes loadFileURL by default — without
+          // allowingReadAccessToURL the WebView cannot read PDFs from the
+          // app's cache directory and silently shows a blank page.
+          allowingReadAccessToURL={viewUrl.startsWith('file://') ? viewUrl : undefined}
           startInLoadingState
           renderLoading={() => (
             <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.kxSurface }}>
               <ActivityIndicator size="large" color={colors.kxPrimary[600]} />
             </View>
           )}
+          onLoadEnd={(e) => console.log('[viewer] WebView onLoadEnd', e.nativeEvent)}
+          onError={(e) => {
+            console.log('[viewer] WebView onError', e.nativeEvent);
+            setError(e.nativeEvent.description || 'WebView failed to render the document');
+          }}
+          onHttpError={(e) => {
+            console.log('[viewer] WebView onHttpError', e.nativeEvent);
+            setError(`HTTP ${e.nativeEvent.statusCode} while rendering`);
+          }}
         />
       ) : category === 'image' && viewUrl ? (
         <ScrollView
@@ -183,11 +277,20 @@ export default function ViewerScreen() {
           <Image source={{ uri: viewUrl }} style={{ width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.4 }} resizeMode="contain" />
         </ScrollView>
       ) : category === 'text' && textContent !== null ? (
-        <ScrollView contentContainerStyle={{ padding: spacing.xl }}>
-          <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextPrimary, lineHeight: 22 }}>
-            {textContent}
-          </Text>
-        </ScrollView>
+        looksLikeHtml(textContent) ? (
+          <WebView
+            originWhitelist={['*']}
+            source={{ html: buildHtmlDoc(textContent, true) }}
+            style={{ flex: 1, backgroundColor: '#fff' }}
+            scalesPageToFit
+          />
+        ) : (
+          <ScrollView contentContainerStyle={{ padding: spacing.xl }}>
+            <Text style={{ fontSize: typography.fontSize.sm, color: colors.kxTextPrimary, lineHeight: 22 }}>
+              {textContent}
+            </Text>
+          </ScrollView>
+        )
       ) : (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing['3xl'] }}>
           <Text style={{ fontSize: typography.fontSize.base, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }}>Preview not available</Text>

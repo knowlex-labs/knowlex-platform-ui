@@ -35,7 +35,6 @@ interface FormattingToolbarProps {
   onPrint?: () => void
   onDownloadDoc?: () => void
   onDownloadPdf?: () => void
-  onDownloadMd?: () => void
   isSaving?: boolean
   hasChanges?: boolean
   documentTitle?: string
@@ -61,7 +60,6 @@ export function FormattingToolbar({
   onPrint,
   onDownloadDoc,
   onDownloadPdf,
-  onDownloadMd,
   isSaving,
   hasChanges,
   documentTitle,
@@ -81,7 +79,7 @@ export function FormattingToolbar({
     return () => document.removeEventListener('mousedown', handleClick)
   }, [exportOpen])
 
-  const hasExportOptions = onPrint || onDownloadDoc || onDownloadPdf || onDownloadMd
+  const hasExportOptions = onPrint || onDownloadDoc || onDownloadPdf
 
   const exportDropdown = (
     <div className="relative flex-shrink-0" ref={exportRef}>
@@ -126,15 +124,6 @@ export function FormattingToolbar({
             >
               <FileText className="h-4 w-4 text-blue-500" />
               Download Word
-            </button>
-          )}
-          {onDownloadMd && (
-            <button
-              onClick={() => { onDownloadMd(); setExportOpen(false) }}
-              className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-ledger-gray-700 hover:bg-ledger-gray-50 transition-colors"
-            >
-              <FileText className="h-4 w-4 text-emerald-600" />
-              Download Markdown
             </button>
           )}
         </div>

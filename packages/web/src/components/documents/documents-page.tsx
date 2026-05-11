@@ -5,7 +5,7 @@ import {
   Loader2, PenLine, Languages, Scale,
   BookOpen, X, Search, PanelRight, MoreVertical, Trash2, ArrowLeft, Link2, FolderOpen,
   AlertCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  ArrowUp, ArrowDown, ArrowUpDown,
+  ArrowUp, ArrowDown, ArrowUpDown, Pencil,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RefreshButton } from '@/components/ui/refresh-button'
@@ -204,7 +204,7 @@ function UploadingRow({ name, fileType, onDismiss }: { name: string; fileType: s
 // ─── DocTableRow ──────────────────────────────────────────────────────────────
 
 function DocTableRow({
-  doc, selected, checked, onSelect, onCheck, onDelete, onAssignToCase, onDownload,
+  doc, selected, checked, onSelect, onCheck, onDelete, onAssignToCase, onDownload, onRename,
 }: {
   doc: DocumentRecord
   selected: boolean
@@ -214,14 +214,19 @@ function DocTableRow({
   onDelete: () => void
   onAssignToCase: () => void
   onDownload: () => void
+  onRename: (newName: string) => Promise<void>
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
   const menuRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const displayName = doc.originalFilename || doc.name
   const meta = TYPE_META[doc.type]
   const isGenerating = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.PROCESSING
   const isGenFailed   = GENERATED_DOC_TYPES.has(doc.type) && doc.jobStatus === JobStatus.FAILED
   const isUnassigned  = !doc.caseId
+  const canRename     = !isGenerating
 
   useEffect(() => {
     if (!menuOpen) return
@@ -232,12 +237,32 @@ function DocTableRow({
     return () => document.removeEventListener('mousedown', handle)
   }, [menuOpen])
 
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isRenaming])
+
+  const startRename = () => {
+    setRenameValue(displayName)
+    setIsRenaming(true)
+    setMenuOpen(false)
+  }
+
+  const submitRename = async () => {
+    const trimmed = renameValue.trim()
+    setIsRenaming(false)
+    if (!trimmed || trimmed === displayName) return
+    await onRename(trimmed)
+  }
+
   return (
     <tr
-      onClick={onSelect}
+      onClick={isRenaming ? undefined : onSelect}
       className={cn(
-        'cursor-pointer transition-all duration-150 group bg-kx-card',
-        'hover:bg-kx-primary-50 dark:hover:bg-kx-primary-50',
+        'transition-all duration-150 group bg-kx-card',
+        !isRenaming && 'cursor-pointer hover:bg-kx-primary-50 dark:hover:bg-kx-primary-50',
         selected || checked
           ? 'bg-kx-primary-50 dark:bg-kx-primary-950/20 border-l-2 border-l-kx-primary-500'
           : 'border-l-2 border-l-transparent hover:border-l-kx-primary-500'
@@ -256,13 +281,29 @@ function DocTableRow({
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
           <FileIcon fileType={doc.fileType} className="flex-shrink-0" />
-          <div className="min-w-0">
-            <p className={cn(
-              'text-sm font-medium truncate max-w-xs',
-              selected || checked ? 'text-kx-primary-900 dark:text-kx-primary-100' : 'text-kx-text-primary'
-            )}>
-              {displayName}
-            </p>
+          <div className="min-w-0 flex-1">
+            {isRenaming ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') submitRename()
+                  else if (e.key === 'Escape') setIsRenaming(false)
+                }}
+                onBlur={submitRename}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-xs text-sm font-medium text-kx-text-primary bg-nb-input border border-kx-primary-300 rounded px-2 py-0.5 outline-none focus:border-kx-primary-500"
+              />
+            ) : (
+              <p className={cn(
+                'text-sm font-medium truncate max-w-xs',
+                selected || checked ? 'text-kx-primary-900 dark:text-kx-primary-100' : 'text-kx-text-primary'
+              )}>
+                {displayName}
+              </p>
+            )}
             {isGenerating && (
               <span className="flex items-center gap-1 text-[10px] text-kx-primary-600 mt-0.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-kx-primary-500 animate-pulse" />
@@ -317,6 +358,16 @@ function DocTableRow({
                 >
                   <Download className="h-3.5 w-3.5 text-ledger-gray-400" />
                   Download
+                </button>
+              )}
+              {canRename && (
+                <button
+                  type="button"
+                  onClick={() => { startRename() }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-text-primary hover:bg-ledger-gray-50 dark:hover:bg-ledger-gray-800 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-ledger-gray-400" />
+                  Rename
                 </button>
               )}
               <button
@@ -585,7 +636,7 @@ function DocumentViewer({
                 suppressContentEditableWarning
                 onInput={() => setIsDirty(true)}
                 className="legal-document bg-white mx-auto my-4 shadow-sm focus:outline-none ring-2 ring-kx-primary-300"
-                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', color: '#000', maxWidth: '820px', padding: '32px 40px' }}
               />
             </div>
           )
@@ -593,7 +644,7 @@ function DocumentViewer({
           <div className="flex-1 overflow-auto bg-ledger-gray-100 dark:bg-ledger-gray-800">
             <div
               className="legal-document bg-white mx-auto my-4 shadow-sm"
-              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', lineHeight: '1.6', color: '#000', width: '794px', maxWidth: 'calc(100% - 48px)', minHeight: '900px', padding: '72px 96px' }}
+              style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: '12pt', color: '#000', maxWidth: '820px', padding: '32px 40px' }}
               dangerouslySetInnerHTML={{ __html: renderDraftToHtml(textContent) }}
             />
           </div>
@@ -1022,6 +1073,16 @@ export function DocumentsPage() {
     }
   }
 
+  const handleRenameDoc = async (docId: string, newName: string) => {
+    try {
+      await workspaceApi.updateDocument(docId, { name: newName })
+      setAllDocs(prev => prev.map(d => d.id === docId ? { ...d, name: newName, originalFilename: null } : d))
+      toast({ title: 'Document renamed' })
+    } catch (e) {
+      toast({ title: 'Rename failed', description: e instanceof Error ? e.message : 'Try again', variant: 'destructive' })
+    }
+  }
+
   const handleAssignToCase = async () => {
     if (!assignDocId || !assignCaseId) return
     setIsAssigning(true)
@@ -1298,6 +1359,7 @@ export function DocumentsPage() {
                                   else if (doc.storageUrl) triggerDirectDownload(doc.storageUrl, doc.originalFilename || doc.name)
                                 } catch { toast({ title: 'Download failed', variant: 'destructive' }) }
                               }}
+                              onRename={(newName) => handleRenameDoc(doc.id, newName)}
                             />
                           ))}
                         </tbody>

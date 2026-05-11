@@ -57,7 +57,7 @@ interface CreateDocumentRequest {
   [key: string]: unknown
 }
 
-interface CreateDocumentResponse {
+export interface CreateDocumentResponse {
   id: string
   jobId: string
   name: string | null
@@ -399,17 +399,20 @@ export const workspaceApi = {
     return response.data
   },
 
-  async updateDocument(caseId: string, documentId: string, data: { name?: string; storage_key?: string }): Promise<CreateDocumentResponse> {
+  async updateDocument(documentId: string, data: { name?: string; storage_key?: string }): Promise<CreateDocumentResponse> {
     const response = await apiClient.put<ApiResponse<CreateDocumentResponse>>(
-      `/api/v1/cases/${caseId}/documents/${documentId}`,
+      `/api/v1/documents/${documentId}`,
       data
     )
     return response.data
   },
 
-  async uploadDocument(caseId: string, file: File): Promise<{ id: string }> {
+  async uploadDocument(
+    caseId: string,
+    file: File | { uri: string; name: string; type: string }
+  ): Promise<{ id: string }> {
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', file as unknown as Blob)
     formData.append('caseId', caseId)
 
     const response = await fetch(`${getBaseUrl()}/api/v1/documents/upload`, {
@@ -419,6 +422,9 @@ export const workspaceApi = {
     })
 
     if (!response.ok) {
+      if (response.status === 401) {
+        getAdapters().eventBus.dispatch('auth:session-expired')
+      }
       let message = `Upload failed: ${response.status}`
       try {
         const data: Record<string, string> = await response.json()

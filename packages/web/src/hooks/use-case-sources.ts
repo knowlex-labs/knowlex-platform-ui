@@ -291,16 +291,15 @@ export function useCaseDocuments(caseId: string | null): UseCaseDocumentsResult 
   }, [caseId, startPolling])
 
   const renameDocument = useCallback(async (documentId: string, newName: string) => {
-    if (!caseId) return
     try {
-      await workspaceApi.updateDocument(caseId, documentId, { name: newName })
+      await workspaceApi.updateDocument(documentId, { name: newName })
       setDocuments((prev) => prev.map((d) => d.id === documentId ? { ...d, name: newName } : d))
       setPaginatedSources((prev) => prev.map((d) => d.id === documentId ? { ...d, name: newName } : d))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to rename document')
       throw err
     }
-  }, [caseId])
+  }, [])
 
   const batchDelete = useCallback(async (sourceIds: string[]) => {
     try {

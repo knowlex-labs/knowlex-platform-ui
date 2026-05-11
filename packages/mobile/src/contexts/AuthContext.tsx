@@ -132,11 +132,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const updateProfile = React.useCallback(async (data: { bench?: string }) => {
-    await userApi.updateProfile(data);
+  const updateProfile = React.useCallback(async (data: {
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    bench?: string;
+  }) => {
+    const { phone, ...rest } = data;
+    await userApi.updateProfile({ ...rest, mobileNumber: phone });
     setAuthState((prev) =>
       prev.user ? { ...prev, user: { ...prev.user, ...data } } : prev
     );
+  }, []);
+
+  const replaceTokens = React.useCallback((token: string, refreshToken: string) => {
+    const { storage } = getAdapters();
+    storage.setItem(AUTH_TOKEN_KEY, token);
+    storage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+  }, []);
+
+  const refreshUser = React.useCallback((user: Partial<User>) => {
+    setAuthState((prev) => (prev.user ? { ...prev, user: { ...prev.user, ...user } } : prev));
   }, []);
 
   const logout = React.useCallback(() => {
@@ -151,6 +168,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     googleLogin,
     logout,
     updateProfile,
+    replaceTokens,
+    refreshUser,
     isRestoringSession,
   };
 

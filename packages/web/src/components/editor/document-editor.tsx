@@ -4,6 +4,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
+import Paragraph from '@tiptap/extension-paragraph'
 import Table from '@tiptap/extension-table'
 import TableRow from '@tiptap/extension-table-row'
 import TableHeader from '@tiptap/extension-table-header'
@@ -70,6 +71,32 @@ const TableCellWithStyle = TableCell.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
+      style: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute('style'),
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.style ? { style: attrs.style as string } : {},
+      },
+    }
+  },
+})
+
+// TipTap's bundled Paragraph schema discards inline `style` and `class`. The
+// notice prompts use per-paragraph margins (e.g. `margin:0` for tight
+// recipient-block lines, `margin:1rem 0 0` for block-start lines) and
+// `padding:0 3.5rem;` for the body inset; without preserving these attrs
+// every <p> collapses to the editor's default `[&_p]:my-2` and the layout
+// flattens. Mirrors the TableWithClass / TableCellWithStyle pattern above.
+const ParagraphWithStyle = Paragraph.extend({
+  addAttributes() {
+    return {
+      ...this.parent?.(),
+      class: {
+        default: null,
+        parseHTML: (el: HTMLElement) => el.getAttribute('class'),
+        renderHTML: (attrs: Record<string, unknown>) =>
+          attrs.class ? { class: attrs.class as string } : {},
+      },
       style: {
         default: null,
         parseHTML: (el: HTMLElement) => el.getAttribute('style'),
@@ -157,7 +184,8 @@ export function DocumentEditor({
   const editor = useEditor({
     editable: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({ paragraph: false }),
+      ParagraphWithStyle,
       Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       TableWithClass.configure({ resizable: true }),
@@ -402,7 +430,6 @@ export function DocumentEditor({
       onCancel: handleCancel,
       onDownloadDoc: () => void onExport('DOCX'),
       onDownloadPdf: () => void onExport('PDF'),
-      onDownloadMd: () => void onExport('MARKDOWN'),
     }
   }, [editor, readOnly, handleEdit, handleSave, handleCancel, onExport])
 
@@ -421,7 +448,6 @@ export function DocumentEditor({
           isEditing={isEditing}
           isSaving={isSaving}
           hasChanges={hasChanges}
-          documentTitle={documentTitle}
           {...toolbarHandlers}
         />
       )}
@@ -446,13 +472,13 @@ export function DocumentEditor({
               className={cn(
                 'focus:outline-none [&_*]:focus:outline-none',
                 // Headings — keep weight, drop the size bumps so the doc reads
-                // at a uniform 12pt Times New Roman. Tight margins to match
-                // canonical court draft density.
-                '[&_h1]:font-bold [&_h1]:mt-3 [&_h1]:mb-1',
-                '[&_h2]:font-bold [&_h2]:mt-3 [&_h2]:mb-1',
-                '[&_h3]:font-semibold [&_h3]:mt-2 [&_h3]:mb-1',
-                // Paragraphs — tight spacing (matches the reference PDF)
-                '[&_p]:my-1 [&_p]:leading-snug',
+                // at a uniform 12pt Times New Roman.
+                '[&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2',
+                '[&_h2]:font-bold [&_h2]:mt-4 [&_h2]:mb-2',
+                '[&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2',
+                // Paragraphs — moderate spacing for readability between
+                // numbered paragraphs in court drafts.
+                '[&_p]:my-2 [&_p]:leading-normal',
                 // Lists
                 '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-1',
                 '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-1',
@@ -470,6 +496,18 @@ export function DocumentEditor({
                 '[&_table.cause-title-row]:my-0 [&_table.cause-title-row]:border-0',
                 '[&_table.cause-title-row_td]:border-0 [&_table.cause-title-row_td]:p-0',
                 '[&_table.cause-title-row_th]:border-0 [&_table.cause-title-row_th]:p-0',
+                // Signature blocks (post-PRAYER 3-col, post-VERIFICATION 2-col).
+                // Without explicit overrides the default [&_table]:border rules
+                // above paint visible cell boxes around the row.
+                '[&_table.signature-block]:my-2 [&_table.signature-block]:border-0',
+                '[&_table.signature-block_td]:border-0 [&_table.signature-block_td]:p-0',
+                '[&_table.signature-block_th]:border-0 [&_table.signature-block_th]:p-0',
+                // MP-HC bail-form & similar court-form tables. Black 1px
+                // borders, white background, 6/10 cell padding. Mirrored in
+                // index.css .legal-document table.court-form rule and in
+                // DraftExportHtmlBuilder.java EXPORT_CSS so PDF/DOCX match.
+                '[&_table.court-form]:w-full [&_table.court-form]:border-collapse [&_table.court-form]:my-2 [&_table.court-form]:bg-white [&_table.court-form]:table-fixed',
+                '[&_table.court-form_td]:border [&_table.court-form_td]:border-black [&_table.court-form_td]:px-[10px] [&_table.court-form_td]:py-[6px] [&_table.court-form_td]:bg-white [&_table.court-form_td]:align-top [&_table.court-form_td]:break-words',
                 // Inline marks
                 '[&_strong]:font-semibold [&_em]:italic',
                 '[&_a]:text-kx-primary-700 [&_a]:underline',

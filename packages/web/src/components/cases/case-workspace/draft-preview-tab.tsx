@@ -411,13 +411,12 @@ function CompletedDraftEditor({
     [title, getCurrentContent, getSections, draft.contentFormat]
   )
 
-  const handleServerExport = useCallback(async (format: 'PDF' | 'DOCX' | 'MARKDOWN') => {
+  const handleServerExport = useCallback(async (format: 'PDF' | 'DOCX') => {
     try {
       const content = getCurrentContent()
       const sections = getSections()
       const htmlBody = buildExportBodyHtml(content, sections)
-      const markdownBody = format === 'MARKDOWN' && !content.trim().startsWith('<') ? content : undefined
-      await exportGeneratedDocument(draft.id, format, title, htmlBody, markdownBody)
+      await exportGeneratedDocument(draft.id, format, title, htmlBody, undefined)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Export failed'
       toast({
@@ -434,10 +433,6 @@ function CompletedDraftEditor({
 
   const handleDownloadPdf = useCallback(() => {
     void handleServerExport('PDF')
-  }, [handleServerExport])
-
-  const handleDownloadMd = useCallback(() => {
-    void handleServerExport('MARKDOWN')
   }, [handleServerExport])
 
   // ─── Explicit save (Ctrl+S / Save button) ────────────────────────────────
@@ -563,7 +558,6 @@ function CompletedDraftEditor({
         onPrint={handlePrint}
         onDownloadDoc={handleDownloadDoc}
         onDownloadPdf={handleDownloadPdf}
-        onDownloadMd={handleDownloadMd}
         isSaving={isSaving}
         hasChanges={hasChanges}
         documentTitle={title}
@@ -597,7 +591,6 @@ function CompletedDraftEditor({
           style={{
             fontFamily: "'Times New Roman', Times, serif",
             fontSize: '12pt',
-            lineHeight: '1.6',
             color: '#000',
             width: '794px',
             maxWidth: `calc(100% - ${PAGE_H_PAD}px)`,

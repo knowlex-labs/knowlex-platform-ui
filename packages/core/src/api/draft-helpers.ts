@@ -15,12 +15,15 @@ import type { CreateDraftRequest, DocumentType, Language } from './document-type
 
 /** Each template maps to an API document_type and (optionally) a subtype. */
 export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType; subtype?: string }> = {
-  'notice': { documentType: 'legal_notice', subtype: 'demand' },
-  'patent': { documentType: 'patent' },
+  'notice': { documentType: 'legal_notice' },
+  'demand-notice': { documentType: 'demand_notice' },
+  'cheque-bounce-notice': { documentType: 'cheque_bounce_notice' },
+  'eviction-notice': { documentType: 'eviction_notice' },
   'application-draft': { documentType: 'application_draft' },
   'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
   'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
   'bail-application': { documentType: 'bail_application' },
+  '2nd-bail-application': { documentType: 'second_bail_application' },
   'criminal-appeal': { documentType: 'criminal_appeal' },
   'plaint': { documentType: 'application', subtype: 'plaint' },
   'written-statement': { documentType: 'written_statement' },
@@ -36,12 +39,15 @@ export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType
 
 /** Human-readable sub_type used in the POST envelope (outer `sub_type` field). */
 export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
-  'notice': 'Notice',
-  'patent': 'Patent',
+  'notice': 'Legal Notice',
+  'demand-notice': 'Demand Notice',
+  'cheque-bounce-notice': 'Cheque Bounce Notice (Sec 138 NI Act)',
+  'eviction-notice': 'Eviction Notice (Sec 106 TP Act)',
   'application-draft': 'Application',
   'interim-application': 'Interim',
   'affidavit': 'Affidavit',
-  'bail-application': 'Bail',
+  'bail-application': '1st Bail Application',
+  '2nd-bail-application': '2nd Bail Application',
   'criminal-appeal': 'CriminalAppeal',
   'plaint': 'Plaint',
   'written-statement': 'WrittenStatement',
@@ -57,7 +63,7 @@ export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
 
 /** Templates whose form values are lifted into a structured `config` dict. */
 export const CRIMINAL_TEMPLATE_IDS: readonly string[] = [
-  'bail-application', 'criminal-appeal', 'anticipatory-bail',
+  'bail-application', '2nd-bail-application', 'criminal-appeal', 'anticipatory-bail',
   'quashing-petition', 'revision-petition', 'writ-petition', 'slp',
 ]
 
@@ -66,6 +72,7 @@ export const CRIMINAL_CONFIG_KEYS: readonly string[] = [
   'fir_details', 'criminal_history', 'bail_history', 'co_accused_details',
   'impugned_order', 'impugned_judgment', 'court_details', 'facts', 'relief_sought',
   'applicant', 'opposite_party', 'appellant', 'respondent', 'petitioner', 'grounds', 'writ_type',
+  'earlier_hc_bail', 'lower_court_rejection', 'change_in_circumstances',
 ]
 
 const get = (fd: TemplateFormData, key: string): string =>
@@ -79,9 +86,13 @@ export function assembleBody(templateId: string, formData: TemplateFormData): st
   const g = (k: string) => get(formData, k)
   switch (templateId) {
     case 'notice':
-      return `Draft a legal notice from ${g('sender')} to ${g('recipient')}. ${g('body')}`.trim()
-    case 'patent':
-      return `Draft a patent application. Applicant: ${g('applicant')}. Inventor: ${g('inventor')}. Description: ${g('description')}`.trim()
+      return `Draft a Legal Notice (general / fallback). Sender (client): ${g('sender')}. Recipient: ${g('recipient')}. Subject: ${g('subject')}. Facts and demand: ${g('body')}.`.trim()
+    case 'demand-notice':
+      return `Draft a Demand Notice for recovery of money. Sender (client): ${g('sender')}. Recipient (debtor): ${g('recipient')}. Underlying instrument: ${g('instrument')}. Principal amount: ${g('principal_amount')}. Interest rate: ${g('interest_rate')}% p.a.. Date of default / due date: ${g('due_date')}. Prior demands: ${g('prior_demands')}. Facts of the transaction: ${g('body')}.`.trim()
+    case 'cheque-bounce-notice':
+      return `Draft a Section 138 NI Act statutory notice. Payee (client): ${g('sender')}. Drawer: ${g('recipient')}. Cheque: No. ${g('cheque_number')}, dated ${g('cheque_date')}, amount ${g('cheque_amount')}, drawn on ${g('drawee_bank')}, account ${g('account_number')}. Presentation date: ${g('presentation_date')}. Cheque Return Memo dated: ${g('dishonour_date')}. Reason for dishonour: ${g('dishonour_reason')}. Date client received memo: ${g('memo_received_date')}. Underlying legally enforceable debt: ${g('underlying_debt')}.`.trim()
+    case 'eviction-notice':
+      return `Draft an Eviction Notice under Section 106 TP Act 1882${g('state_rent_act') ? ` read with ${g('state_rent_act')}` : ''}. Landlord (client): ${g('sender')}. Tenant: ${g('recipient')}. Suit premises: ${g('premises')}. Title document: ${g('title_document')}. Tenancy commencement: ${g('tenancy_start_date')}. Mode of tenancy: ${g('tenancy_mode')}. Monthly rent: ${g('monthly_rent')}. Security deposit: ${g('security_deposit')}. Period of arrears: ${g('arrears_period')}. Total arrears: ${g('arrears_amount')}. Grounds for eviction: ${g('grounds')}. Estimated market rent (mesne profits): ${g('market_rent')}.`.trim()
     case 'application-draft':
       return `Draft an application for applicant ${g('applicant')}. ${g('body')}`.trim()
     case 'interim-application':
@@ -90,6 +101,8 @@ export function assembleBody(templateId: string, formData: TemplateFormData): st
       return `Draft an affidavit for deponent ${g('deponent')}. Statements: ${g('statements')}`.trim()
     case 'bail-application':
       return `Draft a bail application. Applicant: ${g('applicant')}. Opposite Party: ${g('opposite_party')}. Court: ${g('court_details')}. FIR Details: ${g('fir_details')}. Facts: ${g('facts')}. Relief Sought: ${g('relief_sought')}.`.trim()
+    case '2nd-bail-application':
+      return `Draft a second / subsequent bail application under Section 483 BNSS. Applicant: ${g('applicant')}. Opposite Party: ${g('opposite_party')}. Court: ${g('court_details')}. FIR Details: ${g('fir_details')}. Facts: ${g('facts')}. Earlier HC Bail (Case No., dates, outcome, Hon'ble Justice): ${g('earlier_hc_bail')}. Lower-Court Rejection (Date + Annexure No.): ${g('lower_court_rejection')}. Change in Circumstances / Fresh Grounds since earlier rejection: ${g('change_in_circumstances')}. Criminal History: ${g('criminal_history')}. Co-Accused Details: ${g('co_accused_details')}. Relief Sought: ${g('relief_sought')}.`.trim()
     case 'criminal-appeal':
       return `Draft a criminal appeal. Appellant: ${g('appellant')}. Respondent: ${g('respondent')}. Court: ${g('court_details')}. Impugned Order: ${g('impugned_order')}. Facts: ${g('facts')}. Relief Sought: ${g('relief_sought')}.`.trim()
     case 'plaint':

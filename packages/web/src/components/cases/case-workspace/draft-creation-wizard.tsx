@@ -6,6 +6,7 @@ import {
   Users, RefreshCcw, Star, Ban, AlignLeft, X,
   LayoutGrid, PenLine, Eye, Trash2, RotateCw, FolderInput,
   AlertCircle, Bold, Italic, Underline,
+  Receipt, DoorOpen,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +33,7 @@ export const TEMPLATE_TO_SUB_TYPE = CORE_TEMPLATE_TO_SUB_TYPE
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileWarning, Lightbulb, FileText, FileClock, Scale, Gavel, ShieldAlert,
   ScrollText, ClipboardList, AlignLeft, Landmark, Star, Ban,
-  ShieldCheck, RefreshCcw, Hammer, Users,
+  ShieldCheck, RefreshCcw, Hammer, Users, Receipt, DoorOpen,
 }
 
 type WizardStep = 'templates' | 'details' | 'preview'
@@ -208,8 +209,10 @@ export function DraftCreationWizard({
 
   const filteredTemplates = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
-    if (!q) return DRAFT_TEMPLATES
-    return DRAFT_TEMPLATES.filter((t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
+    const base = !q
+      ? DRAFT_TEMPLATES
+      : DRAFT_TEMPLATES.filter((t) => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q))
+    return [...base].sort((a, b) => (a.displayOrder ?? 1e9) - (b.displayOrder ?? 1e9))
   }, [searchQuery])
 
   const handleFieldChange = (fieldId: string, value: string) => {
@@ -772,12 +775,9 @@ export function DraftCreationWizard({
                   style={{
                     fontFamily: "'Times New Roman', Times, serif",
                     fontSize: '12pt',
-                    lineHeight: '1.6',
                     color: '#000',
-                    width: '794px',
-                    maxWidth: 'calc(100% - 48px)',
-                    minHeight: '900px',
-                    padding: '72px 96px',
+                    maxWidth: '820px',
+                    padding: '32px 40px',
                   }}
                   dangerouslySetInnerHTML={{ __html: previewHtml }}
                 />

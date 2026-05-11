@@ -11,19 +11,26 @@ import { Badge } from '@/components/ui/Badge';
 import { SkeletonLoader } from '@/components/ui/SkeletonLoader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterChipBar } from '@/components/ui/FilterChipBar';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { ScheduleView } from '@/components/cases/ScheduleView';
 
 const STATUS_FILTERS = [
   { label: 'All', value: undefined },
   { label: 'Active', value: 'ACTIVE' },
-  { label: 'Pending', value: 'PENDING' },
-  { label: 'Closed', value: 'CLOSED' },
   { label: 'On Hold', value: 'ON_HOLD' },
+  { label: 'Closed', value: 'CLOSED' },
 ] as const;
+
+const SEGMENTS = [
+  { key: 'cases', label: 'Cases' },
+  { key: 'schedule', label: 'Schedule' },
+];
 
 export default function CaseListScreen() {
   const { colors, typography, spacing, radius } = useTheme();
   const router = useRouter();
 
+  const [view, setView] = useState<'cases' | 'schedule'>('cases');
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -54,84 +61,97 @@ export default function CaseListScreen() {
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.kxSurface }}>
-      {/* Header + Search */}
+      {/* Header */}
       <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.xs }}>
         <Text style={{ fontSize: typography.fontSize.lg, fontWeight: typography.fontWeight.bold, color: colors.kxTextPrimary, fontFamily: typography.fontFamily.serif }}>
           Cases
         </Text>
-        <TextInput
-          placeholder="Search cases..."
-          placeholderTextColor={colors.ledgerGray[400]}
-          value={search}
-          onChangeText={setSearch}
-          accessibilityLabel="Search cases"
-          style={{
-            backgroundColor: colors.kxCardBg,
-            borderWidth: 1, borderColor: colors.kxCardBorder,
-            borderRadius: radius.md,
-            paddingHorizontal: spacing.md, paddingVertical: 8,
-            fontSize: typography.fontSize.sm, color: colors.kxTextPrimary,
-            marginTop: spacing.sm,
-          }}
-        />
       </View>
 
-      {/* Filters */}
-      <View style={{ marginTop: spacing.sm, marginBottom: spacing.xs }}>
-        <FilterChipBar filters={STATUS_FILTERS} activeValue={activeFilter} onChange={setActiveFilter} />
+      <View style={{ marginTop: spacing.sm }}>
+        <SegmentedControl segments={SEGMENTS} activeKey={view} onChange={(k) => setView(k as 'cases' | 'schedule')} />
       </View>
 
-      {/* List */}
-      {loading ? (
-        <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <SkeletonLoader key={i} height={64} borderRadius={radius.lg} />
-          ))}
-        </View>
-      ) : filtered.length === 0 ? (
-        <EmptyState title="No cases found" message={search ? 'Try a different search term' : 'Create your first case to get started'} />
+      {view === 'schedule' ? (
+        <ScheduleView />
       ) : (
-        <ScrollView
-          contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchCases(); }} tintColor={colors.kxPrimary[600]} />}
-        >
-          {filtered.map((item) => (
-            <Pressable
-              key={item.id}
-              onPress={() => router.push(`/cases/${item.id}` as any)}
-              accessibilityRole="button"
-              accessibilityLabel={item.caseTitle ?? 'Case'}
-              style={({ pressed }) => ({
-                backgroundColor: pressed ? colors.ledgerGray[50] : colors.kxCardBg,
-                borderRadius: radius.lg, borderWidth: 1, borderColor: colors.kxCardBorder,
-                paddingVertical: spacing.md, paddingHorizontal: spacing.lg,
-              })}
+        <>
+          {/* Search */}
+          <View style={{ paddingHorizontal: spacing.lg }}>
+            <TextInput
+              placeholder="Search cases..."
+              placeholderTextColor={colors.ledgerGray[400]}
+              value={search}
+              onChangeText={setSearch}
+              accessibilityLabel="Search cases"
+              style={{
+                backgroundColor: colors.kxCardBg,
+                borderWidth: 1, borderColor: colors.kxCardBorder,
+                borderRadius: radius.md,
+                paddingHorizontal: spacing.md, paddingVertical: 8,
+                fontSize: typography.fontSize.sm, color: colors.kxTextPrimary,
+              }}
+            />
+          </View>
+
+          {/* Filters */}
+          <View style={{ marginTop: spacing.sm, marginBottom: spacing.xs }}>
+            <FilterChipBar filters={STATUS_FILTERS} activeValue={activeFilter} onChange={setActiveFilter} />
+          </View>
+
+          {/* List */}
+          {loading ? (
+            <View style={{ paddingHorizontal: spacing.lg, gap: spacing.sm }}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <SkeletonLoader key={i} height={64} borderRadius={radius.lg} />
+              ))}
+            </View>
+          ) : filtered.length === 0 ? (
+            <EmptyState title="No cases found" message={search ? 'Try a different search term' : 'Create your first case to get started'} />
+          ) : (
+            <ScrollView
+              contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm, gap: spacing.sm }}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchCases(); }} tintColor={colors.kxPrimary[600]} />}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ flex: 1, marginRight: spacing.sm }}>
-                  <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }} numberOfLines={1}>
-                    {item.caseTitle || 'Untitled Case'}
-                  </Text>
-                  {item.caseNumber && (
-                    <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 1 }}>{item.caseNumber}</Text>
+              {filtered.map((item) => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => router.push(`/cases/${item.id}` as any)}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.caseTitle ?? 'Case'}
+                  style={({ pressed }) => ({
+                    backgroundColor: pressed ? colors.ledgerGray[50] : colors.kxCardBg,
+                    borderRadius: radius.lg, borderWidth: 1, borderColor: colors.kxCardBorder,
+                    paddingVertical: spacing.md, paddingHorizontal: spacing.lg,
+                  })}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={{ flex: 1, marginRight: spacing.sm }}>
+                      <Text style={{ fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, color: colors.kxTextPrimary }} numberOfLines={1}>
+                        {item.caseTitle || 'Untitled Case'}
+                      </Text>
+                      {item.caseNumber && (
+                        <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary, marginTop: 1 }}>{item.caseNumber}</Text>
+                      )}
+                    </View>
+                    <Badge label={item.status ?? 'unknown'} status={item.status as any} />
+                    <Ionicons name="chevron-forward" size={16} color={colors.ledgerGray[400]} style={{ marginLeft: spacing.sm }} />
+                  </View>
+                  {(item.courtName || item.nextHearingDate) && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs }}>
+                      {item.courtName && <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }} numberOfLines={1}>{item.courtName}</Text>}
+                      {item.nextHearingDate && (
+                        <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxAccent[600] }}>
+                          {new Date(item.nextHearingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </Text>
+                      )}
+                    </View>
                   )}
-                </View>
-                <Badge label={item.status ?? 'unknown'} status={item.status as any} />
-                <Ionicons name="chevron-forward" size={16} color={colors.ledgerGray[400]} style={{ marginLeft: spacing.sm }} />
-              </View>
-              {(item.courtName || item.nextHearingDate) && (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs }}>
-                  {item.courtName && <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }} numberOfLines={1}>{item.courtName}</Text>}
-                  {item.nextHearingDate && (
-                    <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxAccent[600] }}>
-                      {new Date(item.nextHearingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                    </Text>
-                  )}
-                </View>
-              )}
-            </Pressable>
-          ))}
-        </ScrollView>
+                </Pressable>
+              ))}
+            </ScrollView>
+          )}
+        </>
       )}
     </SafeAreaView>
   );
