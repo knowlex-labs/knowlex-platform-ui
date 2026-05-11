@@ -10,9 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { draftChatApi } from '@knowlex/core/api/draft-chat-api';
-import { workspaceApi } from '@knowlex/core/api/workspace-api';
 import type { DraftChatSSECallbacks } from '@knowlex/core/api/draft-chat-api';
-import type { CaseDocument } from '@knowlex/core/types';
 import { useTheme } from '@/theme/useTheme';
 import { MessageMarkdown } from './MessageMarkdown';
 
@@ -25,82 +23,65 @@ interface ChatMessage {
 
 interface ChatTabProps {
   caseId: string;
-  /** When provided, uses these doc IDs for context instead of the built-in selector */
-  externalSelectedDocIds?: Set<string>;
+  selectedDocIds: Set<string>;
+  currentSessionId: string | null;
+  onSessionInitialized: (id: string) => void;
 }
 
-export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
+export function ChatTab({
+  caseId,
+  selectedDocIds,
+  currentSessionId,
+  onSessionInitialized,
+}: ChatTabProps) {
   const { colors, typography, spacing, radius } = useTheme();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Document context (internal — used when no externalSelectedDocIds)
-  const [indexedDocs, setIndexedDocs] = useState<CaseDocument[]>([]);
-  const [selectedDocIds, setSelectedDocIds] = useState<Set<string>>(new Set());
-  const [docsExpanded, setDocsExpanded] = useState(false);
-  const [docsError, setDocsError] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
-
-  // Use external doc IDs if provided
-  const effectiveDocIds = externalSelectedDocIds ?? selectedDocIds;
-  const showBuiltInSelector = !externalSelectedDocIds;
 
   const scrollViewRef = useRef<ScrollView>(null);
   const abortRef = useRef<AbortController | null>(null);
   const contentRef = useRef('');
 
-  // Fetch indexed documents
-  const fetchIndexedDocs = useCallback(async () => {
-    setDocsError(false);
-    try {
-      const res = await workspaceApi.getCaseDocumentsPaginated(caseId, { page: 1, limit: 100 });
-      const indexed = (res.documents ?? []).filter(
-        (d) => d.indexingStatus === 'INDEXING_COMPLETED' || d.indexingStatus === 'INDEXED'
-      );
-      setIndexedDocs(indexed);
-      setSelectedDocIds(new Set(indexed.map((d) => d.id)));
-    } catch {
-      setDocsError(true);
-    }
-  }, [caseId]);
-
-  useEffect(() => { fetchIndexedDocs(); }, [fetchIndexedDocs]);
-
-  // Initialize chat session
+  // Resolve session: pick latest existing or create one. Parent owns the id.
   const initSession = useCallback(async () => {
     setInitError(null);
     setIsLoading(true);
     try {
       const sessions = await draftChatApi.listSessions(caseId);
-      let sid: string;
-      if (sessions.length > 0) {
-        sid = sessions[0].id;
-      } else {
-        const newSession = await draftChatApi.createSession(caseId);
-        sid = newSession.id;
-      }
-      setSessionId(sid);
-
-      const history = await draftChatApi.getHistory(caseId, sid);
-      setMessages(history.map((msg, i) => ({
-        id: `hist-${i}`,
-        role: msg.role,
-        content: msg.content,
-      })));
+      const sid = sessions[0]?.id ?? (await draftChatApi.createSession(caseId)).id;
+      onSessionInitialized(sid);
     } catch (err: unknown) {
       setInitError(err instanceof Error ? err.message : 'Failed to start chat');
+      setIsLoading(false);
+    }
+  }, [caseId, onSessionInitialized]);
+
+  // Load history whenever the parent-controlled session id changes.
+  const loadHistory = useCallback(async (sid: string) => {
+    setIsLoading(true);
+    try {
+      const history = await draftChatApi.getHistory(caseId, sid);
+      setMessages(history.map((msg, i) => ({ id: `hist-${i}`, role: msg.role, content: msg.content })));
+    } catch {
+      setMessages([]);
     } finally {
       setIsLoading(false);
     }
   }, [caseId]);
 
   useEffect(() => {
-    initSession();
-    return () => { abortRef.current?.abort(); };
-  }, [initSession]);
+    if (!currentSessionId) {
+      initSession();
+      return;
+    }
+    abortRef.current?.abort();
+    loadHistory(currentSessionId);
+  }, [currentSessionId, initSession, loadHistory]);
+
+  useEffect(() => () => { abortRef.current?.abort(); }, []);
 
   const scrollToBottom = useCallback(() => {
     setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
@@ -110,18 +91,9 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
     if (messages.length > 0) scrollToBottom();
   }, [messages.length, scrollToBottom]);
 
-  const toggleDoc = (docId: string) => {
-    setSelectedDocIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(docId)) next.delete(docId);
-      else next.add(docId);
-      return next;
-    });
-  };
-
   const sendMessage = async () => {
     const text = input.trim();
-    if (!text || !sessionId || isStreaming) return;
+    if (!text || !currentSessionId || isStreaming) return;
 
     setInput('');
     const userMsg: ChatMessage = { id: `user-${Date.now()}`, role: 'user', content: text };
@@ -163,12 +135,12 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
 
     abortRef.current = draftChatApi.sendMessage(
       caseId,
-      sessionId,
+      currentSessionId,
       {
         message: text,
         tone: 'formal',
         style: 'balanced',
-        file_ids: Array.from(effectiveDocIds),
+        file_ids: Array.from(selectedDocIds),
         model: 'openai',
       },
       callbacks
@@ -190,7 +162,6 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={140}
     >
-      {/* Init error banner */}
       {initError && (
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.kxCardBg, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
           <Text style={{ flex: 1, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }} numberOfLines={2}>
@@ -199,62 +170,6 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
           <Pressable onPress={initSession} hitSlop={8} accessibilityLabel="Retry chat init">
             <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold, marginLeft: spacing.sm }}>Retry</Text>
           </Pressable>
-        </View>
-      )}
-
-      {/* Docs error banner */}
-      {showBuiltInSelector && docsError && (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.xs, backgroundColor: colors.kxCardBg, borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
-          <Text style={{ flex: 1, fontSize: typography.fontSize.xs, color: colors.kxTextSecondary }}>Could not load documents</Text>
-          <Pressable onPress={fetchIndexedDocs} hitSlop={8} accessibilityLabel="Retry loading documents">
-            <Text style={{ color: colors.kxPrimary[600], fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.semibold }}>Retry</Text>
-          </Pressable>
-        </View>
-      )}
-
-      {/* Document Context Selector (only when not controlled externally) */}
-      {showBuiltInSelector && indexedDocs.length > 0 && (
-        <View style={{ borderBottomWidth: 1, borderBottomColor: colors.kxCardBorder }}>
-          <Pressable
-            onPress={() => setDocsExpanded(!docsExpanded)}
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <Text style={{ fontSize: typography.fontSize.sm }}>📄</Text>
-              <Text style={{ fontSize: typography.fontSize.xs, fontWeight: typography.fontWeight.medium, color: colors.kxTextPrimary }}>
-                {selectedDocIds.size} of {indexedDocs.length} documents selected
-              </Text>
-            </View>
-            <Text style={{ color: colors.ledgerGray[400], fontSize: typography.fontSize.xs }}>{docsExpanded ? '▲' : '▼'}</Text>
-          </Pressable>
-
-          {docsExpanded && (
-            <View style={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.sm }}>
-              {indexedDocs.map((doc) => {
-                const isSelected = selectedDocIds.has(doc.id);
-                return (
-                  <Pressable
-                    key={doc.id}
-                    onPress={() => toggleDoc(doc.id)}
-                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, gap: spacing.sm }}
-                  >
-                    <View style={{
-                      width: 18, height: 18, borderRadius: 4,
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? colors.kxPrimary[600] : colors.ledgerGray[300],
-                      backgroundColor: isSelected ? colors.kxPrimary[600] : 'transparent',
-                      justifyContent: 'center', alignItems: 'center',
-                    }}>
-                      {isSelected && <Text style={{ color: colors.onPrimary, fontSize: typography.fontSize.xs, fontWeight: '700' }}>✓</Text>}
-                    </View>
-                    <Text style={{ fontSize: typography.fontSize.xs, color: colors.kxTextPrimary, flex: 1 }} numberOfLines={1}>
-                      {doc.name ?? doc.originalFilename ?? 'Document'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
         </View>
       )}
 
@@ -315,53 +230,53 @@ export function ChatTab({ caseId, externalSelectedDocIds }: ChatTabProps) {
         ))}
       </ScrollView>
 
-      {/* Input Bar */}
+      {/* Input bar */}
       <View style={{
-        flexDirection: 'row',
-        alignItems: 'flex-end',
-        paddingHorizontal: spacing.lg,
-        paddingVertical: spacing.sm,
         borderTopWidth: 1,
         borderTopColor: colors.kxCardBorder,
         backgroundColor: colors.kxCardBg,
-        gap: spacing.sm,
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.sm,
       }}>
-        <TextInput
-          value={input}
-          onChangeText={setInput}
-          placeholder="Ask about your case..."
-          placeholderTextColor={colors.ledgerGray[400]}
-          multiline
-          maxLength={2000}
-          style={{
-            flex: 1,
-            backgroundColor: colors.kxSurface,
-            borderRadius: radius.lg,
-            borderWidth: 1,
-            borderColor: colors.kxCardBorder,
-            paddingHorizontal: spacing.lg,
-            paddingVertical: 10,
-            fontSize: typography.fontSize.sm,
-            color: colors.kxTextPrimary,
-            maxHeight: 100,
-          }}
-          editable={!isStreaming}
-        />
-        <Pressable
-          onPress={sendMessage}
-          disabled={!input.trim() || isStreaming}
-          accessibilityLabel="Send message"
-          accessibilityRole="button"
-          style={({ pressed }) => ({
-            width: 40, height: 40, borderRadius: 20,
-            backgroundColor: input.trim() && !isStreaming ? colors.kxPrimary[600] : colors.ledgerGray[200],
-            justifyContent: 'center', alignItems: 'center',
-            opacity: pressed ? 0.8 : 1,
-            marginBottom: 2,
-          })}
-        >
-          <Text style={{ color: colors.onPrimary, fontSize: typography.fontSize.lg }}>↑</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm }}>
+          <TextInput
+            value={input}
+            onChangeText={setInput}
+            placeholder={`Ask ${selectedDocIds.size} source${selectedDocIds.size === 1 ? '' : 's'}…`}
+            placeholderTextColor={colors.ledgerGray[400]}
+            multiline
+            maxLength={2000}
+            style={{
+              flex: 1,
+              backgroundColor: colors.kxSurface,
+              borderRadius: radius.lg,
+              borderWidth: 1,
+              borderColor: colors.kxCardBorder,
+              paddingHorizontal: spacing.lg,
+              paddingVertical: 10,
+              fontSize: typography.fontSize.sm,
+              color: colors.kxTextPrimary,
+              maxHeight: 100,
+            }}
+            editable={!isStreaming}
+          />
+          <Pressable
+            onPress={sendMessage}
+            disabled={!input.trim() || isStreaming}
+            accessibilityLabel="Send message"
+            accessibilityRole="button"
+            style={({ pressed }) => ({
+              width: 40, height: 40, borderRadius: 20,
+              backgroundColor: input.trim() && !isStreaming ? colors.kxPrimary[600] : colors.ledgerGray[200],
+              justifyContent: 'center', alignItems: 'center',
+              opacity: pressed ? 0.8 : 1,
+              marginBottom: 2,
+            })}
+          >
+            <Text style={{ color: colors.onPrimary, fontSize: typography.fontSize.lg }}>↑</Text>
+          </Pressable>
+        </View>
       </View>
     </KeyboardAvoidingView>
   );
