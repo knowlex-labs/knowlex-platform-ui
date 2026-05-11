@@ -24,7 +24,7 @@ import {
 import { draftsApi } from '@knowlex/core/api/drafts-api'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { uploadToolboxFile, getDocument } from '@knowlex/core/api/doc-processing-api'
-import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { DocumentEditor } from '@/components/editor'
 import { GeneratingState } from '@/components/ui/generating-state'
 import { toast } from '@/hooks/use-toast'
@@ -342,7 +342,10 @@ export function DraftingPage() {
     inlinePreview?.status === 'pending' ? inlinePreview.docId : null
   useEffect(() => {
     if (!pendingDocId) return
-    const ctrl = workspaceApi.pollDocumentStatus(pendingDocId, {
+    // Uses the shared subscribeDocumentStatus watcher so this inline-preview
+    // poll joins (rather than duplicates) the polls the RecentDraftsList row
+    // and the global DraftTracker already have running for the same docId.
+    const unsubscribe = subscribeDocumentStatus(pendingDocId, {
       onStatus: (statusDoc) => {
         const s = (statusDoc.jobStatus ?? '').toString().toUpperCase()
         if (s !== 'COMPLETED' && s !== 'FAILED' && s !== 'CANCELLED') return
@@ -355,7 +358,7 @@ export function DraftingPage() {
       onError: () => {},
       onEnd: () => {},
     })
-    return () => ctrl.abort()
+    return unsubscribe
   }, [pendingDocId])
 
   const handleBackToList = () => {

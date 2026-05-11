@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
 import {
@@ -24,17 +24,18 @@ import {
  */
 export function DraftTracker() {
   const navigate = useNavigate()
-  const streamsRef = useRef<Map<string, AbortController>>(new Map())
+  // docId -> unsubscribe function returned by the shared status watcher.
+  const streamsRef = useRef<Map<string, () => void>>(new Map())
 
   useEffect(() => {
     const openStreamFor = (docId: string) => {
       if (streamsRef.current.has(docId)) return
-      const ctrl = workspaceApi.pollDocumentStatus(docId, {
+      const unsubscribe = subscribeDocumentStatus(docId, {
         onStatus: (statusDoc) => {
           const s = (statusDoc.jobStatus ?? '').toString().toUpperCase()
           if (s !== 'COMPLETED' && s !== 'FAILED' && s !== 'CANCELLED') return
 
-          streamsRef.current.get(docId)?.abort()
+          streamsRef.current.get(docId)?.()
           streamsRef.current.delete(docId)
 
           const label = getTrackedJob(docId)
@@ -69,20 +70,20 @@ export function DraftTracker() {
           streamsRef.current.delete(docId)
         },
       })
-      streamsRef.current.set(docId, ctrl)
+      streamsRef.current.set(docId, unsubscribe)
     }
 
     // Pick up anything already in the registry (e.g. a draft submitted before
     // this component finished its first render).
     for (const id of getTrackedJobIds()) openStreamFor(id)
 
-    const unsubscribe = subscribe(() => {
+    const unsubscribeFromTracker = subscribe(() => {
       for (const id of getTrackedJobIds()) openStreamFor(id)
     })
 
     return () => {
-      unsubscribe()
-      for (const ctrl of streamsRef.current.values()) ctrl.abort()
+      unsubscribeFromTracker()
+      for (const unsubscribe of streamsRef.current.values()) unsubscribe()
       streamsRef.current.clear()
     }
   }, [navigate])

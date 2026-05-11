@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api'
 import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api'
-import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { DocumentType, JobStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
 
@@ -48,7 +48,9 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
     const [docs, setDocs] = useState<DocumentRecord[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    const streamsRef = useRef<Map<string, AbortController>>(new Map())
+    // Per-docId unsubscribers from the shared status watcher. Refs (not
+    // state) so we don't re-render every time a watch starts/stops.
+    const streamsRef = useRef<Map<string, () => void>>(new Map())
 
     const fetchDrafts = useCallback(async () => {
       try {
@@ -81,17 +83,19 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
     // Watch any visible PROCESSING row and re-fetch the list on terminal
     // status so the badge flips. The "Draft ready" toast itself is owned by
     // the globally-mounted <DraftTracker /> - we don't fire toasts here.
+    // Uses the shared subscribeDocumentStatus watcher so multiple components
+    // watching the same docId share a single poll.
     useEffect(() => {
       for (const doc of docs) {
         if (doc.jobStatus !== JobStatus.PROCESSING) continue
         if (streamsRef.current.has(doc.id)) continue
 
         const docId = doc.id
-        const ctrl = workspaceApi.pollDocumentStatus(docId, {
+        const unsubscribe = subscribeDocumentStatus(docId, {
           onStatus: (statusDoc) => {
             const s = (statusDoc.jobStatus ?? '').toUpperCase()
             if (s === 'COMPLETED' || s === 'FAILED' || s === 'CANCELLED') {
-              streamsRef.current.get(docId)?.abort()
+              streamsRef.current.get(docId)?.()
               streamsRef.current.delete(docId)
               fetchDrafts()
             }
@@ -99,12 +103,12 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
           onError: () => { streamsRef.current.delete(docId) },
           onEnd: () => { streamsRef.current.delete(docId) },
         })
-        streamsRef.current.set(docId, ctrl)
+        streamsRef.current.set(docId, unsubscribe)
       }
     }, [docs, fetchDrafts])
 
     useEffect(() => () => {
-      for (const ctrl of streamsRef.current.values()) ctrl.abort()
+      for (const unsubscribe of streamsRef.current.values()) unsubscribe()
       streamsRef.current.clear()
     }, [])
 
