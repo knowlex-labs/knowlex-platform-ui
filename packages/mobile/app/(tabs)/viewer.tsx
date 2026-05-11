@@ -95,8 +95,16 @@ export default function ViewerScreen() {
     const { getAuthHeaders } = await import('@knowlex/core/api/auth-headers');
     const path = params.downloadUrl || `/api/v1/documents/${params.docId}/download`;
     const fullUrl = path.startsWith('http') ? path : `${env.apiBaseUrl}${path}`;
-    const safeName = (params.name ?? `document_${params.docId}`).replace(/[^a-zA-Z0-9._-]/g, '_');
-    const cacheUri = (FileSystem.cacheDirectory ?? '') + safeName;
+    const rawName = params.name ?? `document_${params.docId}`;
+    const safeName = rawName.replace(/[^a-zA-Z0-9._-]/g, '_');
+    // iOS WebView refuses to render file:// URIs without a recognized extension.
+    // Force the right one based on the doc category — translations are PDFs even
+    // when the display name lacks `.pdf`.
+    const extByCategory: Record<FileCategory, string> = { pdf: '.pdf', image: '.png', text: '.txt', other: '' };
+    const wantedExt = extByCategory[category];
+    const hasWanted = wantedExt && safeName.toLowerCase().endsWith(wantedExt);
+    const finalName = hasWanted ? safeName : `${safeName}${wantedExt}`;
+    const cacheUri = (FileSystem.cacheDirectory ?? '') + finalName;
     const result = await FileSystem.downloadAsync(fullUrl, cacheUri, { headers: getAuthHeaders() });
     if (result.status >= 400) throw new Error(`Download failed: ${result.status}`);
     return result.uri;
