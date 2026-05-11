@@ -148,11 +148,21 @@ export default function BillingScreen() {
                   Usage
                 </Text>
                 <Card style={{ marginBottom: spacing.lg }}>
-                  <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} />
-                  <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} />
-                  <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} />
-                  <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} />
-                  <UsageBar label="Storage" used={usage.storageMbUsed ?? 0} limit={usage.storageMbLimit ?? -1} unit="MB" />
+                  {usage.draftsLimit !== -1 && (
+                    <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} />
+                  )}
+                  {(usage.chatMessagesLimit ?? -1) !== -1 && (
+                    <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} />
+                  )}
+                  {usage.clientsLimit !== -1 && (
+                    <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} />
+                  )}
+                  {usage.casesLimit !== -1 && (
+                    <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} />
+                  )}
+                  {(usage.storageMbLimit ?? -1) !== -1 && (
+                    <UsageBar label="Storage" used={usage.storageMbUsed ?? 0} limit={usage.storageMbLimit ?? -1} unit="MB" />
+                  )}
                 </Card>
               </>
             )}

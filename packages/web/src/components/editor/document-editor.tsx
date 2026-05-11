@@ -506,8 +506,8 @@ export function DocumentEditor({
                 // borders, white background, 6/10 cell padding. Mirrored in
                 // index.css .legal-document table.court-form rule and in
                 // DraftExportHtmlBuilder.java EXPORT_CSS so PDF/DOCX match.
-                '[&_table.court-form]:w-full [&_table.court-form]:border-collapse [&_table.court-form]:my-2 [&_table.court-form]:bg-white',
-                '[&_table.court-form_td]:border [&_table.court-form_td]:border-black [&_table.court-form_td]:px-[10px] [&_table.court-form_td]:py-[6px] [&_table.court-form_td]:bg-white [&_table.court-form_td]:align-top',
+                '[&_table.court-form]:w-full [&_table.court-form]:border-collapse [&_table.court-form]:my-2 [&_table.court-form]:bg-white [&_table.court-form]:table-fixed',
+                '[&_table.court-form_td]:border [&_table.court-form_td]:border-black [&_table.court-form_td]:px-[10px] [&_table.court-form_td]:py-[6px] [&_table.court-form_td]:bg-white [&_table.court-form_td]:align-top [&_table.court-form_td]:break-words',
                 // Inline marks
                 '[&_strong]:font-semibold [&_em]:italic',
                 '[&_a]:text-kx-primary-700 [&_a]:underline',

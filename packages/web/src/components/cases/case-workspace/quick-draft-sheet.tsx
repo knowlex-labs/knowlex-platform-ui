@@ -36,9 +36,9 @@ const RESPONDENT_FIELD_IDS = new Set([
 ])
 
 const TEMPLATE_GROUPS: { label: string; ids: string[] }[] = [
-  { label: 'General', ids: ['notice', 'affidavit', 'application-draft', 'patent', 'written-arguments'] },
+  { label: 'General', ids: ['notice', 'affidavit', 'application-draft', 'written-arguments'] },
   { label: 'Civil', ids: ['plaint', 'written-statement', 'interim-application', 'execution-petition'] },
-  { label: 'Criminal', ids: ['bail-application', 'criminal-appeal', 'anticipatory-bail', 'quashing-petition', 'revision-petition'] },
+  { label: 'Criminal', ids: ['bail-application', '2nd-bail-application', 'criminal-appeal', 'anticipatory-bail', 'quashing-petition', 'revision-petition'] },
   { label: 'Writ', ids: ['writ-petition', 'slp'] },
   { label: 'Consumer', ids: ['consumer-complaint'] },
 ]

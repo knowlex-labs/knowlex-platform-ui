@@ -604,6 +604,12 @@
 .legal-document table.court-form {
   border-collapse: collapse;
   width: 100%;
+  /* `fixed` makes the browser honor <colgroup>/<col width="..."> declarations
+     emitted by the agent (e.g. the 3-tier prior-bail table needs a wide
+     question column on the left and three narrow sub-columns on the right).
+     Without this, table-layout: auto sizes cells by content and the
+     declared widths are ignored. */
+  table-layout: fixed;
   margin: 0.5rem 0;
   background: #ffffff;
   /* Mirror of the print/export pagination rule in
@@ -622,6 +628,10 @@
   padding: 6px 10px;
   vertical-align: top;
   background: #ffffff;
+  /* With table-layout: fixed above, long unbroken tokens (case numbers,
+     dates) would overflow the cell. Break them at any character. */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 .legal-document table.court-form td strong {
   font-weight: 600;
