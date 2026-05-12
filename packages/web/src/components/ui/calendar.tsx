@@ -19,11 +19,12 @@ interface CalendarProps {
   selected?: Date
   onSelect: (date: Date) => void
   className?: string
+  disabled?: (date: Date) => boolean
 }
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 
-export function Calendar({ selected, onSelect, className }: CalendarProps) {
+export function Calendar({ selected, onSelect, className, disabled }: CalendarProps) {
   const [viewMonth, setViewMonth] = useState(() => selected ?? new Date())
 
   const monthStart = startOfMonth(viewMonth)
@@ -70,21 +71,25 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
           const isSelected = selected ? isSameDay(day, selected) : false
           const isCurrentMonth = isSameMonth(day, viewMonth)
           const isNow = isToday(day)
+          const isDisabled = disabled?.(day) ?? false
 
           return (
             <button
               key={day.toISOString()}
               type="button"
-              onClick={() => onSelect(day)}
+              onClick={() => !isDisabled && onSelect(day)}
+              disabled={isDisabled}
               className={cn(
                 'h-8 w-8 mx-auto rounded-full text-sm flex items-center justify-center transition-colors',
-                isSelected
-                  ? 'bg-kx-primary-600 text-white font-medium'
-                  : isNow
-                    ? 'ring-1 ring-kx-primary-300 text-kx-primary-700 hover:bg-kx-primary-50'
-                    : isCurrentMonth
-                      ? 'text-ledger-gray-700 hover:bg-ledger-gray-100'
-                      : 'text-ledger-gray-300 hover:bg-ledger-gray-50'
+                isDisabled
+                  ? 'text-ledger-gray-300 cursor-not-allowed'
+                  : isSelected
+                    ? 'bg-kx-primary-600 text-white font-medium'
+                    : isNow
+                      ? 'ring-1 ring-kx-primary-300 text-kx-primary-700 hover:bg-kx-primary-50'
+                      : isCurrentMonth
+                        ? 'text-ledger-gray-700 hover:bg-ledger-gray-100'
+                        : 'text-ledger-gray-300 hover:bg-ledger-gray-50'
               )}
             >
               {format(day, 'd')}

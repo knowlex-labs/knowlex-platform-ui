@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isAfter, isBefore, startOfDay } from 'date-fns'
 import { CalendarDays, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
@@ -10,9 +10,11 @@ interface DatePickerProps {
   onChange: (date: string | undefined) => void
   placeholder?: string
   className?: string
+  maxDate?: Date
+  minDate?: Date
 }
 
-export function DatePicker({ value, onChange, placeholder = 'Select date', className }: DatePickerProps) {
+export function DatePicker({ value, onChange, placeholder = 'Select date', className, maxDate, minDate }: DatePickerProps) {
   const [open, setOpen] = useState(false)
 
   const parsed = value ? parseISO(value) : undefined
@@ -26,6 +28,13 @@ export function DatePicker({ value, onChange, placeholder = 'Select date', class
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation()
     onChange(undefined)
+  }
+
+  const isDisabled = (date: Date) => {
+    const d = startOfDay(date)
+    if (maxDate && isAfter(d, startOfDay(maxDate))) return true
+    if (minDate && isBefore(d, startOfDay(minDate))) return true
+    return false
   }
 
   return (
@@ -58,7 +67,7 @@ export function DatePicker({ value, onChange, placeholder = 'Select date', class
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-auto p-3">
-        <Calendar selected={parsed} onSelect={handleSelect} />
+        <Calendar selected={parsed} onSelect={handleSelect} disabled={isDisabled} />
       </PopoverContent>
     </Popover>
   )
