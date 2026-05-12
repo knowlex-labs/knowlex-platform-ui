@@ -383,7 +383,7 @@ export const docProcessingApi = {
 export async function submitTranslation(
   docId: string,
   targetLanguage: string,
-  opts?: { sourceLanguage?: string; model?: string }
+  opts?: { sourceLanguage?: string; model?: string; caseId?: string | null }
 ): Promise<DocumentRecord> {
   const body: Record<string, string> = {
     doc_id: docId,
@@ -392,6 +392,9 @@ export async function submitTranslation(
   }
   if (opts?.sourceLanguage) body.source_language = opts.sourceLanguage.toLowerCase()
   if (opts?.model) body.model = opts.model
+  // Pass case_id when explicitly set: empty string = standalone, UUID = attach to that case.
+  // Omitting it entirely tells the backend to inherit the source doc's case (caseSources path).
+  if (opts?.caseId !== undefined) body.case_id = opts.caseId ?? ''
 
   const res = await apiClient.post<ApiResponse<DocumentRecord>>('/api/v1/documents', body)
   return res.data
