@@ -10,7 +10,7 @@ import {
   listAllDocuments,
 } from '@knowlex/core/api/doc-processing-api'
 import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
-import { DocumentType } from '@knowlex/core/types'
+import { DocumentType, JobStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
 import {
   RecentTranslationsList,
@@ -187,14 +187,23 @@ export function TranslationPage() {
   }, [startPolling])
 
   const handleOpenTranslation = useCallback((doc: DocumentRecord) => {
+    const isProcessing = doc.jobStatus === JobStatus.PROCESSING
+    const isFailed = doc.jobStatus === JobStatus.FAILED || doc.jobStatus === JobStatus.CANCELLED
+    const viewerStatus: ViewerStatus = isProcessing ? 'processing' : isFailed ? 'error' : 'done'
+
     setActiveJob({
       translatedDocId: doc.id,
       sourceDocId: '',
       sourceFileName: sourceBaseName(doc) || doc.originalFilename || doc.name || 'Document',
       targetLang: doc.subType ?? '',
-      viewerStatus: 'done',
-      errorMsg: null,
+      viewerStatus,
+      errorMsg: isFailed ? 'Translation failed. Please try again.' : null,
     })
+
+    if (isProcessing) {
+      startPolling(doc.id)
+    }
+
     findSourceDocId(doc).then(sourceDocId => {
       if (!sourceDocId) return
       setActiveJob(prev =>
@@ -203,7 +212,7 @@ export function TranslationPage() {
           : prev,
       )
     })
-  }, [])
+  }, [startPolling])
 
   const handleBack = () => {
     stopStream()

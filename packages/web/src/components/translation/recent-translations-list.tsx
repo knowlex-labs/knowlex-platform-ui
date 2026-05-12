@@ -189,11 +189,8 @@ function TranslationRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => vo
 
   return (
     <li
-      className={cn(
-        'w-full flex items-center gap-3 px-4 py-3 transition-colors group',
-        !isProcessing && 'cursor-pointer hover:bg-kx-primary-50/40',
-      )}
-      onClick={isProcessing ? undefined : onOpen}
+      className="w-full flex items-center gap-3 px-4 py-3 transition-colors group cursor-pointer hover:bg-kx-primary-50/40"
+      onClick={onOpen}
     >
       <div className={cn(
         'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center',
@@ -222,9 +219,7 @@ function TranslationRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => vo
 
       <div className="flex items-center gap-2 flex-shrink-0">
         <StatusBadge status={doc.jobStatus} />
-        {!isProcessing && (
-          <ChevronRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-600" />
-        )}
+        <ChevronRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-600" />
       </div>
     </li>
   )
