@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { caseApi } from '@knowlex/core/api/case-api'
+import { formatCaseFolderLabel } from '@knowlex/core/utils'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import {
   submitTranslation,
@@ -65,7 +66,7 @@ export function TranslationWorkspace({ onJobStarted }: TranslationWorkspaceProps
     caseApi.getAll({ size: 50 }).then(res => {
       setCases((res.data?.content ?? []).map(c => ({
         id: c.id,
-        label: c.title || c.caseNumber || c.id,
+        label: formatCaseFolderLabel(c),
       })))
     }).catch(() => {})
   }, [])

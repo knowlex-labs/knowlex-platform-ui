@@ -7,6 +7,7 @@ import { useJudgmentDetail } from '@/hooks/use-judgment-detail'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { cn } from '@/lib/utils'
 import type { BackendCase } from '@knowlex/core/types'
+import { formatCaseFolderLabel } from '@knowlex/core/utils'
 import { formatJudgmentDate, getDisposalColor } from './judgment-utils'
 
 // --- AddToWorkspace ---
@@ -83,7 +84,7 @@ function AddToWorkspace({ judgmentId }: { judgmentId: string }) {
         setIsAdding(true)
         try {
             await caseApi.addJudgment(selectedCase.id, judgmentId)
-            setResult({ success: true, message: `Added to "${selectedCase.caseTitle || selectedCase.caseNumber}"` })
+            setResult({ success: true, message: `Added to "${formatCaseFolderLabel(selectedCase)}"` })
             setConfirmOpen(false)
             setSelectedCase(null)
             // Auto-close after success
@@ -102,8 +103,7 @@ function AddToWorkspace({ judgmentId }: { judgmentId: string }) {
         setSelectedCase(null)
     }
 
-    const caseLabel = (c: BackendCase) =>
-        c.caseTitle || c.caseNumber || c.id.slice(0, 8)
+    const caseLabel = (c: BackendCase) => formatCaseFolderLabel(c)
 
     return (
         <div ref={containerRef} className="relative">

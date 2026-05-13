@@ -3,6 +3,7 @@ import { ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, Download, RotateC
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { caseApi } from '@knowlex/core/api/case-api'
+import { formatCaseFolderLabel } from '@knowlex/core/utils'
 import {
   submitTranslation,
   triggerDirectDownload,
@@ -77,7 +78,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
     caseApi.getAll({ size: 50 }).then(res => {
       setCases((res.data?.content ?? []).map(c => ({
         id: c.id,
-        label: c.title || c.caseNumber || c.id,
+        label: formatCaseFolderLabel(c),
       })))
     }).catch(() => {})
     return () => { streamCtrlRef.current?.abort() }

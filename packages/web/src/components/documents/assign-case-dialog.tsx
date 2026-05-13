@@ -7,6 +7,7 @@ import { Select } from '@/components/ui/select'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { linkDocumentToCase } from '@knowlex/core/api/doc-processing-api'
 import { ApiError } from '@knowlex/core/api/api-client'
+import { formatCaseFolderLabel } from '@knowlex/core/utils'
 import { toast } from '@/hooks/use-toast'
 import type { ProcessedDocumentInfo } from '@knowlex/core/api/doc-processing-api'
 import type { BackendCase } from '@knowlex/core/types'
@@ -52,8 +53,7 @@ export function AssignCaseDialog({ open, onOpenChange, document, onAssigned }: A
     }
   }
 
-  const caseLabel = (c: BackendCase) =>
-    c.caseTitle || c.caseNumber || c.id
+  const caseLabel = (c: BackendCase) => formatCaseFolderLabel(c)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
