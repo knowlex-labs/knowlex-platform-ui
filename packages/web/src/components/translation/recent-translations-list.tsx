@@ -196,7 +196,13 @@ function TranslationRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => vo
         'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center',
         isFailed ? 'bg-red-50 text-red-500' : 'bg-teal-50 text-teal-600',
       )}>
-        {isFailed ? <AlertCircle className="h-4 w-4" /> : <Languages className="h-4 w-4" />}
+        {isFailed ? (
+          <AlertCircle className="h-4 w-4" />
+        ) : isProcessing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Languages className="h-4 w-4" />
+        )}
       </div>
 
       <div className="min-w-0 flex-1">
