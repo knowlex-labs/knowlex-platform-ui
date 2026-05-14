@@ -24,6 +24,7 @@ export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType
   'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
   'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
   'bail-application': { documentType: 'bail_application' },
+  '2nd-bail-application': { documentType: 'second_bail_application' },
   'criminal-appeal': { documentType: 'criminal_appeal' },
   'plaint': { documentType: 'application', subtype: 'plaint' },
   'written-statement': { documentType: 'written_statement' },
@@ -47,7 +48,8 @@ export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
   'application-draft': 'Application',
   'interim-application': 'Interim',
   'affidavit': 'Affidavit',
-  'bail-application': 'Bail',
+  'bail-application': '1st Bail Application',
+  '2nd-bail-application': '2nd Bail Application',
   'criminal-appeal': 'CriminalAppeal',
   'plaint': 'Plaint',
   'written-statement': 'WrittenStatement',
@@ -63,7 +65,7 @@ export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
 
 /** Templates whose form values are lifted into a structured `config` dict. */
 export const CRIMINAL_TEMPLATE_IDS: readonly string[] = [
-  'bail-application', 'criminal-appeal', 'anticipatory-bail',
+  'bail-application', '2nd-bail-application', 'criminal-appeal', 'anticipatory-bail',
   'quashing-petition', 'revision-petition', 'writ-petition', 'slp',
 ]
 
@@ -72,6 +74,7 @@ export const CRIMINAL_CONFIG_KEYS: readonly string[] = [
   'fir_details', 'criminal_history', 'bail_history', 'co_accused_details',
   'impugned_order', 'impugned_judgment', 'court_details', 'facts', 'relief_sought',
   'applicant', 'opposite_party', 'appellant', 'respondent', 'petitioner', 'grounds', 'writ_type',
+  'earlier_hc_bail', 'lower_court_rejection', 'change_in_circumstances',
 ]
 
 const get = (fd: TemplateFormData, key: string): string =>
@@ -102,6 +105,8 @@ export function assembleBody(templateId: string, formData: TemplateFormData): st
       return `Draft an affidavit for deponent ${g('deponent')}. Statements: ${g('statements')}`.trim()
     case 'bail-application':
       return `Draft a bail application. Applicant: ${g('applicant')}. Opposite Party: ${g('opposite_party')}. Court: ${g('court_details')}. FIR Details: ${g('fir_details')}. Facts: ${g('facts')}. Relief Sought: ${g('relief_sought')}.`.trim()
+    case '2nd-bail-application':
+      return `Draft a second / subsequent bail application under Section 483 BNSS. Applicant: ${g('applicant')}. Opposite Party: ${g('opposite_party')}. Court: ${g('court_details')}. FIR Details: ${g('fir_details')}. Facts: ${g('facts')}. Earlier HC Bail (Case No., dates, outcome, Hon'ble Justice): ${g('earlier_hc_bail')}. Lower-Court Rejection (Date + Annexure No.): ${g('lower_court_rejection')}. Change in Circumstances / Fresh Grounds since earlier rejection: ${g('change_in_circumstances')}. Criminal History: ${g('criminal_history')}. Co-Accused Details: ${g('co_accused_details')}. Relief Sought: ${g('relief_sought')}.`.trim()
     case 'criminal-appeal':
       return `Draft a criminal appeal. Appellant: ${g('appellant')}. Respondent: ${g('respondent')}. Court: ${g('court_details')}. Impugned Order: ${g('impugned_order')}. Facts: ${g('facts')}. Relief Sought: ${g('relief_sought')}.`.trim()
     case 'plaint':

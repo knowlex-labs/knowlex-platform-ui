@@ -33,6 +33,8 @@ export type DraftTemplateType =
     | 'application'
     | 'bail_application'
     | 'bail-application'
+    | 'second_bail_application'
+    | '2nd-bail-application'
     | 'criminal_appeal'
     | 'criminal-appeal'
     | 'slp'
@@ -67,7 +69,7 @@ export const templateRenderers: Record<string, (content: string) => string> = {
     'demand_notice': renderNotice,
     'demand-notice': renderNotice,
 
-    // Affidavit variations  
+    // Affidavit variations
     'affidavit': renderAffidavit,
 
     // Patent variations
@@ -85,6 +87,10 @@ export const templateRenderers: Record<string, (content: string) => string> = {
     // Criminal - Bail Application
     'bail_application': renderApplicationDraft,
     'bail-application': renderApplicationDraft,
+
+    // Criminal - 2nd Bail Application
+    'second_bail_application': renderApplicationDraft,
+    '2nd-bail-application': renderApplicationDraft,
 
     // Criminal - Criminal Appeal
     'criminal_appeal': renderApplicationDraft,

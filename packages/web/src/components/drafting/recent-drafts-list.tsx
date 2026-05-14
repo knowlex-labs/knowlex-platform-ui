@@ -1,26 +1,19 @@
 import { useEffect, useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
-import { ChevronRight, FileText, AlertCircle, FolderOpen, Tag, Loader2, Check } from 'lucide-react'
+import { ChevronRight, FileText, AlertCircle, FolderOpen, Tag, Loader2, Check, MoreVertical, Pencil } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api'
-import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
+import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api'
+import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { DocumentType, JobStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
 
 const PAGE_SIZE = 5
 
-// Module-scoped so a tracked draft survives navigation away from /drafts.
-// If the user submits a draft, leaves, and returns, the next mount can still
-// fire the toast either via SSE (still PROCESSING) or via reconciliation
-// against the freshly-fetched list (already terminal).
-const trackedJobs = new Map<string, string>() // docId → display label
-
 export interface RecentDraftsListHandle {
   refresh: () => void
-  /** Mark a draft we just submitted so we toast on completion. */
-  trackJob: (docId: string, label: string) => void
 }
 
 interface RecentDraftsListProps {
@@ -56,7 +49,9 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
     const [docs, setDocs] = useState<DocumentRecord[]>([])
     const [isLoading, setIsLoading] = useState(true)
 
-    const streamsRef = useRef<Map<string, AbortController>>(new Map())
+    // Per-docId unsubscribers from the shared status watcher. Refs (not
+    // state) so we don't re-render every time a watch starts/stops.
+    const streamsRef = useRef<Map<string, () => void>>(new Map())
 
     const fetchDrafts = useCallback(async () => {
       try {
@@ -69,20 +64,6 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
           // draft below an older one that was just touched.
           sort: 'createdAt,desc',
         })
-        // Reconcile tracked jobs that completed while we weren't watching:
-        // any tracked doc that comes back already terminal still owes a toast.
-        for (const doc of result.documents) {
-          const label = trackedJobs.get(doc.id)
-          if (!label) continue
-          const s = (doc.jobStatus ?? '').toString().toUpperCase()
-          if (s === 'COMPLETED') {
-            trackedJobs.delete(doc.id)
-            toast({ title: 'Draft ready', description: label })
-          } else if (s === 'FAILED' || s === 'CANCELLED') {
-            trackedJobs.delete(doc.id)
-            toast({ title: 'Draft generation failed', description: 'Please try again.', variant: 'destructive' })
-          }
-        }
         setDocs(result.documents)
       } catch {
         setDocs([])
@@ -98,45 +79,37 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
 
     useImperativeHandle(ref, () => ({
       refresh: fetchDrafts,
-      trackJob: (docId, label) => {
-        trackedJobs.set(docId, label)
-      },
     }), [fetchDrafts])
 
-    // Open SSE stream for any PROCESSING draft. Mirrors documents-page.tsx:907–943.
+    // Watch any visible PROCESSING row and re-fetch the list on terminal
+    // status so the badge flips. The "Draft ready" toast itself is owned by
+    // the globally-mounted <DraftTracker /> - we don't fire toasts here.
+    // Uses the shared subscribeDocumentStatus watcher so multiple components
+    // watching the same docId share a single poll.
     useEffect(() => {
       for (const doc of docs) {
         if (doc.jobStatus !== JobStatus.PROCESSING) continue
         if (streamsRef.current.has(doc.id)) continue
 
         const docId = doc.id
-        const ctrl = workspaceApi.pollDocumentStatus(docId, {
+        const unsubscribe = subscribeDocumentStatus(docId, {
           onStatus: (statusDoc) => {
             const s = (statusDoc.jobStatus ?? '').toUpperCase()
             if (s === 'COMPLETED' || s === 'FAILED' || s === 'CANCELLED') {
-              streamsRef.current.get(docId)?.abort()
+              streamsRef.current.get(docId)?.()
               streamsRef.current.delete(docId)
-              const label = trackedJobs.get(docId)
-              if (label) {
-                trackedJobs.delete(docId)
-                if (s === 'COMPLETED') {
-                  toast({ title: 'Draft ready', description: label })
-                } else {
-                  toast({ title: 'Draft generation failed', description: 'Please try again.', variant: 'destructive' })
-                }
-              }
               fetchDrafts()
             }
           },
           onError: () => { streamsRef.current.delete(docId) },
           onEnd: () => { streamsRef.current.delete(docId) },
         })
-        streamsRef.current.set(docId, ctrl)
+        streamsRef.current.set(docId, unsubscribe)
       }
     }, [docs, fetchDrafts])
 
     useEffect(() => () => {
-      for (const ctrl of streamsRef.current.values()) ctrl.abort()
+      for (const unsubscribe of streamsRef.current.values()) unsubscribe()
       streamsRef.current.clear()
     }, [])
 
@@ -170,7 +143,12 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
         ) : (
           <ul className="divide-y divide-kx-card-border">
             {docs.map((doc) => (
-              <DraftRow key={doc.id} doc={doc} onOpen={() => onOpenDraft(doc.id)} />
+              <DraftRow
+                key={doc.id}
+                doc={doc}
+                onOpen={() => onOpenDraft(doc.id)}
+                onRenamed={(newName) => setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, name: newName, originalFilename: null } : d))}
+              />
             ))}
           </ul>
         )}
@@ -204,51 +182,137 @@ function StatusBadge({ status }: { status: JobStatus | null }) {
   )
 }
 
-function DraftRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => void }) {
+function DraftRow({ doc, onOpen, onRenamed }: { doc: DocumentRecord; onOpen: () => void; onRenamed: (newName: string) => void }) {
   const isFailed = doc.jobStatus === JobStatus.FAILED || doc.jobStatus === JobStatus.CANCELLED
   const title = doc.originalFilename || doc.name || 'Untitled draft'
   const subtypeLabel = formatSubtype(doc.subType)
+  const canRename = doc.jobStatus !== JobStatus.PROCESSING
+
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [isRenaming, setIsRenaming] = useState(false)
+  const [renameValue, setRenameValue] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handle(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (isRenaming && inputRef.current) {
+      inputRef.current.focus()
+      inputRef.current.select()
+    }
+  }, [isRenaming])
+
+  const startRename = () => {
+    setRenameValue(title)
+    setIsRenaming(true)
+    setMenuOpen(false)
+  }
+
+  const submitRename = async () => {
+    const trimmed = renameValue.trim()
+    setIsRenaming(false)
+    if (!trimmed || trimmed === title) return
+    try {
+      await workspaceApi.updateDocument(doc.id, { name: trimmed })
+      onRenamed(trimmed)
+      toast({ title: 'Draft renamed' })
+    } catch {
+      toast({ title: 'Rename failed', variant: 'destructive' })
+    }
+  }
 
   return (
-    <li>
-      <button
-        type="button"
-        onClick={onOpen}
-        className="w-full flex items-center gap-4 px-5 py-3 text-left transition-colors group hover:bg-kx-primary-50/40 cursor-pointer"
-      >
-        <div className={cn(
+    <li
+      className="w-full flex items-center gap-4 px-5 py-3 transition-colors group hover:bg-kx-primary-50/40"
+    >
+      <div
+        className={cn(
           'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center',
-          isFailed ? 'bg-red-50 text-red-500' : 'bg-violet-100 text-violet-700'
-        )}>
-          {isFailed ? <AlertCircle className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-        </div>
+          isFailed ? 'bg-red-50 text-red-500' : 'bg-violet-100 text-violet-700',
+          !isRenaming && 'cursor-pointer',
+        )}
+        onClick={isRenaming ? undefined : onOpen}
+      >
+        {isFailed ? <AlertCircle className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+      </div>
 
-        {/* Title + meta */}
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-kx-text-primary truncate">{title}</p>
-          <div className="mt-1 flex items-center gap-3 text-[11px] text-ledger-gray-500">
-            <span className="inline-flex items-center gap-1 min-w-0">
-              <Tag className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
-              <span className="truncate">{subtypeLabel}</span>
+      {/* Title + meta */}
+      <div className="min-w-0 flex-1">
+        {isRenaming ? (
+          <input
+            ref={inputRef}
+            type="text"
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') submitRename()
+              else if (e.key === 'Escape') setIsRenaming(false)
+            }}
+            onBlur={submitRename}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full text-sm font-medium text-kx-text-primary bg-nb-input border border-kx-primary-300 rounded px-2 py-0.5 outline-none focus:border-kx-primary-500"
+          />
+        ) : (
+          <p
+            className="text-sm font-medium text-kx-text-primary truncate cursor-pointer"
+            onClick={onOpen}
+          >
+            {title}
+          </p>
+        )}
+        <div className="mt-1 flex items-center gap-3 text-[11px] text-ledger-gray-500">
+          <span className="inline-flex items-center gap-1 min-w-0">
+            <Tag className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
+            <span className="truncate">{subtypeLabel}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 min-w-0 max-w-[180px]">
+            <FolderOpen className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
+            <span className="truncate">
+              {doc.caseTitle ?? <span className="text-ledger-gray-400">Standalone</span>}
             </span>
-            <span className="inline-flex items-center gap-1 min-w-0 max-w-[180px]">
-              <FolderOpen className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
-              <span className="truncate">
-                {doc.caseTitle ?? <span className="text-ledger-gray-400">Standalone</span>}
-              </span>
-            </span>
-            <span className="text-ledger-gray-400 whitespace-nowrap">
-              {relativeTime(doc.createdAt ?? doc.updatedAt)}
-            </span>
+          </span>
+          <span className="text-ledger-gray-400 whitespace-nowrap">
+            {relativeTime(doc.createdAt ?? doc.updatedAt)}
+          </span>
+        </div>
+      </div>
+
+      {/* Status + actions */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <StatusBadge status={doc.jobStatus} />
+        {canRename && !isRenaming && (
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
+              className="h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-8 z-50 min-w-[140px] rounded-lg border border-kx-card-border bg-kx-card shadow-lg py-1">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); startRename() }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-kx-text-primary hover:bg-ledger-gray-50 transition-colors"
+                >
+                  <Pencil className="h-3.5 w-3.5 text-ledger-gray-400" />
+                  Rename
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Status + chevron */}
-        <div className="flex items-center gap-3 flex-shrink-0">
-          <StatusBadge status={doc.jobStatus} />
-          <ChevronRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-600" />
-        </div>
-      </button>
+        )}
+        <ChevronRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-600" />
+      </div>
     </li>
   )
 }

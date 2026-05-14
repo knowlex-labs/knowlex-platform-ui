@@ -4,6 +4,7 @@ import { buildDocumentPayload } from '@knowlex/core/api/draft-helpers'
 import type { Draft, CaseDocument } from '@knowlex/core/types'
 import { DocumentType, JobStatus } from '@knowlex/core/types'
 import type { CreateDraftRequest } from '@knowlex/core/api/document-types'
+import { trackJob } from '@/lib/drafts/draft-tracker'
 
 export type { DocumentType } from '@knowlex/core/api/document-types'
 
@@ -176,7 +177,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
         try {
           // Skip S3 upload for empty content
           if (!draft.content.trim()) {
-            await workspaceApi.updateDocument(caseIdRef.current, id, { name: draft.title })
+            await workspaceApi.updateDocument(id, { name: draft.title })
             dirtyIds.delete(id)
             continue
           }
@@ -193,7 +194,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
           })
 
           // Update with storage key
-          await workspaceApi.updateDocument(caseIdRef.current, id, {
+          await workspaceApi.updateDocument(id, {
             name: draft.title,
             storage_key: storageKey,
           })
@@ -334,6 +335,11 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
       )
 
       options?.onDocumentCreated?.(draftId)
+      // Register with the globally-mounted <DraftTracker /> so the completion
+      // toast fires even if the user navigates away from the case workspace.
+      // The local SSE stream below is aborted on workspace unmount; without
+      // this registration the user would never be notified.
+      trackJob(draftId, request.title || 'Draft')
       startStream(draftId)
     }).catch(() => {
       setDrafts((prev) =>
@@ -373,7 +379,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
     try {
       // Skip S3 upload for empty content - just update title
       if (!resolvedContent.trim()) {
-        await workspaceApi.updateDocument(caseId, id, { name: resolvedTitle })
+        await workspaceApi.updateDocument(id, { name: resolvedTitle })
         return
       }
 
@@ -390,7 +396,7 @@ export function useDrafts(caseId: string, documents?: CaseDocument[]): UseDrafts
       })
 
       // Update draft with storage key
-      await workspaceApi.updateDocument(caseId, id, {
+      await workspaceApi.updateDocument(id, {
         name: resolvedTitle,
         storage_key: storageKey,
       })

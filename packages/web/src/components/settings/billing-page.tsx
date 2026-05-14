@@ -398,18 +398,32 @@ export function BillingPage() {
           <div className="bg-kx-card border border-kx-card-border rounded-lg p-6">
             <h3 className="text-base font-semibold text-kx-primary-900 mb-4">Usage</h3>
             <div className="space-y-4">
-              <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="Resets monthly" />
-              <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="Resets monthly" />
-              <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} period="Plan limit" />
-              <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} period="Plan limit" />
-              <UsageBar
-                label="Storage"
+              {usage.draftsLimit !== -1 && (
+                <UsageBar label="Drafts" used={usage.draftsUsed} limit={usage.draftsLimit} period="Resets monthly" />
+              )}
+              {(usage.chatMessagesLimit ?? -1) !== -1 && (
+                <UsageBar label="Chat Messages" used={usage.chatMessagesUsed ?? 0} limit={usage.chatMessagesLimit ?? -1} period="Resets monthly" />
+              )}
+              {usage.clientsLimit !== -1 && (
+                <UsageBar label="Clients" used={usage.clientsUsed} limit={usage.clientsLimit} period="Plan limit" />
+              )}
+              {usage.casesLimit !== -1 && (
+                <UsageBar label="Cases" used={usage.casesUsed} limit={usage.casesLimit} period="Plan limit" />
+              )}
+              {(() => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                used={usage.storageMbUsed ?? Math.round((usage as any).storageUsedBytes / (1024 * 1024))}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                limit={usage.storageMbLimit ?? Math.round((usage as any).storageLimitBytes / (1024 * 1024))}
-                unit="MB"
-              />
+                const storageMbLimit = usage.storageMbLimit ?? ((usage as any).storageLimitBytes === -1 ? -1 : Math.round((usage as any).storageLimitBytes / (1024 * 1024)))
+                if (storageMbLimit === -1) return null
+                return (
+                  <UsageBar
+                    label="Storage"
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    used={usage.storageMbUsed ?? Math.round((usage as any).storageUsedBytes / (1024 * 1024))}
+                    limit={storageMbLimit}
+                    unit="MB"
+                  />
+                )
+              })()}
             </div>
           </div>
         )}

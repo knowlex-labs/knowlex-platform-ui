@@ -21,8 +21,8 @@ export function SegmentedControl({ segments, activeKey, onChange }: SegmentedCon
       style={{
         flexDirection: 'row',
         backgroundColor: isDark ? colors.ledgerGray[100] : colors.ledgerGray[200],
-        borderRadius: radius.lg,
-        padding: 3,
+        borderRadius: radius.full,
+        padding: 4,
         marginHorizontal: spacing.lg,
         marginBottom: spacing.sm,
       }}
@@ -43,22 +43,22 @@ export function SegmentedControl({ segments, activeKey, onChange }: SegmentedCon
             accessibilityLabel={seg.label}
             style={{
               flex: 1,
-              paddingVertical: spacing.sm,
-              borderRadius: radius.md,
-              backgroundColor: isActive ? colors.kxCardBg : 'transparent',
+              paddingVertical: 10,
+              borderRadius: radius.full,
+              backgroundColor: isActive ? colors.kxPrimary[600] : 'transparent',
               alignItems: 'center',
-              shadowColor: isActive && !isDark ? colors.ledgerBlack : 'transparent',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: isActive && !isDark ? 0.08 : 0,
-              shadowRadius: 2,
-              elevation: isActive && !isDark ? 2 : 0,
+              shadowColor: isActive && !isDark ? colors.kxPrimary[600] : 'transparent',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isActive && !isDark ? 0.18 : 0,
+              shadowRadius: 4,
+              elevation: isActive && !isDark ? 3 : 0,
             }}
           >
             <Text
               style={{
                 fontSize: typography.fontSize.sm,
-                fontWeight: isActive ? typography.fontWeight.semibold : typography.fontWeight.normal,
-                color: isActive ? colors.kxPrimary[600] : colors.kxTextSecondary,
+                fontWeight: typography.fontWeight.semibold,
+                color: isActive ? colors.onPrimary : colors.kxTextSecondary,
               }}
             >
               {seg.label}

@@ -59,7 +59,7 @@ const plans: Plan[] = [
     payAsYouGo: '₹10 / extra draft',
     features: [
       '20 clients · 50 cases',
-      '2 GB storage',
+      '10 GB storage',
       'Legal Library — Supreme Court judgments & court data',
       'Document tools (split, merge, compress)',
       'Document translation',
@@ -81,7 +81,7 @@ const plans: Plan[] = [
     payAsYouGo: '₹10 / extra draft',
     features: [
       'Unlimited clients & cases',
-      '5 GB storage',
+      '50 GB storage',
       'Document translation',
       '100 AI drafts per month',
       'Case Studio Chat & summary',
@@ -104,7 +104,7 @@ const plans: Plan[] = [
       '500 AI drafts per month',
       'AI research via Legal Library',
       'Gemini, GPT & Claude models',
-      '10 GB storage',
+      '200 GB storage',
     ],
   },
 ]
@@ -152,7 +152,7 @@ const comparisonGroups: ComparisonGroup[] = [
     rows: [
       { label: 'Clients', free: '5', plus: '20', pro: 'Unlimited', premium: 'Unlimited' },
       { label: 'Cases', free: '10', plus: '50', pro: 'Unlimited', premium: 'Unlimited' },
-      { label: 'Document storage', free: '100 MB', plus: '2 GB', pro: '5 GB', premium: '10 GB' },
+      { label: 'Document storage', free: '100 MB', plus: '10 GB', pro: '50 GB', premium: '200 GB' },
       { label: 'Document upload & search', free: true, plus: true, pro: true, premium: true },
       { label: 'Document tools (split, merge, compress)', free: false, plus: true, pro: true, premium: true },
     ],

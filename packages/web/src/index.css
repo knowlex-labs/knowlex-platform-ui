@@ -595,6 +595,48 @@
   background: transparent;
 }
 
+/* MP-HC bail form & similar court-form tables. The agent emits
+   <table class="court-form"> with bare <td> cells (no inline styles);
+   the visual styling lives here so we don't pay LLM tokens for
+   repetitive per-cell border/padding/background declarations. Mirrored
+   in document-editor.tsx (Tailwind scoped selectors) and
+   DraftExportHtmlBuilder.java (PDF/DOCX export). */
+.legal-document table.court-form {
+  border-collapse: collapse;
+  width: 100%;
+  /* `fixed` makes the browser honor <colgroup>/<col width="..."> declarations
+     emitted by the agent (e.g. the 3-tier prior-bail table needs a wide
+     question column on the left and three narrow sub-columns on the right).
+     Without this, table-layout: auto sizes cells by content and the
+     declared widths are ignored. */
+  table-layout: fixed;
+  margin: 0.5rem 0;
+  background: #ffffff;
+  /* Mirror of the print/export pagination rule in
+     DraftExportHtmlBuilder.java EXPORT_CSS - keeps small court-form
+     tables (e.g. Annexure-A/1) from splitting between the header row
+     and the Nil data row on print. */
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.legal-document table.court-form tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.legal-document table.court-form td {
+  border: 1px solid #000;
+  padding: 6px 10px;
+  vertical-align: top;
+  background: #ffffff;
+  /* With table-layout: fixed above, long unbroken tokens (case numbers,
+     dates) would overflow the cell. Break them at any character. */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+.legal-document table.court-form td strong {
+  font-weight: 600;
+}
+
 .legal-document ul {
   list-style-type: disc;
   padding-left: 24px;

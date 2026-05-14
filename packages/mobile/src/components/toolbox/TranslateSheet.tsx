@@ -5,14 +5,22 @@ import { workspaceApi } from '@knowlex/core/api/workspace-api';
 import { useTheme } from '@/theme/useTheme';
 import { Button } from '@/components/ui/Button';
 
-interface Props { visible: boolean; onClose: () => void; documentId: string; documentName: string; }
+interface Props {
+  visible: boolean;
+  onClose: () => void;
+  documentId: string;
+  documentName: string;
+  /** When set, the sheet closes immediately after the translation is submitted
+   * and fires this callback. Skips the in-sheet polling/result UI. */
+  onSubmitted?: () => void;
+}
 
 const LANGUAGES = [
   'English', 'Hindi', 'Tamil', 'Telugu', 'Kannada', 'Malayalam', 'Bengali',
   'Marathi', 'Gujarati', 'Punjabi', 'Urdu', 'Odia',
 ];
 
-export function TranslateSheet({ visible, onClose, documentId, documentName }: Props) {
+export function TranslateSheet({ visible, onClose, documentId, documentName, onSubmitted }: Props) {
   const { colors, typography, spacing, radius } = useTheme();
   const [targetLang, setTargetLang] = useState('Hindi');
   const [processing, setProcessing] = useState(false);
@@ -29,6 +37,14 @@ export function TranslateSheet({ visible, onClose, documentId, documentName }: P
     try {
       const doc = await submitTranslation(documentId, targetLang);
       setProcessing(false);
+      // When the parent wants to take over, fire onSubmitted and close immediately —
+      // the recent-translations list will surface the new pending job.
+      if (onSubmitted) {
+        setTargetLang('Hindi');
+        onSubmitted();
+        onClose();
+        return;
+      }
       setPolling(true);
 
       streamCtrlRef.current?.abort();
