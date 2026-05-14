@@ -387,6 +387,25 @@ export const DRAFT_TEMPLATES: DraftTemplate[] = [
     ],
   },
   {
+    id: 'patent',
+    name: 'Patent',
+    description: 'Prepare patent applications with claims and technical descriptions',
+    icon: 'Lightbulb',
+    displayOrder: 5,
+    fields: [
+      { id: 'title', label: 'Patent Title', type: 'text', required: true, placeholder: 'Enter patent title' },
+      { id: 'applicant', label: 'Applicant Details', type: 'client-select', required: false, placeholder: 'Enter applicant full details — name, address, nationality' },
+      { id: 'inventor', label: 'Inventor Name', type: 'text', required: false, placeholder: 'Enter inventor name (if different from applicant)' },
+      { id: 'description', label: 'Description', type: 'textarea', required: false, placeholder: 'Describe the invention' },
+      { id: 'language', label: 'Language', type: 'select', required: false, options: [
+        { label: 'English', value: 'english' },
+        { label: 'Hindi', value: 'hindi' },
+        { label: 'Bilingual', value: 'bilingual' },
+      ] },
+      { id: 'sources', label: 'Supporting Documents', type: 'sources', required: false },
+    ],
+  },
+  {
     id: 'affidavit',
     name: 'Affidavit',
     description: 'Prepare sworn statements and affidavits',

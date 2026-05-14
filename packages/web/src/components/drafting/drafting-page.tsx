@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog'
 import { draftsApi } from '@knowlex/core/api/drafts-api'
 import { caseApi } from '@knowlex/core/api/case-api'
+import { formatCaseFolderLabel } from '@knowlex/core/utils'
 import { uploadToolboxFile, getDocument } from '@knowlex/core/api/doc-processing-api'
 import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { DocumentEditor } from '@/components/editor'
@@ -167,7 +168,7 @@ export function DraftingPage() {
       if (res.status === 'success') {
         setCases(res.data.content.map((c: BackendCase) => ({
           id: c.id,
-          label: c.caseTitle || c.caseNumber || c.id,
+          label: formatCaseFolderLabel(c),
         })))
       }
     }).catch(() => {})

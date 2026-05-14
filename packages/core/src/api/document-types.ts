@@ -9,6 +9,7 @@ export type DocumentType =
   | 'demand_notice'
   | 'cheque_bounce_notice'
   | 'eviction_notice'
+  | 'patent'
   | 'petition'
   | 'affidavit'
   | 'application'

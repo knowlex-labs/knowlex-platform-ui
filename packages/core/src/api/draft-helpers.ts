@@ -19,6 +19,7 @@ export const TEMPLATE_TO_DOC_CONFIG: Record<string, { documentType: DocumentType
   'demand-notice': { documentType: 'demand_notice' },
   'cheque-bounce-notice': { documentType: 'cheque_bounce_notice' },
   'eviction-notice': { documentType: 'eviction_notice' },
+  'patent': { documentType: 'patent' },
   'application-draft': { documentType: 'application_draft' },
   'interim-application': { documentType: 'affidavit', subtype: 'interim_application' },
   'affidavit': { documentType: 'affidavit', subtype: 'plaint' },
@@ -43,6 +44,7 @@ export const TEMPLATE_TO_SUB_TYPE: Record<string, string> = {
   'demand-notice': 'Demand Notice',
   'cheque-bounce-notice': 'Cheque Bounce Notice (Sec 138 NI Act)',
   'eviction-notice': 'Eviction Notice (Sec 106 TP Act)',
+  'patent': 'Patent',
   'application-draft': 'Application',
   'interim-application': 'Interim',
   'affidavit': 'Affidavit',
@@ -93,6 +95,8 @@ export function assembleBody(templateId: string, formData: TemplateFormData): st
       return `Draft a Section 138 NI Act statutory notice. Payee (client): ${g('sender')}. Drawer: ${g('recipient')}. Cheque: No. ${g('cheque_number')}, dated ${g('cheque_date')}, amount ${g('cheque_amount')}, drawn on ${g('drawee_bank')}, account ${g('account_number')}. Presentation date: ${g('presentation_date')}. Cheque Return Memo dated: ${g('dishonour_date')}. Reason for dishonour: ${g('dishonour_reason')}. Date client received memo: ${g('memo_received_date')}. Underlying legally enforceable debt: ${g('underlying_debt')}.`.trim()
     case 'eviction-notice':
       return `Draft an Eviction Notice under Section 106 TP Act 1882${g('state_rent_act') ? ` read with ${g('state_rent_act')}` : ''}. Landlord (client): ${g('sender')}. Tenant: ${g('recipient')}. Suit premises: ${g('premises')}. Title document: ${g('title_document')}. Tenancy commencement: ${g('tenancy_start_date')}. Mode of tenancy: ${g('tenancy_mode')}. Monthly rent: ${g('monthly_rent')}. Security deposit: ${g('security_deposit')}. Period of arrears: ${g('arrears_period')}. Total arrears: ${g('arrears_amount')}. Grounds for eviction: ${g('grounds')}. Estimated market rent (mesne profits): ${g('market_rent')}.`.trim()
+    case 'patent':
+      return `Draft a patent application. Applicant: ${g('applicant')}. Inventor: ${g('inventor')}. Description: ${g('description')}`.trim()
     case 'application-draft':
       return `Draft an application for applicant ${g('applicant')}. ${g('body')}`.trim()
     case 'interim-application':

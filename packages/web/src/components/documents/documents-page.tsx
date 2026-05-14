@@ -29,6 +29,7 @@ import {
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import { caseApi } from '@knowlex/core/api/case-api'
 import { ApiError } from '@knowlex/core/api/api-client'
+import { formatCaseFolderLabel } from '@knowlex/core/utils'
 import { DocumentEditorModal } from '@/components/editor'
 import { toast } from '@/hooks/use-toast'
 import { renderDraftToHtml } from '@/lib/draft-renderer'
@@ -718,7 +719,7 @@ function UploadDialog({ open, onOpenChange, onStartUpload }: { open: boolean; on
     if (!open) return
     caseApi.getAll({ size: 50 }).then(res => {
       const content = res.data?.content ?? []
-      setCases(content.map(c => ({ id: c.id, label: c.caseTitle || c.caseNumber || c.id })))
+      setCases(content.map(c => ({ id: c.id, label: formatCaseFolderLabel(c) })))
     }).catch(() => {})
   }, [open])
 
@@ -883,7 +884,7 @@ export function DocumentsPage() {
   useEffect(() => {
     caseApi.getAll({ size: 100 }).then(res => {
       const content = res.data?.content ?? []
-      setCases(content.map(c => ({ id: c.id, label: c.caseTitle || c.caseNumber || c.id })))
+      setCases(content.map(c => ({ id: c.id, label: formatCaseFolderLabel(c) })))
     }).catch(() => {})
   }, [])
 

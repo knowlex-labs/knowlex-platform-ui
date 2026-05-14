@@ -2,6 +2,7 @@ export type DashboardTab =
   | 'dashboard'
   | 'cases'
   | 'drafting'
+  | 'translation'
   | 'cause-lists'
   | 'clients'
   | 'judgments'

@@ -62,4 +62,12 @@ export const judgmentsApi = {
         )
         return response.data
     },
+
+    generateSummary: async (id: string): Promise<string> => {
+        const response = await apiClient.post<ApiResponse<{ summary: string }>>(
+            `/api/v1/judgments/${id}/summary`,
+            {}
+        )
+        return response.data.summary
+    },
 }

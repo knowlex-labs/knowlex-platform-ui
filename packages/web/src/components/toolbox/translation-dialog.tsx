@@ -3,6 +3,7 @@ import { ArrowLeft, Upload, Loader2, CheckCircle, AlertCircle, Download, RotateC
 import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { caseApi } from '@knowlex/core/api/case-api'
+import { formatCaseFolderLabel } from '@knowlex/core/utils'
 import {
   submitTranslation,
   triggerDirectDownload,
@@ -43,7 +44,6 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
   const docDropdownRef = useRef<HTMLDivElement>(null)
   const [targetLang, setTargetLang] = useState('Hindi')
   const [sourceLang, setSourceLang] = useState('')
-  const model = 'gemini'
   const [caseId, setCaseId] = useState('')
   const [cases, setCases] = useState<{ id: string; label: string }[]>([])
   const [isDragging, setIsDragging] = useState(false)
@@ -78,7 +78,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
     caseApi.getAll({ size: 50 }).then(res => {
       setCases((res.data?.content ?? []).map(c => ({
         id: c.id,
-        label: c.title || c.caseNumber || c.id,
+        label: formatCaseFolderLabel(c),
       })))
     }).catch(() => {})
     return () => { streamCtrlRef.current?.abort() }
@@ -126,7 +126,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
     if (caseSources && selectedCaseDocIds.size > 0) {
       try {
         const ids = Array.from(selectedCaseDocIds)
-        await Promise.all(ids.map(id => submitTranslation(id, targetLang, { sourceLanguage: sourceLang || undefined, model })))
+        await Promise.all(ids.map(id => submitTranslation(id, targetLang, { sourceLanguage: sourceLang || undefined })))
         const count = ids.length
         toast({ title: `Translating ${count} document${count > 1 ? 's' : ''} to ${targetLang}…`, description: "We'll notify you when ready." })
         onBack()
@@ -160,7 +160,7 @@ export function TranslationDialog({ onBack, onJobStarted, initialDoc, caseSource
     if (!docId) { setIsSubmitting(false); return }
 
     try {
-      const doc = await submitTranslation(docId, targetLang, { sourceLanguage: sourceLang || undefined, model })
+      const doc = await submitTranslation(docId, targetLang, { sourceLanguage: sourceLang || undefined, caseId: caseId || '' })
       jobIdRef.current = doc.jobId ?? doc.id
       if (onJobStarted) {
         onJobStarted(doc.id, targetLang)

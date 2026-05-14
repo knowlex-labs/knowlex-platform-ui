@@ -30,6 +30,7 @@ import { BlogAdminList } from '@/components/admin/blog/blog-admin-list'
 import { BlogFormPage } from '@/components/admin/blog/blog-form-page'
 import { DocumentsPage } from '@/components/documents/documents-page'
 import { DraftingPage } from '@/components/drafting/drafting-page'
+import { TranslationPage } from '@/components/translation/translation-page'
 import { MoodboardBoard } from '@/components/moodboard/moodboard-board'
 import { FeatureGate } from '@/components/feature-gate'
 import { PricingPage } from '@/components/landing/pricing-page'
@@ -133,6 +134,7 @@ export const router = createBrowserRouter([
       { path: '/cases', element: <CaseList /> },
       { path: '/cases/:caseId', element: <CaseWorkspace /> },
       { path: '/drafting', element: <DraftingPage /> },
+      { path: '/translation', element: <TranslationPage /> },
       { path: '/cause-lists', element: <CauseLists /> },
       { path: '/clients', element: <ClientList /> },
       { path: '/clients/:clientId', element: <ClientDetail /> },
