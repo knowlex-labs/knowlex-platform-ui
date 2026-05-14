@@ -14,6 +14,7 @@ export interface Judgment {
     authorJudge: string | null
     disposalNature: string | null
     description: string | null
+    summary: string | null
     s3PdfKey: string | null
     createdAt: string
     updatedAt: string

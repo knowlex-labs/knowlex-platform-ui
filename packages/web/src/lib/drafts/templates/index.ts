@@ -9,6 +9,7 @@
 export { renderInterimApplication } from './interim-application'
 export { renderNotice } from './notice'
 export { renderAffidavit } from './affidavit'
+export { renderPatent } from './patent'
 export { renderApplicationDraft } from './application-draft'
 
 // Common utilities shared across templates
@@ -18,6 +19,7 @@ export { escapeHtml, renderInline } from './common'
 import { renderInterimApplication } from './interim-application'
 import { renderNotice } from './notice'
 import { renderAffidavit } from './affidavit'
+import { renderPatent } from './patent'
 import { renderApplicationDraft } from './application-draft'
 import { renderGenericDraft } from './common'
 
@@ -25,6 +27,7 @@ export type DraftTemplateType =
     | 'interim-application'
     | 'notice'
     | 'affidavit'
+    | 'patent'
     | 'application-draft'
     | 'legal_notice'
     | 'application'
@@ -68,6 +71,11 @@ export const templateRenderers: Record<string, (content: string) => string> = {
 
     // Affidavit variations
     'affidavit': renderAffidavit,
+
+    // Patent variations
+    'patent': renderPatent,
+    'patent_application': renderPatent,
+    'patent-application': renderPatent,
 
     // Application variations
     'application-draft': renderApplicationDraft,
