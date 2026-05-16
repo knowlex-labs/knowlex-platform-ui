@@ -141,7 +141,8 @@ export function assembleBody(templateId: string, formData: TemplateFormData): st
  * - sub_type = request.document_type (e.g. "bail_application")
  * - If request.config has keys → input_mode "structured", spread config fields into data
  * - If file_ids present → input_mode "file"
- * - Otherwise → input_mode "freetext", include freetext_body
+ * - freetext_body is forwarded whenever present (including file mode)
+ * - Otherwise → input_mode "freetext"
  */
 export function buildDocumentPayload(request: CreateDraftRequest): {
   document_type: string
@@ -159,7 +160,7 @@ export function buildDocumentPayload(request: CreateDraftRequest): {
       title: request.title,
       document_type: request.document_type,
       input_mode: inputMode,
-      ...(inputMode === 'freetext' && request.freetext_body && { freetext_body: request.freetext_body }),
+      ...(request.freetext_body && { freetext_body: request.freetext_body }),
       ...(inputMode === 'file' && request.file_ids?.length && { file_ids: request.file_ids }),
       ...(request.language && { language: request.language }),
       ...(hasConfig && request.config),

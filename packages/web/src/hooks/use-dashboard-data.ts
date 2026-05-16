@@ -47,14 +47,14 @@ export function useDashboardData(): UseDashboardDataResult {
 
       if (casesResponse.status === 'success') {
         mappedCases = mapBackendCases(casesResponse.data.content)
-        totalCases = casesResponse.data.totalElements
+        totalCases = casesResponse.data.page?.totalElements ?? casesResponse.data.totalElements ?? 0
         setCases(mappedCases)
       }
 
       let totalClients = 0
       if (clientsResponse.status === 'success') {
         const mappedClients = clientsResponse.data.content.map(mapBackendClient)
-        totalClients = clientsResponse.data.totalElements
+        totalClients = clientsResponse.data.page?.totalElements ?? clientsResponse.data.totalElements ?? 0
         setClients(mappedClients)
       }
 

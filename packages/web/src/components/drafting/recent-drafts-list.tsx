@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
-import { ChevronRight, FileText, AlertCircle, FolderOpen, Tag, Loader2, Check, MoreVertical, Pencil } from 'lucide-react'
+import { ChevronRight, FileText, AlertCircle, MoreVertical, Pencil, PanelLeft, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api'
 import { workspaceApi } from '@knowlex/core/api/workspace-api'
@@ -10,7 +9,7 @@ import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watch
 import { DocumentType, JobStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
 
-const PAGE_SIZE = 5
+const PAGE_SIZE = 20
 
 export interface RecentDraftsListHandle {
   refresh: () => void
@@ -18,6 +17,7 @@ export interface RecentDraftsListHandle {
 
 interface RecentDraftsListProps {
   onOpenDraft: (docId: string) => void
+  onCollapse?: () => void
 }
 
 function relativeTime(iso: string): string {
@@ -35,16 +35,8 @@ function relativeTime(iso: string): string {
   return `${month}mo ago`
 }
 
-function formatSubtype(s: string | null | undefined): string {
-  if (!s) return '—'
-  return s
-    .replace(/[_-]/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-}
-
 export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsListProps>(
-  function RecentDraftsList({ onOpenDraft }, ref) {
+  function RecentDraftsList({ onOpenDraft, onCollapse }, ref) {
     const navigate = useNavigate()
     const [docs, setDocs] = useState<DocumentRecord[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -114,79 +106,84 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
     }, [])
 
     return (
-      <section className="bg-kx-card border border-kx-card-border rounded-xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-kx-card-border">
-          <div>
-            <h2 className="text-base font-semibold text-kx-text-primary">Recent drafts</h2>
-            <p className="text-xs text-ledger-gray-500 mt-0.5">Your latest generated drafts</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/documents?type=DRAFT')}
-            className="text-xs text-kx-primary-600 hover:text-kx-primary-700 h-8"
-          >
-            View all
-          </Button>
+      <section className="flex flex-col h-full border-r border-kx-card-border bg-kx-card">
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-kx-card-border flex-shrink-0">
+          {onCollapse ? (
+            <button
+              type="button"
+              onClick={onCollapse}
+              className="flex items-center gap-1.5 px-1.5 py-1 rounded-md text-xs font-medium text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 transition-colors"
+              title="Collapse panel"
+            >
+              <PanelLeft className="h-3.5 w-3.5 text-ledger-gray-500" />
+              <span>Drafts</span>
+            </button>
+          ) : (
+            <span className="text-xs font-medium text-kx-text-primary px-1.5">Drafts</span>
+          )}
+          {!isLoading && docs.length > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate('/documents?type=DRAFT')}
+              className="text-[11px] font-medium text-kx-primary-600 hover:text-kx-primary-700 px-1.5 py-1 shrink-0"
+            >
+              View all
+            </button>
+          )}
         </div>
 
-        {/* Body */}
+        <div className="flex-1 overflow-y-auto min-h-0">
         {isLoading ? (
           <div className="px-5 py-8 text-center text-sm text-ledger-gray-400">Loading…</div>
         ) : docs.length === 0 ? (
           <div className="px-5 py-12 text-center">
             <FileText className="h-10 w-10 text-ledger-gray-300 mx-auto mb-3" />
             <p className="text-sm font-medium text-ledger-gray-600">No drafts yet</p>
-            <p className="text-xs text-ledger-gray-400 mt-1">Pick a template above to generate your first draft.</p>
+            <p className="text-xs text-ledger-gray-400 mt-1">Pick a template to generate your first draft.</p>
           </div>
         ) : (
-          <ul className="divide-y divide-kx-card-border">
-            {docs.map((doc) => (
-              <DraftRow
-                key={doc.id}
-                doc={doc}
-                onOpen={() => onOpenDraft(doc.id)}
-                onRenamed={(newName) => setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, name: newName, originalFilename: null } : d))}
-              />
-            ))}
-          </ul>
+            <ul className="divide-y divide-kx-card-border">
+              {docs.map((doc) => (
+                <DraftRow
+                  key={doc.id}
+                  doc={doc}
+                  onOpen={() => onOpenDraft(doc.id)}
+                  onRenamed={(newName) => setDocs((prev) => prev.map((d) => d.id === doc.id ? { ...d, name: newName, originalFilename: null } : d))}
+                  onDeleted={() => {
+                    setDocs((prev) => prev.filter((d) => d.id !== doc.id))
+                    fetchDrafts()
+                  }}
+                />
+              ))}
+            </ul>
         )}
+        </div>
       </section>
     )
   }
 )
 
-function StatusBadge({ status }: { status: JobStatus | null }) {
-  if (status === JobStatus.PROCESSING) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-kx-primary-50 text-kx-primary-700 dark:bg-kx-primary-900/30 dark:text-kx-primary-300">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        Processing
-      </span>
-    )
-  }
-  if (status === JobStatus.FAILED || status === JobStatus.CANCELLED) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-        <AlertCircle className="h-3 w-3" />
-        Failed
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-      <Check className="h-3 w-3" />
-      Completed
-    </span>
-  )
-}
-
-function DraftRow({ doc, onOpen, onRenamed }: { doc: DocumentRecord; onOpen: () => void; onRenamed: (newName: string) => void }) {
+function DraftRow({
+  doc,
+  onOpen,
+  onRenamed,
+  onDeleted,
+}: {
+  doc: DocumentRecord
+  onOpen: () => void
+  onRenamed: (newName: string) => void
+  onDeleted: () => void
+}) {
   const isFailed = doc.jobStatus === JobStatus.FAILED || doc.jobStatus === JobStatus.CANCELLED
   const title = doc.originalFilename || doc.name || 'Untitled draft'
-  const subtypeLabel = formatSubtype(doc.subType)
   const canRename = doc.jobStatus !== JobStatus.PROCESSING
+  const statusTime = relativeTime((doc.updatedAt ?? doc.createdAt) || new Date().toISOString())
+  const statusText =
+    doc.jobStatus === JobStatus.PROCESSING
+      ? `Processing • Updated ${statusTime}`
+      : isFailed
+        ? `Failed • Updated ${statusTime}`
+        : `Completed at ${statusTime}`
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [isRenaming, setIsRenaming] = useState(false)
@@ -229,19 +226,31 @@ function DraftRow({ doc, onOpen, onRenamed }: { doc: DocumentRecord; onOpen: () 
     }
   }
 
+  const handleDelete = async () => {
+    setMenuOpen(false)
+    try {
+      await workspaceApi.deleteDocuments([doc.id])
+      onDeleted()
+      toast({ title: 'Draft deleted' })
+    } catch {
+      toast({ title: 'Delete failed', variant: 'destructive' })
+    }
+  }
+
   return (
     <li
-      className="w-full flex items-center gap-4 px-5 py-3 transition-colors group hover:bg-kx-primary-50/40"
+      className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors group hover:bg-kx-primary-50/40 cursor-pointer"
+      onClick={isRenaming ? undefined : onOpen}
     >
       <div
         className={cn(
-          'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center',
+          'flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center',
           isFailed ? 'bg-red-50 text-red-500' : 'bg-violet-100 text-violet-700',
           !isRenaming && 'cursor-pointer',
         )}
         onClick={isRenaming ? undefined : onOpen}
       >
-        {isFailed ? <AlertCircle className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+        {isFailed ? <AlertCircle className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
       </div>
 
       {/* Title + meta */}
@@ -258,42 +267,27 @@ function DraftRow({ doc, onOpen, onRenamed }: { doc: DocumentRecord; onOpen: () 
             }}
             onBlur={submitRename}
             onClick={(e) => e.stopPropagation()}
-            className="w-full text-sm font-medium text-kx-text-primary bg-nb-input border border-kx-primary-300 rounded px-2 py-0.5 outline-none focus:border-kx-primary-500"
+            className="w-full text-[13px] font-medium text-kx-text-primary bg-nb-input border border-kx-primary-300 rounded px-2 py-0.5 outline-none focus:border-kx-primary-500"
           />
         ) : (
           <p
-            className="text-sm font-medium text-kx-text-primary truncate cursor-pointer"
+            className="text-[13px] font-medium text-kx-text-primary leading-snug line-clamp-2 cursor-pointer"
             onClick={onOpen}
           >
             {title}
           </p>
         )}
-        <div className="mt-1 flex items-center gap-3 text-[11px] text-ledger-gray-500">
-          <span className="inline-flex items-center gap-1 min-w-0">
-            <Tag className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
-            <span className="truncate">{subtypeLabel}</span>
-          </span>
-          <span className="inline-flex items-center gap-1 min-w-0 max-w-[180px]">
-            <FolderOpen className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
-            <span className="truncate">
-              {doc.caseTitle ?? <span className="text-ledger-gray-400">Standalone</span>}
-            </span>
-          </span>
-          <span className="text-ledger-gray-400 whitespace-nowrap">
-            {relativeTime(doc.createdAt ?? doc.updatedAt)}
-          </span>
-        </div>
+        <p className="mt-1 text-[10px] text-ledger-gray-500 truncate">{statusText}</p>
       </div>
 
       {/* Status + actions */}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <StatusBadge status={doc.jobStatus} />
         {canRename && !isRenaming && (
           <div className="relative" ref={menuRef}>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
-              className="h-7 w-7 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+              className="h-6 w-6 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
             >
               <MoreVertical className="h-4 w-4" />
             </button>
@@ -306,6 +300,14 @@ function DraftRow({ doc, onOpen, onRenamed }: { doc: DocumentRecord; onOpen: () 
                 >
                   <Pencil className="h-3.5 w-3.5 text-ledger-gray-400" />
                   Rename
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); void handleDelete() }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
                 </button>
               </div>
             )}

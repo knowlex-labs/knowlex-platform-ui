@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { caseApi, clientApi, ApiError } from '@knowlex/core/api'
 import { mapBackendCases, mapBackendClient } from '@knowlex/core/mappers'
+import { getPaginationMeta } from '@knowlex/core/utils'
 import type { Case, BackendCaseStatus } from '@knowlex/core/types'
 
 export interface CaseWithClient extends Case {
@@ -14,6 +15,7 @@ interface UseCasesWithClientsOptions {
   page?: number
   pageSize?: number
   status?: BackendCaseStatus
+  q?: string
 }
 
 export interface ClientOption {
@@ -36,7 +38,7 @@ interface UseCasesWithClientsResult {
 export function useCasesWithClients(
   options: UseCasesWithClientsOptions = {}
 ): UseCasesWithClientsResult {
-  const { page: initialPage = 0, pageSize = 20, status } = options
+  const { page: initialPage = 0, pageSize = 20, status, q } = options
 
   const [cases, setCases] = useState<CaseWithClient[]>([])
   const [clients, setClients] = useState<ClientOption[]>([])
@@ -56,6 +58,7 @@ export function useCasesWithClients(
         page: currentPage,
         size: pageSize,
         status,
+        q,
       })
 
       if (casesResponse.status !== 'success') {
@@ -96,8 +99,9 @@ export function useCasesWithClients(
       })
 
       setCases(casesWithClients)
-      setTotalElements(paginatedData.totalElements)
-      setTotalPages(paginatedData.totalPages)
+      const pagination = getPaginationMeta(paginatedData)
+      setTotalElements(pagination.totalElements)
+      setTotalPages(pagination.totalPages)
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -110,15 +114,33 @@ export function useCasesWithClients(
     } finally {
       setIsLoading(false)
     }
-  }, [currentPage, pageSize, status])
+  }, [currentPage, pageSize, status, q])
 
   useEffect(() => {
     fetchCases()
   }, [fetchCases])
 
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [q, status, pageSize])
+
+  useEffect(() => {
+    if (totalPages <= 0) return
+    if (currentPage < totalPages) return
+    setCurrentPage(totalPages - 1)
+  }, [currentPage, totalPages])
+
   const setPage = useCallback((page: number) => {
+    if (page < 0) {
+      setCurrentPage(0)
+      return
+    }
+    if (totalPages > 0 && page >= totalPages) {
+      setCurrentPage(totalPages - 1)
+      return
+    }
     setCurrentPage(page)
-  }, [])
+  }, [totalPages])
 
   return {
     cases,

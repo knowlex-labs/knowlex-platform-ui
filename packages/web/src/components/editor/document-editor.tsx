@@ -478,11 +478,11 @@ export function DocumentEditor({
                 '[&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2',
                 // Paragraphs — moderate spacing for readability between
                 // numbered paragraphs in court drafts.
-                '[&_p]:my-2 [&_p]:leading-normal',
+                '[&_p]:my-2 [&_p]:leading-normal [&_p]:text-justify',
                 // Lists
                 '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-1',
                 '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:my-1',
-                '[&_li]:my-0.5',
+                '[&_li]:my-0.5 [&_li]:text-justify',
                 '[&_li_ul]:list-[circle] [&_li_ul]:pl-6 [&_li_ul]:my-0',
                 '[&_li_ol]:list-[lower-alpha] [&_li_ol]:pl-6 [&_li_ol]:my-0',
                 // Default tables — visible borders so real tables look like tables.

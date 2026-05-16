@@ -531,6 +531,7 @@
 .legal-document p {
   margin: 8px 0;
   line-height: 1.5;
+  text-align: justify;
 }
 
 .legal-document strong {

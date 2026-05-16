@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, type MouseEvent as ReactMouseEvent } from 'react'
 import { ArrowLeft, Download, RotateCcw, AlertCircle, Loader2, FileText, PanelLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GeneratingState } from '@/components/ui/generating-state'
@@ -12,6 +12,7 @@ import {
 import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
 import { DocumentType, JobStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
+import { useUIState } from '@/contexts/ui-context'
 import {
   RecentTranslationsList,
   type RecentTranslationsListHandle,
@@ -25,6 +26,9 @@ interface ActiveJob extends TranslationJobInfo {
   viewerStatus: ViewerStatus
   errorMsg: string | null
 }
+const TRANSLATION_PANEL_WIDTH_KEY = 'knowlex_translation_recent_panel_width'
+const MIN_PANEL_WIDTH = 260
+const MAX_PANEL_WIDTH = 460
 
 function translatedFileName(sourceFileName: string, targetLang: string, extension: 'pdf' | 'docx') {
   const baseName = (sourceFileName || 'translation').replace(/\.[^.]+$/, '')
@@ -77,14 +81,45 @@ async function findSourceDocId(translated: DocumentRecord): Promise<string> {
 }
 
 export function TranslationPage() {
+  const { setSidebarCollapsed } = useUIState()
   const [activeJob, setActiveJob] = useState<ActiveJob | null>(null)
   const [panelOpen, setPanelOpen] = useState(true)
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    const raw = localStorage.getItem(TRANSLATION_PANEL_WIDTH_KEY)
+    const parsed = raw ? Number(raw) : NaN
+    return Number.isFinite(parsed) ? Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, parsed)) : 288
+  })
   const [sourceBlobUrl, setSourceBlobUrl] = useState<string | null>(null)
   const [translatedBlobUrl, setTranslatedBlobUrl] = useState<string | null>(null)
   const [isDownloadingDocx, setIsDownloadingDocx] = useState(false)
 
   const unsubscribeRef = useRef<(() => void) | null>(null)
   const recentListRef = useRef<RecentTranslationsListHandle>(null)
+  const pageRootRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => { setSidebarCollapsed(true) }, [setSidebarCollapsed])
+  useEffect(() => {
+    localStorage.setItem(TRANSLATION_PANEL_WIDTH_KEY, String(panelWidth))
+  }, [panelWidth])
+
+  const handlePanelResizeStart = (e: ReactMouseEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const pageLeft = pageRootRef.current?.getBoundingClientRect().left ?? 0
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const next = moveEvent.clientX - pageLeft
+      setPanelWidth(Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, next)))
+    }
+    const onMouseUp = () => {
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
 
   const stopStream = () => {
     unsubscribeRef.current?.()
@@ -246,16 +281,25 @@ export function TranslationPage() {
   }
 
   return (
-    <div className="flex h-full bg-kx-surface overflow-hidden">
+    <div ref={pageRootRef} className="flex h-full bg-kx-surface overflow-hidden">
       {/* ── Left panel — always mounted, collapsible ── */}
       {panelOpen && (
-        <div className="w-72 flex-shrink-0 overflow-hidden flex flex-col">
+        <div style={{ width: panelWidth }} className="flex-shrink-0 overflow-hidden flex flex-col">
           <RecentTranslationsList
             ref={recentListRef}
             onOpenTranslation={handleOpenTranslation}
             onCollapse={() => setPanelOpen(false)}
           />
         </div>
+      )}
+      {panelOpen && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          onMouseDown={handlePanelResizeStart}
+          className="w-1.5 cursor-col-resize bg-transparent hover:bg-kx-primary-100 dark:hover:bg-kx-primary-900/30 transition-colors flex-shrink-0"
+          title="Resize panel"
+        />
       )}
 
       {/* ── Right area ── */}

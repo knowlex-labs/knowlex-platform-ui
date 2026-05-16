@@ -18,16 +18,18 @@ type ViewMode = 'grid' | 'list'
 export function CaseList() {
   const navigate = useNavigate()
   const { setSidebarCollapsed, showAddCaseModal: showAddCaseModalFromNav, setShowAddCaseModal: setShowAddCaseModalFromNav } = useUIState()
+  const [searchQuery, setSearchQuery] = useState('')
   const {
     cases,
     clients,
     isLoading,
     error,
+    totalElements,
     totalPages,
     currentPage,
     setPage,
     refresh,
-  } = useCasesWithClients({ pageSize: 20 })
+  } = useCasesWithClients({ pageSize: 20, q: searchQuery })
 
   const {
     filters,
@@ -145,7 +147,6 @@ export function CaseList() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="mb-4">
         <CaseFilters
           filters={filters}
@@ -157,6 +158,8 @@ export function CaseList() {
           onStatusChange={setStatusFilter}
           onClearFilters={clearFilters}
           hasActiveFilters={hasActiveFilters}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
         />
       </div>
 
@@ -196,18 +199,17 @@ export function CaseList() {
           </ScrollArea>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
+        {!isLoading && (
           <div className="flex items-center justify-between pt-4 mt-4 border-t border-ledger-gray-200">
             <p className="text-xs text-ledger-gray-500">
-              Page {currentPage + 1} of {totalPages}
+              {totalElements} total · Page {Math.min(currentPage + 1, Math.max(totalPages, 1))} of {Math.max(totalPages, 1)}
             </p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage(currentPage - 1)}
-                disabled={currentPage === 0}
+                disabled={currentPage === 0 || totalPages <= 1}
                 className="h-10 w-10 p-0"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -216,7 +218,7 @@ export function CaseList() {
                 variant="outline"
                 size="sm"
                 onClick={() => setPage(currentPage + 1)}
-                disabled={currentPage >= totalPages - 1}
+                disabled={currentPage >= totalPages - 1 || totalPages <= 1}
                 className="h-10 w-10 p-0"
               >
                 <ChevronRight className="h-4 w-4" />

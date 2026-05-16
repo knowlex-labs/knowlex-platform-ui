@@ -5,11 +5,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { clientApi, ApiError } from '@knowlex/core/api'
 import { mapBackendClient } from '@knowlex/core/mappers'
+import { getPaginationMeta } from '@knowlex/core/utils'
 import type { ClientWithCase, Case } from '@knowlex/core/types'
 
 interface UseClientsOptions {
   page?: number
   pageSize?: number
+  q?: string
 }
 
 interface UseClientsResult {
@@ -24,7 +26,7 @@ interface UseClientsResult {
 }
 
 export function useClients(options: UseClientsOptions = {}): UseClientsResult {
-  const { page: initialPage = 0, pageSize = 20 } = options
+  const { page: initialPage = 0, pageSize = 20, q } = options
 
   const [clients, setClients] = useState<ClientWithCase[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -41,6 +43,7 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
       const clientsResponse = await clientApi.getAll({
         page: currentPage,
         size: pageSize,
+        q,
       })
 
       if (clientsResponse.status !== 'success') {
@@ -70,8 +73,9 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
       }))
 
       setClients(clientsWithCases)
-      setTotalElements(paginatedData.totalElements)
-      setTotalPages(paginatedData.totalPages)
+      const pagination = getPaginationMeta(paginatedData)
+      setTotalElements(pagination.totalElements)
+      setTotalPages(pagination.totalPages)
     } catch (err) {
       const message =
         err instanceof ApiError
@@ -84,15 +88,27 @@ export function useClients(options: UseClientsOptions = {}): UseClientsResult {
     } finally {
       setIsLoading(false)
     }
-  }, [currentPage, pageSize])
+  }, [currentPage, pageSize, q])
 
   useEffect(() => {
     fetchClients()
   }, [fetchClients])
 
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [q, pageSize])
+
   const setPage = useCallback((page: number) => {
+    if (page < 0) {
+      setCurrentPage(0)
+      return
+    }
+    if (totalPages > 0 && page >= totalPages) {
+      setCurrentPage(totalPages - 1)
+      return
+    }
     setCurrentPage(page)
-  }, [])
+  }, [totalPages])
 
   return {
     clients,
