@@ -23,8 +23,8 @@ export const judgmentsApi = {
         if (params.year !== undefined) searchParams.set('year', params.year.toString())
         if (params.month !== undefined) searchParams.set('month', params.month.toString())
         if (params.disposalNature?.length) searchParams.set('disposalNature', params.disposalNature.join(','))
-        if (params.dateFrom) searchParams.set('dateFrom', params.dateFrom)
-        if (params.dateTo) searchParams.set('dateTo', params.dateTo)
+        if (params.dateFrom) searchParams.set('fromDate', params.dateFrom)
+        if (params.dateTo) searchParams.set('toDate', params.dateTo)
 
         const query = searchParams.toString()
         return apiClient.get<ApiResponse<PaginatedData<Judgment>>>(`/api/v1/judgments${query ? `?${query}` : ''}`)

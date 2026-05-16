@@ -153,22 +153,32 @@ function AdvancedFiltersDropdown({
                                 <label className="text-xs font-medium text-ledger-gray-500 uppercase tracking-wide">Date Range</label>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                    <label className="text-xs text-ledger-gray-400">From</label>
-                                    <DatePicker
-                                        value={draft.dateFrom}
-                                        onChange={(v) => setDraft({ ...draft, dateFrom: v })}
-                                        placeholder="Start date"
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs text-ledger-gray-400">To</label>
-                                    <DatePicker
-                                        value={draft.dateTo}
-                                        onChange={(v) => setDraft({ ...draft, dateTo: v })}
-                                        placeholder="End date"
-                                    />
-                                </div>
+                                {(() => {
+                                    const today = new Date()
+                                    return (
+                                        <>
+                                            <div className="space-y-1">
+                                                <label className="text-xs text-ledger-gray-400">From</label>
+                                                <DatePicker
+                                                    value={draft.dateFrom}
+                                                    onChange={(v) => setDraft({ ...draft, dateFrom: v })}
+                                                    placeholder="Start date"
+                                                    maxDate={draft.dateTo ? new Date(Math.min(today.getTime(), new Date(draft.dateTo).getTime())) : today}
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-xs text-ledger-gray-400">To</label>
+                                                <DatePicker
+                                                    value={draft.dateTo}
+                                                    onChange={(v) => setDraft({ ...draft, dateTo: v })}
+                                                    placeholder="End date"
+                                                    minDate={draft.dateFrom ? new Date(draft.dateFrom) : undefined}
+                                                    maxDate={today}
+                                                />
+                                            </div>
+                                        </>
+                                    )
+                                })()}
                             </div>
                         </div>
 
