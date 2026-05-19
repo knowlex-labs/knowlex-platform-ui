@@ -146,7 +146,7 @@ export function TranslationWorkspace({ onJobStarted }: TranslationWorkspaceProps
   const canSubmit = activeTab === 'upload' ? file !== null : selectedFileId !== ''
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
+    <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto scrollbar-thin app-scroll">
       <div className="w-full max-w-lg space-y-6">
         <div>
           <h1 className="text-xl font-semibold text-kx-text-primary">Translate Document</h1>

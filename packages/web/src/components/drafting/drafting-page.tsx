@@ -577,7 +577,7 @@ export function DraftingPage() {
               </h1>
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 py-5">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin app-scroll px-4 md:px-6 py-5">
               <div className="max-w-2xl mx-auto">
                 <p className="text-sm text-ledger-gray-500 mb-5">
                   Only the title is required. AI will use your documents to fill in missing details.
@@ -682,7 +682,7 @@ export function DraftingPage() {
                 <DraftsPanelReopenButton onClick={() => setPanelOpen(true)} />
               </div>
             )}
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 md:px-6 py-5">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin app-scroll px-4 md:px-6 py-5">
               <div className="mb-5">
                 <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Drafts</h2>
                 <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">

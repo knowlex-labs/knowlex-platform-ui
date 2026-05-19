@@ -132,7 +132,7 @@ export const RecentDraftsList = forwardRef<RecentDraftsListHandle, RecentDraftsL
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin app-scroll">
         {isLoading ? (
           <div className="px-5 py-8 text-center text-sm text-ledger-gray-400">Loading…</div>
         ) : docs.length === 0 ? (
