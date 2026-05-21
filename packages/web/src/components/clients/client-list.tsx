@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Phone, Mail, MessageCircle, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Phone, Mail, MessageCircle, Users, Search, LayoutGrid, List, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { ErrorDisplay } from '@/components/ui/error-display'
 import { AddClientModal } from '@/components/clients/add-client-modal'
 import { useNavigate } from 'react-router-dom'
 import { useClients } from '@/hooks/use-clients'
 import { cn } from '@/lib/utils'
 import type { ClientWithCase } from '@knowlex/core/types'
+
+type ViewMode = 'grid' | 'list'
 
 function ContactActions({
   phone,
@@ -184,18 +187,73 @@ function ClientTableRow({ client, onClick }: { client: ClientWithCase; onClick: 
   )
 }
 
+function ClientCard({ client, onClick }: { client: ClientWithCase; onClick: () => void }) {
+  const initials = client.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
+  const activeCases = client.cases.filter((c) => c.status === 'active').length
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left rounded-lg border border-kx-card-border bg-kx-card p-4 hover:border-kx-primary-300 hover:bg-kx-primary-50/40 transition-colors"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-9 w-9 rounded-full bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center flex-shrink-0">
+            <span className="text-xs font-semibold text-kx-primary-600 dark:text-kx-primary-400">{initials}</span>
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-kx-text-primary truncate">{client.name}</p>
+            <p className="text-xs text-ledger-gray-500 mt-0.5 capitalize">{client.clientType}</p>
+          </div>
+        </div>
+        <ContactActions phone={client.phone} email={client.email} />
+      </div>
+      <div className="mt-3 space-y-1.5">
+        <p className="text-xs text-ledger-gray-600 truncate">{client.phone || 'No phone'}</p>
+        <p className="text-xs text-ledger-gray-600 truncate">{client.email || 'No email'}</p>
+      </div>
+      <div className="mt-3">
+        <span className={cn(
+          'inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full',
+          activeCases > 0
+            ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+            : 'bg-ledger-gray-100 text-ledger-gray-600 dark:bg-ledger-gray-200 dark:text-ledger-gray-500'
+        )}>
+          {activeCases > 0 ? `${activeCases} active case${activeCases > 1 ? 's' : ''}` : `${client.cases.length} total case${client.cases.length !== 1 ? 's' : ''}`}
+        </span>
+      </div>
+    </button>
+  )
+}
+
 export function ClientList() {
   const navigate = useNavigate()
   const [showAddClientModal, setShowAddClientModal] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (localStorage.getItem('knowlex_clients_view') as ViewMode) || 'grid'
+  })
   const {
     clients,
     isLoading,
     error,
+    totalElements,
     totalPages,
     currentPage,
     setPage,
     refresh,
-  } = useClients({ pageSize: 20 })
+  } = useClients({ pageSize: 20, q: searchQuery })
+
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode)
+    localStorage.setItem('knowlex_clients_view', mode)
+  }
 
   const header = (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
@@ -207,16 +265,65 @@ export function ClientList() {
           Manage your client contacts
         </p>
       </div>
-      <Button onClick={() => setShowAddClientModal(true)} className="w-full sm:w-auto">
-        <Plus className="h-4 w-4 mr-2" />
-        Add Client
-      </Button>
+      <div className="flex items-center gap-2">
+        <div className="flex h-9 rounded-lg border border-ledger-gray-200 overflow-hidden">
+          <button
+            onClick={() => handleViewModeChange('grid')}
+            className={cn(
+              'flex items-center justify-center w-9 h-full transition-colors',
+              viewMode === 'grid'
+                ? 'bg-kx-primary-600 text-white'
+                : 'text-ledger-gray-500 hover:bg-ledger-gray-50'
+            )}
+            title="Card view"
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleViewModeChange('list')}
+            className={cn(
+              'flex items-center justify-center w-9 h-full transition-colors',
+              viewMode === 'list'
+                ? 'bg-kx-primary-600 text-white'
+                : 'text-ledger-gray-500 hover:bg-ledger-gray-50'
+            )}
+            title="List view"
+          >
+            <List className="h-4 w-4" />
+          </button>
+        </div>
+        <Button onClick={() => setShowAddClientModal(true)} className="w-full sm:w-auto">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Client
+        </Button>
+      </div>
     </div>
   )
 
   return (
     <div>
       {header}
+      <div className="flex items-center gap-2 p-3 mb-4 bg-ledger-gray-50 rounded-lg border border-ledger-gray-200">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by client name..."
+            className="h-9 pl-9 pr-8 text-sm"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ledger-gray-400 hover:text-ledger-gray-600 transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      </div>
 
       {isLoading ? (
         <ClientTableSkeleton />
@@ -240,66 +347,76 @@ export function ClientList() {
         </div>
       ) : (
         <div className="border border-kx-card-border rounded-lg overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
-                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
-                    Name
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">
-                    Phone
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
-                    Email
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
-                    Cases
-                  </th>
-                  <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-kx-card-border">
-                {clients.map((client) => (
-                  <ClientTableRow
-                    key={client.id}
-                    client={client}
-                    onClick={() => navigate(`/clients/${client.id}`)}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between px-5 py-3 border-t border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
-              <p className="text-xs text-ledger-gray-500">
-                Page {currentPage + 1} of {totalPages}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(currentPage - 1)}
-                  disabled={currentPage === 0}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(currentPage + 1)}
-                  disabled={currentPage >= totalPages - 1}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+          {viewMode === 'list' ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-ledger-gray-50 dark:bg-ledger-gray-100 border-b border-kx-card-border">
+                    <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                      Name
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">
+                      Phone
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden md:table-cell">
+                      Email
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
+                      Cases
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-ledger-gray-600 text-xs uppercase tracking-wider whitespace-nowrap">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-kx-card-border">
+                  {clients.map((client) => (
+                    <ClientTableRow
+                      key={client.id}
+                      client={client}
+                      onClick={() => navigate(`/clients/${client.id}`)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-4 grid gap-4 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+              {clients.map((client) => (
+                <ClientCard
+                  key={client.id}
+                  client={client}
+                  onClick={() => navigate(`/clients/${client.id}`)}
+                />
+              ))}
             </div>
           )}
+
+          <div className="flex items-center justify-between px-5 py-3 border-t border-kx-card-border bg-ledger-gray-50 dark:bg-white/[0.03]">
+            <p className="text-xs text-ledger-gray-500">
+              {totalElements} total · Page {Math.min(currentPage + 1, Math.max(totalPages, 1))} of {Math.max(totalPages, 1)}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage === 0 || totalPages <= 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage >= totalPages - 1 || totalPages <= 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
 

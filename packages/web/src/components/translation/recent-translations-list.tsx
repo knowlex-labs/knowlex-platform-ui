@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react'
-import { ChevronRight, Languages, AlertCircle, FolderOpen, Loader2, Check, PanelLeft } from 'lucide-react'
+import { ChevronRight, Languages, AlertCircle, Loader2, PanelLeft, MoreVertical, Trash2 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { listAllDocuments } from '@knowlex/core/api/doc-processing-api'
 import { subscribeDocumentStatus } from '@knowlex/core/api/document-status-watcher'
+import { workspaceApi } from '@knowlex/core/api/workspace-api'
 import type { DocumentRecord } from '@knowlex/core/api/doc-processing-api'
 import { DocumentType, JobStatus } from '@knowlex/core/types'
 import { toast } from '@/hooks/use-toast'
@@ -33,14 +33,6 @@ function relativeTime(iso: string): string {
   if (day < 30) return `${day}d ago`
   const month = Math.floor(day / 30)
   return `${month}mo ago`
-}
-
-function formatLanguage(s: string | null | undefined): string {
-  if (!s) return '—'
-  return s
-    .replace(/[_-]/g, ' ')
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 export const RecentTranslationsList = forwardRef<RecentTranslationsListHandle, RecentTranslationsListProps>(
@@ -102,35 +94,32 @@ export const RecentTranslationsList = forwardRef<RecentTranslationsListHandle, R
 
     return (
       <section className="flex flex-col h-full border-r border-kx-card-border bg-kx-card">
-        <div className="flex flex-col gap-3 px-4 py-4 border-b border-kx-card-border flex-shrink-0">
-          {onCollapse && (
+        <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-kx-card-border flex-shrink-0">
+          {onCollapse ? (
             <button
               type="button"
               onClick={onCollapse}
-              className="flex items-center gap-2 self-start px-2 py-1.5 -mx-2 rounded-md text-sm font-medium text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 transition-colors"
+              className="flex items-center gap-1.5 px-1.5 py-1 rounded-md text-xs font-medium text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 transition-colors"
               title="Collapse panel"
             >
-              <PanelLeft className="h-4 w-4 text-ledger-gray-500" />
+              <PanelLeft className="h-3.5 w-3.5 text-ledger-gray-500" />
               <span>Files</span>
             </button>
+          ) : (
+            <span className="text-xs font-medium text-kx-text-primary px-1.5">Files</span>
           )}
-          <div className="flex items-start justify-between gap-2 min-w-0">
-            <div className="min-w-0">
-              <h2 className="text-base font-semibold text-kx-text-primary">Recent</h2>
-              <p className="text-xs text-ledger-gray-500 mt-0.5">Your translated documents</p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
+          {!isLoading && docs.length > 0 && (
+            <button
+              type="button"
               onClick={() => navigate('/documents?type=TRANSLATION')}
-              className="text-xs text-kx-primary-600 hover:text-kx-primary-700 h-8 flex-shrink-0"
+              className="text-[11px] font-medium text-kx-primary-600 hover:text-kx-primary-700 px-1.5 py-1 shrink-0"
             >
               View all
-            </Button>
-          </div>
+            </button>
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto min-h-0 scrollbar-thin app-scroll">
           {isLoading ? (
             <div className="px-5 py-8 text-center text-sm text-ledger-gray-400">Loading…</div>
           ) : docs.length === 0 ? (
@@ -141,13 +130,17 @@ export const RecentTranslationsList = forwardRef<RecentTranslationsListHandle, R
             </div>
           ) : (
             <ul className="divide-y divide-kx-card-border">
-              {docs.map((doc) => (
-                <TranslationRow
-                  key={doc.id}
-                  doc={doc}
-                  onOpen={() => onOpenTranslation(doc)}
-                />
-              ))}
+                {docs.map((doc) => (
+                  <TranslationRow
+                    key={doc.id}
+                    doc={doc}
+                    onOpen={() => onOpenTranslation(doc)}
+                    onDeleted={() => {
+                      setDocs((prev) => prev.filter((d) => d.id !== doc.id))
+                      fetchTranslations()
+                    }}
+                  />
+                ))}
             </ul>
           )}
         </div>
@@ -156,75 +149,96 @@ export const RecentTranslationsList = forwardRef<RecentTranslationsListHandle, R
   }
 )
 
-function StatusBadge({ status }: { status: JobStatus | null }) {
-  if (status === JobStatus.PROCESSING) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
-        <Loader2 className="h-3 w-3 animate-spin" />
-        Translating
-      </span>
-    )
-  }
-  if (status === JobStatus.FAILED || status === JobStatus.CANCELLED) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-        <AlertCircle className="h-3 w-3" />
-        Failed
-      </span>
-    )
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
-      <Check className="h-3 w-3" />
-      Done
-    </span>
-  )
-}
-
-function TranslationRow({ doc, onOpen }: { doc: DocumentRecord; onOpen: () => void }) {
+function TranslationRow({
+  doc,
+  onOpen,
+  onDeleted,
+}: {
+  doc: DocumentRecord
+  onOpen: () => void
+  onDeleted: () => void
+}) {
   const isFailed = doc.jobStatus === JobStatus.FAILED || doc.jobStatus === JobStatus.CANCELLED
   const isProcessing = doc.jobStatus === JobStatus.PROCESSING
+  const canDelete = !isProcessing
   const title = doc.originalFilename || doc.name || 'Untitled'
-  const targetLang = formatLanguage(doc.subType)
+  const statusTime = relativeTime((doc.updatedAt ?? doc.createdAt) || new Date().toISOString())
+  const statusText =
+    isProcessing
+      ? `Translating • Updated ${statusTime}`
+      : isFailed
+        ? `Failed • Updated ${statusTime}`
+        : `Completed at ${statusTime}`
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    function handle(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handle)
+    return () => document.removeEventListener('mousedown', handle)
+  }, [menuOpen])
+
+  const handleDelete = async () => {
+    setMenuOpen(false)
+    try {
+      await workspaceApi.deleteDocuments([doc.id])
+      onDeleted()
+      toast({ title: 'Translation deleted' })
+    } catch {
+      toast({ title: 'Delete failed', variant: 'destructive' })
+    }
+  }
 
   return (
     <li
-      className="w-full flex items-center gap-3 px-4 py-3 transition-colors group cursor-pointer hover:bg-kx-primary-50/40"
+      className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors group cursor-pointer hover:bg-kx-primary-50/40"
       onClick={onOpen}
     >
       <div className={cn(
-        'flex-shrink-0 h-9 w-9 rounded-lg flex items-center justify-center',
+        'flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center',
         isFailed ? 'bg-red-50 text-red-500' : 'bg-teal-50 text-teal-600',
       )}>
         {isFailed ? (
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-3.5 w-3.5" />
         ) : isProcessing ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : (
-          <Languages className="h-4 w-4" />
+          <Languages className="h-3.5 w-3.5" />
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-kx-text-primary truncate">{title}</p>
-        <div className="mt-0.5 flex items-center gap-2 text-[11px] text-ledger-gray-500">
-          {targetLang !== '—' && (
-            <span className="font-medium text-teal-600 dark:text-teal-400">{targetLang}</span>
-          )}
-          {doc.caseTitle && (
-            <span className="inline-flex items-center gap-1 min-w-0">
-              <FolderOpen className="h-3 w-3 text-ledger-gray-400 flex-shrink-0" />
-              <span className="truncate max-w-[120px]">{doc.caseTitle}</span>
-            </span>
-          )}
-          <span className="text-ledger-gray-400 whitespace-nowrap">
-            {relativeTime(doc.createdAt ?? doc.updatedAt)}
-          </span>
-        </div>
+        <p className="text-[13px] font-medium text-kx-text-primary leading-snug line-clamp-2">{title}</p>
+        <p className="mt-1 text-[10px] text-ledger-gray-500 truncate">{statusText}</p>
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">
-        <StatusBadge status={doc.jobStatus} />
+        {canDelete && (
+          <div className="relative" ref={menuRef}>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen((o) => !o) }}
+              className="h-6 w-6 flex items-center justify-center rounded text-ledger-gray-400 hover:text-kx-text-primary hover:bg-ledger-gray-100 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-8 z-50 min-w-[140px] rounded-lg border border-kx-card-border bg-kx-card shadow-lg py-1">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); void handleDelete() }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <ChevronRight className="h-4 w-4 text-ledger-gray-300 group-hover:text-kx-primary-600" />
       </div>
     </li>

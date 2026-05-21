@@ -1,6 +1,7 @@
-import { X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { Select } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import type { CaseFilter, CaseTypeOption } from '@knowlex/core/types'
 
 interface CaseFiltersProps {
@@ -13,6 +14,8 @@ interface CaseFiltersProps {
   onStatusChange: (status: string | null) => void
   onClearFilters: () => void
   hasActiveFilters: boolean
+  searchQuery: string
+  onSearchChange: (value: string) => void
 }
 
 const CASE_STATUSES = [
@@ -73,6 +76,8 @@ export function CaseFilters({
   onStatusChange,
   onClearFilters,
   hasActiveFilters,
+  searchQuery,
+  onSearchChange,
 }: CaseFiltersProps) {
   const handleDateChange = (value: string) => {
     const { from, to } = getDateRange(value)
@@ -80,12 +85,32 @@ export function CaseFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 p-4 bg-ledger-gray-50 rounded-lg border border-ledger-gray-200">
+    <div className="flex flex-wrap items-center gap-2 p-3 bg-ledger-gray-50 rounded-lg border border-ledger-gray-200">
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
+        <Input
+          placeholder="Search by case name or number..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          className="h-9 pl-9 pr-8 text-sm"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => onSearchChange('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ledger-gray-400 hover:text-ledger-gray-600 transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+
       {/* Date Filter */}
       <Select
         value={getCurrentDateRangeValue(filters.dateRange)}
         onChange={(e) => handleDateChange(e.target.value)}
-        className="w-32"
+        className="w-32 h-9"
       >
         {DATE_RANGES.map((option) => (
           <option key={option.value} value={option.value}>
@@ -98,7 +123,7 @@ export function CaseFilters({
       <Select
         value={filters.clientId ?? ''}
         onChange={(e) => onClientChange(e.target.value || null)}
-        className="w-40"
+        className="w-40 h-9"
       >
         <option value="">All Clients</option>
         {clients.map((client) => (
@@ -112,7 +137,7 @@ export function CaseFilters({
       <Select
         value={filters.caseType ?? ''}
         onChange={(e) => onCaseTypeChange(e.target.value || null)}
-        className="w-36"
+        className="w-36 h-9"
         searchable
         searchPlaceholder="Search type..."
       >
@@ -126,7 +151,7 @@ export function CaseFilters({
       <Select
         value={filters.status ?? ''}
         onChange={(e) => onStatusChange(e.target.value || null)}
-        className="w-32"
+        className="w-32 h-9"
       >
         <option value="">All Status</option>
         {CASE_STATUSES.map((option) => (

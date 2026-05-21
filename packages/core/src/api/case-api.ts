@@ -27,6 +27,7 @@ export interface GetCasesParams {
   page?: number
   size?: number
   status?: BackendCaseStatus
+  q?: string
 }
 
 export const caseApi = {
@@ -39,13 +40,16 @@ export const caseApi = {
   },
 
   getAll: (params: GetCasesParams = {}): Promise<ApiResponse<PaginatedData<BackendCase>>> => {
-    const { page = 0, size = 20, status } = params
+    const { page = 0, size = 20, status, q } = params
     const searchParams = new URLSearchParams({
       page: String(page),
       size: String(size),
     })
     if (status) {
       searchParams.append('status', status)
+    }
+    if (q?.trim()) {
+      searchParams.append('q', q.trim())
     }
     return apiClient.get<ApiResponse<PaginatedData<BackendCase>>>(
       `${CASES_ENDPOINT}?${searchParams}`

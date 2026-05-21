@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback, type MouseEvent as ReactMouseEvent } from 'react'
 import {
-  ArrowLeft, FileText, Sparkles, Lock, Paperclip,
+  ArrowLeft, FileText, Sparkles, Paperclip, PanelLeft,
   Search, X, AlertCircle, Loader2,
   FileWarning, FileClock, Scale, Gavel, ShieldAlert,
   ScrollText, ClipboardList, AlignLeft, Landmark, Star, Ban,
@@ -34,6 +34,7 @@ import { DRAFT_TEMPLATES } from '@knowlex/core/types'
 import type { CreateDraftRequest, DocumentType, Language } from '@knowlex/core/api/document-types'
 import type { BackendCase } from '@knowlex/core/types/api.types'
 import { TEMPLATE_TO_DOC_CONFIG } from '@/components/cases/case-workspace/draft-creation-wizard'
+import { useUIState } from '@/contexts/ui-context'
 import { RecentDraftsList } from './recent-drafts-list'
 import type { RecentDraftsListHandle } from './recent-drafts-list'
 
@@ -89,7 +90,10 @@ function assembleBody(templateId: string, formData: TemplateFormData): string {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type PageMode = 'home' | 'list' | 'details' | 'inline-preview'
+type PageMode = 'workspace' | 'details' | 'inline-preview'
+const DRAFTING_PANEL_WIDTH_KEY = 'knowlex_drafting_recent_panel_width'
+const MIN_PANEL_WIDTH = 260
+const MAX_PANEL_WIDTH = 460
 
 interface InlinePreview {
   docId: string
@@ -127,11 +131,33 @@ function DraftPreviewSkeleton() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+function DraftsPanelReopenButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm font-medium text-kx-text-primary hover:bg-ledger-gray-100 dark:hover:bg-ledger-gray-800 transition-colors flex-shrink-0"
+      title="Show drafts"
+    >
+      <PanelLeft className="h-4 w-4 text-ledger-gray-500" />
+      <span>Drafts</span>
+    </button>
+  )
+}
+
 export function DraftingPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const { setSidebarCollapsed } = useUIState()
 
-  const [mode, setMode] = useState<PageMode>('home')
+  const [mode, setMode] = useState<PageMode>('workspace')
+  const [panelOpen, setPanelOpen] = useState(true)
+  const [panelWidth, setPanelWidth] = useState<number>(() => {
+    const raw = localStorage.getItem(DRAFTING_PANEL_WIDTH_KEY)
+    const parsed = raw ? Number(raw) : NaN
+    return Number.isFinite(parsed) ? Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, parsed)) : 288
+  })
+  const pageRootRef = useRef<HTMLDivElement>(null)
 
   // Template selection
   const [selectedTemplate, setSelectedTemplate] = useState<DraftTemplate | null>(null)
@@ -147,6 +173,14 @@ export function DraftingPage() {
   const [refFiles, setRefFiles] = useState<File[]>([])
   const [uploadedFileIds, setUploadedFileIds] = useState<string[]>([])
   const [isUploadingFiles, setIsUploadingFiles] = useState(false)
+  const [customTitle, setCustomTitle] = useState('')
+  const [customPrompt, setCustomPrompt] = useState('')
+  const [customLanguage, setCustomLanguage] = useState<Language | ''>('')
+  const [customCaseId, setCustomCaseId] = useState('')
+  const [customRefFiles, setCustomRefFiles] = useState<File[]>([])
+  const [customUploadedFileIds, setCustomUploadedFileIds] = useState<string[]>([])
+  const [isUploadingCustomFiles, setIsUploadingCustomFiles] = useState(false)
+  const [isSubmittingCustom, setIsSubmittingCustom] = useState(false)
 
   // Upgrade modal
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
@@ -161,9 +195,32 @@ export function DraftingPage() {
   // submission. Completion toasts are owned by the global <DraftTracker />.
   const recentDraftsRef = useRef<RecentDraftsListHandle>(null)
 
-  // Fetch cases when entering details step
+  useEffect(() => { setSidebarCollapsed(true) }, [setSidebarCollapsed])
   useEffect(() => {
-    if (mode !== 'details') return
+    localStorage.setItem(DRAFTING_PANEL_WIDTH_KEY, String(panelWidth))
+  }, [panelWidth])
+
+  const handlePanelResizeStart = (e: ReactMouseEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const pageLeft = pageRootRef.current?.getBoundingClientRect().left ?? 0
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const next = moveEvent.clientX - pageLeft
+      setPanelWidth(Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, next)))
+    }
+    const onMouseUp = () => {
+      document.body.style.userSelect = ''
+      document.body.style.cursor = ''
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }
+
+  // Fetch cases for custom + template case linking
+  useEffect(() => {
     caseApi.getAll({ size: 50 }).then(res => {
       if (res.status === 'success') {
         setCases(res.data.content.map((c: BackendCase) => ({
@@ -172,7 +229,7 @@ export function DraftingPage() {
         })))
       }
     }).catch(() => {})
-  }, [mode])
+  }, [])
 
   // Init form when template selected
   useEffect(() => {
@@ -186,9 +243,8 @@ export function DraftingPage() {
     setFormData(initial)
   }, [selectedTemplate])
 
-  // Auto-focus search on landing
   useEffect(() => {
-    if (mode === 'list') setTimeout(() => searchInputRef.current?.focus(), 50)
+    if (mode === 'workspace') setTimeout(() => searchInputRef.current?.focus(), 50)
   }, [mode])
 
   // ── Computed ──
@@ -241,6 +297,70 @@ export function DraftingPage() {
     setUploadedFileIds(prev => prev.filter((_, i) => i !== idx))
   }
 
+  const handleCustomFilesSelected = async (files: File[]) => {
+    setCustomRefFiles(prev => [...prev, ...files])
+    setIsUploadingCustomFiles(true)
+    try {
+      const ids = await Promise.all(files.map(f => uploadToolboxFile(f)))
+      setCustomUploadedFileIds(prev => [...prev, ...ids])
+    } catch { /* ignore */ }
+    finally { setIsUploadingCustomFiles(false) }
+  }
+
+  const handleRemoveCustomFile = (idx: number) => {
+    setCustomRefFiles(prev => prev.filter((_, i) => i !== idx))
+    setCustomUploadedFileIds(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  const resetCustomComposer = () => {
+    setCustomTitle('')
+    setCustomPrompt('')
+    setCustomLanguage('')
+    setCustomCaseId('')
+    setCustomRefFiles([])
+    setCustomUploadedFileIds([])
+  }
+
+  const customTitleValue = customTitle.trim()
+  const customPromptValue = customPrompt.trim()
+  const isGenerateCustomEnabled =
+    customTitleValue.length > 0 &&
+    customPromptValue.length >= 10 &&
+    !isSubmittingCustom
+
+  const handleGenerateCustom = async () => {
+    if (!isGenerateCustomEnabled) {
+      if (!customTitleValue) toast({ title: 'Title is required', variant: 'destructive' })
+      else if (customPromptValue.length < 10) toast({ title: 'Prompt must be at least 10 characters', variant: 'destructive' })
+      return
+    }
+    setIsSubmittingCustom(true)
+    const hasFiles = customUploadedFileIds.length > 0
+    const request: CreateDraftRequest = {
+      title: customTitleValue,
+      document_type: 'legal_notice',
+      input_mode: hasFiles ? 'file' : 'freetext',
+      freetext_body: customPromptValue,
+      file_ids: hasFiles ? customUploadedFileIds : undefined,
+      language: customLanguage || undefined,
+    }
+    try {
+      const res = await draftsApi.createStandalone(request, customCaseId || undefined)
+      if (!res.data) throw new Error('No data returned')
+      trackJob(res.data.id, customTitleValue)
+      resetCustomComposer()
+      setTimeout(() => recentDraftsRef.current?.refresh(), 0)
+      toast({ title: 'Generating custom draft…', description: "We'll notify you when it's ready." })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to start custom draft generation'
+      const isLimitError = /limit|upgrade|quota/i.test(message)
+      if (isLimitError) setShowUpgradeModal(true)
+      else toast({ title: message, variant: 'destructive' })
+    } finally {
+      setIsSubmittingCustom(false)
+    }
+  }
+
   const handleGenerate = async () => {
     if (!selectedTemplate || isSubmitting) return
     setIsSubmitting(true)
@@ -288,7 +408,7 @@ export function DraftingPage() {
       // the user navigates to next. The list refreshes once it remounts.
       trackJob(newDocId, label)
       resetWizard()
-      setMode('home')
+      setMode('workspace')
       setTimeout(() => recentDraftsRef.current?.refresh(), 0)
       toast({ title: 'Generating draft…', description: "We'll notify you when it's ready." })
     } catch (err) {
@@ -362,327 +482,353 @@ export function DraftingPage() {
     return unsubscribe
   }, [pendingDocId])
 
-  const handleBackToList = () => {
+  const handleBackToWorkspace = () => {
     setInlinePreview(null)
-    setMode('home')
+    setMode('workspace')
   }
 
   const handleRetryFromFailed = () => {
     setInlinePreview(null)
-    setMode('list')
+    setMode('workspace')
   }
 
   // ── Render ──
 
-  // ═══ Inline preview ═══
-  if (mode === 'inline-preview' && inlinePreview) {
-    return (
-      <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
-        <div className="flex items-center gap-3 mb-4 flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleBackToList}
-            className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to drafts
-          </button>
-          <div className="h-4 w-px bg-ledger-gray-200" />
-          <h1 className="text-base font-semibold text-kx-primary-900 truncate">{inlinePreview.title}</h1>
-        </div>
-
-        {inlinePreview.status === 'loading' ? (
-          <DraftPreviewSkeleton />
-        ) : inlinePreview.status === 'pending' ? (
-          <GeneratingState label="Draft" />
-        ) : inlinePreview.status === 'failed' ? (
-          <div className="flex flex-col flex-1 items-center justify-center gap-4">
-            <AlertCircle className="h-10 w-10 text-red-400" />
-            <p className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200">Draft generation failed</p>
-            <p className="text-xs text-ledger-gray-400 text-center max-w-xs">Something went wrong with this draft.</p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleBackToList}>
-                Back to drafts
-              </Button>
-              <Button size="sm" onClick={handleRetryFromFailed} className="bg-kx-primary-600 hover:bg-kx-primary-700 text-white">
-                Try again
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <DocumentEditor
-            documentId={inlinePreview.docId}
-            documentTitle={inlinePreview.title}
-            className="flex-1"
+  return (
+    <div ref={pageRootRef} className="flex h-full bg-kx-surface overflow-hidden">
+      {panelOpen && (
+        <div style={{ width: panelWidth }} className="flex-shrink-0 overflow-hidden flex flex-col">
+          <RecentDraftsList
+            ref={recentDraftsRef}
+            onOpenDraft={handleOpenDraft}
+            onCollapse={() => setPanelOpen(false)}
           />
-        )}
-      </div>
-    )
-  }
-
-  // ═══ Details (form) ═══
-  if (mode === 'details' && selectedTemplate) {
-    return (
-      <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)' }}>
-        <div className="flex items-center gap-3 mb-5 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => { resetWizard(); setMode('list') }}
-            className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Cancel
-          </button>
-          <div className="h-4 w-px bg-ledger-gray-200" />
-          <h1 className="text-lg font-serif font-semibold text-kx-primary-900">
-            {selectedTemplate.name}
-          </h1>
         </div>
+      )}
+      {panelOpen && (
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          onMouseDown={handlePanelResizeStart}
+          className="w-1.5 cursor-col-resize bg-transparent hover:bg-kx-primary-100 dark:hover:bg-kx-primary-900/30 transition-colors flex-shrink-0"
+          title="Resize panel"
+        />
+      )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto pb-6">
-          <div className="max-w-2xl mx-auto">
-            <p className="text-sm text-ledger-gray-500 mb-5">
-              Only the title is required. AI will use your documents to fill in missing details.
-            </p>
-
-            {/* Case selector + file upload */}
-            <div className="space-y-4 mb-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
-                    Link to Case <span className="text-ledger-gray-400 font-normal">(optional)</span>
-                  </Label>
-                  <Select value={selectedCaseId} onChange={e => setSelectedCaseId(e.target.value)} searchable searchPlaceholder="Search cases...">
-                    <option value="">No case — standalone draft</option>
-                    {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                  </Select>
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {mode === 'inline-preview' && inlinePreview ? (
+          <>
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-kx-card-border bg-kx-card flex-shrink-0">
+              {!panelOpen && <DraftsPanelReopenButton onClick={() => setPanelOpen(true)} />}
+              <button
+                type="button"
+                onClick={handleBackToWorkspace}
+                className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors flex-shrink-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </button>
+              <div className="h-4 w-px bg-ledger-gray-200 flex-shrink-0" />
+              <h1 className="text-base font-semibold text-kx-primary-900 truncate min-w-0">{inlinePreview.title}</h1>
+            </div>
+            <div className="flex-1 min-h-0 flex flex-col">
+              {inlinePreview.status === 'loading' ? (
+                <DraftPreviewSkeleton />
+              ) : inlinePreview.status === 'pending' ? (
+                <GeneratingState label="Draft" />
+              ) : inlinePreview.status === 'failed' ? (
+                <div className="flex flex-col flex-1 items-center justify-center gap-4">
+                  <AlertCircle className="h-10 w-10 text-red-400" />
+                  <p className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-200">Draft generation failed</p>
+                  <p className="text-xs text-ledger-gray-400 text-center max-w-xs">Something went wrong with this draft.</p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleBackToWorkspace}>
+                      Back to drafts
+                    </Button>
+                    <Button size="sm" onClick={handleRetryFromFailed} className="bg-kx-primary-600 hover:bg-kx-primary-700 text-white">
+                      Try again
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
-                    Reference Files <span className="text-ledger-gray-400 font-normal">(optional)</span>
-                  </Label>
-                  <CompactFileUpload
-                    accept=".pdf,.doc,.docx,.txt"
-                    selectedFiles={refFiles}
-                    onFilesSelected={handleFilesSelected}
-                    onRemoveFile={handleRemoveFile}
-                    isUploading={isUploadingFiles}
-                  />
+              ) : (
+                <DocumentEditor
+                  documentId={inlinePreview.docId}
+                  documentTitle={inlinePreview.title}
+                  className="flex-1 min-h-0"
+                />
+              )}
+            </div>
+          </>
+        ) : mode === 'details' && selectedTemplate ? (
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-kx-card-border bg-kx-card flex-shrink-0">
+              {!panelOpen && <DraftsPanelReopenButton onClick={() => setPanelOpen(true)} />}
+              <button
+                type="button"
+                onClick={() => { resetWizard(); setMode('workspace') }}
+                className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors flex-shrink-0"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Cancel
+              </button>
+              <div className="h-4 w-px bg-ledger-gray-200 flex-shrink-0" />
+              <h1 className="text-lg font-serif font-semibold text-kx-primary-900 truncate min-w-0">
+                {selectedTemplate.name}
+              </h1>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin app-scroll px-4 md:px-6 py-5">
+              <div className="max-w-2xl mx-auto">
+                <p className="text-sm text-ledger-gray-500 mb-5">
+                  Only the title is required. AI will use your documents to fill in missing details.
+                </p>
+
+                <div className="space-y-4 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                        Link to Case <span className="text-ledger-gray-400 font-normal">(optional)</span>
+                      </Label>
+                      <Select value={selectedCaseId} onChange={e => setSelectedCaseId(e.target.value)} searchable searchPlaceholder="Search cases...">
+                        <option value="">No case — standalone draft</option>
+                        {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                        Reference Files <span className="text-ledger-gray-400 font-normal">(optional)</span>
+                      </Label>
+                      <CompactFileUpload
+                        accept=".pdf,.doc,.docx,.txt"
+                        selectedFiles={refFiles}
+                        onFilesSelected={handleFilesSelected}
+                        onRemoveFile={handleRemoveFile}
+                        isUploading={isUploadingFiles}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {orderedFields.map(field => {
+                    const isRequired = field.id === 'title'
+                    const colSpan = field.id === 'title' || field.type === 'textarea' || field.type === 'client-select' ? 'md:col-span-2' : ''
+
+                    if (field.type === 'select') {
+                      return (
+                        <div key={field.id} className={cn('space-y-1.5', colSpan)}>
+                          <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                            {field.label}{isRequired && <span className="text-red-500 ml-1">*</span>}
+                          </Label>
+                          <Select
+                            value={(formData[field.id] as string) || ''}
+                            onChange={e => handleFieldChange(field.id, e.target.value)}
+                          >
+                            {field.options?.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                          </Select>
+                        </div>
+                      )
+                    }
+
+                    if (field.type === 'textarea' || field.type === 'client-select') {
+                      return (
+                        <div key={field.id} className={cn('space-y-1.5', colSpan)}>
+                          <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                            {field.label}{isRequired && <span className="text-red-500 ml-1">*</span>}
+                          </Label>
+                          <Textarea
+                            value={(formData[field.id] as string) || ''}
+                            onChange={e => handleFieldChange(field.id, e.target.value)}
+                            placeholder={field.placeholder || 'AI will extract from documents if left blank'}
+                            className="min-h-[80px] resize-none rounded-lg border-ledger-gray-200 dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100"
+                          />
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div key={field.id} className={cn('space-y-1.5', colSpan)}>
+                        <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                          {field.label}{isRequired && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        <Input
+                          value={(formData[field.id] as string) || ''}
+                          onChange={e => handleFieldChange(field.id, e.target.value)}
+                          placeholder={field.placeholder}
+                          className="rounded-lg border-ledger-gray-200 dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100"
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
 
-            {/* Template fields */}
-            <div className="grid grid-cols-2 gap-4">
-              {orderedFields.map(field => {
-                const isRequired = field.id === 'title'
-                const colSpan = field.id === 'title' || field.type === 'textarea' || field.type === 'client-select' ? 'col-span-2' : 'col-span-1'
+            <div className="flex items-center justify-end px-4 md:px-6 py-4 border-t border-kx-card-border flex-shrink-0 bg-kx-card">
+              <Button
+                onClick={handleGenerate}
+                disabled={!isGenerateEnabled}
+                className="gap-2 rounded-lg px-6 bg-kx-primary-600 hover:bg-kx-primary-700 text-white text-sm"
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {isSubmitting ? 'Starting…' : 'Generate Draft'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+            {!panelOpen && (
+              <div className="flex items-center px-4 py-2 border-b border-kx-card-border bg-kx-card flex-shrink-0">
+                <DraftsPanelReopenButton onClick={() => setPanelOpen(true)} />
+              </div>
+            )}
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin app-scroll px-4 md:px-6 py-5">
+              <div className="mb-5">
+                <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Drafts</h2>
+                <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
+                  Generate legal documents with AI from predefined templates.
+                </p>
+              </div>
 
-                if (field.type === 'select') {
-                  return (
-                    <div key={field.id} className={cn('space-y-1.5', colSpan)}>
-                      <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
-                        {field.label}{isRequired && <span className="text-red-500 ml-1">*</span>}
-                      </Label>
-                      <Select
-                        value={(formData[field.id] as string) || ''}
-                        onChange={e => handleFieldChange(field.id, e.target.value)}
-                      >
-                        {field.options?.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                      </Select>
-                    </div>
-                  )
-                }
-
-                if (field.type === 'textarea' || field.type === 'client-select') {
-                  return (
-                    <div key={field.id} className={cn('space-y-1.5', colSpan)}>
-                      <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
-                        {field.label}{isRequired && <span className="text-red-500 ml-1">*</span>}
-                      </Label>
-                      <Textarea
-                        value={(formData[field.id] as string) || ''}
-                        onChange={e => handleFieldChange(field.id, e.target.value)}
-                        placeholder={field.placeholder || 'AI will extract from documents if left blank'}
-                        className="min-h-[80px] resize-none rounded-lg border-ledger-gray-200 dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100"
-                      />
-                    </div>
-                  )
-                }
-
-                return (
-                  <div key={field.id} className={cn('space-y-1.5', colSpan)}>
+              <section className="rounded-xl border border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card p-4 md:p-5 mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles className="h-4 w-4 text-kx-primary-600" />
+                  <h3 className="text-base font-semibold text-kx-text-primary">Custom Prompt Draft</h3>
+                </div>
+                <p className="text-xs text-ledger-gray-500 dark:text-ledger-gray-400 mb-4">
+                  Describe what to draft, optionally attach reference files, and generate instantly.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
                     <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
-                      {field.label}{isRequired && <span className="text-red-500 ml-1">*</span>}
+                      Draft Title <span className="text-red-500 ml-1">*</span>
                     </Label>
                     <Input
-                      value={(formData[field.id] as string) || ''}
-                      onChange={e => handleFieldChange(field.id, e.target.value)}
-                      placeholder={field.placeholder}
+                      value={customTitle}
+                      onChange={(e) => setCustomTitle(e.target.value)}
+                      placeholder="e.g., Reply Notice for XYZ"
                       className="rounded-lg border-ledger-gray-200 dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100"
                     />
                   </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end py-4 border-t border-kx-card-border flex-shrink-0">
-          <Button
-            onClick={handleGenerate}
-            disabled={!isGenerateEnabled}
-            className="gap-2 rounded-lg px-6 bg-kx-primary-600 hover:bg-kx-primary-700 text-white text-sm"
-          >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {isSubmitting ? 'Starting…' : 'Generate Draft'}
-          </Button>
-        </div>
-
-        {/* Upgrade modal */}
-        <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} onUpgrade={() => navigate('/settings/billing')} />
-      </div>
-    )
-  }
-
-  // ═══ Home splash: choose between predefined / custom + recent drafts ═══
-  if (mode === 'home') {
-    return (
-      <div className="pb-10 max-w-4xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
-          <div>
-            <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Drafts</h2>
-            <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
-              Generate legal documents with AI. Start from a built-in template or your own.
-            </p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-10">
-          <button
-            type="button"
-            onClick={() => setMode('list')}
-            className="group text-left rounded-xl border border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card p-6 shadow-sm hover:shadow-md hover:border-kx-primary-300 dark:hover:border-kx-primary-700 transition-all"
-          >
-            <div className="h-12 w-12 rounded-lg bg-kx-primary-100 dark:bg-kx-primary-900/40 flex items-center justify-center mb-4 group-hover:bg-kx-primary-200 dark:group-hover:bg-kx-primary-900/60 transition-colors">
-              <Sparkles className="h-6 w-6 text-kx-primary-600 dark:text-kx-primary-400" />
-            </div>
-            <h2 className="text-lg font-semibold text-kx-text-primary mb-1">Predefined Templates</h2>
-            <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mb-4">
-              Legal document templates — notices, affidavits, petitions, bail applications, and more.
-            </p>
-            <span className="text-sm font-medium text-kx-primary-600 dark:text-kx-primary-400 group-hover:underline">
-              Get Started &rarr;
-            </span>
-          </button>
-          <div className="relative rounded-xl border border-ledger-gray-200 dark:border-ledger-gray-700 bg-kx-card p-6 shadow-sm opacity-60 cursor-not-allowed">
-            <div className="absolute top-4 right-4">
-              <span className="inline-flex items-center gap-1 rounded-full bg-ledger-gray-100 dark:bg-ledger-gray-800 px-2.5 py-0.5 text-xs font-medium text-ledger-gray-500 dark:text-ledger-gray-400">
-                <Lock className="h-3 w-3" />
-                Coming Soon
-              </span>
-            </div>
-            <div className="h-12 w-12 rounded-lg bg-ledger-gray-100 dark:bg-ledger-gray-800 flex items-center justify-center mb-4">
-              <FileText className="h-6 w-6 text-ledger-gray-400 dark:text-ledger-gray-500" />
-            </div>
-            <h2 className="text-lg font-semibold text-kx-text-primary mb-1">Custom Templates</h2>
-            <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400">
-              Create and save your own templates. Define fields, structure, and reuse across cases.
-            </p>
-          </div>
-        </div>
-
-        {/* Recent drafts */}
-        <RecentDraftsList
-          ref={recentDraftsRef}
-          onOpenDraft={handleOpenDraft}
-        />
-
-        <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} onUpgrade={() => navigate('/settings/billing')} />
-      </div>
-    )
-  }
-
-  // ═══ Predefined templates landing: templates grid + recent drafts list ═══
-  return (
-    <div className="pb-10">
-      <div className="mb-4 md:mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <button
-            type="button"
-            onClick={() => setMode('home')}
-            className="flex items-center gap-1.5 text-sm text-ledger-gray-500 hover:text-kx-primary-600 transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </button>
-          <div className="h-4 w-px bg-ledger-gray-200" />
-          <h2 className="text-xl md:text-2xl font-serif font-semibold text-kx-primary-900">Predefined Templates</h2>
-        </div>
-        <p className="text-sm text-ledger-gray-500 dark:text-ledger-gray-400 mt-1">
-          Pick a template to generate a new draft.
-        </p>
-      </div>
-
-      {/* Templates */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-kx-text-primary">Templates</h2>
-          <div className="relative w-full max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search templates..."
-              className={cn(
-                'w-full h-9 pl-9 pr-8 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-700',
-                'bg-white dark:bg-ledger-gray-800 text-sm text-kx-primary-900 dark:text-ledger-gray-100',
-                'placeholder:text-ledger-gray-400 focus:outline-none focus:border-kx-primary-500',
-              )}
-            />
-            {searchQuery && (
-              <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-ledger-gray-400 hover:text-ledger-gray-600">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {filteredTemplates.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-ledger-gray-200 rounded-lg">
-            <Search className="h-8 w-8 text-ledger-gray-300 mb-2" />
-            <p className="text-sm font-medium text-ledger-gray-500">No templates match &ldquo;{searchQuery}&rdquo;</p>
-            <button type="button" onClick={() => setSearchQuery('')} className="mt-2 text-xs text-kx-primary-600 hover:underline">Clear search</button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-            {filteredTemplates.map(t => {
-              const Icon = iconMap[t.icon] || FileText
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => handleSelectTemplate(t)}
-                  className={cn(
-                    'group flex flex-col gap-3 p-4 rounded-xl border text-left transition-all duration-150 hover:shadow-md hover:-translate-y-[1px]',
-                    'border-ledger-gray-200 dark:border-ledger-gray-700 bg-white dark:bg-ledger-gray-800 hover:border-kx-primary-300 dark:hover:border-kx-primary-700',
-                  )}
-                >
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-500 group-hover:bg-kx-primary-100 group-hover:text-kx-primary-600 transition-colors">
-                    <Icon className="h-5 w-5" />
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                      Link to Case <span className="text-ledger-gray-400 font-normal">(optional)</span>
+                    </Label>
+                    <Select value={customCaseId} onChange={e => setCustomCaseId(e.target.value)} searchable searchPlaceholder="Search cases...">
+                      <option value="">No case — standalone draft</option>
+                      {cases.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                    </Select>
                   </div>
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <p className="font-semibold text-sm leading-snug text-kx-primary-900 dark:text-ledger-gray-100">{t.name}</p>
-                    <p className="text-xs text-ledger-gray-500 dark:text-ledger-gray-400 line-clamp-2 leading-relaxed">{t.description}</p>
+                  <div className="md:col-span-2 space-y-1.5">
+                    <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                      Draft Prompt <span className="text-red-500 ml-1">*</span>
+                    </Label>
+                    <Textarea
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      placeholder="Explain what to draft. Include parties, facts, legal grounds, relief, tone, and format."
+                      className="min-h-[120px] resize-y rounded-lg border-ledger-gray-200 dark:bg-ledger-gray-900 dark:border-ledger-gray-600 dark:text-ledger-gray-100"
+                    />
+                    <p className="text-[11px] text-ledger-gray-500">Minimum 10 characters.</p>
                   </div>
-                </button>
-              )
-            })}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                      Language <span className="text-ledger-gray-400 font-normal">(optional)</span>
+                    </Label>
+                    <Select value={customLanguage} onChange={e => setCustomLanguage(e.target.value as Language | '')}>
+                      <option value="">Default</option>
+                      <option value="english">English</option>
+                      <option value="hindi">Hindi</option>
+                      <option value="bilingual">Bilingual</option>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-ledger-gray-700 dark:text-ledger-gray-300">
+                      Reference Files <span className="text-ledger-gray-400 font-normal">(optional)</span>
+                    </Label>
+                    <CompactFileUpload
+                      accept=".pdf,.doc,.docx,.txt"
+                      selectedFiles={customRefFiles}
+                      onFilesSelected={handleCustomFilesSelected}
+                      onRemoveFile={handleRemoveCustomFile}
+                      isUploading={isUploadingCustomFiles}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <Button
+                    onClick={handleGenerateCustom}
+                    disabled={!isGenerateCustomEnabled}
+                    className="gap-2 rounded-lg px-5 bg-kx-primary-600 hover:bg-kx-primary-700 text-white text-sm"
+                  >
+                    {isSubmittingCustom ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                    {isSubmittingCustom ? 'Starting…' : 'Generate Draft'}
+                  </Button>
+                </div>
+              </section>
+
+              <section>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <h3 className="text-base font-semibold text-kx-text-primary">Predefined templates</h3>
+                  <div className="relative w-full sm:max-w-xs">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ledger-gray-400 pointer-events-none" />
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      placeholder="Search templates..."
+                      className={cn(
+                        'w-full h-9 pl-9 pr-8 rounded-lg border border-ledger-gray-200 dark:border-ledger-gray-700',
+                        'bg-white dark:bg-ledger-gray-800 text-sm text-kx-primary-900 dark:text-ledger-gray-100',
+                        'placeholder:text-ledger-gray-400 focus:outline-none focus:border-kx-primary-500',
+                      )}
+                    />
+                    {searchQuery && (
+                      <button type="button" onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-ledger-gray-400 hover:text-ledger-gray-600">
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {filteredTemplates.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-ledger-gray-200 rounded-lg">
+                    <Search className="h-8 w-8 text-ledger-gray-300 mb-2" />
+                    <p className="text-sm font-medium text-ledger-gray-500">No templates match &ldquo;{searchQuery}&rdquo;</p>
+                    <button type="button" onClick={() => setSearchQuery('')} className="mt-2 text-xs text-kx-primary-600 hover:underline">Clear search</button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                    {filteredTemplates.map(t => {
+                      const Icon = iconMap[t.icon] || FileText
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => handleSelectTemplate(t)}
+                          className={cn(
+                            'group flex flex-col gap-3 p-4 rounded-xl border text-left transition-all duration-150 hover:shadow-md hover:-translate-y-[1px]',
+                            'border-ledger-gray-200 dark:border-ledger-gray-700 bg-white dark:bg-ledger-gray-800 hover:border-kx-primary-300 dark:hover:border-kx-primary-700',
+                          )}
+                        >
+                          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-ledger-gray-100 dark:bg-ledger-gray-700 text-ledger-gray-500 group-hover:bg-kx-primary-100 group-hover:text-kx-primary-600 transition-colors">
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <p className="font-semibold text-sm leading-snug text-kx-primary-900 dark:text-ledger-gray-100">{t.name}</p>
+                            <p className="text-xs text-ledger-gray-500 dark:text-ledger-gray-400 line-clamp-2 leading-relaxed">{t.description}</p>
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         )}
-      </section>
+      </div>
 
       <UpgradeModal open={showUpgradeModal} onOpenChange={setShowUpgradeModal} onUpgrade={() => navigate('/settings/billing')} />
     </div>
