@@ -77,6 +77,10 @@ interface DocumentStatusPayload {
   error: string | null
 }
 
+interface DocumentSourcePayload {
+  sourceDocumentId: string | null
+}
+
 function isTerminalStatus(status: string | null | undefined): boolean {
   if (!status) return false
   const s = status.toUpperCase()
@@ -296,6 +300,13 @@ export const workspaceApi = {
     }
     const blob = await response.blob()
     return URL.createObjectURL(blob)
+  },
+
+  async resolveSourceDocumentId(documentId: string): Promise<string> {
+    const response = await apiClient.get<ApiResponse<DocumentSourcePayload>>(
+      `/api/v1/documents/${documentId}/source`
+    )
+    return response.data?.sourceDocumentId ?? ''
   },
 
   /**

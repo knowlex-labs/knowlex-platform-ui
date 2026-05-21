@@ -59,6 +59,13 @@ function sourceBaseName(translated: DocumentRecord): string {
 }
 
 async function findSourceDocId(translated: DocumentRecord): Promise<string> {
+  if (translated.sourceDocumentId) return translated.sourceDocumentId
+  try {
+    const resolved = await workspaceApi.resolveSourceDocumentId(translated.id)
+    if (resolved) return resolved
+  } catch {
+    // Fall through to legacy name-based lookup.
+  }
   const base = sourceBaseName(translated)
   if (!base) return ''
   try {
@@ -228,7 +235,7 @@ export function TranslationPage() {
 
     setActiveJob({
       translatedDocId: doc.id,
-      sourceDocId: '',
+      sourceDocId: doc.sourceDocumentId ?? '',
       sourceFileName: sourceBaseName(doc) || doc.originalFilename || doc.name || 'Document',
       targetLang: doc.subType ?? '',
       viewerStatus,
