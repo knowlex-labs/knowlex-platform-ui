@@ -38,6 +38,7 @@ export interface CreateDraftRequest {
   document_type: DocumentType
   input_mode: InputMode
   subtype?: string
+  // Prompt instructions can be provided with or without file_ids.
   freetext_body?: string
   file_ids?: string[]
   language?: Language

@@ -17,6 +17,7 @@ export interface GetClientsParams {
   page?: number
   size?: number
   clientType?: BackendClientType
+  q?: string
 }
 
 export const clientApi = {
@@ -29,13 +30,16 @@ export const clientApi = {
   },
 
   getAll: (params: GetClientsParams = {}): Promise<ApiResponse<PaginatedData<BackendClient>>> => {
-    const { page = 0, size = 20, clientType } = params
+    const { page = 0, size = 20, clientType, q } = params
     const searchParams = new URLSearchParams({
       page: String(page),
       size: String(size),
     })
     if (clientType) {
       searchParams.append('clientType', clientType)
+    }
+    if (q?.trim()) {
+      searchParams.append('q', q.trim())
     }
     return apiClient.get<ApiResponse<PaginatedData<BackendClient>>>(
       `${CLIENTS_ENDPOINT}?${searchParams}`

@@ -103,6 +103,7 @@ export interface DocumentRecord {
   jobId: string | null
   indexingStatus: string | null
   filePath: string | null
+  sourceDocumentId?: string | null
   /** S3 key for the canonical Tiptap-JSON edit state. Non-null implies the doc has
    *  been opened in the in-place editor at least once. */
   editStatePath: string | null

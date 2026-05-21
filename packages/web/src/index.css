@@ -390,6 +390,13 @@
     background-color: var(--ledger-gray-500);
   }
 
+  .app-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+  }
+
   /* Hide scrollbar on mobile for cleaner look */
   @media (max-width: 767px) {
     .scrollbar-thin {
@@ -531,6 +538,7 @@
 .legal-document p {
   margin: 8px 0;
   line-height: 1.5;
+  text-align: justify;
 }
 
 .legal-document strong {

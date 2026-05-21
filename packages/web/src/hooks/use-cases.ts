@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { caseApi, ApiError } from '@knowlex/core/api'
 import { mapBackendCases } from '@knowlex/core/mappers'
+import { getPaginationMeta } from '@knowlex/core/utils'
 import type { Case, BackendCaseStatus } from '@knowlex/core/types'
 
 interface UseCasesOptions {
@@ -51,8 +52,9 @@ export function useCases(options: UseCasesOptions = {}): UseCasesResult {
       const mappedCases = mapBackendCases(paginatedData.content)
 
       setCases(mappedCases)
-      setTotalElements(paginatedData.totalElements)
-      setTotalPages(paginatedData.totalPages)
+      const pagination = getPaginationMeta(paginatedData)
+      setTotalElements(pagination.totalElements)
+      setTotalPages(pagination.totalPages)
     } catch (err) {
       const message =
         err instanceof ApiError
